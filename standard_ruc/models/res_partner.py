@@ -7,7 +7,7 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     obviar_validacion = fields.Boolean(string='Obviar validación de RUT', default=False)
-    vat = fields.Char(string="RUC", index=True)
+    vat = fields.Char(string="RUT", index=True)
 
     def clear_vat(self, vat):
         allowed_characters = '1234567890-'
