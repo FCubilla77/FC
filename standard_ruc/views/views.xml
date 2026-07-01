@@ -7,7 +7,7 @@
             <field name="inherit_id" ref="base.view_company_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='vat']" position="replace">
-                    <field name="vat" string="RUC" required="False"/>
+                    <field name="vat" string="RUT" required="False"/>
                 </xpath>
             </field>
         </record>
@@ -20,7 +20,7 @@
                     <field name="obviar_validacion" string="No validar RUC" readonly="parent_id != False"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="replace">
-                    <field name="vat" string="RUC" readonly="parent_id != False"/>
+                    <field name="vat" string="RUT" readonly="parent_id != False"/>
                 </xpath>
 
             </field>

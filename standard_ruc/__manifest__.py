@@ -23,6 +23,6 @@
         "data/data.xml",
         "views/views.xml",
     ],
-    "catalogo_tipo_entrada": "H",
-    "catalogo_padre": "Local_",
+    "catalogo_tipo": "H",
+    "catalogo_superior": "Local_",
 }
