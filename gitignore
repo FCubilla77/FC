@@ -1,0 +1,30 @@
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === Entornos virtuales ===
+venv/
+env/
+.venv/
+
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Editores ===
+.vscode/
+.idea/
+*.swp
+
+# === Odoo ===
+*.log
+*.pot
+filestore/
+sessions/
+
+# === Archivos de configuración local (contraseñas, rutas locales) ===
+odoo.conf
+*.local.conf
