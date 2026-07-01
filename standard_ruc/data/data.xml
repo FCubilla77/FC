@@ -1,0 +1,7 @@
+<odoo>
+    <data>
+        <record id="base.py" model="res.country">
+            <field name="vat_label">RUC</field>
+        </record>
+    </data>
+</odoo>
