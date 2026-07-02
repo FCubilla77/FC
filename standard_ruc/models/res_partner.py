@@ -6,7 +6,7 @@ import re
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
-    obviar_validacion = fields.Boolean(string='Obviar validación de RUC', default=False)
+    obviar_validacion = fields.Boolean(string='Obviar validación de RUT', default=False)
     vat = fields.Char(string="RUC", index=True)
 
     def clear_vat(self, vat):
@@ -32,9 +32,9 @@ class ResPartner(models.Model):
                         ruc_dig = ruc_das[1]
                         ruc_proper_dig = str(this.digito_verificador(ruc))
                         if ruc_proper_dig != ruc_dig:
-                            raise exceptions.ValidationError("El digito verificador deberia de ser " + ruc_proper_dig)
+                            raise exceptions.ValidationError("El digito verificador debería de ser :" + ruc_proper_dig)
                     else:
-                        raise exceptions.ValidationError("Error de formato de RUC! (Ejemplo: 12345678-9)")
+                        raise exceptions.ValidationError("Error de formato de RUT...!!! (Ejemplo: 12345678-9)")
                     if this.vat != ruc:
                         this.vat = ruc
 

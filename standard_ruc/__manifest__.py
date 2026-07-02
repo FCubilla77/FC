@@ -5,15 +5,15 @@
         Cambia los formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido""",
     "description": """
-        Cambia los formularios y reportes y les asigna el nombre RUT,
+        Cambia los formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido
     """,
-    "author": ": F.C.",
+    "author": ": FC_",
     "website": "http://www.www.com.py",
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
-    "category": "Localizaciones",
+    "category": "Local",
     "version": "20260101.2",
     "license": "LGPL-3",
     # any module necessary for this one to work correctly
@@ -23,6 +23,6 @@
         "data/data.xml",
         "views/views.xml",
     ],
-    "catalogo_tipo_entrada": "Hijo",
-    "catalogo_padre": "loc_fiscal_itf_v01",
+    "catalogo_tipo": "H",
+    "catalogo_superior": "local",
 }
