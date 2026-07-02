@@ -2,19 +2,19 @@
 {
     "name": "Standard RUC",
     "summary": """
-        Cambia las traducciones de los formularios y reportes y les asigna el nombre RUC,
-         en algunos casos los pone como requeridos""",
+        Cambia los formularios y reportes asignando el nombre RUT,
+         en algunos casos es un dato requerido""",
     "description": """
-        Cambia las traducciones de los formularios y reportes y les asigna el nombre RUC,
-         en algunos casos los pone como requeridos
+        Cambia los formularios y reportes y les asigna el nombre RUT,
+         en algunos casos es un dato requerido
     """,
-    "author": "Interfaces S.A.",
-    "website": "http://www.interfaces.com.py",
+    "author": "F.C.",
+    "website": "http://www.www.com.py",
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
     "category": "Localizaciones",
-    "version": "20240506.1",
+    "version": "20260101.2",
     "license": "LGPL-3",
     # any module necessary for this one to work correctly
     "depends": ["base"],
