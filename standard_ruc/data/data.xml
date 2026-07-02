@@ -1,7 +1,7 @@
 <odoo>
     <data>
         <record id="base.py" model="res.country">
-            <field name="vat_label">RUC</field>
+            <field name="vat_label">RUT</field>
         </record>
     </data>
 </odoo>
