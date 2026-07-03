@@ -1,7 +1,7 @@
 <odoo>
     <data>
 
-        <record model="ir.ui.view" id="standard_ruc.view_company_form">
+        <record model="ir.ui.view" id="control_rut.view_company_form">
             <field name="name">standard_ruc.view_company_form</field>
             <field name="model">res.company</field>
             <field name="inherit_id" ref="base.view_company_form"/>
@@ -11,7 +11,7 @@
                 </xpath>
             </field>
         </record>
-        <record model="ir.ui.view" id="standard_ruc.view_partner_form">
+        <record model="ir.ui.view" id="control_rut.view_partner_form">
             <field name="name">standard_ruc.view_partner_form</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
