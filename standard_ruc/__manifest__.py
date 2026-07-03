@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "Standard RUC_",
+    "name": "Control RUT",
     "summary": """
         Cambia los formularios y reportes asignando el nombre RUT,
-         en algunos casos es un dato requerido""",
+         en algunos casos es un dato requerido..""",
     "description": """
         Cambia los formularios y reportes asignando el nombre RUT,
-         en algunos casos es un dato requerido
+         en algunos casos es un dato requerido..
     """,
-    "author": ": FC_.",
+    "author": ": FC_",
     "website": "http://www.www.com.py",
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
     # for the full list
-    "category": "Local",
-    "version": "20260101.2",
+    "category": "Localización",
+    "version": "20260101.3",
     "license": "LGPL-3",
     # any module necessary for this one to work correctly
     "depends": ["base"],
