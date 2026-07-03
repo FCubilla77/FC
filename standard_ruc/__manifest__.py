@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "Control RUT",
+    "name": "Control RUT_",
     "summary": """
         Cambia los formularios y reportes asignando el nombre RUT,
-         en algunos casos es un dato requerido..""",
+         en algunos casos es un dato requerido...""",
     "description": """
         Cambia los formularios y reportes asignando el nombre RUT,
-         en algunos casos es un dato requerido..
+         en algunos casos es un dato requerido...
     """,
     "author": ": FC_",
     "website": "http://www.www.com.py",
