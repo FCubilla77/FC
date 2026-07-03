@@ -10,7 +10,7 @@ class ResPartner(models.Model):
     vat = fields.Char(string="RUT", index=True)
 
     def clear_vat(self, vat):
-        allowed_characters = '1234567899-'
+        allowed_characters = '1234567890-'
         if vat:
             for vat_character in vat:
                 if vat_character not in allowed_characters:
@@ -34,7 +34,7 @@ class ResPartner(models.Model):
                         if ruc_proper_dig != ruc_dig:
                             raise exceptions.ValidationError("El digito verificador debería ser :" + ruc_proper_dig)
                     else:
-                        raise exceptions.ValidationError("Error de formato de RUT...!!! (Ejemplo: 123456789-9)")
+                        raise exceptions.ValidationError("Error de formato de RUT...!!! (Ejemplo: 123456789-0)")
                     if this.vat != ruc:
                         this.vat = ruc
 
