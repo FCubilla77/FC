@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog — standard_ruc</title>
+  <!-- CHANGELOG_LAST_COMMIT: e6c990c8b1399378d6d7492516df5315ce3a33b3 -->
+  <!-- Para actualizar: ver PROMPT_MODULE_DESCRIPTION.md → "PROMPT DE ACTUALIZACIÓN" -->
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 0; background: #fff; }
+    .header { background: linear-gradient(135deg, #875A7B 0%, #5c3d6b 100%); color: white; padding: 40px; text-align: center; }
+    .header h1 { font-size: 2em; margin: 0 0 8px 0; font-weight: 300; }
+    .header p { font-size: 1em; opacity: 0.85; margin: 0; }
+    .header .badges { margin-top: 16px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin: 3px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); color: white; }
+    .body { max-width: 860px; margin: 0 auto; padding: 40px 20px; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: #875A7B; text-decoration: none; font-size: 0.88em; margin-bottom: 30px; }
+    .back-link:hover { text-decoration: underline; }
+    .entry { border-left: 3px solid #875A7B; padding: 18px 24px; margin-bottom: 16px; background: #fdf9ff; border-radius: 0 8px 8px 0; }
+    .entry-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .entry-date { font-size: 0.82em; color: #888; font-family: monospace; }
+    .entry-type { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .type-AGREGADO   { background: #e8f9ee; color: #1e7c3a; border: 1px solid #b8e8c8; }
+    .type-CORREGIDO  { background: #fff3e0; color: #b45309; border: 1px solid #fdd99a; }
+    .type-MODIFICADO { background: #e8f0fd; color: #1a56b0; border: 1px solid #b8d0f5; }
+    .type-ELIMINADO  { background: #fde8e8; color: #991b1b; border: 1px solid #f5b8b8; }
+    .entry-desc { font-size: 0.92em; line-height: 1.65; color: #444; }
+    .entry-desc ul { margin: 8px 0 0 0; padding-left: 18px; }
+    .entry-desc li { margin: 5px 0; }
+    .year-label { font-size: 1.1em; font-weight: 700; color: #5c3d6b; border-bottom: 2px solid #875A7B; padding-bottom: 6px; margin: 36px 0 16px; }
+    .year-label:first-of-type { margin-top: 0; }
+    code { background: #f0e8f5; color: #5c3d6b; padding: 2px 6px; border-radius: 3px; font-size: 0.88em; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 Changelog</h1>
+  <p>Historial de cambios del módulo <strong>standard_ruc</strong></p>
+  <div class="badges">
+    <span class="badge">Localización Paraguay</span>
+    <span class="badge">Odoo 18.0</span>
+  </div>
+</div>
+
+<div class="body">
+
+  <a class="back-link" href="index.html">← Volver a la descripción del módulo</a>
+
+  <!-- ===== 2025 ===== -->
+  <div class="year-label">2025</div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2025-04-23</span>
+      <span class="entry-type type-MODIFICADO">Modificado</span>
+    </div>
+    <div class="entry-desc">
+      Se declaró la licencia <code>LGPL-3</code> en el manifiesto del módulo. No afecta el funcionamiento, pero deja explícita la licencia para auditorías y herramientas que la requieran.
+    </div>
+  </div>
+
+  <!-- ===== 2024 ===== -->
+  <div class="year-label">2024</div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2024-05-06</span>
+      <span class="entry-type type-MODIFICADO">Modificado</span>
+    </div>
+    <div class="entry-desc">
+      La creación de contactos ahora soporta correctamente la creación en lote: el override de <em>create</em> sobre <code>res.partner</code> adoptó la API <code>@api.model_create_multi</code> introducida en Odoo 17. Al importar contactos en masa o crearlos desde un wizard que arme varias fichas a la vez, la validación del RUC se ejecuta sobre cada partner creado en lugar de solo sobre el primero del lote.
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2024-04-29</span>
+      <span class="entry-type type-MODIFICADO">Modificado</span>
+    </div>
+    <div class="entry-desc">
+      Reintegración del módulo a la localización fiscal en la rama 17.0 (base sobre la que se construye la rama 18.0). Los métodos de validación del RUC (<code>val_ruc</code>, <code>validar_duplicado</code>) ahora iteran explícitamente sobre cada contacto, lo que evita que validaciones masivas omitan registros cuando el recordset contiene más de un partner.
+    </div>
+  </div>
+
+  <!-- ===== 2023 ===== -->
+  <div class="year-label">2023</div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2023-07-11</span>
+      <span class="entry-type type-CORREGIDO">Corregido</span>
+    </div>
+    <div class="entry-desc">
+      Cuando un contacto tiene marcado <strong>"Obviar validación de RUC"</strong>, el RUC ingresado ya no se modifica al guardar:
+      <ul>
+        <li>Antes, aunque la validación se omitía, el limpiador automático seguía eliminando caracteres no numéricos del RUC ingresado, destruyendo identificadores válidos de extranjeros, organismos públicos o formatos legacy.</li>
+        <li>Ahora, si el contacto (o su contacto padre) tiene marcada la opción de obviar validación, el valor del RUC se preserva tal como fue ingresado.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2023-07-11</span>
+      <span class="entry-type type-CORREGIDO">Corregido</span>
+    </div>
+    <div class="entry-desc">
+      Correcciones en la búsqueda autocompletada de contactos por RUC (<code>name_search</code>): el método ahora respeta el operador de búsqueda y el límite de resultados que el llamador especifique. Antes se ignoraban esos argumentos y siempre se forzaba <em>ilike</em> con un tope de 100, lo que provocaba comportamiento inconsistente en wizards y filtros que necesitaban operadores estrictos o más resultados.
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2023-07-04</span>
+      <span class="entry-type type-CORREGIDO">Corregido</span>
+    </div>
+    <div class="entry-desc">
+      El normalizador interno del RUC (<code>clear_vat</code>) ya no falla cuando recibe un valor vacío. Antes, partners sin RUC podían disparar un error al recorrer una cadena nula al guardar; ahora el método retorna el valor sin tocarlo si está vacío y la grabación procede normalmente.
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2023-06-19</span>
+      <span class="entry-type type-MODIFICADO">Modificado</span>
+    </div>
+    <div class="entry-desc">
+      Refactor mayor del módulo. Cambios para el usuario:
+      <ul>
+        <li>Se introdujo la normalización automática del RUC al ingresarlo: el sistema admite que el usuario escriba el RUC con espacios, puntos u otros caracteres y los elimina silenciosamente, dejando únicamente los dígitos y el guion separador.</li>
+        <li>La detección de RUC duplicado entre contactos ahora compara los valores ya normalizados, evitando falsos negativos cuando el mismo número se cargó con formatos distintos.</li>
+        <li>Se quitaron del módulo archivos heredados que ya no se usaban (controladores, datos demo, vistas auxiliares y permisos vacíos). El módulo queda más liviano y enfocado únicamente en la validación del RUC.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== 2022 ===== -->
+  <div class="year-label">2022</div>
+
+  <div class="entry">
+    <div class="entry-meta">
+      <span class="entry-date">2022-06-23</span>
+      <span class="entry-type type-AGREGADO">Agregado</span>
+    </div>
+    <div class="entry-desc">
+      Creación inicial del módulo con las funcionalidades base de la localización paraguaya del identificador fiscal:
+      <ul>
+        <li>El campo identificador del contribuyente queda etiquetado como <strong>"RUC"</strong> en los formularios de empresa y de contactos, reemplazando la etiqueta genérica de Odoo (<em>NIF / RUT</em>).</li>
+        <li>Validación automática del <strong>dígito verificador del RUC paraguayo</strong> según el algoritmo oficial de la SET (base 11). Al guardar un contacto con RUC mal formado o con dígito verificador incorrecto, el sistema rechaza la operación y sugiere el dígito correcto.</li>
+        <li>Casilla <strong>"Obviar validación de RUC"</strong> a nivel de contacto, pensada para contribuyentes extranjeros, organismos sin RUC formal o casos especiales. La preferencia se hereda desde el contacto padre cuando aplique.</li>
+        <li>La búsqueda de contactos por nombre permite encontrar también por RUC.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
