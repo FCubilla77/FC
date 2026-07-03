@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "Standard RUC",
+    "name": "Standard RUC_",
     "summary": """
         Cambia los formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido""",
