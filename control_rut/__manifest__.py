@@ -2,10 +2,10 @@
 {
     "name": "Control RUT",
     "summary": """
-        Desc1111. Ajustes en formularios y reportes asignando el nombre RUT,
+        Ajustes en formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido...!!!""",
     "description": """
-        Desc2222. Ajustes en formularios y reportes asignando el nombre RUT,
+        Ajustes en formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido...!!!
     """,
     "author": ": F_C_",
