@@ -1,0 +1,75 @@
+<section class="oe_container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="text-center" style="margin-bottom: 20px;">
+                Standard RUC
+            </h2>
+            <h4 class="text-center text-muted" style="margin-bottom: 30px;">
+                Localización fiscal para Paraguay — validación y renombrado de RUT
+            </h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <p>
+                Este módulo adapta los formularios de contactos y compañías de Odoo
+                al contexto fiscal paraguayo, renombrando el campo estándar de
+                identificación fiscal como <strong>RUT</strong> y validando su
+                dígito verificador según el algoritmo oficial.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-4 text-center">
+            <h3>✔</h3>
+            <h5>Validación automática</h5>
+            <p class="text-muted">
+                Verifica el dígito verificador del RUT al crear o modificar un contacto.
+            </p>
+        </div>
+        <div class="col-md-4 text-center">
+            <h3>🏷</h3>
+            <h5>Etiquetas adaptadas</h5>
+            <p class="text-muted">
+                Cambia las etiquetas de "NIF/RUT" a "RUT" en los formularios estándar.
+            </p>
+        </div>
+        <div class="col-md-4 text-center">
+            <h3>⚙</h3>
+            <h5>Opción de omisión</h5>
+            <p class="text-muted">
+                Permite omitir la validación para casos particulares desde el propio contacto.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-12">
+            <h4>Funcionalidades</h4>
+            <ul>
+                <li>Limpieza automática de caracteres no numéricos en el RUT</li>
+                <li>Validación del dígito verificador (módulo 11) al crear o guardar</li>
+                <li>Campo "Omitir validación de RUT" para excepciones puntuales</li>
+                <li>Campo de solo lectura para contactos con empresa asociada</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-12">
+            <h4>Compatibilidad</h4>
+            <p>Odoo 19 Community</p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-12">
+            <hr/>
+            <p class="text-muted text-center">
+                Desarrollado por FC_ — Paraguay
+            </p>
+        </div>
+    </div>
+</section>
