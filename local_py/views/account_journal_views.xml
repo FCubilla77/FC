@@ -6,8 +6,10 @@
             <field name="inherit_id" ref="account.view_account_journal_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='name']" position="after">
-                    <field name="l10n_py_timbrado"/>
-                    <field name="l10n_py_nro_documento" placeholder="000000000-0"/>
+                    <group string="Localización Paraguay" invisible="type != 'sale'">
+                        <field name="l10n_py_timbrado" string="Timbrado"/>
+                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000000000-0"/>
+                    </group>
                 </xpath>
             </field>
         </record>
