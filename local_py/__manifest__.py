@@ -2,10 +2,10 @@
 {
     "name": "Local_Py",
     "summary": """
-        Localización para Paraguay: validación de RUC/RUT, y campos
+        Localización para Paraguay: validación de RUT, y campos
         Timbrado y Nro. Documento en diarios contables y facturas""",
     "description": """
-        Localización para Paraguay: validación de RUC/RUT, y campos
+        Localización para Paraguay: validación de RUT, y campos
         Timbrado y Nro. Documento en diarios contables y facturas
     """,
     "author": "FC_Py",
