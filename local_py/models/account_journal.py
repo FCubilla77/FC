@@ -24,6 +24,11 @@ class AccountJournal(models.Model):
         help='Número de documento/resolución. Solo admite números y el carácter "-" (máximo 15 caracteres). '
              'Aplica únicamente a diarios de venta.',
     )
+    l10n_py_venc_timbrado = fields.Date(
+        string='Venc. Timbrado',
+        help='Fecha de vencimiento del timbrado. Las facturas de venta con fecha posterior '
+             'a esta no podrán guardarse. Aplica únicamente a diarios de venta.',
+    )
 
     @api.constrains('l10n_py_timbrado')
     def _check_l10n_py_timbrado(self):
@@ -45,10 +50,14 @@ class AccountJournal(models.Model):
                     'El campo Nro. Documento solo admite números y el carácter "-".'
                 )
 
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'type')
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_venc_timbrado', 'type')
     def _check_l10n_py_only_sale_journal(self):
         for journal in self:
-            if journal.type != 'sale' and (journal.l10n_py_timbrado or journal.l10n_py_nro_documento):
+            if journal.type != 'sale' and (
+                journal.l10n_py_timbrado
+                or journal.l10n_py_nro_documento
+                or journal.l10n_py_venc_timbrado
+            ):
                 raise exceptions.ValidationError(
-                    'Los campos Timbrado y Nro. Documento solo aplican a diarios de venta.'
+                    'Los campos Timbrado, Nro. Documento y Venc. Timbrado solo aplican a diarios de venta.'
                 )

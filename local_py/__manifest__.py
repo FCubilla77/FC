@@ -11,7 +11,7 @@
     "author": ": F_C_",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "20260707.3",
+    "version": "20260708.1",
     "license": "LGPL-3",
     "depends": ["base", "account"],
     "data": [

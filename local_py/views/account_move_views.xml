@@ -5,11 +5,17 @@
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//field[@name='journal_id']" position="after">
+                <!--
+                    Se excluyen explícitamente las coincidencias dentro de <tree> o
+                    <notebook> (pestañas), ya que journal_id puede aparecer más de una
+                    vez en el formulario completo. Esto asegura que los campos se
+                    agreguen debajo del selector de diario visible en el encabezado.
+                -->
+                <xpath expr="//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)]" position="after">
                     <newline/>
                     <group string="Localización Paraguay" invisible="move_type not in ('out_invoice', 'out_refund')">
                         <field name="l10n_py_timbrado" string="Timbrado"/>
-                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000-000-0000000"/>
+                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000000000-0"/>
                     </group>
                 </xpath>
             </field>
