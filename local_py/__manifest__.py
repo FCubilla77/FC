@@ -2,23 +2,27 @@
 {
     "name": "Local_Py",
     "summary": """
-        Localización para Paraguay: validación de RUT, y campos
-        Timbrado y Nro. Documento en diarios contables y facturas""",
+        Localización para Paraguay: validación de RUT, campos Timbrado y
+        Nro. Documento en diarios y facturas, Tipo Fiscal y Libro Ventas""",
     "description": """
-        Localización para Paraguay: validación de RUT, y campos
-        Timbrado y Nro. Documento en diarios contables y facturas
+        Localización para Paraguay: validación de RUT, campos Timbrado y
+        Nro. Documento en diarios y facturas, Tipo Fiscal y Libro Ventas
     """,
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "20260708.4",
+    "version": "2026.005",
     "license": "LGPL-3",
     "depends": ["base", "account"],
     "data": [
+        "security/ir.model.access.csv",
         "data/data.xml",
+        "data/l10n_py_tipo_fiscal_data.xml",
         "views/res_partner_views.xml",
+        "views/l10n_py_tipo_fiscal_views.xml",
         "views/account_journal_views.xml",
         "views/account_move_views.xml",
+        "views/libro_ventas_wizard_views.xml",
     ],
     "catalogo_tipo": "H",
     "catalogo_superior": "localizacion",

@@ -31,6 +31,14 @@ class AccountMove(models.Model):
              'número utilizado para el diario (formato 001-001-0000001). '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
+    l10n_py_tipo_fiscal_id = fields.Many2one(
+        'l10n_py.tipo_fiscal',
+        string='Tipo Fiscal',
+        related='journal_id.l10n_py_tipo_fiscal_id',
+        store=True,
+        readonly=True,
+        help='Tipo Fiscal configurado en el diario de esta factura/nota de crédito.',
+    )
 
     # ------------------------------------------------------------------
     # Numeración secuencial del Nro. Documento (solo lado venta)
