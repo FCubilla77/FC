@@ -6,17 +6,23 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <!--
-                    Se excluyen explícitamente las coincidencias dentro de <tree> o
-                    <notebook> (pestañas), ya que journal_id puede aparecer más de una
-                    vez en el formulario completo. Esto asegura que los campos se
-                    agreguen debajo del selector de diario visible en el encabezado.
+                    journal_id puede aparecer más de una vez en el documento completo
+                    del formulario (por ejemplo, una referencia oculta usada por lógica
+                    interna, antes de la visible en el encabezado). Se excluyen
+                    coincidencias dentro de <tree>/<notebook> y se toma la ÚLTIMA
+                    coincidencia restante, que corresponde al selector visible del
+                    encabezado (debajo de Fecha de vencimiento).
                 -->
-                <xpath expr="//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)]" position="after">
-                    <newline/>
-                    <group string="Localización Paraguay" invisible="move_type not in ('out_invoice', 'out_refund')">
-                        <field name="l10n_py_timbrado" string="Timbrado"/>
-                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000000000-0"/>
-                    </group>
+                <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]" position="after">
+                    <field name="l10n_py_timbrado"
+                           string="Timbrado"
+                           readonly="state != 'draft'"
+                           invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
+                    <field name="l10n_py_nro_documento"
+                           string="Nro. Documento"
+                           placeholder="000000000-0"
+                           readonly="state != 'draft'"
+                           invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
                 </xpath>
             </field>
         </record>

@@ -12,25 +12,28 @@ NRO_DOCUMENTO_SEQ_PATTERN = re.compile(r'^(\d{3}-\d{3}-)(\d{7})$')
 # Tipos de movimiento de venta: factura de cliente y nota de crédito de cliente
 SALE_MOVE_TYPES = ('out_invoice', 'out_refund')
 
+# Tipos de movimiento de compra: factura de proveedor y nota de crédito de proveedor
+PURCHASE_MOVE_TYPES = ('in_invoice', 'in_refund')
+
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
     l10n_py_timbrado = fields.Integer(
         string='Timbrado',
-        help='Se completa automáticamente con el valor del diario. Puede ajustarse si es necesario. '
-             'Aplica únicamente a factura de venta y nota de crédito de venta.',
+        help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
+             'En factura/nota de crédito de proveedor se carga manualmente.',
     )
     l10n_py_nro_documento = fields.Char(
         string='Nro. Documento',
         size=15,
-        help='Numeración fiscal. Se propone automáticamente en base al último número utilizado '
-             'para este diario y tipo de operación (formato 001-001-0000001). '
-             'Aplica únicamente a factura de venta y nota de crédito de venta.',
+        help='En factura/nota de crédito de venta se propone automáticamente en base al último '
+             'número utilizado para el diario (formato 001-001-0000001). '
+             'En factura/nota de crédito de proveedor se carga manualmente.',
     )
 
     # ------------------------------------------------------------------
-    # Numeración secuencial del Nro. Documento
+    # Numeración secuencial del Nro. Documento (solo lado venta)
     # ------------------------------------------------------------------
     @staticmethod
     def _increment_l10n_py_nro_documento(value):
@@ -40,9 +43,6 @@ class AccountMove(models.Model):
             return value
         match = NRO_DOCUMENTO_SEQ_PATTERN.match(value)
         if not match:
-            # Formato no reconocido (001-001-0000001): no se puede incrementar
-            # automáticamente, se devuelve el valor tal cual para que el usuario
-            # lo revise manualmente.
             return value
         prefix, seq = match.groups()
         next_seq = int(seq) + 1
@@ -64,6 +64,8 @@ class AccountMove(models.Model):
 
     @api.onchange('journal_id')
     def _onchange_journal_id_l10n_py(self):
+        # El autocompletado solo aplica al lado de venta. En factura/nota de
+        # crédito de proveedor, el usuario carga los valores manualmente.
         for move in self:
             if move.journal_id and move.move_type in SALE_MOVE_TYPES:
                 move.l10n_py_timbrado = move.journal_id.l10n_py_timbrado
@@ -86,7 +88,7 @@ class AccountMove(models.Model):
         return super().create(vals_list)
 
     # ------------------------------------------------------------------
-    # Validaciones
+    # Validaciones de formato (aplican a venta y a proveedor)
     # ------------------------------------------------------------------
     @api.constrains('l10n_py_timbrado')
     def _check_l10n_py_timbrado(self):
@@ -108,8 +110,11 @@ class AccountMove(models.Model):
                     'El campo Nro. Documento solo admite números y el carácter "-".'
                 )
 
+    # ------------------------------------------------------------------
+    # Unicidad - lado venta: por Nro. Documento, separado por move_type
+    # ------------------------------------------------------------------
     @api.constrains('l10n_py_nro_documento', 'move_type', 'state')
-    def _check_l10n_py_nro_documento_unique(self):
+    def _check_l10n_py_nro_documento_unique_sale(self):
         for move in self:
             if move.l10n_py_nro_documento and move.move_type in SALE_MOVE_TYPES:
                 domain = [
@@ -126,6 +131,39 @@ class AccountMove(models.Model):
                         % (label, move.l10n_py_nro_documento)
                     )
 
+    # ------------------------------------------------------------------
+    # Unicidad - lado proveedor: por proveedor + Timbrado + Nro. Documento,
+    # solo entre facturas/notas de crédito CONFIRMADAS, separado por move_type
+    # ------------------------------------------------------------------
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'move_type', 'state', 'partner_id')
+    def _check_l10n_py_duplicate_purchase(self):
+        for move in self:
+            if (
+                move.move_type in PURCHASE_MOVE_TYPES
+                and move.state == 'posted'
+                and move.partner_id
+                and move.l10n_py_timbrado
+                and move.l10n_py_nro_documento
+            ):
+                domain = [
+                    ('id', '!=', move.id),
+                    ('move_type', '=', move.move_type),
+                    ('state', '=', 'posted'),
+                    ('partner_id', '=', move.partner_id.id),
+                    ('l10n_py_timbrado', '=', move.l10n_py_timbrado),
+                    ('l10n_py_nro_documento', '=', move.l10n_py_nro_documento),
+                    ('company_id', '=', move.company_id.id),
+                ]
+                if self.search_count(domain):
+                    label = 'factura de proveedor' if move.move_type == 'in_invoice' else 'nota de crédito de proveedor'
+                    raise exceptions.ValidationError(
+                        'Ya existe otra %s confirmada con el mismo proveedor, Timbrado y Nro. Documento.'
+                        % label
+                    )
+
+    # ------------------------------------------------------------------
+    # Validación de vencimiento del timbrado (lado venta)
+    # ------------------------------------------------------------------
     @api.constrains('invoice_date', 'journal_id')
     def _check_l10n_py_venc_timbrado(self):
         for move in self:

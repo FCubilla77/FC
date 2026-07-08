@@ -8,10 +8,10 @@
         Localización para Paraguay: validación de RUC/RUT, y campos
         Timbrado y Nro. Documento en diarios contables y facturas
     """,
-    "author": ": F_C_",
+    "author": "F_C_",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "20260708.1",
+    "version": "20260708.2",
     "license": "LGPL-3",
     "depends": ["base", "account"],
     "data": [
