@@ -7,22 +7,25 @@
             <field name="arch" type="xml">
                 <!--
                     journal_id puede aparecer más de una vez en el documento completo
-                    del formulario (por ejemplo, una referencia oculta usada por lógica
-                    interna, antes de la visible en el encabezado). Se excluyen
-                    coincidencias dentro de <tree>/<notebook> y se toma la ÚLTIMA
-                    coincidencia restante, que corresponde al selector visible del
-                    encabezado (debajo de Fecha de vencimiento).
+                    del formulario. Se excluyen coincidencias dentro de <tree>/<notebook>
+                    y se toma la ÚLTIMA coincidencia restante, que corresponde al
+                    selector visible del encabezado (debajo de Fecha de vencimiento).
+
+                    Los campos se envuelven en un <group> (sin título propio) para que
+                    Odoo genere automáticamente la etiqueta a la izquierda de cada campo
+                    y el espaciado quede alineado con el resto de los campos de la
+                    cabecera (Diario, Fecha de factura, Fecha de vencimiento, etc.).
                 -->
                 <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]" position="after">
-                    <field name="l10n_py_timbrado"
-                           string="Timbrado"
-                           readonly="state != 'draft'"
-                           invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
-                    <field name="l10n_py_nro_documento"
-                           string="Nro. Documento"
-                           placeholder="000000000-0"
-                           readonly="state != 'draft'"
-                           invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')"/>
+                    <group invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
+                        <field name="l10n_py_timbrado"
+                               string="Timbrado"
+                               readonly="state != 'draft'"/>
+                        <field name="l10n_py_nro_documento"
+                               string="Nro. Documento"
+                               placeholder="000000000-0"
+                               readonly="state != 'draft'"/>
+                    </group>
                 </xpath>
             </field>
         </record>

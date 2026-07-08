@@ -8,7 +8,7 @@
         Ajustes en formularios y reportes asignando el nombre RUT,
          en algunos casos es un dato requerido...!!!
     """,
-    "author": "F_C_",
+    "author": "FC_Py",
     "website": "http://www.www.com.py",
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/module/module_data.xml
