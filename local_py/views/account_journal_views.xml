@@ -8,7 +8,7 @@
                 <xpath expr="//field[@name='name']" position="after">
                     <group string="Localización Paraguay" invisible="type != 'sale'">
                         <field name="l10n_py_timbrado" string="Timbrado"/>
-                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000000000-0"/>
+                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000-000-0000000"/>
                     </group>
                 </xpath>
             </field>
