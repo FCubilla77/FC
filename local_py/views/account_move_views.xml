@@ -8,16 +8,17 @@
                 <!--
                     journal_id puede aparecer más de una vez en el documento completo
                     del formulario. Se excluyen coincidencias dentro de <tree>/<notebook>
-                    y se toma la ÚLTIMA coincidencia restante, que corresponde al
-                    selector visible del encabezado (debajo de Fecha de vencimiento).
+                    y se toma la ÚLTIMA coincidencia restante (el selector visible del
+                    encabezado).
 
-                    Los campos se envuelven en un <group> (sin título propio) para que
-                    Odoo genere automáticamente la etiqueta a la izquierda de cada campo
-                    y el espaciado quede alineado con el resto de los campos de la
-                    cabecera (Diario, Fecha de factura, Fecha de vencimiento, etc.).
+                    En vez de insertar el grupo nuevo DENTRO de la columna angosta donde
+                    vive journal_id (lo que comprimía el valor letra por letra), se ubica
+                    DESPUÉS del grupo contenedor más externo de esa columna (ancestor::group
+                    en su posición más alta), de forma que ocupe el ancho completo del
+                    formulario, debajo de todo el bloque de cabecera.
                 -->
-                <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]" position="after">
-                    <group invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
+                <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]/ancestor::group[last()]" position="after">
+                    <group string="Localización Paraguay" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
                         <field name="l10n_py_timbrado"
                                string="Timbrado"
                                readonly="state != 'draft'"/>
