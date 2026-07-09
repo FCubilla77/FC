@@ -1,0 +1,40 @@
+<odoo>
+    <data>
+        <record id="view_l10n_py_config_paraguay_wizard_form" model="ir.ui.view">
+            <field name="name">l10n_py.config_paraguay.wizard.form</field>
+            <field name="model">l10n_py.config_paraguay.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Restablecer configuración Paraguay">
+                    <div class="alert alert-warning" role="alert">
+                        Esta acción sobrescribirá, en la compañía principal: el país y el país fiscal
+                        (Paraguay), la moneda principal (PYG), los grupos de impuestos y los 6
+                        impuestos predeterminados (IVA 10%/5%/Exentas de Ventas y Compras), y los
+                        impuestos de venta/compra predeterminados.
+                        <br/>
+                        Cualquier ajuste manual realizado sobre esos mismos campos será reemplazado.
+                        <br/>
+                        ¿Desea continuar?
+                    </div>
+                    <footer>
+                        <button name="action_confirm" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_config_paraguay_wizard" model="ir.actions.act_window">
+            <field name="name">Restablecer configuración Paraguay</field>
+            <field name="res_model">l10n_py.config_paraguay.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_l10n_py_config_paraguay_wizard"
+                  name="Restablecer configuración Paraguay"
+                  parent="account.menu_finance_configuration"
+                  action="action_l10n_py_config_paraguay_wizard"
+                  groups="account.group_account_manager"
+                  sequence="90"/>
+    </data>
+</odoo>

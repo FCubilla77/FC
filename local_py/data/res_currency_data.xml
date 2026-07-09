@@ -1,0 +1,8 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Activar la moneda Guaraní (PYG), inactiva por defecto en Odoo -->
+        <record id="base.PYG" model="res.currency">
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>
