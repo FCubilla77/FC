@@ -27,7 +27,7 @@ class L10nPyLibroVentasWizard(models.TransientModel):
             'view_mode': 'list',
             'views': [(self.env.ref('local_py.view_move_list_libro_ventas').id, 'list')],
             'domain': [
-                ('move_type', '=', 'out_invoice'),
+                ('move_type', 'in', ('out_invoice', 'out_refund')),
                 ('state', '=', 'posted'),
                 ('invoice_date', '>=', self.date_from),
                 ('invoice_date', '<=', self.date_to),

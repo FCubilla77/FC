@@ -34,10 +34,14 @@ class AccountMove(models.Model):
     l10n_py_tipo_fiscal_id = fields.Many2one(
         'l10n_py.tipo_fiscal',
         string='Tipo Fiscal',
-        related='journal_id.l10n_py_tipo_fiscal_id',
-        store=True,
-        readonly=True,
-        help='Tipo Fiscal configurado en el diario de esta factura/nota de crédito.',
+        help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
+             'En factura/nota de crédito de proveedor se selecciona manualmente.',
+    )
+    # Campo auxiliar de solo lectura, usado en el reporte Libro Ventas.
+    l10n_py_partner_vat = fields.Char(
+        string='RUT del cliente',
+        related='partner_id.vat',
+        store=False,
     )
 
     # ------------------------------------------------------------------
@@ -72,14 +76,16 @@ class AccountMove(models.Model):
 
     @api.onchange('journal_id')
     def _onchange_journal_id_l10n_py(self):
-        # El autocompletado solo aplica al lado de venta. En factura/nota de
-        # crédito de proveedor, el usuario carga los valores manualmente.
+        # El autocompletado solo aplica al lado de venta (Timbrado, Nro.
+        # Documento y Tipo Fiscal se toman del diario). En factura/nota de
+        # crédito de proveedor, el usuario carga los tres valores manualmente.
         for move in self:
             if move.journal_id and move.move_type in SALE_MOVE_TYPES:
                 move.l10n_py_timbrado = move.journal_id.l10n_py_timbrado
                 move.l10n_py_nro_documento = move._get_next_l10n_py_nro_documento(
                     move.journal_id, move.move_type
                 )
+                move.l10n_py_tipo_fiscal_id = move.journal_id.l10n_py_tipo_fiscal_id
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -89,6 +95,7 @@ class AccountMove(models.Model):
             if journal_id and move_type in SALE_MOVE_TYPES:
                 journal = self.env['account.journal'].browse(journal_id)
                 vals.setdefault('l10n_py_timbrado', journal.l10n_py_timbrado)
+                vals.setdefault('l10n_py_tipo_fiscal_id', journal.l10n_py_tipo_fiscal_id.id)
                 if not vals.get('l10n_py_nro_documento'):
                     vals['l10n_py_nro_documento'] = self._get_next_l10n_py_nro_documento(
                         journal, move_type
@@ -119,23 +126,29 @@ class AccountMove(models.Model):
                 )
 
     # ------------------------------------------------------------------
-    # Unicidad - lado venta: por Nro. Documento, separado por move_type
+    # Unicidad - lado venta: por Nro. Documento, separado por move_type.
+    # Al igual que en proveedor, solo se valida al CONFIRMAR (state='posted'),
+    # no al guardar en borrador.
     # ------------------------------------------------------------------
     @api.constrains('l10n_py_nro_documento', 'move_type', 'state')
     def _check_l10n_py_nro_documento_unique_sale(self):
         for move in self:
-            if move.l10n_py_nro_documento and move.move_type in SALE_MOVE_TYPES:
+            if (
+                move.move_type in SALE_MOVE_TYPES
+                and move.state == 'posted'
+                and move.l10n_py_nro_documento
+            ):
                 domain = [
                     ('id', '!=', move.id),
                     ('l10n_py_nro_documento', '=', move.l10n_py_nro_documento),
                     ('move_type', '=', move.move_type),
-                    ('state', '!=', 'cancel'),
+                    ('state', '=', 'posted'),
                     ('company_id', '=', move.company_id.id),
                 ]
                 if self.search_count(domain):
                     label = 'factura de venta' if move.move_type == 'out_invoice' else 'nota de crédito de venta'
                     raise exceptions.ValidationError(
-                        'Ya existe otra %s con el mismo Nro. Documento: %s'
+                        'Ya existe otra %s confirmada con el mismo Nro. Documento: %s'
                         % (label, move.l10n_py_nro_documento)
                     )
 
