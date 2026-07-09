@@ -15,6 +15,9 @@ SALE_MOVE_TYPES = ('out_invoice', 'out_refund')
 # Tipos de movimiento de compra: factura de proveedor y nota de crédito de proveedor
 PURCHASE_MOVE_TYPES = ('in_invoice', 'in_refund')
 
+# Notas de crédito (venta y compra), usado para el signo en los reportes Libro Ventas/Compras
+REFUND_MOVE_TYPES = ('out_refund', 'in_refund')
+
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
@@ -43,6 +46,38 @@ class AccountMove(models.Model):
         related='partner_id.vat',
         store=False,
     )
+
+    # ------------------------------------------------------------------
+    # Campos con signo para los reportes Libro Ventas / Libro Compras.
+    # Las notas de crédito se muestran en negativo para que resten en los
+    # totales del reporte. Son de uso exclusivo para dichos reportes: no
+    # afectan los importes reales de la factura/nota de crédito.
+    # ------------------------------------------------------------------
+    l10n_py_amount_untaxed_signed = fields.Monetary(
+        string='Importe sin impuesto',
+        compute='_compute_l10n_py_amounts_signed',
+        currency_field='currency_id',
+        store=True,
+        help='Importe sin impuesto para los reportes Libro Ventas/Libro Compras. '
+             'En notas de crédito se muestra en negativo, solo a efectos de '
+             'visualización y totalización en dichos reportes.',
+    )
+    l10n_py_amount_total_signed = fields.Monetary(
+        string='Importe Total',
+        compute='_compute_l10n_py_amounts_signed',
+        currency_field='currency_id',
+        store=True,
+        help='Importe total para los reportes Libro Ventas/Libro Compras. '
+             'En notas de crédito se muestra en negativo, solo a efectos de '
+             'visualización y totalización en dichos reportes.',
+    )
+
+    @api.depends('amount_untaxed', 'amount_total', 'move_type')
+    def _compute_l10n_py_amounts_signed(self):
+        for move in self:
+            sign = -1 if move.move_type in REFUND_MOVE_TYPES else 1
+            move.l10n_py_amount_untaxed_signed = sign * move.amount_untaxed
+            move.l10n_py_amount_total_signed = sign * move.amount_total
 
     # ------------------------------------------------------------------
     # Numeración secuencial del Nro. Documento (solo lado venta)

@@ -35,8 +35,8 @@
                     <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
                     <field name="l10n_py_nro_documento" string="Nro. Documento"/>
                     <field name="invoice_date" string="Fecha"/>
-                    <field name="amount_untaxed" string="Importe sin impuesto" sum="Total"/>
-                    <field name="amount_total" string="Importe Total" sum="Total"/>
+                    <field name="l10n_py_amount_untaxed_signed" string="Importe sin impuesto" sum="Total"/>
+                    <field name="l10n_py_amount_total_signed" string="Importe Total" sum="Total"/>
                     <field name="l10n_py_tipo_fiscal_id" string="Tipo Fiscal" column_invisible="1"/>
                 </list>
             </field>
