@@ -1,0 +1,51 @@
+<odoo>
+    <data>
+        <record id="view_l10n_py_libro_compras_wizard_form" model="ir.ui.view">
+            <field name="name">l10n_py.libro_compras.wizard.form</field>
+            <field name="model">l10n_py.libro_compras.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Libro Compras">
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <footer>
+                        <button name="action_view_report" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_libro_compras_wizard" model="ir.actions.act_window">
+            <field name="name">Libro Compras</field>
+            <field name="res_model">l10n_py.libro_compras.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Listado de resultados: una línea por factura de proveedor, agrupado por Tipo Fiscal -->
+        <record id="view_move_list_libro_compras" model="ir.ui.view">
+            <field name="name">account.move.list.libro.compras</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <list string="Libro Compras" create="false" edit="false" delete="false" export_xlsx="1">
+                    <field name="partner_id" string="Proveedor"/>
+                    <field name="l10n_py_partner_vat" string="RUT del proveedor"/>
+                    <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="l10n_py_nro_documento" string="Nro. Documento"/>
+                    <field name="invoice_date" string="Fecha"/>
+                    <field name="amount_untaxed" string="Importe sin impuesto" sum="Total"/>
+                    <field name="amount_total" string="Importe Total" sum="Total"/>
+                    <field name="l10n_py_tipo_fiscal_id" string="Tipo Fiscal" column_invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <menuitem id="menu_l10n_py_libro_compras"
+                  name="Libro Compras"
+                  parent="account.menu_finance_reports"
+                  action="action_l10n_py_libro_compras_wizard"
+                  sequence="51"/>
+    </data>
+</odoo>
