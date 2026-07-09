@@ -32,7 +32,7 @@
 
         <menuitem id="menu_l10n_py_config_paraguay_wizard"
                   name="Restablecer configuración Paraguay"
-                  parent="account.menu_finance_configuration"
+                  parent="l10n_py.menu_l10n_py_localizacion"
                   action="action_l10n_py_config_paraguay_wizard"
                   groups="account.group_account_manager"
                   sequence="90"/>
