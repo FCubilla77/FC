@@ -65,6 +65,60 @@ TAXES_DATA = [
 ]
 
 
+# Códigos de los Títulos de nivel 1 (raíz) que eran solo referenciales en la
+# planilla original: Odoo ya distingue Activo/Pasivo/Patrimonio/Ingresos/Gastos
+# a través del campo account_type de cada cuenta, así que estos grupos no
+# hacen falta como account.group.
+LEGACY_ROOT_GROUP_CODES = ['1', '2', '3', '4', '5', '6', '7']
+
+
+def _cleanup_chart_of_accounts(env, company):
+    """Ajustes de limpieza sobre el plan de cuentas de Paraguay:
+
+    1) Elimina los account.group de nivel 1 (Títulos raíz) que hayan quedado
+       de una versión anterior del módulo: eran solo referenciales, Odoo ya
+       distingue esas categorías por account_type. Sus grupos hijos (nivel 2)
+       quedan directamente como raíz del árbol de reportes.
+    2) Fuerza la moneda PYG en todas las cuentas Imputables propias del plan
+       de cuentas de Paraguay (creadas por este módulo).
+    3) Archiva (active=False) cualquier cuenta contable de la compañía que NO
+       forme parte del plan de cuentas de Paraguay cargado por local_py (por
+       ejemplo, cuentas que ya existían en la base antes de instalar el
+       módulo). No se eliminan físicamente para evitar errores si ya tienen
+       algún uso; quedan archivadas y disponibles para borrado manual.
+
+    Atención: el paso 3 se ejecuta cada vez que se corre esta función
+    (instalación y asistente de reconfiguración). Si más adelante se agregan
+    cuentas manualmente fuera del plan de cuentas de Paraguay, quedarán
+    archivadas la próxima vez que se use "Restablecer configuración Paraguay".
+    """
+    for code in LEGACY_ROOT_GROUP_CODES:
+        group = env.ref('local_py.account_group_%s' % code, raise_if_not_found=False)
+        if group:
+            group.unlink()
+
+    own_account_ids = set(env['ir.model.data'].search([
+        ('module', '=', 'local_py'),
+        ('model', '=', 'account.account'),
+    ]).mapped('res_id'))
+
+    company_accounts = env['account.account'].search([('company_ids', 'in', company.id)])
+    own_accounts = company_accounts.filtered(lambda a: a.id in own_account_ids)
+    extra_accounts = company_accounts - own_accounts
+
+    pyg = env.ref('base.PYG')
+    own_accounts.write({'currency_id': pyg.id})
+
+    if extra_accounts:
+        extra_codes = ', '.join(extra_accounts.mapped('code'))
+        extra_accounts.write({'active': False})
+        _logger.info(
+            "local_py: se archivaron %s cuenta(s) preexistente(s) que no forman parte "
+            "del plan de cuentas de Paraguay: %s",
+            len(extra_accounts), extra_codes,
+        )
+
+
 def _get_account_by_name(env, company, name):
     """Busca una cuenta contable por nombre exacto en la compañía. Si no
     existe todavía (por ejemplo porque el plan de cuentas no se cargó por
@@ -177,6 +231,8 @@ def configure_paraguay(env):
     currency_pyg = env.ref('base.PYG')
     if not currency_pyg.active:
         currency_pyg.active = True
+
+    _cleanup_chart_of_accounts(env, company)
 
     sale_account = _get_account_by_name(env, company, TAX_ACCOUNT_SALE_NAME)
     purchase_account = _get_account_by_name(env, company, TAX_ACCOUNT_PURCHASE_NAME)

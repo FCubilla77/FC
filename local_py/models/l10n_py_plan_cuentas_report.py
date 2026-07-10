@@ -26,6 +26,20 @@ ACCOUNT_TYPE_SELECTION = [
 ]
 
 
+# Los Títulos de nivel 1 (raíz) ya no se cargan como account.group (ver
+# hooks._cleanup_chart_of_accounts), así que esta lista queda fija acá para
+# poder seguir ofreciendo el filtro por Nivel 1 en el reporte.
+NIVEL_1_LABELS = [
+    ('1', '1 - Activo'),
+    ('2', '2 - Pasivo'),
+    ('3', '3 - Patrimonio Neto'),
+    ('4', '4 - Ingresos Operativos'),
+    ('5', '5 - Costos Operativos'),
+    ('6', '6 - Otros Ingresos'),
+    ('7', '7 - Gastos'),
+]
+
+
 class L10nPyPlanCuentasReport(models.Model):
     _name = 'l10n_py.plan_cuentas.report'
     _description = 'Reporte Plan de Cuentas Paraguay'
@@ -41,14 +55,24 @@ class L10nPyPlanCuentasReport(models.Model):
     nivel = fields.Integer(string='Nivel', readonly=True)
     account_type = fields.Selection(ACCOUNT_TYPE_SELECTION, string='Tipo de cuenta', readonly=True)
     group_name = fields.Char(string='Grupo', readonly=True)
-    nivel_1 = fields.Selection(selection='_selection_nivel_1', string='Nivel 1', readonly=True)
+    nivel_1 = fields.Selection(NIVEL_1_LABELS, string='Nivel 1', readonly=True)
     account_id = fields.Many2one('account.account', string='Cuenta', readonly=True)
     group_id = fields.Many2one('account.group', string='Grupo de cuentas', readonly=True)
 
-    @api.model
-    def _selection_nivel_1(self):
-        roots = self.env['account.group'].search([('code_prefix_start', 'not ilike', '.')])
-        return [(g.code_prefix_start, '%s - %s' % (g.code_prefix_start, g.name)) for g in roots]
+    def action_open_account(self):
+        """Abre la ficha de la cuenta contable real (account.account) para
+        poder modificar su configuración. Solo aplica a filas Imputables."""
+        self.ensure_one()
+        if not self.account_id:
+            return {'type': 'ir.actions.act_window_close'}
+        return {
+            'type': 'ir.actions.act_window',
+            'name': self.account_id.display_name,
+            'res_model': 'account.account',
+            'res_id': self.account_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     @api.model
     def _rebuild(self):
