@@ -1,0 +1,814 @@
+<odoo>
+    <data noupdate="1">
+        <record id="account_group_1" model="account.group">
+            <field name="name">ACTIVO</field>
+            <field name="code_prefix_start">1</field>
+            <field name="code_prefix_end">1</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2" model="account.group">
+            <field name="name">PASIVO</field>
+            <field name="code_prefix_start">2</field>
+            <field name="code_prefix_end">2</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4" model="account.group">
+            <field name="name">INGRESOS OPERATIVOS</field>
+            <field name="code_prefix_start">4</field>
+            <field name="code_prefix_end">4</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3" model="account.group">
+            <field name="name">PATRIMONIO NETO</field>
+            <field name="code_prefix_start">3</field>
+            <field name="code_prefix_end">3</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7" model="account.group">
+            <field name="name">GASTOS</field>
+            <field name="code_prefix_start">7</field>
+            <field name="code_prefix_end">7</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_6" model="account.group">
+            <field name="name">OTROS INGRESOS</field>
+            <field name="code_prefix_start">6</field>
+            <field name="code_prefix_end">6</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5" model="account.group">
+            <field name="name">COSTOS OPERATIVOS</field>
+            <field name="code_prefix_start">5</field>
+            <field name="code_prefix_end">5</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01" model="account.group">
+            <field name="name">PASIVO CORRIENTE</field>
+            <field name="code_prefix_start">2.01</field>
+            <field name="code_prefix_end">2.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_03" model="account.group">
+            <field name="name">VENTAS DE GANADO</field>
+            <field name="code_prefix_start">4.03</field>
+            <field name="code_prefix_end">4.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_03" model="account.group">
+            <field name="name">RESULTADOS</field>
+            <field name="code_prefix_start">3.03</field>
+            <field name="code_prefix_end">3.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_02" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS AGRÍCOLAS</field>
+            <field name="code_prefix_start">4.02</field>
+            <field name="code_prefix_end">4.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_01" model="account.group">
+            <field name="name">VENTAS DE MERCADERÍAS</field>
+            <field name="code_prefix_start">4.01</field>
+            <field name="code_prefix_end">4.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_01" model="account.group">
+            <field name="name">CAPITAL</field>
+            <field name="code_prefix_start">3.01</field>
+            <field name="code_prefix_end">3.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02" model="account.group">
+            <field name="name">PASIVO  NO CORRIENTE</field>
+            <field name="code_prefix_start">2.02</field>
+            <field name="code_prefix_end">2.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02" model="account.group">
+            <field name="name">ACTIVO NO CORRIENTE</field>
+            <field name="code_prefix_start">1.02</field>
+            <field name="code_prefix_end">1.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01" model="account.group">
+            <field name="name">ACTIVO CORRIENTE</field>
+            <field name="code_prefix_start">1.01</field>
+            <field name="code_prefix_end">1.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_08" model="account.group">
+            <field name="name">EXPORTACIONES DE OTROS PRODUCTOS</field>
+            <field name="code_prefix_start">4.08</field>
+            <field name="code_prefix_end">4.08</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_09" model="account.group">
+            <field name="name">VENTAS DE SERVICIOS GRAVADOS</field>
+            <field name="code_prefix_start">4.09</field>
+            <field name="code_prefix_end">4.09</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_06" model="account.group">
+            <field name="name">EXPORTACIONES DE PRODUCTOS AGRÍCOLAS EXPORTADOS</field>
+            <field name="code_prefix_start">4.06</field>
+            <field name="code_prefix_end">4.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_04" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS FRUTÍCOLAS Y HORTÍCOLAS</field>
+            <field name="code_prefix_start">4.04</field>
+            <field name="code_prefix_end">4.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_08" model="account.group">
+            <field name="name">COSTO DE OTROS PRODUCTOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.08</field>
+            <field name="code_prefix_end">5.08</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_07" model="account.group">
+            <field name="name">COSTO DE BIENES INDUSTRIALIZADOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.07</field>
+            <field name="code_prefix_end">5.07</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_06" model="account.group">
+            <field name="name">COSTO DE PRODUCTOS AGRÍCOLAS EXPORTADOS</field>
+            <field name="code_prefix_start">5.06</field>
+            <field name="code_prefix_end">5.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_05" model="account.group">
+            <field name="name">COSTO DE VENTAS DE PRODUCTOS DE LA EXPLOTACIÓN FORESTAL</field>
+            <field name="code_prefix_start">5.05</field>
+            <field name="code_prefix_end">5.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_11" model="account.group">
+            <field name="name">OTRAS VENTAS EXENTAS DEL IVA</field>
+            <field name="code_prefix_start">4.11</field>
+            <field name="code_prefix_end">4.11</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_98" model="account.group">
+            <field name="name">(-) DESCUENTOS CONCEDIDOS</field>
+            <field name="code_prefix_start">4.98</field>
+            <field name="code_prefix_end">4.98</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_01" model="account.group">
+            <field name="name">COSTO DE MERCADERÍAS</field>
+            <field name="code_prefix_start">5.01</field>
+            <field name="code_prefix_end">5.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_99" model="account.group">
+            <field name="name">(-) DEVOLUCIONES</field>
+            <field name="code_prefix_start">4.99</field>
+            <field name="code_prefix_end">4.99</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_10" model="account.group">
+            <field name="name">VENTAS DE BIENES - REGÍMENES ESPECIALES</field>
+            <field name="code_prefix_start">4.10</field>
+            <field name="code_prefix_end">4.10</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_02" model="account.group">
+            <field name="name">RESERVAS</field>
+            <field name="code_prefix_start">3.02</field>
+            <field name="code_prefix_end">3.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_07" model="account.group">
+            <field name="name">EXPORTACIONES DE BIENES INDUSTRIALIZADOS</field>
+            <field name="code_prefix_start">4.07</field>
+            <field name="code_prefix_end">4.07</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_05" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS DE LA EXPLOTACIÓN FORESTAL</field>
+            <field name="code_prefix_start">4.05</field>
+            <field name="code_prefix_end">4.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_03" model="account.group">
+            <field name="name">COSTO DE VENTAS DE GANADO</field>
+            <field name="code_prefix_start">5.03</field>
+            <field name="code_prefix_end">5.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_02" model="account.group">
+            <field name="name">COSTO DE PRODUCTOS AGRÍCOLAS</field>
+            <field name="code_prefix_start">5.02</field>
+            <field name="code_prefix_end">5.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_09" model="account.group">
+            <field name="name">COSTO DE SERVICIOS GRAVADOS</field>
+            <field name="code_prefix_start">5.09</field>
+            <field name="code_prefix_end">5.09</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_04" model="account.group">
+            <field name="name">COSTO DE VENTAS DE PRODUCTOS FRUTÍCOLAS Y HORTÍCOLAS</field>
+            <field name="code_prefix_start">5.04</field>
+            <field name="code_prefix_end">5.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_6_01" model="account.group">
+            <field name="name">OTROS INGRESOS</field>
+            <field name="code_prefix_start">6.01</field>
+            <field name="code_prefix_end">6.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01" model="account.group">
+            <field name="name">GASTOS DE VENTAS O COMERCIALIZACIÓN</field>
+            <field name="code_prefix_start">7.01</field>
+            <field name="code_prefix_end">7.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_11" model="account.group">
+            <field name="name">COSTO DE VENTAS EXENTAS DEL IVA</field>
+            <field name="code_prefix_start">5.11</field>
+            <field name="code_prefix_end">5.11</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02" model="account.group">
+            <field name="name">GASTOS DE ADMINISTRACIÓN</field>
+            <field name="code_prefix_start">7.02</field>
+            <field name="code_prefix_end">7.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_10" model="account.group">
+            <field name="name">COSTO DE VENTAS DE BIENES - REGÍMENES ESPECIALES</field>
+            <field name="code_prefix_start">5.10</field>
+            <field name="code_prefix_end">5.10</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_04" model="account.group">
+            <field name="name">PROPIEDAD, PLANTA Y EQUIPO</field>
+            <field name="code_prefix_start">1.02.04</field>
+            <field name="code_prefix_end">1.02.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_05" model="account.group">
+            <field name="name">OTROS ACTIVOS A LARGO PLAZO</field>
+            <field name="code_prefix_start">1.02.05</field>
+            <field name="code_prefix_end">1.02.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_07" model="account.group">
+            <field name="name">ACTIVOS INTANGIBLES</field>
+            <field name="code_prefix_start">1.02.07</field>
+            <field name="code_prefix_end">1.02.07</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02_04" model="account.group">
+            <field name="name">PROVISIONES PARA OBLIGACIONES A LARGO PLAZO</field>
+            <field name="code_prefix_start">2.02.04</field>
+            <field name="code_prefix_end">2.02.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02_03" model="account.group">
+            <field name="name">OTRAS CUENTAS POR PAGAR</field>
+            <field name="code_prefix_start">2.02.03</field>
+            <field name="code_prefix_end">2.02.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02_01" model="account.group">
+            <field name="name">ACREEDORES COMERCIALES A LARGO PLAZO</field>
+            <field name="code_prefix_start">2.02.01</field>
+            <field name="code_prefix_end">2.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02_02" model="account.group">
+            <field name="name">DEUDAS FINANCIERAS A LARGO PLAZO</field>
+            <field name="code_prefix_start">2.02.02</field>
+            <field name="code_prefix_end">2.02.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_02_01" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS AGRÍCOLAS</field>
+            <field name="code_prefix_start">4.02.01</field>
+            <field name="code_prefix_end">4.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_01_01" model="account.group">
+            <field name="name">VENTAS DE MERCADERÍAS</field>
+            <field name="code_prefix_start">4.01.01</field>
+            <field name="code_prefix_end">4.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_02_03" model="account.group">
+            <field name="name">OTRAS RESERVAS</field>
+            <field name="code_prefix_start">3.02.03</field>
+            <field name="code_prefix_end">3.02.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_03_01" model="account.group">
+            <field name="name">RESULTADOS</field>
+            <field name="code_prefix_start">3.03.01</field>
+            <field name="code_prefix_end">3.03.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01_01" model="account.group">
+            <field name="name">ACREEDORES COMERCIALES</field>
+            <field name="code_prefix_start">2.01.01</field>
+            <field name="code_prefix_end">2.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01_02" model="account.group">
+            <field name="name">DEUDAS FINANCIERAS</field>
+            <field name="code_prefix_start">2.01.02</field>
+            <field name="code_prefix_end">2.01.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_03" model="account.group">
+            <field name="name">CRÉDITOS</field>
+            <field name="code_prefix_start">1.01.03</field>
+            <field name="code_prefix_end">1.01.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_01" model="account.group">
+            <field name="name">DISPONIBILIDADES</field>
+            <field name="code_prefix_start">1.01.01</field>
+            <field name="code_prefix_end">1.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_02" model="account.group">
+            <field name="name">INVENTARIOS A REALIZAR A LARGO PLAZO</field>
+            <field name="code_prefix_start">1.02.02</field>
+            <field name="code_prefix_end">1.02.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_01" model="account.group">
+            <field name="name">CRÉDITOS A LARGO PLAZO</field>
+            <field name="code_prefix_start">1.02.01</field>
+            <field name="code_prefix_end">1.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_06" model="account.group">
+            <field name="name">OTROS ACTIVOS</field>
+            <field name="code_prefix_start">1.01.06</field>
+            <field name="code_prefix_end">1.01.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_06" model="account.group">
+            <field name="name">CARGOS DIFERIDOS</field>
+            <field name="code_prefix_start">1.02.06</field>
+            <field name="code_prefix_end">1.02.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_02_03" model="account.group">
+            <field name="name">INVERSIONES A LARGO PLAZO</field>
+            <field name="code_prefix_start">1.02.03</field>
+            <field name="code_prefix_end">1.02.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_04" model="account.group">
+            <field name="name">INVENTARIOS</field>
+            <field name="code_prefix_start">1.01.04</field>
+            <field name="code_prefix_end">1.01.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_05" model="account.group">
+            <field name="name">GASTOS PAGADOS POR ADELANTADO</field>
+            <field name="code_prefix_start">1.01.05</field>
+            <field name="code_prefix_end">1.01.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_02" model="account.group">
+            <field name="name">INVERSIONES TEMPORARIAS</field>
+            <field name="code_prefix_start">1.01.02</field>
+            <field name="code_prefix_end">1.01.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_08_01" model="account.group">
+            <field name="name">COSTO DE OTROS PRODUCTOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.08.01</field>
+            <field name="code_prefix_end">5.08.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_07_03" model="account.group">
+            <field name="name">COSTO DE OTROS PRODUCTOS INDUSTRIALIZADOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.07.03</field>
+            <field name="code_prefix_end">5.07.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_07_02" model="account.group">
+            <field name="name">COSTO DE MAQUINARIAS Y EQUIPOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.07.02</field>
+            <field name="code_prefix_end">5.07.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_07_01" model="account.group">
+            <field name="name">COSTO DE PRODUCTOS FARMACEÚTICOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.07.01</field>
+            <field name="code_prefix_end">5.07.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_06_01" model="account.group">
+            <field name="name">COSTO  DE SOJA Y SUS DERIVADOS EXPORTADOS</field>
+            <field name="code_prefix_start">5.06.01</field>
+            <field name="code_prefix_end">5.06.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_08_01" model="account.group">
+            <field name="name">EXPORTACIONES DE OTROS PRODUCTOS</field>
+            <field name="code_prefix_start">4.08.01</field>
+            <field name="code_prefix_end">4.08.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_07_01" model="account.group">
+            <field name="name">EXPORTACIONES DE PRODUCTOS FARMACÉUTICOS</field>
+            <field name="code_prefix_start">4.07.01</field>
+            <field name="code_prefix_end">4.07.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_07_03" model="account.group">
+            <field name="name">EXPORTACIONES DE OTROS PRODUCTOS INDUSTRIALIZADOS</field>
+            <field name="code_prefix_start">4.07.03</field>
+            <field name="code_prefix_end">4.07.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_04_01" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS FRUTÍCOLAS Y HORTÍCOLAS</field>
+            <field name="code_prefix_start">4.04.01</field>
+            <field name="code_prefix_end">4.04.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_02_01" model="account.group">
+            <field name="name">RESERVA LEGAL</field>
+            <field name="code_prefix_start">3.02.01</field>
+            <field name="code_prefix_end">3.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_01_01" model="account.group">
+            <field name="name">CAPITAL INTEGRADO</field>
+            <field name="code_prefix_start">3.01.01</field>
+            <field name="code_prefix_end">3.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_07_02" model="account.group">
+            <field name="name">EXPORTACIONES DE MAQUINARIAS Y EQUIPOS</field>
+            <field name="code_prefix_start">4.07.02</field>
+            <field name="code_prefix_end">4.07.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_06_02" model="account.group">
+            <field name="name">EXPORTACIONES DE OTROS PRODUCTOS AGRÍCOLAS</field>
+            <field name="code_prefix_start">4.06.02</field>
+            <field name="code_prefix_end">4.06.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_03_01" model="account.group">
+            <field name="name">VENTAS DE GANADO</field>
+            <field name="code_prefix_start">4.03.01</field>
+            <field name="code_prefix_end">4.03.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_05_01" model="account.group">
+            <field name="name">VENTAS DE PRODUCTOS DE LA EXPLOTACIÓN FORESTAL</field>
+            <field name="code_prefix_start">4.05.01</field>
+            <field name="code_prefix_end">4.05.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_06_01" model="account.group">
+            <field name="name">EXPORTACIONES DE SOJA Y SUS DERIVADOS</field>
+            <field name="code_prefix_start">4.06.01</field>
+            <field name="code_prefix_end">4.06.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_02_05" model="account.group">
+            <field name="name">INGRESOS DIFERIDOS A LARGO PLAZO</field>
+            <field name="code_prefix_start">2.02.05</field>
+            <field name="code_prefix_end">2.02.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_3_02_02" model="account.group">
+            <field name="name">RESERVA DE REVALÚO</field>
+            <field name="code_prefix_start">3.02.02</field>
+            <field name="code_prefix_end">3.02.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01_04" model="account.group">
+            <field name="name">PROVISIONES</field>
+            <field name="code_prefix_start">2.01.04</field>
+            <field name="code_prefix_end">2.01.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01_03" model="account.group">
+            <field name="name">OTRAS CUENTAS POR PAGAR</field>
+            <field name="code_prefix_start">2.01.03</field>
+            <field name="code_prefix_end">2.01.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_2_01_05" model="account.group">
+            <field name="name">INGRESOS DIFERIDOS</field>
+            <field name="code_prefix_start">2.01.05</field>
+            <field name="code_prefix_end">2.01.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_10_03" model="account.group">
+            <field name="name">VENTAS POR RÉGIMEN DE MAQUILA</field>
+            <field name="code_prefix_start">4.10.03</field>
+            <field name="code_prefix_end">4.10.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_03_01" model="account.group">
+            <field name="name">COSTO DE VENTAS DE GANADO</field>
+            <field name="code_prefix_start">5.03.01</field>
+            <field name="code_prefix_end">5.03.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_02_01" model="account.group">
+            <field name="name">COSTO DE PRODUCTOS AGRÍCOLAS</field>
+            <field name="code_prefix_start">5.02.01</field>
+            <field name="code_prefix_end">5.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_01_01" model="account.group">
+            <field name="name">COSTO DE MERCADERÍAS</field>
+            <field name="code_prefix_start">5.01.01</field>
+            <field name="code_prefix_end">5.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_99_01" model="account.group">
+            <field name="name">Nuevas cuentas a incluir</field>
+            <field name="code_prefix_start">4.99.01</field>
+            <field name="code_prefix_end">4.99.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_98_01" model="account.group">
+            <field name="name">Nuevas cuentas a incluir</field>
+            <field name="code_prefix_start">4.98.01</field>
+            <field name="code_prefix_end">4.98.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_09_01" model="account.group">
+            <field name="name">VENTAS DE SERVICIOS GRAVADOS</field>
+            <field name="code_prefix_start">4.09.01</field>
+            <field name="code_prefix_end">4.09.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_10_02" model="account.group">
+            <field name="name">VENTAS DE MERCADERÍAS - ZONA FRANCA</field>
+            <field name="code_prefix_start">4.10.02</field>
+            <field name="code_prefix_end">4.10.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_10_04" model="account.group">
+            <field name="name">VENTAS BAJO OTROS REGÍMENES ESPECIALES</field>
+            <field name="code_prefix_start">4.10.04</field>
+            <field name="code_prefix_end">4.10.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_11_01" model="account.group">
+            <field name="name">OTRAS VENTAS EXENTAS DEL IVA</field>
+            <field name="code_prefix_start">4.11.01</field>
+            <field name="code_prefix_end">4.11.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_4_10_01" model="account.group">
+            <field name="name">VENTAS DE MERCADERIAS - REGIMEN DE TURISMO</field>
+            <field name="code_prefix_start">4.10.01</field>
+            <field name="code_prefix_end">4.10.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_02" model="account.group">
+            <field name="name">COMISIONES PAGADAS SOBRE VENTAS</field>
+            <field name="code_prefix_start">7.01.02</field>
+            <field name="code_prefix_end">7.01.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_03" model="account.group">
+            <field name="name">VIÁTICOS A VENDEDORES</field>
+            <field name="code_prefix_start">7.01.03</field>
+            <field name="code_prefix_end">7.01.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_05" model="account.group">
+            <field name="name">FLETES PAGADOS</field>
+            <field name="code_prefix_start">7.01.05</field>
+            <field name="code_prefix_end">7.01.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_04" model="account.group">
+            <field name="name">PUBLICIDAD Y PROPAGANDA</field>
+            <field name="code_prefix_start">7.01.04</field>
+            <field name="code_prefix_end">7.01.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_99" model="account.group">
+            <field name="name">OTROS GASTOS DE VENTAS</field>
+            <field name="code_prefix_start">7.01.99</field>
+            <field name="code_prefix_end">7.01.99</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_06_02" model="account.group">
+            <field name="name">COSTO DE OTROS PRODUCTOS AGRÍCOLAS EXPORTADOS</field>
+            <field name="code_prefix_start">5.06.02</field>
+            <field name="code_prefix_end">5.06.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_04_01" model="account.group">
+            <field name="name">COSTO DE VENTAS DE PRODUCTOS FRUTÍCOLAS Y HORTÍCOLAS</field>
+            <field name="code_prefix_start">5.04.01</field>
+            <field name="code_prefix_end">5.04.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_05_01" model="account.group">
+            <field name="name">COSTO DE VENTAS DE PRODUCTOS DE LA EXPLOTACIÓN FORESTAL</field>
+            <field name="code_prefix_start">5.05.01</field>
+            <field name="code_prefix_end">5.05.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_10_04" model="account.group">
+            <field name="name">COSTO DE VENTAS BAJO OTROS REGÍMENES ESPECIALES</field>
+            <field name="code_prefix_start">5.10.04</field>
+            <field name="code_prefix_end">5.10.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_10_03" model="account.group">
+            <field name="name">COSTO DE VENTAS POR RÉGIMEN DE MAQUILA</field>
+            <field name="code_prefix_start">5.10.03</field>
+            <field name="code_prefix_end">5.10.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_10_02" model="account.group">
+            <field name="name">COSTO DE VENTAS DE MERCADERÍAS - ZONA FRANCA</field>
+            <field name="code_prefix_start">5.10.02</field>
+            <field name="code_prefix_end">5.10.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_10_01" model="account.group">
+            <field name="name">COSTO DE VENTAS DE MERCADERÍAS - RÉGIMEN DE TURISMO</field>
+            <field name="code_prefix_start">5.10.01</field>
+            <field name="code_prefix_end">5.10.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_6_01_01" model="account.group">
+            <field name="name">OTROS INGRESOS</field>
+            <field name="code_prefix_start">6.01.01</field>
+            <field name="code_prefix_end">6.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_11_01" model="account.group">
+            <field name="name">COSTO DE VENTAS EXENTAS DEL IVA</field>
+            <field name="code_prefix_start">5.11.01</field>
+            <field name="code_prefix_end">5.11.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_01_01" model="account.group">
+            <field name="name">SUELDOS Y OTRAS REMUNERACIONES AL PERSONAL</field>
+            <field name="code_prefix_start">7.01.01</field>
+            <field name="code_prefix_end">7.01.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_5_09_01" model="account.group">
+            <field name="name">COSTO DE SERVICIOS GRAVADOS</field>
+            <field name="code_prefix_start">5.09.01</field>
+            <field name="code_prefix_end">5.09.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_04" model="account.group">
+            <field name="name">HONORARIOS PROFESIONALES</field>
+            <field name="code_prefix_start">7.02.04</field>
+            <field name="code_prefix_end">7.02.04</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_05" model="account.group">
+            <field name="name">ALQUILERES</field>
+            <field name="code_prefix_start">7.02.05</field>
+            <field name="code_prefix_end">7.02.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_06" model="account.group">
+            <field name="name">AGUA, LUZ, TELÉFONO E INTERNET</field>
+            <field name="code_prefix_start">7.02.06</field>
+            <field name="code_prefix_end">7.02.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_07" model="account.group">
+            <field name="name">MOVILIDAD</field>
+            <field name="code_prefix_start">7.02.07</field>
+            <field name="code_prefix_end">7.02.07</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_08" model="account.group">
+            <field name="name">COMBUSTIBLES Y LUBRICANTES</field>
+            <field name="code_prefix_start">7.02.08</field>
+            <field name="code_prefix_end">7.02.08</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_01" model="account.group">
+            <field name="name">SUELDOS Y OTRAS REMUNERACIONES AL PERSONAL</field>
+            <field name="code_prefix_start">7.02.01</field>
+            <field name="code_prefix_end">7.02.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_02" model="account.group">
+            <field name="name">REMUNERACIÓN PERSONAL SUPERIOR</field>
+            <field name="code_prefix_start">7.02.02</field>
+            <field name="code_prefix_end">7.02.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_03" model="account.group">
+            <field name="name">GASTOS DE REPRESENTACIÓN</field>
+            <field name="code_prefix_start">7.02.03</field>
+            <field name="code_prefix_end">7.02.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_10" model="account.group">
+            <field name="name">SEGUROS PAGADOS</field>
+            <field name="code_prefix_start">7.02.10</field>
+            <field name="code_prefix_end">7.02.10</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_09" model="account.group">
+            <field name="name">REPARACIONES Y MANTENIMIENTOS</field>
+            <field name="code_prefix_start">7.02.09</field>
+            <field name="code_prefix_end">7.02.09</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_11" model="account.group">
+            <field name="name">ÚTILES DE OFICINA</field>
+            <field name="code_prefix_start">7.02.11</field>
+            <field name="code_prefix_end">7.02.11</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_16" model="account.group">
+            <field name="name">COMISIONES Y GASTOS BANCARIOS OPERACIONALES</field>
+            <field name="code_prefix_start">7.02.16</field>
+            <field name="code_prefix_end">7.02.16</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_15" model="account.group">
+            <field name="name">DONACIONES Y CONTRIBUCIONES</field>
+            <field name="code_prefix_start">7.02.15</field>
+            <field name="code_prefix_end">7.02.15</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_14" model="account.group">
+            <field name="name">GASTOS DE COBRANZAS</field>
+            <field name="code_prefix_start">7.02.14</field>
+            <field name="code_prefix_end">7.02.14</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_13" model="account.group">
+            <field name="name">JUICIOS Y GASTOS JUDICIALES</field>
+            <field name="code_prefix_start">7.02.13</field>
+            <field name="code_prefix_end">7.02.13</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_12" model="account.group">
+            <field name="name">GASTOS PAGADOS EN EL EXTERIOR</field>
+            <field name="code_prefix_start">7.02.12</field>
+            <field name="code_prefix_end">7.02.12</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_18" model="account.group">
+            <field name="name">MULTAS Y SANCIONES</field>
+            <field name="code_prefix_start">7.02.18</field>
+            <field name="code_prefix_end">7.02.18</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_7_02_17" model="account.group">
+            <field name="name">IMPUESTOS, PATENTES, TASAS Y OTRAS CONTRIBUCIONES</field>
+            <field name="code_prefix_start">7.02.17</field>
+            <field name="code_prefix_end">7.02.17</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_04_02" model="account.group">
+            <field name="name">MERCADERÍAS REGÍMENES ESPECIALES</field>
+            <field name="code_prefix_start">1.01.04.02</field>
+            <field name="code_prefix_end">1.01.04.02</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_03_06" model="account.group">
+            <field name="name">ANTICIPO A PROVEEDORES</field>
+            <field name="code_prefix_start">1.01.03.06</field>
+            <field name="code_prefix_end">1.01.03.06</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_03_05" model="account.group">
+            <field name="name">CRÉDITOS POR IMPUESTOS CORRIENTES</field>
+            <field name="code_prefix_start">1.01.03.05</field>
+            <field name="code_prefix_end">1.01.03.05</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_04_03" model="account.group">
+            <field name="name">PRODUCTOS TERMINADOS</field>
+            <field name="code_prefix_start">1.01.04.03</field>
+            <field name="code_prefix_end">1.01.04.03</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="account_group_1_01_04_01" model="account.group">
+            <field name="name">MERCADERÍAS</field>
+            <field name="code_prefix_start">1.01.04.01</field>
+            <field name="code_prefix_end">1.01.04.01</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+    </data>
+</odoo>

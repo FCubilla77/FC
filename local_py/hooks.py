@@ -5,11 +5,12 @@ from odoo.fields import Command
 
 _logger = logging.getLogger(__name__)
 
-# Nombre de la cuenta contable a utilizar en las líneas de distribución de los
-# impuestos. Se busca por nombre porque el plan de cuentas no es parte de este
-# módulo (se instala aparte); si no se encuentra, los impuestos se crean
-# igual, pero sin cuenta asignada en sus líneas de distribución.
-TAX_ACCOUNT_NAME = 'Impuesto recibido'
+# Cuentas contables a utilizar en las líneas de distribución de los impuestos,
+# según el plan de cuentas de Paraguay cargado por este mismo módulo
+# (data/account_account_data.xml). Ventas -> IVA A PAGAR (2.01.03.03);
+# Compras -> IVA - CRÉDITO FISCAL (1.01.03.05.03).
+TAX_ACCOUNT_SALE_NAME = 'IVA A PAGAR'
+TAX_ACCOUNT_PURCHASE_NAME = 'IVA - CRÉDITO FISCAL'
 
 # Definición de los 6 impuestos predeterminados de Paraguay (Requerimiento 001)
 TAXES_DATA = [
@@ -64,31 +65,29 @@ TAXES_DATA = [
 ]
 
 
-def _get_tax_account(env, company):
-    """Busca la cuenta contable 'Impuesto recibido' en el plan de cuentas de
-    la compañía. Si no existe todavía (por ejemplo porque aún no se cargó un
-    plan de cuentas de Paraguay), se registra un warning y se continúa: los
-    impuestos se crean igual, pero sin cuenta en sus líneas de distribución.
-    """
+def _get_account_by_name(env, company, name):
+    """Busca una cuenta contable por nombre exacto en la compañía. Si no
+    existe todavía (por ejemplo porque el plan de cuentas no se cargó por
+    algún motivo), se registra un warning y se continúa sin cuenta."""
     account = env['account.account'].search([
         ('company_ids', 'in', company.id),
-        ('name', '=', TAX_ACCOUNT_NAME),
+        ('name', '=', name),
     ], limit=1)
     if not account:
         _logger.warning(
             "local_py: no se encontró la cuenta contable '%s' en la compañía '%s'. "
-            "Los 6 impuestos predeterminados se crearán/actualizarán sin cuenta en sus "
-            "líneas de distribución; deberá asignarla manualmente cuando el plan de "
-            "cuentas esté disponible.",
-            TAX_ACCOUNT_NAME, company.name,
+            "Los impuestos correspondientes se crearán/actualizarán sin cuenta en sus "
+            "líneas de distribución; deberá asignarla manualmente.",
+            name, company.name,
         )
     return account
 
 
 def _repartition_line_vals(document_type, tax_account):
     """Devuelve las 2 líneas de distribución estándar (base + impuesto) para
-    un tipo de documento ('invoice' o 'refund'), según el Requerimiento 001:
-    % 100, Con base en 'de impuesto', Cuenta 'Impuesto recibido'."""
+    un tipo de documento ('invoice' o 'refund'): % 100, Con base en 'de
+    impuesto', Cuenta según corresponda (Ventas -> IVA A PAGAR, Compras ->
+    IVA - CRÉDITO FISCAL)."""
     return [
         Command.create({
             'document_type': document_type,
@@ -104,7 +103,7 @@ def _repartition_line_vals(document_type, tax_account):
     ]
 
 
-def _create_or_update_taxes(env, company, tax_account):
+def _create_or_update_taxes(env, company, sale_account, purchase_account):
     """Crea o actualiza (si ya existen por xml_id) los 6 impuestos
     predeterminados. Devuelve un dict {xml_id: recordset account.tax}."""
     country_py = env.ref('base.py')
@@ -112,6 +111,7 @@ def _create_or_update_taxes(env, company, tax_account):
     for data in TAXES_DATA:
         xml_id = 'local_py.%s' % data['xml_id']
         tax = env.ref(xml_id, raise_if_not_found=False)
+        tax_account = sale_account if data['type_tax_use'] == 'sale' else purchase_account
         vals = {
             'name': data['name'],
             'type_tax_use': data['type_tax_use'],
@@ -178,8 +178,9 @@ def configure_paraguay(env):
     if not currency_pyg.active:
         currency_pyg.active = True
 
-    tax_account = _get_tax_account(env, company)
-    taxes = _create_or_update_taxes(env, company, tax_account)
+    sale_account = _get_account_by_name(env, company, TAX_ACCOUNT_SALE_NAME)
+    purchase_account = _get_account_by_name(env, company, TAX_ACCOUNT_PURCHASE_NAME)
+    taxes = _create_or_update_taxes(env, company, sale_account, purchase_account)
     _configure_company(env, company, taxes)
 
     _logger.info("local_py: configuración inicial de Paraguay aplicada correctamente.")
