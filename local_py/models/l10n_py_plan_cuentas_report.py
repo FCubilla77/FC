@@ -51,15 +51,18 @@ class L10nPyPlanCuentasReport(models.Model):
         return [(g.code_prefix_start, '%s - %s' % (g.code_prefix_start, g.name)) for g in roots]
 
     @api.model
-    def action_refresh(self):
+    def _rebuild(self):
         """Reconstruye el reporte a partir del plan de cuentas actual
-        (account.group + account.account) y devuelve la acción de ventana
-        que lo muestra. Se puede llamar tantas veces como haga falta: siempre
-        refleja el estado vigente del plan de cuentas."""
-        self.sudo().search([]).unlink()
+        (account.group + account.account). Se invoca automáticamente al
+        aplicar/restablecer la configuración de Paraguay (hooks.py), y
+        también puede dispararse a mano con el botón 'Actualizar' de la
+        lista. Usa sudo() para no depender de los permisos de escritura del
+        usuario que la ejecuta."""
+        self = self.sudo()
+        self.search([]).unlink()
 
         vals_list = []
-        groups = self.env['account.group'].search([], order='code_prefix_start')
+        groups = self.env['account.group'].sudo().search([], order='code_prefix_start')
         for group in groups:
             code = group.code_prefix_start or ''
             vals_list.append({
@@ -72,7 +75,7 @@ class L10nPyPlanCuentasReport(models.Model):
                 'group_id': group.id,
             })
 
-        accounts = self.env['account.account'].search([], order='code')
+        accounts = self.env['account.account'].sudo().search([], order='code')
         for account in accounts:
             code = account.code or ''
             vals_list.append({
@@ -86,13 +89,15 @@ class L10nPyPlanCuentasReport(models.Model):
                 'account_id': account.id,
             })
 
-        self.sudo().create(vals_list)
+        self.create(vals_list)
 
+    def action_manual_refresh(self):
+        """Botón 'Actualizar' de la lista: vuelve a generar el reporte y
+        recarga la vista. Es un botón de tipo 'object' (no ejecuta código de
+        servidor), por lo que cualquier usuario con acceso de lectura al
+        modelo puede usarlo sin necesitar permisos de Administración."""
+        self._rebuild()
         return {
-            'name': 'Plan de Cuentas',
-            'type': 'ir.actions.act_window',
-            'res_model': 'l10n_py.plan_cuentas.report',
-            'view_mode': 'list',
-            'views': [(self.env.ref('local_py.view_l10n_py_plan_cuentas_report_list').id, 'list')],
-            'search_view_id': [self.env.ref('local_py.view_l10n_py_plan_cuentas_report_search').id],
+            'type': 'ir.actions.client',
+            'tag': 'reload',
         }

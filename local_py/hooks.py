@@ -183,6 +183,8 @@ def configure_paraguay(env):
     taxes = _create_or_update_taxes(env, company, sale_account, purchase_account)
     _configure_company(env, company, taxes)
 
+    env['l10n_py.plan_cuentas.report'].sudo()._rebuild()
+
     _logger.info("local_py: configuración inicial de Paraguay aplicada correctamente.")
 
 
