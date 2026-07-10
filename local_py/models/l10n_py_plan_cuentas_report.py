@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
+
+# Misma lista de valores que account.account.account_type (Odoo 19), copiada
+# aquí para no depender de que ese modelo esté cargado al definir el campo.
+ACCOUNT_TYPE_SELECTION = [
+    ('asset_receivable', 'Receivable'),
+    ('asset_cash', 'Bank and Cash'),
+    ('asset_current', 'Current Assets'),
+    ('asset_non_current', 'Non-current Assets'),
+    ('asset_prepayments', 'Prepayments'),
+    ('asset_fixed', 'Fixed Assets'),
+    ('liability_payable', 'Payable'),
+    ('liability_credit_card', 'Credit Card'),
+    ('liability_current', 'Current Liabilities'),
+    ('liability_non_current', 'Non-current Liabilities'),
+    ('equity', 'Equity'),
+    ('equity_unaffected', 'Current Year Earnings'),
+    ('income', 'Income'),
+    ('income_other', 'Other Income'),
+    ('expense', 'Expenses'),
+    ('expense_other', 'Other Expenses'),
+    ('expense_depreciation', 'Depreciation'),
+    ('expense_direct_cost', 'Cost of Revenue'),
+    ('off_balance', 'Off-Balance Sheet'),
+]
+
+
+class L10nPyPlanCuentasReport(models.Model):
+    _name = 'l10n_py.plan_cuentas.report'
+    _description = 'Reporte Plan de Cuentas Paraguay'
+    _order = 'code'
+    _rec_name = 'code'
+
+    code = fields.Char(string='Código', readonly=True)
+    name = fields.Char(string='Nombre', readonly=True)
+    tipo = fields.Selection(
+        [('title', 'Título'), ('imputable', 'Imputable')],
+        string='Tipo', readonly=True,
+    )
+    nivel = fields.Integer(string='Nivel', readonly=True)
+    account_type = fields.Selection(ACCOUNT_TYPE_SELECTION, string='Tipo de cuenta', readonly=True)
+    group_name = fields.Char(string='Grupo', readonly=True)
+    nivel_1 = fields.Selection(selection='_selection_nivel_1', string='Nivel 1', readonly=True)
+    account_id = fields.Many2one('account.account', string='Cuenta', readonly=True)
+    group_id = fields.Many2one('account.group', string='Grupo de cuentas', readonly=True)
+
+    @api.model
+    def _selection_nivel_1(self):
+        roots = self.env['account.group'].search([('code_prefix_start', 'not ilike', '.')])
+        return [(g.code_prefix_start, '%s - %s' % (g.code_prefix_start, g.name)) for g in roots]
+
+    @api.model
+    def action_refresh(self):
+        """Reconstruye el reporte a partir del plan de cuentas actual
+        (account.group + account.account) y devuelve la acción de ventana
+        que lo muestra. Se puede llamar tantas veces como haga falta: siempre
+        refleja el estado vigente del plan de cuentas."""
+        self.sudo().search([]).unlink()
+
+        vals_list = []
+        groups = self.env['account.group'].search([], order='code_prefix_start')
+        for group in groups:
+            code = group.code_prefix_start or ''
+            vals_list.append({
+                'code': code,
+                'name': group.name,
+                'tipo': 'title',
+                'nivel': code.count('.') + 1 if code else 0,
+                'group_name': group.parent_id.name or '',
+                'nivel_1': code.split('.')[0] if code else False,
+                'group_id': group.id,
+            })
+
+        accounts = self.env['account.account'].search([], order='code')
+        for account in accounts:
+            code = account.code or ''
+            vals_list.append({
+                'code': code,
+                'name': account.name,
+                'tipo': 'imputable',
+                'nivel': code.count('.') + 1 if code else 0,
+                'account_type': account.account_type,
+                'group_name': account.group_id.name or '',
+                'nivel_1': code.split('.')[0] if code else False,
+                'account_id': account.id,
+            })
+
+        self.sudo().create(vals_list)
+
+        return {
+            'name': 'Plan de Cuentas',
+            'type': 'ir.actions.act_window',
+            'res_model': 'l10n_py.plan_cuentas.report',
+            'view_mode': 'list',
+            'views': [(self.env.ref('local_py.view_l10n_py_plan_cuentas_report_list').id, 'list')],
+            'search_view_id': [self.env.ref('local_py.view_l10n_py_plan_cuentas_report_search').id],
+        }

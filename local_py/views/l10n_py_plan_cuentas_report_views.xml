@@ -1,0 +1,57 @@
+<odoo>
+    <data>
+        <record id="view_l10n_py_plan_cuentas_report_list" model="ir.ui.view">
+            <field name="name">l10n_py.plan_cuentas.report.list</field>
+            <field name="model">l10n_py.plan_cuentas.report</field>
+            <field name="arch" type="xml">
+                <list string="Plan de Cuentas" create="false" edit="false" delete="false"
+                      decoration-bf="tipo == 'title'">
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="tipo"/>
+                    <field name="nivel"/>
+                    <field name="account_type"/>
+                    <field name="group_name" optional="show"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_l10n_py_plan_cuentas_report_search" model="ir.ui.view">
+            <field name="name">l10n_py.plan_cuentas.report.search</field>
+            <field name="model">l10n_py.plan_cuentas.report</field>
+            <field name="arch" type="xml">
+                <search string="Buscar en Plan de Cuentas">
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="nivel_1"/>
+                    <filter string="Títulos" name="filter_title" domain="[('tipo', '=', 'title')]"/>
+                    <filter string="Imputables" name="filter_imputable" domain="[('tipo', '=', 'imputable')]"/>
+                    <separator/>
+                    <filter string="1 - Activo" name="filter_nivel_1_1" domain="[('nivel_1', '=', '1')]"/>
+                    <filter string="2 - Pasivo" name="filter_nivel_1_2" domain="[('nivel_1', '=', '2')]"/>
+                    <filter string="3 - Patrimonio Neto" name="filter_nivel_1_3" domain="[('nivel_1', '=', '3')]"/>
+                    <filter string="4 - Ingresos Operativos" name="filter_nivel_1_4" domain="[('nivel_1', '=', '4')]"/>
+                    <filter string="5 - Costos Operativos" name="filter_nivel_1_5" domain="[('nivel_1', '=', '5')]"/>
+                    <filter string="6 - Otros Ingresos" name="filter_nivel_1_6" domain="[('nivel_1', '=', '6')]"/>
+                    <filter string="7 - Gastos" name="filter_nivel_1_7" domain="[('nivel_1', '=', '7')]"/>
+                    <separator/>
+                    <filter string="Nivel 1" name="group_nivel_1" context="{'group_by': 'nivel_1'}"/>
+                    <filter string="Tipo" name="group_tipo" context="{'group_by': 'tipo'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_server_l10n_py_plan_cuentas_report" model="ir.actions.server">
+            <field name="name">Plan de Cuentas</field>
+            <field name="model_id" ref="model_l10n_py_plan_cuentas_report"/>
+            <field name="state">code</field>
+            <field name="code">action = model.action_refresh()</field>
+        </record>
+
+        <menuitem id="menu_l10n_py_plan_cuentas_report"
+                  name="Plan de Cuentas"
+                  parent="account.menu_finance_reports"
+                  action="action_server_l10n_py_plan_cuentas_report"
+                  sequence="15"/>
+    </data>
+</odoo>

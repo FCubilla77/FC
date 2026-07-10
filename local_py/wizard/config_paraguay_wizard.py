@@ -20,5 +20,6 @@ class L10nPyConfigParaguayWizard(models.TransientModel):
                 'message': 'La configuración predeterminada de Paraguay fue restablecida correctamente.',
                 'type': 'success',
                 'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
             },
         }

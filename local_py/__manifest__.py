@@ -11,7 +11,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.011",
+    "version": "2026.012",
     "license": "LGPL-3",
     "depends": ["base", "account"],
     "data": [
@@ -29,6 +29,7 @@
         "views/libro_ventas_wizard_views.xml",
         "views/libro_compras_wizard_views.xml",
         "views/config_paraguay_wizard_views.xml",
+        "views/l10n_py_plan_cuentas_report_views.xml",
     ],
     "post_init_hook": "post_init_hook",
     "catalogo_tipo": "H",
