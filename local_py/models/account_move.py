@@ -18,6 +18,11 @@ PURCHASE_MOVE_TYPES = ('in_invoice', 'in_refund')
 # Notas de crédito (venta y compra), usado para el signo en los reportes Libro Ventas/Compras
 REFUND_MOVE_TYPES = ('out_refund', 'in_refund')
 
+# Tipos de movimiento sobre los que aplica la obligatoriedad de Timbrado,
+# Nro. Documento y Tipo Fiscal: facturas y notas de crédito, tanto de
+# clientes como de proveedores.
+REQUIRED_FISCAL_MOVE_TYPES = SALE_MOVE_TYPES + PURCHASE_MOVE_TYPES
+
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
@@ -136,6 +141,30 @@ class AccountMove(models.Model):
                         journal, move_type
                     )
         return super().create(vals_list)
+
+    # ------------------------------------------------------------------
+    # Obligatoriedad de Timbrado, Nro. Documento y Tipo Fiscal al confirmar
+    # (facturas y notas de crédito, clientes y proveedores). Al igual que el
+    # resto de las validaciones de este módulo, se exige recién al pasar a
+    # 'posted', no al guardar en borrador, para no trabar la carga incremental
+    # del comprobante.
+    # ------------------------------------------------------------------
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_tipo_fiscal_id', 'move_type', 'state')
+    def _check_l10n_py_required_fiscal_fields(self):
+        for move in self:
+            if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and move.state == 'posted':
+                missing = []
+                if not move.l10n_py_timbrado:
+                    missing.append('Timbrado')
+                if not move.l10n_py_nro_documento:
+                    missing.append('Nro. Documento')
+                if not move.l10n_py_tipo_fiscal_id:
+                    missing.append('Tipo Fiscal')
+                if missing:
+                    raise exceptions.ValidationError(
+                        'No se puede confirmar el comprobante sin completar: %s.'
+                        % ', '.join(missing)
+                    )
 
     # ------------------------------------------------------------------
     # Validaciones de formato (aplican a venta y a proveedor)
