@@ -13,7 +13,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.016",
+    "version": "2026.017",
     "license": "LGPL-3",
     "depends": ["base", "account"],
     "data": [

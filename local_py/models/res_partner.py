@@ -21,16 +21,14 @@ class ResPartner(models.Model):
     def val_ruc(self):
         for this in self:
             # El campo RUT y sus validaciones (formato, dígito verificador,
-            # "Omitir control RUT") solo aplican a contactos que NO son una
-            # empresa. Para contactos que sí son empresa, el campo queda
+            # "Omitir control RUT") solo aplican a contactos que SÍ son una
+            # empresa. Los contactos individuales no llevan RUT propio (ver
+            # también _check_individual_requiere_empresa): el campo queda
             # oculto en la vista y no corresponde validar nada aquí.
-            if this.is_company:
+            if not this.is_company:
                 continue
             ruc = this.clear_vat(this.vat)
-            omitir_validacion_ruc = this.omitir_validacion
-            if this.parent_id and this.parent_id.omitir_validacion:
-                omitir_validacion_ruc = True
-            if not omitir_validacion_ruc:
+            if not this.omitir_validacion:
                 if ruc:
                     pattern = "^[0-9]+-[0-9]$"
                     if re.match(pattern, ruc):
@@ -64,21 +62,36 @@ class ResPartner(models.Model):
 
     @api.constrains('vat', 'is_company')
     def _check_vat_duplicado(self):
-        """No permite dos contactos con el mismo RUT. Esta validación no
-        aplica a contactos que corresponden a una empresa (el campo RUT ni
-        siquiera es visible/editable para ellos)."""
+        """No permite dos contactos con el mismo RUT. Esta validación aplica
+        únicamente a contactos que corresponden a una empresa (el campo RUT
+        solo existe/es visible para ellos)."""
         for this in self:
-            if this.is_company or not this.vat:
+            if not this.is_company or not this.vat:
                 continue
             duplicado = self.env['res.partner'].search([
                 ('id', '!=', this.id),
-                ('is_company', '=', False),
+                ('is_company', '=', True),
                 ('vat', '=', this.vat),
             ], limit=1)
             if duplicado:
                 raise exceptions.ValidationError(
-                    "Ya existe otro contacto con el mismo RUT (%s): %s"
+                    "Ya existe otro contacto (empresa) con el mismo RUT (%s): %s"
                     % (this.vat, duplicado.display_name)
+                )
+
+    @api.constrains('is_company', 'parent_id')
+    def _check_individual_requiere_empresa(self):
+        """Los contactos individuales (is_company=False) solo pueden
+        crearse/existir asociados a un contacto de tipo empresa: deben tener
+        'Empresa relacionada' (parent_id) establecida, y esa empresa
+        relacionada debe ser, a su vez, un contacto de tipo empresa."""
+        for this in self:
+            if this.is_company:
+                continue
+            if not this.parent_id or not this.parent_id.is_company:
+                raise exceptions.ValidationError(
+                    "Los contactos individuales solo pueden crearse dentro de un "
+                    "contacto de tipo Empresa. Seleccione una Empresa relacionada."
                 )
 
     @api.model_create_multi
