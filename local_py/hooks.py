@@ -65,6 +65,20 @@ TAXES_DATA = [
 ]
 
 
+# Grupo base cuyos usuarios deben recibir automáticamente el grupo
+# complementario de abajo (Requerimiento: acceso contable a cuentas de
+# productos/categorías/clientes/proveedores y asientos, sin ajustes manuales).
+ACCOUNTING_BASE_GROUP_XML_ID = 'account.group_account_manager'
+
+# "Mostrar características de contabilidad completas": implica
+# account.group_account_invoice y account.group_account_readonly. Este
+# último es el que exige la vista nativa de Odoo (account.product_template
+# _form_view) para mostrar las cuentas de ingreso/gasto en productos y
+# categorías, y el que habilita las cuentas por cobrar/pagar en clientes y
+# proveedores. Ver también data/account_groups_data.xml.
+ACCOUNTING_EXTRA_GROUP_XML_ID = 'account.group_account_user'
+
+
 # Códigos de los Títulos de nivel 1 (raíz) que eran solo referenciales en la
 # planilla original: Odoo ya distingue Activo/Pasivo/Patrimonio/Ingresos/Gastos
 # a través del campo account_type de cada cuenta, así que estos grupos no
@@ -116,6 +130,49 @@ def _cleanup_chart_of_accounts(env, company):
             "local_py: se archivaron %s cuenta(s) preexistente(s) que no forman parte "
             "del plan de cuentas de Paraguay: %s",
             len(extra_accounts), extra_codes,
+        )
+
+
+def _configure_accounting_groups(env):
+    """Refuerza, sobre los usuarios existentes, el acceso contable completo
+    para quienes tengan el grupo Contabilidad/Administrador
+    (account.group_account_manager).
+
+    La cobertura "automática hacia adelante" (cualquier usuario que reciba
+    el grupo Manager en el futuro) queda garantizada de forma permanente por
+    el implied_ids agregado en data/account_groups_data.xml. Esta función
+    complementa ese ajuste aplicándolo también, de forma explícita, sobre los
+    usuarios que ya tenían el grupo Manager antes de instalar/actualizar
+    local_py (o antes de que se recalculara el cascada de grupos), y se
+    invoca tanto en la instalación como desde el asistente "Restablecer
+    configuración Paraguay".
+
+    Esto habilita, sin ajustes manuales adicionales:
+      - Ver y editar cuentas de ingreso/gasto en productos y categorías de
+        producto.
+      - Ver y editar cuentas por cobrar/pagar en clientes y proveedores.
+      - Ver los asientos contables generados, incluyendo los de movimientos
+        de stock, y confirmarlos (la confirmación ya la cubre el propio
+        grupo Manager; el grupo complementario solo agrega visibilidad).
+    """
+    manager_group = env.ref(ACCOUNTING_BASE_GROUP_XML_ID, raise_if_not_found=False)
+    extra_group = env.ref(ACCOUNTING_EXTRA_GROUP_XML_ID, raise_if_not_found=False)
+    if not manager_group or not extra_group:
+        _logger.warning(
+            "local_py: no se encontraron los grupos contables esperados (%s / %s); "
+            "se omite el refuerzo de permisos contables.",
+            ACCOUNTING_BASE_GROUP_XML_ID, ACCOUNTING_EXTRA_GROUP_XML_ID,
+        )
+        return
+
+    users_to_update = manager_group.users - extra_group.users
+    if users_to_update:
+        users_to_update.write({'groups_id': [Command.link(extra_group.id)]})
+        _logger.info(
+            "local_py: %s usuario(s) con Contabilidad/Administrador reforzado(s) con el "
+            "grupo complementario '%s' (acceso a cuentas de productos, categorías, "
+            "clientes/proveedores y asientos contables).",
+            len(users_to_update), extra_group.name,
         )
 
 
@@ -233,6 +290,7 @@ def configure_paraguay(env):
         currency_pyg.active = True
 
     _cleanup_chart_of_accounts(env, company)
+    _configure_accounting_groups(env)
 
     sale_account = _get_account_by_name(env, company, TAX_ACCOUNT_SALE_NAME)
     purchase_account = _get_account_by_name(env, company, TAX_ACCOUNT_PURCHASE_NAME)

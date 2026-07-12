@@ -17,9 +17,15 @@ class ResPartner(models.Model):
                     vat = vat.replace(vat_character, '')
         return vat
 
-    @api.depends('vat', 'omitir_validacion')
+    @api.depends('vat', 'omitir_validacion', 'is_company')
     def val_ruc(self):
         for this in self:
+            # El campo RUT y sus validaciones (formato, dígito verificador,
+            # "Omitir control RUT") solo aplican a contactos que NO son una
+            # empresa. Para contactos que sí son empresa, el campo queda
+            # oculto en la vista y no corresponde validar nada aquí.
+            if this.is_company:
+                continue
             ruc = this.clear_vat(this.vat)
             omitir_validacion_ruc = this.omitir_validacion
             if this.parent_id and this.parent_id.omitir_validacion:
@@ -55,6 +61,25 @@ class ResPartner(models.Model):
             return basemax - resto
         else:
             return 0
+
+    @api.constrains('vat', 'is_company')
+    def _check_vat_duplicado(self):
+        """No permite dos contactos con el mismo RUT. Esta validación no
+        aplica a contactos que corresponden a una empresa (el campo RUT ni
+        siquiera es visible/editable para ellos)."""
+        for this in self:
+            if this.is_company or not this.vat:
+                continue
+            duplicado = self.env['res.partner'].search([
+                ('id', '!=', this.id),
+                ('is_company', '=', False),
+                ('vat', '=', this.vat),
+            ], limit=1)
+            if duplicado:
+                raise exceptions.ValidationError(
+                    "Ya existe otro contacto con el mismo RUT (%s): %s"
+                    % (this.vat, duplicado.display_name)
+                )
 
     @api.model_create_multi
     def create(self, vals_list):

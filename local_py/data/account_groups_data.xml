@@ -1,0 +1,38 @@
+<odoo>
+    <data>
+        <!--
+            Requerimiento: los usuarios con "Contabilidad / Administrador"
+            (account.group_account_manager) deben tener acceso, sin ajustes
+            manuales adicionales, a:
+              - Cuentas de ingreso/gasto en productos y categorías de producto.
+              - Cuentas por cobrar/pagar en clientes y proveedores.
+              - Los asientos contables generados, incluyendo los de
+                movimientos de stock.
+
+            Estas vistas nativas de Odoo (ej. account.product_template_form_view)
+            restringen esos campos con groups="account.group_account_readonly",
+            un grupo que account.group_account_manager NO implica por sí solo
+            en esta instalación.
+
+            Se agrega aquí account.group_account_user ("Mostrar características
+            de contabilidad completas") como implied_ids de
+            account.group_account_manager. account.group_account_user ya
+            implica tanto account.group_account_invoice como
+            account.group_account_readonly, cubriendo así el requerimiento.
+
+            Al ser un implied_ids, Odoo:
+              1) Propaga el grupo complementario de inmediato a los usuarios
+                 que ya tuvieran el grupo Manager (recalculado al cargar este
+                 dato durante la instalación/actualización del módulo).
+              2) Lo asigna automáticamente a cualquier usuario que reciba el
+                 grupo Manager en el futuro, sin intervención manual.
+
+            Ver también hooks.py:_configure_accounting_groups(), que refuerza
+            este mismo ajuste de forma explícita al instalar el módulo y cada
+            vez que se ejecuta el asistente "Restablecer configuración Paraguay".
+        -->
+        <record id="account.group_account_manager" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('account.group_account_user'))]"/>
+        </record>
+    </data>
+</odoo>
