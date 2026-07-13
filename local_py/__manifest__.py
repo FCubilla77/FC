@@ -4,7 +4,7 @@
     "summary": """
         Localización para Paraguay: validación de RUT, campos Timbrado y
         Nro. Documento en diarios y facturas, Tipo Fiscal, Libro Ventas y Libro Compras,
-        y permisos contables automáticos para productos, categorías, clientes y proveedores""",
+        y permisos contables automáticos para productos, categorías, clientes y proveedores.""",
     "description": """
         Localización para Paraguay: validación de RUT, campos Timbrado y
         Nro. Documento en diarios y facturas, Tipo Fiscal, Libro Ventas y Libro Compras,
