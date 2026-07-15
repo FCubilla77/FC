@@ -39,6 +39,22 @@ NIVEL_1_LABELS = [
     ('7', '7 - Gastos'),
 ]
 
+# Códigos válidos para el filtro Nivel 1 (deben coincidir con NIVEL_1_LABELS).
+VALID_NIVEL_1_CODES = {code for code, _label in NIVEL_1_LABELS}
+
+
+def _safe_nivel_1(code):
+    """Devuelve el primer segmento del código como valor de 'nivel_1' SOLO
+    si coincide con una de las 7 raíces esperadas del plan de Paraguay
+    (NIVEL_1_LABELS). Cualquier otra cuenta/grupo (por ejemplo, cuentas
+    técnicas que Odoo o algún otro módulo instalado puedan crear con una
+    codificación distinta, como códigos numéricos largos sin puntos) queda
+    sin clasificar (False) en vez de romper el campo Selection."""
+    if not code:
+        return False
+    primer_segmento = code.split('.')[0]
+    return primer_segmento if primer_segmento in VALID_NIVEL_1_CODES else False
+
 
 class L10nPyPlanCuentasReport(models.Model):
     _name = 'local_py.plan_cuentas.report'
@@ -95,7 +111,7 @@ class L10nPyPlanCuentasReport(models.Model):
                 'tipo': 'title',
                 'nivel': code.count('.') + 1 if code else 0,
                 'group_name': group.parent_id.name or '',
-                'nivel_1': code.split('.')[0] if code else False,
+                'nivel_1': _safe_nivel_1(code),
                 'group_id': group.id,
             })
 
@@ -109,7 +125,7 @@ class L10nPyPlanCuentasReport(models.Model):
                 'nivel': code.count('.') + 1 if code else 0,
                 'account_type': account.account_type,
                 'group_name': account.group_id.name or '',
-                'nivel_1': code.split('.')[0] if code else False,
+                'nivel_1': _safe_nivel_1(code),
                 'account_id': account.id,
             })
 
