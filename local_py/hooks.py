@@ -70,7 +70,7 @@ def _configure_accounting_groups(env):
         )
         return
 
-    users_to_update = manager_group.users - extra_group.users
+    users_to_update = manager_group.all_user_ids - extra_group.all_user_ids
     if users_to_update:
         users_to_update.write({'groups_id': [Command.link(extra_group.id)]})
         _logger.info(
