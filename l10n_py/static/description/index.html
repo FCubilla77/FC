@@ -1,0 +1,34 @@
+<section class="oe_container">
+    <div class="oe_row oe_spaced">
+        <h2 class="oe_slogan">Paraguay - Contabilidad</h2>
+        <h3 class="oe_slogan">Paquete de Localización Fiscal Paraguay (account.chart.template)</h3>
+        <p>
+            Este módulo implementa el mecanismo <b>nativo</b> de Odoo de
+            Paquete de Localización Fiscal, seleccionable desde
+            <i>Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete</i>.
+        </p>
+    </div>
+    <div class="oe_row oe_spaced">
+        <h4>Funcionalidades incluidas</h4>
+        <ul>
+            <li>Plan de cuentas: 215 cuentas imputables (<code>account.account</code>), con <code>account_type</code> asignado según norma</li>
+            <li>135 grupos de cuenta (<code>account.group</code>), incluyendo las 7 raíces de nivel 1: Activo, Pasivo, Patrimonio Neto, Ingresos, Costos, Otros Ingresos y Gastos</li>
+            <li>6 impuestos predeterminados (<code>account.tax</code>): IVA 10%, IVA 5% y Exentas, para Ventas y Compras, con líneas de reparto configuradas</li>
+            <li>3 grupos de impuestos (<code>account.tax.group</code>): IVA 10%, IVA 5%, Exentas</li>
+            <li>Moneda de la compañía: Guaraní (PYG)</li>
+            <li>Cuentas por defecto de compañía: Deudores (clientes), Acreedores (proveedores)</li>
+            <li>Prefijo de código para cuentas de banco y caja (auto-generación al crear nuevos diarios)</li>
+            <li>Cuenta de Transferencias Internas</li>
+            <li>Cuenta de diferencia de cambio (ganancia y pérdida)</li>
+            <li>Cuenta de redondeo (ganancia y pérdida)</li>
+            <li>Impuesto de venta y compra por defecto (IVA 10%)</li>
+        </ul>
+    </div>
+    <div class="oe_row oe_spaced">
+        <h4>Fuera de alcance de este módulo</h4>
+        <ul>
+            <li>Posiciones fiscales: no se definieron para Paraguay (solo posición doméstica implícita)</li>
+            <li>Validaciones de RUT, campos de Timbrado/Nro. Documento, modelo Tipo Fiscal, reportes Libro Ventas/Libro Compras y demás funcionalidad de facturación específica de Paraguay: se mantienen en el módulo <code>local_py</code></li>
+        </ul>
+    </div>
+</section>

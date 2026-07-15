@@ -1,0 +1,4 @@
+"id","name","country_id"
+"tax_group_iva_10","IVA 10%","base.py"
+"tax_group_iva_5","IVA 5%","base.py"
+"tax_group_exentas","Exentas","base.py"
