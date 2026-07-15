@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0006",
+    "version": "19.0.2026.0007",
     "category": "Accounting/Localizations/Account Charts",
     "license": "LGPL-3",
     "author": "FC_Py",
@@ -39,6 +39,7 @@
     """,
     "depends": ["base", "account"],
     "data": [
+        "data/account_account_tag_data.xml",
     ],
     "installable": True,
     "auto_install": False,

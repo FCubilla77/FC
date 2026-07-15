@@ -1,0 +1,24 @@
+<odoo>
+    <data>
+        <!--
+            account.account.tag NO es escaneado por el motor de plantillas
+            (@template) de account.chart.template junto con account.account,
+            account.group, account.tax.group, account.tax y
+            account.fiscal.position. Se carga como dato XML normal, igual
+            que en los módulos l10n_XX oficiales (ej. account_account_tag_data.xml),
+            para que exista ANTES de que se ejecute try_loading y la columna
+            tag_ids de account.account-py.csv pueda resolverlo por su
+            external ID sin prefijo de compañía.
+        -->
+        <record id="tag_iva_credito_fiscal" model="account.account.tag">
+            <field name="name">IVA Crédito Fiscal</field>
+            <field name="applicability">accounts</field>
+            <field name="country_id" ref="base.py"/>
+        </record>
+        <record id="tag_iva_debito_fiscal" model="account.account.tag">
+            <field name="name">IVA Débito Fiscal</field>
+            <field name="applicability">accounts</field>
+            <field name="country_id" ref="base.py"/>
+        </record>
+    </data>
+</odoo>
