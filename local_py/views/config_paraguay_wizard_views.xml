@@ -6,12 +6,23 @@
             <field name="arch" type="xml">
                 <form string="Restablecer configuración Paraguay">
                     <div class="alert alert-warning" role="alert">
-                        Esta acción sobrescribirá, en la compañía principal: el país y el país fiscal
-                        (Paraguay), la moneda principal (PYG), los grupos de impuestos y los 6
-                        impuestos predeterminados (IVA 10%/5%/Exentas de Ventas y Compras), y los
-                        impuestos de venta/compra predeterminados.
+                        Esta acción, sobre la compañía principal:
                         <br/>
-                        Cualquier ajuste manual realizado sobre esos mismos campos será reemplazado.
+                        - Refuerza los permisos contables para que los usuarios con
+                        "Contabilidad / Administrador" puedan ver y editar cuentas de
+                        productos, categorías, clientes y proveedores, y los asientos
+                        contables generados.
+                        <br/>
+                        - Configura "Impuestos incluidos" en Ajustes &gt; Facturación &gt;
+                        Impuestos &gt; Precios.
+                        <br/>
+                        - Reconstruye el reporte Plan de Cuentas.
+                        <br/>
+                        <br/>
+                        El plan de cuentas, los grupos de cuenta, los impuestos
+                        predeterminados, la moneda de compañía y el país fiscal son
+                        responsabilidad del módulo <b>l10n_py</b> (paquete nativo de
+                        Localización Fiscal) y no se ven afectados por esta acción.
                         <br/>
                         ¿Desea continuar?
                     </div>

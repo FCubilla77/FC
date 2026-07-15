@@ -31,11 +31,14 @@ ACCOUNTING_BASE_GROUP_XML_ID = 'account.group_account_manager'
 # proveedores. Ver también data/account_groups_data.xml.
 ACCOUNTING_EXTRA_GROUP_XML_ID = 'account.group_account_user'
 
-# Clave del parámetro de sistema que controla "Ajustes > Facturación >
-# Impuestos > Precios": si los subtotales de línea se muestran con
-# impuestos incluidos o excluidos.
-TAX_DISPLAY_CONFIG_PARAM = 'account.show_line_subtotals_tax_selection'
-TAX_DISPLAY_CONFIG_VALUE = 'tax_included'
+# "Ajustes > Facturación > Impuestos > Precios" NO se guarda como un valor
+# simple de ir.config_parameter: se implementa mediante dos grupos de
+# usuario mutuamente excluyentes (exactamente uno de los dos debe estar
+# activo): account.group_show_line_subtotals_tax_excluded ("Impuestos
+# excluidos", el default) y account.group_show_line_subtotals_tax_included
+# ("Impuestos incluidos"). Por eso hay que aplicarlo vía res.config.settings
+# (igual que si se tildara la opción desde la pantalla de Ajustes), no
+# escribiendo un ir.config_parameter directamente.
 
 
 def _configure_accounting_groups(env):
@@ -83,14 +86,15 @@ def _configure_accounting_groups(env):
 
 def _configure_tax_display(env):
     """Fuerza 'Ajustes > Facturación > Impuestos > Precios' a 'Impuestos
-    incluidos' (subtotales de línea mostrados con impuestos incluidos)."""
-    env['ir.config_parameter'].sudo().set_param(
-        TAX_DISPLAY_CONFIG_PARAM, TAX_DISPLAY_CONFIG_VALUE,
-    )
-    _logger.info(
-        "local_py: 'Impuestos > Precios' configurado como '%s'.",
-        TAX_DISPLAY_CONFIG_VALUE,
-    )
+    incluidos'. Se aplica igual que si se tildara la opción desde la
+    pantalla de Ajustes: creando un registro de res.config.settings con el
+    campo en True y ejecutándolo, para que Odoo mueva correctamente a los
+    usuarios entre los dos grupos mutuamente excluyentes
+    (group_show_line_subtotals_tax_excluded / _included)."""
+    env['res.config.settings'].create({
+        'group_show_line_subtotals_tax_included': True,
+    }).execute()
+    _logger.info("local_py: 'Impuestos > Precios' configurado como 'Impuestos incluidos'.")
 
 
 def configure_paraguay(env):
