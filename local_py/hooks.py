@@ -86,15 +86,32 @@ def _configure_accounting_groups(env):
 
 def _configure_tax_display(env):
     """Fuerza 'Ajustes > Facturación > Impuestos > Precios' a 'Impuestos
-    incluidos'. Se aplica igual que si se tildara la opción desde la
-    pantalla de Ajustes: creando un registro de res.config.settings con el
-    campo en True y ejecutándolo, para que Odoo mueva correctamente a los
-    usuarios entre los dos grupos mutuamente excluyentes
-    (group_show_line_subtotals_tax_excluded / _included)."""
-    env['res.config.settings'].create({
-        'group_show_line_subtotals_tax_included': True,
-    }).execute()
-    _logger.info("local_py: 'Impuestos > Precios' configurado como 'Impuestos incluidos'.")
+    incluidos'.
+
+    Confirmado contra el código fuente real de Odoo 19
+    (addons/account/models/company.py): el campo es
+    'account_price_include' en res.company (Selection:
+    'tax_included'/'tax_excluded', default 'tax_excluded').
+
+    Odoo bloquea este cambio con un ValidationError si la compañía ya tiene
+    contabilidad iniciada (facturas u otros movimientos ya posteados) —
+    ver la constraint '_check_set_account_price_include'. En ese caso se
+    registra un warning y se continúa sin romper el resto de
+    configure_paraguay().
+    """
+    company = env.ref('base.main_company')
+    if company.account_price_include == 'tax_included':
+        return
+    try:
+        company.account_price_include = 'tax_included'
+        _logger.info("local_py: 'Impuestos > Precios' configurado como 'Impuestos incluidos'.")
+    except Exception:
+        _logger.warning(
+            "local_py: no se pudo configurar 'Impuestos > Precios' como 'Impuestos "
+            "incluidos' — probablemente la compañía ya tiene contabilidad iniciada "
+            "(facturas u otros movimientos posteados). Ajustarlo manualmente si "
+            "corresponde desde Ajustes > Facturación > Impuestos > Precios."
+        )
 
 
 def configure_paraguay(env):

@@ -14,9 +14,17 @@
                         contables generados.
                         <br/>
                         - Configura "Impuestos incluidos" en Ajustes &gt; Facturación &gt;
-                        Impuestos &gt; Precios.
+                        Impuestos &gt; Precios (si la compañía ya tiene contabilidad
+                        iniciada, Odoo puede rechazar este cambio puntual; el resto de
+                        la acción se aplica igual).
                         <br/>
                         - Reconstruye el reporte Plan de Cuentas.
+                        <br/>
+                        <br/>
+                        No modifica las validaciones de RUT en contactos, ni los campos
+                        Timbrado/Nro. Documento en diarios y facturas — esas
+                        validaciones ya están siempre activas mientras el módulo esté
+                        instalado, no requieren restablecerse con este asistente.
                         <br/>
                         <br/>
                         El plan de cuentas, los grupos de cuenta, los impuestos
