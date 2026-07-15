@@ -22,15 +22,29 @@
             <li>Cuenta de diferencia de cambio (ganancia y pérdida)</li>
             <li>Cuenta de redondeo (ganancia y pérdida)</li>
             <li>Impuesto de venta y compra por defecto (IVA 10%)</li>
+            <li>2 posiciones fiscales (<code>account.fiscal.position</code>): Exterior y Diplomático — selección manual, reemplazan IVA 10%/5% Ventas por Exentas Ventas</li>
+            <li>2 tags de cuenta (<code>account.account.tag</code>): IVA Crédito Fiscal e IVA Débito Fiscal, aplicados a sus cuentas correspondientes</li>
+            <li>6 plazos de pago (<code>account.payment.term</code>): Contado, 15/30/45/60 días, y 30-60-90 días (3 cuotas)</li>
         </ul>
     </div>
     <div class="oe_row oe_spaced">
         <h4>Fuera de alcance de este módulo (pendiente a futuro)</h4>
         <ul>
-            <li>Posiciones fiscales (<code>account.fiscal.position</code>): no se definieron para Paraguay, solo aplica la posición doméstica implícita</li>
-            <li>Tags de cuenta (<code>account.account.tag</code>) para reportes fiscales</li>
-            <li>Plazos de pago (<code>account.payment.term</code>) específicos para Paraguay</li>
-            <li>Datos de demostración (compañía/plan de cuentas de ejemplo)</li>
+            <li>Datos de demostración (compañía/plan de cuentas de ejemplo) — no requeridos por el momento</li>
         </ul>
+    </div>
+    <div class="oe_row oe_spaced">
+        <h4>Paso posterior a la instalación (manual)</h4>
+        <p>
+            Este módulo configura el <b>país fiscal</b> de la compañía
+            (<code>account_fiscal_country_id</code>), usado por Odoo para
+            impuestos, posiciones fiscales y reportes. Sin embargo, el
+            <b>país de la dirección/domicilio legal</b> de la compañía
+            (<code>country_id</code>, visible en <i>Ajustes generales &gt;
+            Compañías</i>) es un dato administrativo independiente que
+            Odoo no vincula automáticamente a ningún paquete de
+            localización fiscal — si corresponde, debe actualizarse
+            manualmente a Paraguay luego de instalar este módulo.
+        </p>
     </div>
 </section>

@@ -1,0 +1,5 @@
+"id","name","auto_apply","vat_required","tax_ids/tax_src_id","tax_ids/tax_dest_id"
+"fp_exterior","Exterior","False","False","tax_iva_10_ventas","tax_exentas_ventas"
+"","","","","tax_iva_5_ventas","tax_exentas_ventas"
+"fp_diplomatico","Diplomático","False","False","tax_iva_10_ventas","tax_exentas_ventas"
+"","","","","tax_iva_5_ventas","tax_exentas_ventas"

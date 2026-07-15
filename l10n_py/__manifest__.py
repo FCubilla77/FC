@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0002",
+    "version": "19.0.2026.0004",
     "category": "Accounting/Localizations/Account Charts",
     "license": "LGPL-3",
     "author": "FC_Py",
@@ -24,12 +24,18 @@
           moneda PYG, prefijos de cuentas de banco y caja, cuenta de
           transferencias internas, cuenta de diferencia de cambio y
           cuenta de redondeo
+        - 2 posiciones fiscales (account.fiscal.position): Exterior y
+          Diplomático, de selección manual (no automáticas, sin
+          restricción de país), que reemplazan IVA 10%/5% Ventas por
+          Exentas Ventas
+        - 2 tags de cuenta (account.account.tag): IVA Crédito Fiscal e
+          IVA Débito Fiscal
+        - 6 plazos de pago (account.payment.term): Contado, 15/30/45/60
+          días, y 30-60-90 días (3 cuotas)
 
-        Este módulo NO incluye posiciones fiscales (no se definieron para
-        Paraguay). Todo lo que no corresponde al paquete nativo de
-        Localización Fiscal (validaciones de RUT, Timbrado/Nro. Documento,
-        Tipo Fiscal, reportes Libro Ventas/Compras, etc.) se mantiene en el
-        módulo local_py.
+        Todo lo que no corresponde al paquete nativo de Localización Fiscal
+        (validaciones de RUT, Timbrado/Nro. Documento, Tipo Fiscal, reportes
+        Libro Ventas/Compras, etc.) se mantiene en el módulo local_py.
     """,
     "depends": ["base", "account"],
     "data": [
