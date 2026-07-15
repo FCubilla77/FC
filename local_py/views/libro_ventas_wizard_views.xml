@@ -37,7 +37,7 @@
                     <field name="invoice_date" string="Fecha"/>
                     <field name="l10n_py_amount_untaxed_signed" string="Importe sin impuesto" sum="Total"/>
                     <field name="l10n_py_amount_total_signed" string="Importe Total" sum="Total"/>
-                    <field name="l10n_py_tipo_fiscal_id" string="Tipo Fiscal" column_invisible="1"/>
+                    <field name="local_py_tipo_fiscal_id" string="Tipo Fiscal" column_invisible="1"/>
                 </list>
             </field>
         </record>

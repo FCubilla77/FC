@@ -1,6 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_l10n_py_tipo_fiscal_user,l10n_py.tipo_fiscal.user,model_l10n_py_tipo_fiscal,base.group_user,1,1,1,1
+access_local_py_tipo_fiscal_user,local_py.tipo_fiscal.user,model_local_py_tipo_fiscal,base.group_user,1,1,1,1
 access_l10n_py_libro_ventas_wizard_user,l10n_py.libro_ventas.wizard.user,model_l10n_py_libro_ventas_wizard,base.group_user,1,1,1,1
 access_l10n_py_libro_compras_wizard_user,l10n_py.libro_compras.wizard.user,model_l10n_py_libro_compras_wizard,base.group_user,1,1,1,1
 access_l10n_py_config_paraguay_wizard_manager,l10n_py.config_paraguay.wizard.manager,model_l10n_py_config_paraguay_wizard,account.group_account_manager,1,1,1,1
-access_l10n_py_plan_cuentas_report_user,l10n_py.plan_cuentas.report.user,model_l10n_py_plan_cuentas_report,base.group_user,1,0,0,0
+access_local_py_plan_cuentas_report_user,local_py.plan_cuentas.report.user,model_local_py_plan_cuentas_report,base.group_user,1,0,0,0

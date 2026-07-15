@@ -4,7 +4,7 @@ from odoo import models, fields
 
 
 class L10nPyTipoFiscal(models.Model):
-    _name = 'l10n_py.tipo_fiscal'
+    _name = 'local_py.tipo_fiscal'
     _description = 'Tipo Fiscal (Paraguay)'
     _order = 'sequence, id'
 

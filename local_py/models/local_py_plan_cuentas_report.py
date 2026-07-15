@@ -26,9 +26,9 @@ ACCOUNT_TYPE_SELECTION = [
 ]
 
 
-# Los Títulos de nivel 1 (raíz) ya no se cargan como account.group (ver
-# hooks._cleanup_chart_of_accounts), así que esta lista queda fija acá para
-# poder seguir ofreciendo el filtro por Nivel 1 en el reporte.
+# Etiquetas fijas para el filtro por Nivel 1 del reporte (se calculan a
+# partir del primer segmento del código de cuenta, no dependen de que
+# existan account.group de nivel 1 raíz).
 NIVEL_1_LABELS = [
     ('1', '1 - Activo'),
     ('2', '2 - Pasivo'),
@@ -41,7 +41,7 @@ NIVEL_1_LABELS = [
 
 
 class L10nPyPlanCuentasReport(models.Model):
-    _name = 'l10n_py.plan_cuentas.report'
+    _name = 'local_py.plan_cuentas.report'
     _description = 'Reporte Plan de Cuentas Paraguay'
     _order = 'code'
     _rec_name = 'code'

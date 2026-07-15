@@ -27,7 +27,7 @@
                                string="Nro. Documento"
                                placeholder="000-000-0000000"
                                readonly="state != 'draft'"/>
-                        <field name="l10n_py_tipo_fiscal_id"
+                        <field name="local_py_tipo_fiscal_id"
                                string="Tipo Fiscal"
                                readonly="state != 'draft'"/>
                     </group>

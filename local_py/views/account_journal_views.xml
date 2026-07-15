@@ -12,7 +12,7 @@
                         <field name="l10n_py_venc_timbrado" string="Venc. Timbrado"/>
                     </group>
                     <group invisible="type not in ('sale', 'purchase')">
-                        <field name="l10n_py_tipo_fiscal_id" string="Tipo Fiscal"/>
+                        <field name="local_py_tipo_fiscal_id" string="Tipo Fiscal"/>
                     </group>
                 </xpath>
             </field>

@@ -29,8 +29,8 @@ class AccountJournal(models.Model):
         help='Fecha de vencimiento del timbrado. Las facturas de venta con fecha posterior '
              'a esta no podrán guardarse. Aplica únicamente a diarios de venta.',
     )
-    l10n_py_tipo_fiscal_id = fields.Many2one(
-        'l10n_py.tipo_fiscal',
+    local_py_tipo_fiscal_id = fields.Many2one(
+        'local_py.tipo_fiscal',
         string='Tipo Fiscal',
         help='Tipo de comprobante fiscal asociado a este diario. Aplica a diarios de venta y de compra.',
     )
@@ -67,15 +67,15 @@ class AccountJournal(models.Model):
                     'Los campos Timbrado, Nro. Documento y Venc. Timbrado solo aplican a diarios de venta.'
                 )
 
-    @api.constrains('l10n_py_tipo_fiscal_id', 'type')
-    def _check_l10n_py_tipo_fiscal_journal_type(self):
+    @api.constrains('local_py_tipo_fiscal_id', 'type')
+    def _check_local_py_tipo_fiscal_journal_type(self):
         for journal in self:
-            if journal.type not in ('sale', 'purchase') and journal.l10n_py_tipo_fiscal_id:
+            if journal.type not in ('sale', 'purchase') and journal.local_py_tipo_fiscal_id:
                 raise exceptions.ValidationError(
                     'El campo Tipo Fiscal solo aplica a diarios de venta y de compra.'
                 )
 
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_tipo_fiscal_id', 'type')
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id', 'type')
     def _check_l10n_py_unique_timbrado_per_tipo_fiscal(self):
         """No pueden existir dos diarios de venta con el mismo Tipo Fiscal que
         compartan el mismo Timbrado y Nro. Documento. Al comparar siempre
@@ -85,14 +85,14 @@ class AccountJournal(models.Model):
         for journal in self:
             if (
                 journal.type == 'sale'
-                and journal.l10n_py_tipo_fiscal_id
+                and journal.local_py_tipo_fiscal_id
                 and journal.l10n_py_timbrado
                 and journal.l10n_py_nro_documento
             ):
                 domain = [
                     ('id', '!=', journal.id),
                     ('type', '=', 'sale'),
-                    ('l10n_py_tipo_fiscal_id', '=', journal.l10n_py_tipo_fiscal_id.id),
+                    ('local_py_tipo_fiscal_id', '=', journal.local_py_tipo_fiscal_id.id),
                     ('l10n_py_timbrado', '=', journal.l10n_py_timbrado),
                     ('l10n_py_nro_documento', '=', journal.l10n_py_nro_documento),
                     ('company_id', '=', journal.company_id.id),
@@ -100,5 +100,5 @@ class AccountJournal(models.Model):
                 if self.search_count(domain):
                     raise exceptions.ValidationError(
                         'Ya existe otro diario de venta con el mismo Tipo Fiscal (%s), '
-                        'Timbrado y Nro. Documento.' % journal.l10n_py_tipo_fiscal_id.name
+                        'Timbrado y Nro. Documento.' % journal.local_py_tipo_fiscal_id.name
                     )

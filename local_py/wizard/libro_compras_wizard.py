@@ -32,5 +32,5 @@ class L10nPyLibroComprasWizard(models.TransientModel):
                 ('invoice_date', '>=', self.date_from),
                 ('invoice_date', '<=', self.date_to),
             ],
-            'context': {'group_by': ['l10n_py_tipo_fiscal_id']},
+            'context': {'group_by': ['local_py_tipo_fiscal_id']},
         }

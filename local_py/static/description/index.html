@@ -63,20 +63,35 @@
     <div class="row" style="margin-top: 20px;">
         <div class="col-md-6 text-center">
             <h3>📊</h3>
-            <h5>Plan de Cuentas Paraguay</h5>
+            <h5>Reporte Plan de Cuentas</h5>
             <p class="text-muted">
-                Plan de cuentas completo precargado (Títulos y cuentas
-                Imputables), con grupos de reporte automáticos y tipos de
-                cuenta configurados.
+                Combina Títulos e Imputables en un único listado jerárquico
+                con filtro por Nivel 1, sin importar qué módulo haya cargado
+                el plan de cuentas de la compañía.
             </p>
         </div>
         <div class="col-md-6 text-center">
             <h3>⚙️</h3>
-            <h5>Configuración inicial Paraguay</h5>
+            <h5>Permisos contables y precios</h5>
             <p class="text-muted">
-                Al instalar el módulo se configuran automáticamente la moneda
-                (Guaraní), el país fiscal, y los impuestos de IVA 10%/5%/Exentas
-                de Ventas y Compras.
+                Refuerza automáticamente los permisos contables necesarios
+                para ver/editar cuentas en productos, categorías, clientes y
+                proveedores, y configura los precios como "Impuestos
+                incluidos".
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 10px;">
+        <div class="col-md-12">
+            <p class="text-muted" style="font-style: italic;">
+                Nota: el plan de cuentas, los grupos de cuenta, los impuestos
+                predeterminados, la moneda de compañía y el país fiscal de
+                Paraguay pasaron al módulo <b>l10n_py</b> (paquete nativo de
+                Localización Fiscal, seleccionable desde Ajustes &gt;
+                Facturación &gt; Localización Fiscal &gt; Paquete).
+                <b>local_py</b> se encarga de todo lo que ese paquete no
+                cubre.
             </p>
         </div>
     </div>
@@ -93,11 +108,10 @@
                 <li>Reporte Libro Ventas (Facturación &gt; Reportes), con filtro por rango de fechas</li>
                 <li>Reporte Libro Compras (Facturación &gt; Reportes), con filtro por rango de fechas</li>
                 <li>Notas de crédito mostradas con signo negativo en Libro Ventas y Libro Compras, restando de los totales del reporte (a efectos de visualización, sin afectar los importes contables originales)</li>
-                <li>Plan de Cuentas de Paraguay precargado (Títulos y cuentas Imputables), con grupos de reporte y tipos de cuenta configurados</li>
-                <li>Configuración inicial automática al instalar: moneda Guaraní (PYG), país y país fiscal Paraguay, e impuestos de IVA 10%/5%/Exentas de Ventas y Compras enlazados a sus cuentas contables</li>
-                <li>Asistente "Restablecer configuración Paraguay" (Facturación &gt; Localización Paraguay) para reaplicar la configuración inicial manualmente cuando haga falta</li>
+                <li>Asistente "Restablecer configuración Paraguay" (Facturación &gt; Localización Paraguay) para reforzar permisos contables y precios manualmente cuando haga falta</li>
                 <li>Reporte Plan de Cuentas (Facturación &gt; Reportes), con Títulos e Imputables en el mismo orden jerárquico y filtro por Nivel 1</li>
                 <li>Permisos contables automáticos: los usuarios con "Contabilidad / Administrador" reciben también acceso para ver y editar cuentas de ingreso/gasto en productos y categorías, y cuentas por cobrar/pagar en clientes y proveedores, además de ver los asientos contables generados (incluyendo los de movimientos de stock)</li>
+                <li>Precios configurados con "Impuestos incluidos" (Ajustes &gt; Facturación &gt; Impuestos &gt; Precios)</li>
                 <li>Campo RUT y "Omitir control RUT" visibles y validados solo para contactos de tipo Empresa; ocultos y sin validación para contactos individuales</li>
                 <li>Validación que impide registrar dos contactos de tipo Empresa con el mismo RUT</li>
                 <li>Los contactos individuales solo pueden crearse asociados a un contacto de tipo Empresa (Empresa relacionada obligatoria)</li>

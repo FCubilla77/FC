@@ -1,8 +1,8 @@
 <odoo>
     <data>
-        <record id="view_l10n_py_plan_cuentas_report_list" model="ir.ui.view">
-            <field name="name">l10n_py.plan_cuentas.report.list</field>
-            <field name="model">l10n_py.plan_cuentas.report</field>
+        <record id="view_local_py_plan_cuentas_report_list" model="ir.ui.view">
+            <field name="name">local_py.plan_cuentas.report.list</field>
+            <field name="model">local_py.plan_cuentas.report</field>
             <field name="arch" type="xml">
                 <list string="Plan de Cuentas" create="false" edit="false" delete="false"
                       decoration-bf="tipo == 'title'">
@@ -21,9 +21,9 @@
             </field>
         </record>
 
-        <record id="view_l10n_py_plan_cuentas_report_search" model="ir.ui.view">
-            <field name="name">l10n_py.plan_cuentas.report.search</field>
-            <field name="model">l10n_py.plan_cuentas.report</field>
+        <record id="view_local_py_plan_cuentas_report_search" model="ir.ui.view">
+            <field name="name">local_py.plan_cuentas.report.search</field>
+            <field name="model">local_py.plan_cuentas.report</field>
             <field name="arch" type="xml">
                 <search string="Buscar en Plan de Cuentas">
                     <field name="code"/>
@@ -46,18 +46,18 @@
             </field>
         </record>
 
-        <record id="action_l10n_py_plan_cuentas_report" model="ir.actions.act_window">
+        <record id="action_local_py_plan_cuentas_report" model="ir.actions.act_window">
             <field name="name">Plan de Cuentas</field>
-            <field name="res_model">l10n_py.plan_cuentas.report</field>
+            <field name="res_model">local_py.plan_cuentas.report</field>
             <field name="view_mode">list</field>
-            <field name="view_id" ref="view_l10n_py_plan_cuentas_report_list"/>
-            <field name="search_view_id" ref="view_l10n_py_plan_cuentas_report_search"/>
+            <field name="view_id" ref="view_local_py_plan_cuentas_report_list"/>
+            <field name="search_view_id" ref="view_local_py_plan_cuentas_report_search"/>
         </record>
 
-        <menuitem id="menu_l10n_py_plan_cuentas_report"
+        <menuitem id="menu_local_py_plan_cuentas_report"
                   name="Plan de Cuentas"
                   parent="account.menu_finance_reports"
-                  action="action_l10n_py_plan_cuentas_report"
+                  action="action_local_py_plan_cuentas_report"
                   sequence="15"/>
 
         <!-- Acceso directo al Plan de Cuentas estándar de Odoo (account.account),

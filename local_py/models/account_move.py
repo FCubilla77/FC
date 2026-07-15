@@ -39,8 +39,8 @@ class AccountMove(models.Model):
              'número utilizado para el diario (formato 001-001-0000001). '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
-    l10n_py_tipo_fiscal_id = fields.Many2one(
-        'l10n_py.tipo_fiscal',
+    local_py_tipo_fiscal_id = fields.Many2one(
+        'local_py.tipo_fiscal',
         string='Tipo Fiscal',
         help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
              'En factura/nota de crédito de proveedor se selecciona manualmente.',
@@ -125,7 +125,7 @@ class AccountMove(models.Model):
                 move.l10n_py_nro_documento = move._get_next_l10n_py_nro_documento(
                     move.journal_id, move.move_type
                 )
-                move.l10n_py_tipo_fiscal_id = move.journal_id.l10n_py_tipo_fiscal_id
+                move.local_py_tipo_fiscal_id = move.journal_id.local_py_tipo_fiscal_id
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -135,7 +135,7 @@ class AccountMove(models.Model):
             if journal_id and move_type in SALE_MOVE_TYPES:
                 journal = self.env['account.journal'].browse(journal_id)
                 vals.setdefault('l10n_py_timbrado', journal.l10n_py_timbrado)
-                vals.setdefault('l10n_py_tipo_fiscal_id', journal.l10n_py_tipo_fiscal_id.id)
+                vals.setdefault('local_py_tipo_fiscal_id', journal.local_py_tipo_fiscal_id.id)
                 if not vals.get('l10n_py_nro_documento'):
                     vals['l10n_py_nro_documento'] = self._get_next_l10n_py_nro_documento(
                         journal, move_type
@@ -149,7 +149,7 @@ class AccountMove(models.Model):
     # 'posted', no al guardar en borrador, para no trabar la carga incremental
     # del comprobante.
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_tipo_fiscal_id', 'move_type', 'state')
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id', 'move_type', 'state')
     def _check_l10n_py_required_fiscal_fields(self):
         for move in self:
             if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and move.state == 'posted':
@@ -158,7 +158,7 @@ class AccountMove(models.Model):
                     missing.append('Timbrado')
                 if not move.l10n_py_nro_documento:
                     missing.append('Nro. Documento')
-                if not move.l10n_py_tipo_fiscal_id:
+                if not move.local_py_tipo_fiscal_id:
                     missing.append('Tipo Fiscal')
                 if missing:
                     raise exceptions.ValidationError(
