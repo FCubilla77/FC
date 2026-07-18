@@ -1,24 +1,73 @@
 <odoo>
     <data noupdate="1">
+        <!-- Códigos oficiales según Tabla 4 de la Especificación Técnica de
+             Marangatu (DNIT, RG 90/2021). "Factura" y "Factura Electronica"
+             comparten el código 109: Marangatu no distingue papel/electrónica
+             a este nivel. -->
+        <record id="tipo_fiscal_autofactura" model="local_py.tipo_fiscal">
+            <field name="name">Autofactura</field>
+            <field name="code">101</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="tipo_fiscal_boleta_transporte_publico" model="local_py.tipo_fiscal">
+            <field name="name">Boleta de Transporte Publico de Pasajeros</field>
+            <field name="code">102</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="tipo_fiscal_boleta_venta" model="local_py.tipo_fiscal">
+            <field name="name">Boleta de Venta</field>
+            <field name="code">103</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="tipo_fiscal_boleta_resimple" model="local_py.tipo_fiscal">
+            <field name="name">Boleta Resimple</field>
+            <field name="code">104</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="tipo_fiscal_boletos_loteria" model="local_py.tipo_fiscal">
+            <field name="name">Boletos de Loterias, Juegos de Azar</field>
+            <field name="code">105</field>
+            <field name="sequence">50</field>
+        </record>
+        <record id="tipo_fiscal_boleto_transporte_aereo" model="local_py.tipo_fiscal">
+            <field name="name">Boleto o Ticket de Transporte Aereo</field>
+            <field name="code">106</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="tipo_fiscal_despacho_importacion" model="local_py.tipo_fiscal">
+            <field name="name">Despacho de Importacion</field>
+            <field name="code">107</field>
+            <field name="sequence">70</field>
+        </record>
+        <record id="tipo_fiscal_entrada_espectaculos" model="local_py.tipo_fiscal">
+            <field name="name">Entrada a Espectaculos Publicos</field>
+            <field name="code">108</field>
+            <field name="sequence">80</field>
+        </record>
         <record id="tipo_fiscal_factura" model="local_py.tipo_fiscal">
             <field name="name">Factura</field>
-            <field name="sequence">10</field>
+            <field name="code">109</field>
+            <field name="sequence">90</field>
         </record>
         <record id="tipo_fiscal_factura_electronica" model="local_py.tipo_fiscal">
             <field name="name">Factura Electronica</field>
-            <field name="sequence">20</field>
-        </record>
-        <record id="tipo_fiscal_nota_debito" model="local_py.tipo_fiscal">
-            <field name="name">Nota de Debito</field>
-            <field name="sequence">30</field>
+            <field name="code">109</field>
+            <field name="sequence">100</field>
         </record>
         <record id="tipo_fiscal_nota_credito" model="local_py.tipo_fiscal">
             <field name="name">Nota de Credito</field>
-            <field name="sequence">40</field>
+            <field name="code">110</field>
+            <field name="sequence">110</field>
         </record>
-        <record id="tipo_fiscal_autofactura" model="local_py.tipo_fiscal">
-            <field name="name">Autofactura</field>
-            <field name="sequence">50</field>
+        <record id="tipo_fiscal_nota_debito" model="local_py.tipo_fiscal">
+            <field name="name">Nota de Debito</field>
+            <field name="code">111</field>
+            <field name="sequence">120</field>
+        </record>
+        <record id="tipo_fiscal_ticket_maquina_registradora" model="local_py.tipo_fiscal">
+            <field name="name">Ticket Maquina Registradora</field>
+            <field name="code">112</field>
+            <field name="sequence">130</field>
         </record>
     </data>
 </odoo>

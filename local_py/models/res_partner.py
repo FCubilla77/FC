@@ -8,6 +8,21 @@ class ResPartner(models.Model):
 
     omitir_validacion = fields.Boolean(string='Omitir control de RUT', default=False)
     vat = fields.Char(string="RUT", index=True)
+    l10n_py_tipo_identificacion_fiscal_id = fields.Many2one(
+        'local_py.tipo_identificacion_fiscal',
+        string='Tipo de Identificación Fiscal',
+        help='Clasificación fiscal del contacto según la Tabla 3 de la '
+             'Especificación Técnica de Marangatu (DNIT, RG 90/2021). '
+             'Solo aplica a contactos de tipo Empresa.',
+    )
+
+    @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
+    def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):
+        ruc = self.env.ref('local_py.tipo_identificacion_ruc', raise_if_not_found=False)
+        for partner in self:
+            tipo = partner.l10n_py_tipo_identificacion_fiscal_id
+            if tipo:
+                partner.omitir_validacion = not (ruc and tipo.id == ruc.id)
 
     def clear_vat(self, vat):
         allowed_characters = '1234567890-'

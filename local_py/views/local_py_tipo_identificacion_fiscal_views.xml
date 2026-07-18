@@ -1,0 +1,45 @@
+<odoo>
+    <data>
+        <record id="view_local_py_tipo_identificacion_fiscal_list" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.list</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="arch" type="xml">
+                <list string="Tipo de Identificación Fiscal">
+                    <field name="sequence" widget="handle"/>
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_tipo_identificacion_fiscal_form" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.form</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="arch" type="xml">
+                <form string="Tipo de Identificación Fiscal">
+                    <sheet>
+                        <group>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_tipo_identificacion_fiscal" model="ir.actions.act_window">
+            <field name="name">Tipo de Identificación Fiscal</field>
+            <field name="res_model">local_py.tipo_identificacion_fiscal</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_tipo_identificacion_fiscal"
+                  name="Tipo de Identificación Fiscal"
+                  parent="menu_l10n_py_localizacion"
+                  action="action_local_py_tipo_identificacion_fiscal"
+                  sequence="15"/>
+    </data>
+</odoo>

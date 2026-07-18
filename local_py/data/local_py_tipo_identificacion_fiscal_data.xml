@@ -1,0 +1,39 @@
+<odoo>
+    <data noupdate="1">
+        <record id="tipo_identificacion_ruc" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">RUC</field>
+            <field name="code">11</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="tipo_identificacion_cedula" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Cedula de Identidad</field>
+            <field name="code">12</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="tipo_identificacion_pasaporte" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Pasaporte</field>
+            <field name="code">13</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="tipo_identificacion_cedula_extranjero" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Cedula Extranjero</field>
+            <field name="code">14</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="tipo_identificacion_sin_nombre" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Sin Nombre</field>
+            <field name="code">15</field>
+            <field name="sequence">50</field>
+        </record>
+        <record id="tipo_identificacion_diplomatico" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Diplomatico</field>
+            <field name="code">16</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="tipo_identificacion_tributaria" model="local_py.tipo_identificacion_fiscal">
+            <field name="name">Identificacion Tributaria</field>
+            <field name="code">17</field>
+            <field name="sequence">70</field>
+        </record>
+    </data>
+</odoo>

@@ -9,6 +9,9 @@
                 <xpath expr="//field[@name='vat']" position="replace">
                     <field name="vat" string="RUT" required="False"/>
                 </xpath>
+                <xpath expr="//field[@name='vat']" position="after">
+                    <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria"/>
+                </xpath>
             </field>
         </record>
         <record model="ir.ui.view" id="view_partner_form_l10n_py">
@@ -21,6 +24,9 @@
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="replace">
                     <field name="vat" string="RUT" readonly="parent_id != False" invisible="not is_company"/>
+                </xpath>
+                <xpath expr="//field[@name='vat']" position="after">
+                    <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal" invisible="not is_company"/>
                 </xpath>
 
             </field>

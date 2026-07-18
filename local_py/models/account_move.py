@@ -3,7 +3,7 @@ import re
 
 from odoo import models, fields, api, exceptions
 
-TIMBRADO_MAX = 999999999
+TIMBRADO_MAX = 99999999
 NRO_DOCUMENTO_PATTERN = re.compile(r'^[0-9-]*$')
 
 # Formato esperado del Nro. Documento: 001-001-0000001 (3 + 3 + 7 dígitos)
@@ -54,6 +54,70 @@ class AccountMove(models.Model):
         related='partner_id.vat',
         store=False,
     )
+
+    l10n_py_imputacion_tributaria_ids = fields.Many2many(
+        'local_py.imputacion_tributaria',
+        string='Imputación Tributaria',
+        help='A qué obligación(es) tributaria(s) se imputa este comprobante '
+             '(IVA, IRE, IRP-RSP). "No Imputa" no puede combinarse con las '
+             'otras opciones.',
+    )
+
+    # El campo nativo reversed_entry_id es readonly=True a nivel de modelo
+    # (Odoo lo llena automáticamente solo desde el asistente "Añadir Nota de
+    # Crédito"). Se libera acá para que, cuando la Nota de Crédito se cree
+    # directamente desde cero (sin ese asistente), el usuario pueda
+    # completarlo a mano — ver _check_l10n_py_comprobante_asociado más abajo,
+    # que lo exige antes de poder confirmar.
+    reversed_entry_id = fields.Many2one(readonly=False)
+
+    l10n_py_nro_documento_asociado = fields.Char(
+        string='Nro. Documento Comprobante Asociado',
+        related='reversed_entry_id.l10n_py_nro_documento',
+        readonly=True,
+        store=False,
+    )
+
+    @api.onchange('l10n_py_imputacion_tributaria_ids')
+    def _onchange_l10n_py_imputacion_tributaria_ids(self):
+        no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
+        if not no_imputa:
+            return
+        for move in self:
+            current = move.l10n_py_imputacion_tributaria_ids
+            previous = move._origin.l10n_py_imputacion_tributaria_ids
+            added = current - previous
+            if no_imputa in added:
+                move.l10n_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
+            elif no_imputa in current and (current - no_imputa):
+                move.l10n_py_imputacion_tributaria_ids = current - no_imputa
+
+    @api.constrains('l10n_py_imputacion_tributaria_ids')
+    def _check_l10n_py_imputacion_tributaria_exclusiva(self):
+        no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
+        if not no_imputa:
+            return
+        for move in self:
+            tags = move.l10n_py_imputacion_tributaria_ids
+            if no_imputa in tags and len(tags) > 1:
+                raise exceptions.ValidationError(
+                    '"No Imputa" no puede combinarse con IVA, IRE o IRP-RSP en la misma operación.'
+                )
+
+    # ------------------------------------------------------------------
+    # Comprobante asociado: toda Nota de Crédito (cliente o proveedor) debe
+    # estar asociada a una factura. Si se creó con el asistente de Odoo, ya
+    # queda asociada automáticamente (reversed_entry_id); si se creó desde
+    # cero, se exige completarla a mano antes de confirmar.
+    # ------------------------------------------------------------------
+    @api.constrains('reversed_entry_id', 'move_type', 'state')
+    def _check_l10n_py_comprobante_asociado(self):
+        for move in self:
+            if move.move_type in REFUND_MOVE_TYPES and move.state == 'posted' and not move.reversed_entry_id:
+                raise exceptions.ValidationError(
+                    'No se puede confirmar la nota de crédito sin indicar el Comprobante Asociado '
+                    '(la factura de origen).'
+                )
 
     # ------------------------------------------------------------------
     # Campos con signo para los reportes Libro Ventas / Libro Compras.
@@ -122,7 +186,8 @@ class AccountMove(models.Model):
         """Restringe los diarios ofrecidos en el campo Diario de la factura,
         además del filtro estándar de Odoo por tipo (venta/compra):
           - Factura de cliente: solo diarios de venta con Tipo Fiscal
-            'Factura' o 'Factura Electronica'.
+            'Factura', 'Factura Electronica' o 'Nota de Debito' (la Nota de
+            Débito de cliente usa la misma pantalla de Factura).
           - Nota de crédito de cliente: solo diarios de venta con Tipo Fiscal
             'Nota de Credito'.
         No se toca el comportamiento para compras (el usuario elige el Tipo
@@ -130,7 +195,7 @@ class AccountMove(models.Model):
         journals = super()._get_suitable_journal_ids(move_type, company)
         if move_type == 'out_invoice':
             journals = journals.filtered(
-                lambda j: j.local_py_tipo_fiscal_id.name in ('Factura', 'Factura Electronica')
+                lambda j: j.local_py_tipo_fiscal_id.name in ('Factura', 'Factura Electronica', 'Nota de Debito')
             )
         elif move_type == 'out_refund':
             journals = journals.filtered(
@@ -202,7 +267,7 @@ class AccountMove(models.Model):
                 )
             if move.l10n_py_timbrado and move.l10n_py_timbrado > TIMBRADO_MAX:
                 raise exceptions.ValidationError(
-                    'El campo Timbrado admite un máximo de 9 dígitos.'
+                    'El campo Timbrado admite un máximo de 8 dígitos.'
                 )
 
     @api.constrains('l10n_py_nro_documento')

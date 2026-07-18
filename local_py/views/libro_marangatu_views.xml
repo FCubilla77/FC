@@ -1,0 +1,110 @@
+<odoo>
+    <data>
+        <record id="view_libro_marangatu_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.libro_marangatu.wizard.form</field>
+            <field name="model">local_py.libro_marangatu.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Libro Ventas / Compras (Marangatu)">
+                    <field name="tipo_registro" invisible="1"/>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Archivo de importación a Marangatu">
+                        <field name="periodicidad"/>
+                        <field name="identificador"/>
+                    </group>
+                    <group invisible="not file_name">
+                        <field name="file_data" filename="file_name" readonly="1"/>
+                        <field name="file_name" invisible="1"/>
+                    </group>
+                    <footer>
+                        <button name="action_view_report" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button name="action_generate_file" type="object" string="Generar Archivo Marangatu" class="btn-secondary"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_libro_marangatu_wizard" model="ir.actions.act_window">
+            <field name="name">Libro Ventas / Compras (Marangatu)</field>
+            <field name="res_model">local_py.libro_marangatu.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Reporte Libro Ventas: mismo orden/columnas que la planilla modelo de Marangatu -->
+        <record id="view_move_list_libro_ventas_marangatu" model="ir.ui.view">
+            <field name="name">account.move.list.libro.ventas.marangatu</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <list string="Libro Ventas" create="false" edit="false" delete="false" export_xlsx="1">
+                    <field name="l10n_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
+                    <field name="l10n_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Comprador"/>
+                    <field name="l10n_py_mkt_numero_identificacion" string="Nro. Identif. Comprador"/>
+                    <field name="l10n_py_mkt_nombre_razon_social" string="Nombre o Razón Social Comprador"/>
+                    <field name="l10n_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
+                    <field name="invoice_date" string="Fecha Emisión"/>
+                    <field name="l10n_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="l10n_py_nro_documento" string="Nro. Comprobante"/>
+                    <field name="l10n_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
+                    <field name="l10n_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
+                    <field name="l10n_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
+                    <field name="amount_total" string="Monto Total" sum="Total"/>
+                    <field name="l10n_py_mkt_codigo_condicion" string="Cód. Condición de Venta"/>
+                    <field name="l10n_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
+                    <field name="l10n_py_mkt_imputa_iva" string="Imputa IVA"/>
+                    <field name="l10n_py_mkt_imputa_ire" string="Imputa IRE"/>
+                    <field name="l10n_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
+                    <field name="l10n_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
+                    <field name="l10n_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Reporte Libro Compras: mismo orden/columnas + "No Imputa" -->
+        <record id="view_move_list_libro_compras_marangatu" model="ir.ui.view">
+            <field name="name">account.move.list.libro.compras.marangatu</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <list string="Libro Compras" create="false" edit="false" delete="false" export_xlsx="1">
+                    <field name="l10n_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
+                    <field name="l10n_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Proveedor"/>
+                    <field name="l10n_py_mkt_numero_identificacion" string="Nro. Identif. Proveedor"/>
+                    <field name="l10n_py_mkt_nombre_razon_social" string="Nombre o Razón Social Proveedor"/>
+                    <field name="l10n_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
+                    <field name="invoice_date" string="Fecha Emisión"/>
+                    <field name="l10n_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="l10n_py_nro_documento" string="Nro. Comprobante"/>
+                    <field name="l10n_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
+                    <field name="l10n_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
+                    <field name="l10n_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
+                    <field name="amount_total" string="Monto Total" sum="Total"/>
+                    <field name="l10n_py_mkt_codigo_condicion" string="Cód. Condición de Compra"/>
+                    <field name="l10n_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
+                    <field name="l10n_py_mkt_imputa_iva" string="Imputa IVA"/>
+                    <field name="l10n_py_mkt_imputa_ire" string="Imputa IRE"/>
+                    <field name="l10n_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
+                    <field name="l10n_py_mkt_no_imputa" string="No Imputa"/>
+                    <field name="l10n_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
+                    <field name="l10n_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
+                </list>
+            </field>
+        </record>
+
+        <menuitem id="menu_libro_ventas_marangatu"
+                  name="Libro Ventas"
+                  parent="account.menu_finance_reports"
+                  action="action_libro_marangatu_wizard"
+                  sequence="45"
+                  context="{'default_tipo_registro': 'ventas'}"/>
+
+        <menuitem id="menu_libro_compras_marangatu"
+                  name="Libro Compras"
+                  parent="account.menu_finance_reports"
+                  action="action_libro_marangatu_wizard"
+                  sequence="46"
+                  context="{'default_tipo_registro': 'compras'}"/>
+    </data>
+</odoo>

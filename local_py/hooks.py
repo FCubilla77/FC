@@ -114,11 +114,52 @@ def _configure_tax_display(env):
         )
 
 
+def _backfill_tipo_fiscal_codes(env):
+    """Fuerza el código oficial (Tabla 4 DNIT) en los 5 registros de Tipo
+    Fiscal que ya existían antes de esta versión. Son datos noupdate="1":
+    la recarga del archivo XML por sí sola no actualiza registros ya
+    creados, por eso se refuerza acá."""
+    codes = {
+        'tipo_fiscal_factura': '109',
+        'tipo_fiscal_factura_electronica': '109',
+        'tipo_fiscal_nota_debito': '111',
+        'tipo_fiscal_nota_credito': '110',
+        'tipo_fiscal_autofactura': '101',
+    }
+    for xml_id, code in codes.items():
+        record = env.ref('local_py.%s' % xml_id, raise_if_not_found=False)
+        if record and record.code != code:
+            record.code = code
+
+
+def _backfill_partner_tipo_identificacion(env):
+    """Asigna 'RUC' como Tipo de Identificación Fiscal por defecto a todos
+    los contactos de tipo Empresa que todavía no tengan ese campo
+    completado (aplica tanto a los ya existentes como salvaguarda para
+    cualquier importación previa a esta versión)."""
+    ruc = env.ref('local_py.tipo_identificacion_ruc', raise_if_not_found=False)
+    if not ruc:
+        return
+    partners = env['res.partner'].sudo().search([
+        ('is_company', '=', True),
+        ('l10n_py_tipo_identificacion_fiscal_id', '=', False),
+    ])
+    if partners:
+        partners.write({'l10n_py_tipo_identificacion_fiscal_id': ruc.id})
+        _logger.info(
+            "local_py: %s contacto(s) de tipo Empresa recibieron 'RUC' como Tipo de "
+            "Identificación Fiscal por defecto.",
+            len(partners),
+        )
+
+
 def configure_paraguay(env):
     """Punto de entrada único de los ajustes de local_py que no forman
     parte del paquete nativo de Localización Fiscal (l10n_py):
       - Refuerzo de permisos contables.
       - Visualización de precios/impuestos incluidos.
+      - Códigos oficiales de Tipo Fiscal y Tipo de Identificación Fiscal por
+        defecto en contactos existentes.
       - Reconstrucción del reporte de Plan de Cuentas.
 
     Es seguro invocarla más de una vez (instalación y, manualmente, desde el
@@ -126,6 +167,8 @@ def configure_paraguay(env):
     """
     _configure_accounting_groups(env)
     _configure_tax_display(env)
+    _backfill_tipo_fiscal_codes(env)
+    _backfill_partner_tipo_identificacion(env)
 
     env['local_py.plan_cuentas.report'].sudo()._rebuild()
 

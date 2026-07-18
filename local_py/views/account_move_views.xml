@@ -30,6 +30,17 @@
                         <field name="local_py_tipo_fiscal_id"
                                string="Tipo Fiscal"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
+                        <field name="l10n_py_imputacion_tributaria_ids"
+                               string="Imputación Tributaria"
+                               widget="many2many_tags"/>
+                        <field name="reversed_entry_id"
+                               string="Comprobante Asociado"
+                               invisible="move_type not in ('out_refund', 'in_refund')"
+                               readonly="state != 'draft'"
+                               domain="[('move_type', '=', 'out_invoice' if move_type == 'out_refund' else 'in_invoice'), ('state', '=', 'posted')]"/>
+                        <field name="l10n_py_nro_documento_asociado"
+                               string="Nro. Documento Comprobante Asociado"
+                               invisible="move_type not in ('out_refund', 'in_refund')"/>
                     </group>
                 </xpath>
             </field>

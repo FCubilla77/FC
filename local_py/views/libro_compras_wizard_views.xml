@@ -4,7 +4,7 @@
             <field name="name">l10n_py.libro_compras.wizard.form</field>
             <field name="model">l10n_py.libro_compras.wizard</field>
             <field name="arch" type="xml">
-                <form string="Libro Compras">
+                <form string="Libro Compras Ant.">
                     <group>
                         <field name="date_from"/>
                         <field name="date_to"/>
@@ -18,7 +18,7 @@
         </record>
 
         <record id="action_l10n_py_libro_compras_wizard" model="ir.actions.act_window">
-            <field name="name">Libro Compras</field>
+            <field name="name">Libro Compras Ant.</field>
             <field name="res_model">l10n_py.libro_compras.wizard</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
@@ -29,7 +29,7 @@
             <field name="name">account.move.list.libro.compras</field>
             <field name="model">account.move</field>
             <field name="arch" type="xml">
-                <list string="Libro Compras" create="false" edit="false" delete="false" export_xlsx="1">
+                <list string="Libro Compras Ant." create="false" edit="false" delete="false" export_xlsx="1">
                     <field name="partner_id" string="Proveedor"/>
                     <field name="l10n_py_partner_vat" string="RUT del proveedor"/>
                     <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
@@ -43,7 +43,7 @@
         </record>
 
         <menuitem id="menu_l10n_py_libro_compras"
-                  name="Libro Compras"
+                  name="Libro Compras Ant."
                   parent="account.menu_finance_reports"
                   action="action_l10n_py_libro_compras_wizard"
                   sequence="51"/>

@@ -6,6 +6,7 @@
             <field name="arch" type="xml">
                 <list string="Tipo Fiscal">
                     <field name="sequence" widget="handle"/>
+                    <field name="code"/>
                     <field name="name"/>
                     <field name="active"/>
                 </list>
@@ -19,6 +20,7 @@
                 <form string="Tipo Fiscal">
                     <sheet>
                         <group>
+                            <field name="code"/>
                             <field name="name"/>
                             <field name="sequence"/>
                             <field name="active"/>
