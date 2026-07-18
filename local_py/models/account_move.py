@@ -29,12 +29,14 @@ class AccountMove(models.Model):
 
     l10n_py_timbrado = fields.Integer(
         string='Timbrado',
+        copy=False,
         help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
     l10n_py_nro_documento = fields.Char(
         string='Nro. Documento',
         size=15,
+        copy=False,
         help='En factura/nota de crédito de venta se propone automáticamente en base al último '
              'número utilizado para el diario (formato 001-001-0000001). '
              'En factura/nota de crédito de proveedor se carga manualmente.',
@@ -42,6 +44,7 @@ class AccountMove(models.Model):
     local_py_tipo_fiscal_id = fields.Many2one(
         'local_py.tipo_fiscal',
         string='Tipo Fiscal',
+        copy=False,
         help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
              'En factura/nota de crédito de proveedor se selecciona manualmente.',
     )
@@ -113,6 +116,27 @@ class AccountMove(models.Model):
         if last_move:
             return self._increment_l10n_py_nro_documento(last_move.l10n_py_nro_documento)
         return journal.l10n_py_nro_documento
+
+    @api.model
+    def _get_suitable_journal_ids(self, move_type, company=False):
+        """Restringe los diarios ofrecidos en el campo Diario de la factura,
+        además del filtro estándar de Odoo por tipo (venta/compra):
+          - Factura de cliente: solo diarios de venta con Tipo Fiscal
+            'Factura' o 'Factura Electronica'.
+          - Nota de crédito de cliente: solo diarios de venta con Tipo Fiscal
+            'Nota de Credito'.
+        No se toca el comportamiento para compras (el usuario elige el Tipo
+        Fiscal manualmente en la factura de proveedor, no en el diario)."""
+        journals = super()._get_suitable_journal_ids(move_type, company)
+        if move_type == 'out_invoice':
+            journals = journals.filtered(
+                lambda j: j.local_py_tipo_fiscal_id.name in ('Factura', 'Factura Electronica')
+            )
+        elif move_type == 'out_refund':
+            journals = journals.filtered(
+                lambda j: j.local_py_tipo_fiscal_id.name == 'Nota de Credito'
+            )
+        return journals
 
     @api.onchange('journal_id')
     def _onchange_journal_id_l10n_py(self):

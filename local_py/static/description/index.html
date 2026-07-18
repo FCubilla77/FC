@@ -115,6 +115,10 @@
                 <li>Campo RUT y "Omitir control RUT" visibles y validados solo para contactos de tipo Empresa; ocultos y sin validación para contactos individuales</li>
                 <li>Validación que impide registrar dos contactos de tipo Empresa con el mismo RUT</li>
                 <li>Los contactos individuales solo pueden crearse asociados a un contacto de tipo Empresa (Empresa relacionada obligatoria)</li>
+                <li>En factura de cliente, el campo Diario solo ofrece diarios de venta con Tipo Fiscal "Factura" o "Factura Electronica"</li>
+                <li>En nota de crédito de cliente (desde el asistente de Odoo), el campo Diario solo ofrece diarios de venta con Tipo Fiscal "Nota de Credito"</li>
+                <li>Timbrado, Nro. Documento y Tipo Fiscal quedan bloqueados (no editables) en factura y nota de crédito de cliente, ya que se autocompletan desde el diario; en proveedor siguen editables hasta confirmar el comprobante</li>
+                <li>La nota de crédito de cliente recalcula Timbrado, Nro. Documento y Tipo Fiscal según el diario elegido en el asistente, en vez de heredar los de la factura original</li>
             </ul>
         </div>
     </div>

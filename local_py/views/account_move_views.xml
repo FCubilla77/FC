@@ -22,14 +22,14 @@
                         <field name="l10n_py_timbrado"
                                string="Timbrado"
                                options="{'enable_formatting': False}"
-                               readonly="state != 'draft'"/>
+                               readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
                         <field name="l10n_py_nro_documento"
                                string="Nro. Documento"
                                placeholder="000-000-0000000"
-                               readonly="state != 'draft'"/>
+                               readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
                         <field name="local_py_tipo_fiscal_id"
                                string="Tipo Fiscal"
-                               readonly="state != 'draft'"/>
+                               readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
                     </group>
                 </xpath>
             </field>
