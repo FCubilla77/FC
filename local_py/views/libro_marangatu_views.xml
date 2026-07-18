@@ -27,11 +27,20 @@
             </field>
         </record>
 
-        <record id="action_libro_marangatu_wizard" model="ir.actions.act_window">
-            <field name="name">Libro Ventas / Compras (Marangatu)</field>
+        <record id="action_libro_ventas_marangatu_wizard" model="ir.actions.act_window">
+            <field name="name">Libro Ventas</field>
             <field name="res_model">local_py.libro_marangatu.wizard</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
+            <field name="context">{'default_tipo_registro': 'ventas'}</field>
+        </record>
+
+        <record id="action_libro_compras_marangatu_wizard" model="ir.actions.act_window">
+            <field name="name">Libro Compras</field>
+            <field name="res_model">local_py.libro_marangatu.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context">{'default_tipo_registro': 'compras'}</field>
         </record>
 
         <!-- Reporte Libro Ventas: mismo orden/columnas que la planilla modelo de Marangatu -->
@@ -96,15 +105,13 @@
         <menuitem id="menu_libro_ventas_marangatu"
                   name="Libro Ventas"
                   parent="account.menu_finance_reports"
-                  action="action_libro_marangatu_wizard"
-                  sequence="45"
-                  context="{'default_tipo_registro': 'ventas'}"/>
+                  action="action_libro_ventas_marangatu_wizard"
+                  sequence="45"/>
 
         <menuitem id="menu_libro_compras_marangatu"
                   name="Libro Compras"
                   parent="account.menu_finance_reports"
-                  action="action_libro_marangatu_wizard"
-                  sequence="46"
-                  context="{'default_tipo_registro': 'compras'}"/>
+                  action="action_libro_compras_marangatu_wizard"
+                  sequence="46"/>
     </data>
 </odoo>
