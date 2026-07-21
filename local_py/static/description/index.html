@@ -168,6 +168,11 @@
                 <li>Campo "Comprobante Asociado" en Nota de Crédito (cliente y proveedor): se completa automáticamente desde el asistente de Odoo, o exige carga manual si la nota de crédito se creó desde cero; muestra el Nro. Documento del comprobante asociado</li>
                 <li>Reportes nuevos "Libro Ventas" y "Libro Compras" (Facturación &gt; Reportes), con las mismas columnas y códigos oficiales que la planilla de Marangatu, exportables a Excel</li>
                 <li>Generación del archivo real de importación a Marangatu (CSV sin encabezados, comprimido en ZIP), en formato mensual (obligación 955) o anual (obligación 956), con nombre de archivo oficial &lt;RUC sin DV&gt;_REG_MMAAAA|AAAA_XXXXX.zip</li>
+                <li>Los contactos individuales creados automáticamente al dar de alta un Usuario quedan exceptuados del control de "Empresa relacionada obligatoria"</li>
+                <li>Imputación Tributaria se autocompleta con la configurada en la Empresa, en Factura y Nota de Crédito de Cliente y de Proveedor (sin pisar una selección manual ya hecha)</li>
+                <li>En Factura de Proveedor, el campo Diario solo ofrece diarios de compra con Tipo Fiscal "Factura", "Nota de Debito" o "Autofactura"</li>
+                <li>En Reembolso de Proveedor (nota de crédito, incluido el asistente de Odoo), el campo Diario solo ofrece diarios de compra con Tipo Fiscal "Nota de Credito"</li>
+                <li>Imputación Tributaria es obligatoria para confirmar Factura y Nota de Crédito, tanto de Cliente como de Proveedor</li>
             </ul>
         </div>
     </div>

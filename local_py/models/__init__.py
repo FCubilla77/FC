@@ -2,6 +2,7 @@
 
 from . import res_partner
 from . import res_company
+from . import res_users
 from . import local_py_tipo_fiscal
 from . import local_py_tipo_identificacion_fiscal
 from . import local_py_imputacion_tributaria

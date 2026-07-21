@@ -15,6 +15,16 @@ class ResPartner(models.Model):
              'Especificación Técnica de Marangatu (DNIT, RG 90/2021). '
              'Solo aplica a contactos de tipo Empresa.',
     )
+    l10n_py_creado_desde_usuario_empleado = fields.Boolean(
+        string='Creado desde Usuario',
+        default=False,
+        copy=False,
+        help='Campo técnico de uso interno (no se muestra en la vista). Se '
+             'marca automáticamente en 1/Verdadero cuando el contacto se '
+             'origina al crear un Usuario; en ese caso no corresponde '
+             'exigir Empresa relacionada. Se deja en 0/Falso para contactos '
+             'creados normalmente desde Contactos.',
+    )
 
     @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
     def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):
@@ -99,9 +109,13 @@ class ResPartner(models.Model):
         """Los contactos individuales (is_company=False) solo pueden
         crearse/existir asociados a un contacto de tipo empresa: deben tener
         'Empresa relacionada' (parent_id) establecida, y esa empresa
-        relacionada debe ser, a su vez, un contacto de tipo empresa."""
+        relacionada debe ser, a su vez, un contacto de tipo empresa.
+
+        Excepción: no aplica a contactos originados al crear un Usuario
+        (l10n_py_creado_desde_usuario_empleado = True), ya que ese flujo no
+        tiene por qué tener una Empresa asociada."""
         for this in self:
-            if this.is_company:
+            if this.is_company or this.l10n_py_creado_desde_usuario_empleado:
                 continue
             if not this.parent_id or not this.parent_id.is_company:
                 raise exceptions.ValidationError(
@@ -111,6 +125,9 @@ class ResPartner(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        if self.env.context.get('l10n_py_partner_from_user_or_employee'):
+            for vals in vals_list:
+                vals.setdefault('l10n_py_creado_desde_usuario_empleado', True)
         result = super(ResPartner, self).create(vals_list)
         result.val_ruc()
         return result

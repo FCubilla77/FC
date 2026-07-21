@@ -78,6 +78,15 @@ class AccountMove(models.Model):
         store=False,
     )
 
+    @api.onchange('move_type', 'company_id')
+    def _onchange_l10n_py_imputacion_tributaria_default(self):
+        """Autocompleta la Imputación Tributaria con la configurada en la
+        Empresa (Facturación / Clientes / Proveedores: Factura y Nota de
+        Crédito), sin pisar una selección manual ya hecha por el usuario."""
+        for move in self:
+            if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
+                move.l10n_py_imputacion_tributaria_ids = move.company_id.l10n_py_imputacion_tributaria_ids
+
     @api.onchange('l10n_py_imputacion_tributaria_ids')
     def _onchange_l10n_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
@@ -190,14 +199,25 @@ class AccountMove(models.Model):
             Débito de cliente usa la misma pantalla de Factura).
           - Nota de crédito de cliente: solo diarios de venta con Tipo Fiscal
             'Nota de Credito'.
-        No se toca el comportamiento para compras (el usuario elige el Tipo
-        Fiscal manualmente en la factura de proveedor, no en el diario)."""
+          - Factura de proveedor: solo diarios de compra con Tipo Fiscal
+            'Factura', 'Nota de Debito' o 'Autofactura' (misma lógica que
+            venta: Nota de Débito de proveedor usa esta misma pantalla).
+          - Reembolso (nota de crédito) de proveedor: solo diarios de compra
+            con Tipo Fiscal 'Nota de Credito'."""
         journals = super()._get_suitable_journal_ids(move_type, company)
         if move_type == 'out_invoice':
             journals = journals.filtered(
                 lambda j: j.local_py_tipo_fiscal_id.name in ('Factura', 'Factura Electronica', 'Nota de Debito')
             )
         elif move_type == 'out_refund':
+            journals = journals.filtered(
+                lambda j: j.local_py_tipo_fiscal_id.name == 'Nota de Credito'
+            )
+        elif move_type == 'in_invoice':
+            journals = journals.filtered(
+                lambda j: j.local_py_tipo_fiscal_id.name in ('Factura', 'Nota de Debito', 'Autofactura')
+            )
+        elif move_type == 'in_refund':
             journals = journals.filtered(
                 lambda j: j.local_py_tipo_fiscal_id.name == 'Nota de Credito'
             )
@@ -229,6 +249,13 @@ class AccountMove(models.Model):
                     vals['l10n_py_nro_documento'] = self._get_next_l10n_py_nro_documento(
                         journal, move_type
                     )
+            if move_type in REQUIRED_FISCAL_MOVE_TYPES and not vals.get('l10n_py_imputacion_tributaria_ids'):
+                company_id = vals.get('company_id') or self.env.company.id
+                company = self.env['res.company'].browse(company_id)
+                if company.l10n_py_imputacion_tributaria_ids:
+                    vals['l10n_py_imputacion_tributaria_ids'] = [
+                        (6, 0, company.l10n_py_imputacion_tributaria_ids.ids)
+                    ]
         return super().create(vals_list)
 
     # ------------------------------------------------------------------
@@ -238,7 +265,8 @@ class AccountMove(models.Model):
     # 'posted', no al guardar en borrador, para no trabar la carga incremental
     # del comprobante.
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id', 'move_type', 'state')
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id',
+                    'l10n_py_imputacion_tributaria_ids', 'move_type', 'state')
     def _check_l10n_py_required_fiscal_fields(self):
         for move in self:
             if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and move.state == 'posted':
@@ -249,6 +277,8 @@ class AccountMove(models.Model):
                     missing.append('Nro. Documento')
                 if not move.local_py_tipo_fiscal_id:
                     missing.append('Tipo Fiscal')
+                if not move.l10n_py_imputacion_tributaria_ids:
+                    missing.append('Imputación Tributaria')
                 if missing:
                     raise exceptions.ValidationError(
                         'No se puede confirmar el comprobante sin completar: %s.'
