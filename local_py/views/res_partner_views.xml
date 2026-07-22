@@ -57,21 +57,5 @@
                 </xpath>
             </field>
         </record>
-        <record model="ir.ui.view" id="res_partner_view_form_private_inherit_l10n_py">
-            <field name="name">local_py.res_partner_view_form_private_inherit</field>
-            <field name="model">res.partner</field>
-            <field name="inherit_id" ref="base.res_partner_view_form_private"/>
-            <field name="arch" type="xml">
-                <xpath expr="//field[@name='city']" position="before">
-                    <field name="city_id" placeholder="Ciudad"/>
-                </xpath>
-                <xpath expr="//field[@name='state_id']" position="attributes">
-                    <attribute name="placeholder">Departamento</attribute>
-                </xpath>
-                <xpath expr="//field[@name='city']" position="attributes">
-                    <attribute name="invisible">True</attribute>
-                </xpath>
-            </field>
-        </record>
     </data>
 </odoo>
