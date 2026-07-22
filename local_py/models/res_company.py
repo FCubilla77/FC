@@ -6,6 +6,10 @@ from odoo import models, fields, api, exceptions
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
+    city_id = fields.Many2one(
+        'res.city', string='Ciudad', domain="[('state_id', '=', state_id)]",
+    )
+
     l10n_py_imputacion_tributaria_ids = fields.Many2many(
         'local_py.imputacion_tributaria',
         string='Imputación Tributaria',

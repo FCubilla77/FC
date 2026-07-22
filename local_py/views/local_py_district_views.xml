@@ -1,0 +1,42 @@
+<odoo>
+    <data>
+        <record id="view_local_py_district_list" model="ir.ui.view">
+            <field name="name">res.district.list</field>
+            <field name="model">res.district</field>
+            <field name="arch" type="xml">
+                <list string="Distrito" editable="top">
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="country_id" options="{'no_open': True, 'no_create': True}"/>
+                    <field name="state_id" context="{'default_country_id': country_id}"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_district_search" model="ir.ui.view">
+            <field name="name">res.district.search</field>
+            <field name="model">res.district</field>
+            <field name="arch" type="xml">
+                <search string="Buscar Distrito">
+                    <field name="name" filter_domain="[('name', 'ilike', self)]" string="Distrito"/>
+                    <separator/>
+                    <field name="country_id"/>
+                    <field name="state_id"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_local_py_district" model="ir.actions.act_window">
+            <field name="name">Distritos</field>
+            <field name="res_model">res.district</field>
+            <field name="view_mode">list</field>
+            <field name="help">Ver todos los distritos</field>
+        </record>
+
+        <menuitem id="menu_local_py_district"
+                  name="Distritos"
+                  parent="contacts.menu_localisation"
+                  action="action_local_py_district"
+                  sequence="2"/>
+    </data>
+</odoo>

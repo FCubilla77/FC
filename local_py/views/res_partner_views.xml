@@ -12,6 +12,18 @@
                 <xpath expr="//field[@name='vat']" position="after">
                     <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria"/>
                 </xpath>
+                <xpath expr="//field[@name='country_id']" position="attributes">
+                    <attribute name="required">True</attribute>
+                </xpath>
+                <xpath expr="//field[@name='city']" position="replace">
+                    <field name="city_id"/>
+                </xpath>
+                <xpath expr="//field[@name='street']" position="attributes">
+                    <attribute name="required">True</attribute>
+                </xpath>
+                <xpath expr="//field[@name='email']" position="attributes">
+                    <attribute name="required">True</attribute>
+                </xpath>
             </field>
         </record>
         <record model="ir.ui.view" id="view_partner_form_l10n_py">
@@ -28,7 +40,37 @@
                 <xpath expr="//field[@name='vat']" position="after">
                     <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal" invisible="not is_company"/>
                 </xpath>
-
+                <xpath expr="//field[@name='city']" position="before">
+                    <field name="city_id" placeholder="Ciudad"/>
+                </xpath>
+                <xpath expr="//field[@name='street']" position="attributes">
+                    <attribute name="placeholder">Calle 1</attribute>
+                </xpath>
+                <xpath expr="//field[@name='street2']" position="attributes">
+                    <attribute name="placeholder">Calle 2</attribute>
+                </xpath>
+                <xpath expr="//field[@name='state_id']" position="attributes">
+                    <attribute name="placeholder">Departamento</attribute>
+                </xpath>
+                <xpath expr="//field[@name='city']" position="attributes">
+                    <attribute name="invisible">True</attribute>
+                </xpath>
+            </field>
+        </record>
+        <record model="ir.ui.view" id="res_partner_view_form_private_inherit_l10n_py">
+            <field name="name">local_py.res_partner_view_form_private_inherit</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.res_partner_view_form_private"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='city']" position="before">
+                    <field name="city_id" placeholder="Ciudad"/>
+                </xpath>
+                <xpath expr="//field[@name='state_id']" position="attributes">
+                    <attribute name="placeholder">Departamento</attribute>
+                </xpath>
+                <xpath expr="//field[@name='city']" position="attributes">
+                    <attribute name="invisible">True</attribute>
+                </xpath>
             </field>
         </record>
     </data>

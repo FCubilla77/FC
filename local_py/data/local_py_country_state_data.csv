@@ -1,0 +1,19 @@
+id,code,name,country_id/id
+state_capital,1,CAPITAL,base.py
+state_concepcion,2,CONCEPCION,base.py
+state_san_pedro,3,SAN PEDRO,base.py
+state_cordillera,4,CORDILLERA,base.py
+state_guaira,5,GUAIRA,base.py
+state_caaguazu,6,CAAGUAZU,base.py
+state_caazapa,7,CAAZAPA,base.py
+state_itapua,8,ITAPUA,base.py
+state_misiones,9,MISIONES,base.py
+state_paraguari,10,PARAGUARI,base.py
+state_alto_parana,11,ALTO PARANA,base.py
+state_central,12,CENTRAL,base.py
+state_neembucu,13,NEEMBUCU,base.py
+state_amambay,14,AMAMBAY,base.py
+state_pte_hayes,15,PTE. HAYES,base.py
+state_boqueron,16,BOQUERON,base.py
+state_alto_paraguay,17,ALTO PARAGUAY,base.py
+state_canindeyu,18,CANINDEYU,base.py
