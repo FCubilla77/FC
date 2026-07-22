@@ -87,6 +87,16 @@ class AccountMove(models.Model):
             if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
                 move.l10n_py_imputacion_tributaria_ids = move.company_id.l10n_py_imputacion_tributaria_ids
 
+    @api.onchange('reversed_entry_id')
+    def _onchange_l10n_py_imputacion_tributaria_comprobante_asociado(self):
+        """En Nota de Crédito/Reembolso, la Imputación Tributaria siempre
+        debe copiarse del Comprobante Asociado (factura de origen), pisando
+        cualquier valor previo (incluido el autocompletado desde la
+        Empresa)."""
+        for move in self:
+            if move.move_type in REFUND_MOVE_TYPES and move.reversed_entry_id:
+                move.l10n_py_imputacion_tributaria_ids = move.reversed_entry_id.l10n_py_imputacion_tributaria_ids
+
     @api.onchange('l10n_py_imputacion_tributaria_ids')
     def _onchange_l10n_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
@@ -118,14 +128,35 @@ class AccountMove(models.Model):
     # estar asociada a una factura. Si se creó con el asistente de Odoo, ya
     # queda asociada automáticamente (reversed_entry_id); si se creó desde
     # cero, se exige completarla a mano antes de confirmar.
+    #
+    # Además, la Imputación Tributaria de la Nota de Crédito/Reembolso debe
+    # coincidir EXACTAMENTE con la de esa factura asociada. Si la factura
+    # asociada no tiene ninguna Imputación Tributaria cargada (por ejemplo,
+    # una factura anterior a este campo), no se puede confirmar la nota de
+    # crédito/reembolso: primero hay que completar la Imputación Tributaria
+    # de la factura de origen.
     # ------------------------------------------------------------------
-    @api.constrains('reversed_entry_id', 'move_type', 'state')
+    @api.constrains('reversed_entry_id', 'move_type', 'state', 'l10n_py_imputacion_tributaria_ids')
     def _check_l10n_py_comprobante_asociado(self):
         for move in self:
-            if move.move_type in REFUND_MOVE_TYPES and move.state == 'posted' and not move.reversed_entry_id:
+            if move.move_type not in REFUND_MOVE_TYPES or move.state != 'posted':
+                continue
+            if not move.reversed_entry_id:
                 raise exceptions.ValidationError(
                     'No se puede confirmar la nota de crédito sin indicar el Comprobante Asociado '
                     '(la factura de origen).'
+                )
+            origin_tags = move.reversed_entry_id.l10n_py_imputacion_tributaria_ids
+            if not origin_tags:
+                raise exceptions.ValidationError(
+                    'El Comprobante Asociado (%s) no tiene Imputación Tributaria cargada. '
+                    'Complete primero la Imputación Tributaria de esa factura antes de '
+                    'confirmar esta nota de crédito/reembolso.' % move.reversed_entry_id.display_name
+                )
+            if set(move.l10n_py_imputacion_tributaria_ids.ids) != set(origin_tags.ids):
+                raise exceptions.ValidationError(
+                    'La Imputación Tributaria de este comprobante debe ser exactamente la '
+                    'misma que la del Comprobante Asociado (%s).' % move.reversed_entry_id.display_name
                 )
 
     # ------------------------------------------------------------------
@@ -249,7 +280,16 @@ class AccountMove(models.Model):
                     vals['l10n_py_nro_documento'] = self._get_next_l10n_py_nro_documento(
                         journal, move_type
                     )
-            if move_type in REQUIRED_FISCAL_MOVE_TYPES and not vals.get('l10n_py_imputacion_tributaria_ids'):
+            reversed_entry_id = vals.get('reversed_entry_id')
+            if move_type in REFUND_MOVE_TYPES and reversed_entry_id:
+                # Nota de Crédito/Reembolso: la Imputación Tributaria siempre
+                # se copia del Comprobante Asociado (pisa el default de la
+                # Empresa que se aplicaría más abajo).
+                origin = self.env['account.move'].browse(reversed_entry_id)
+                vals['l10n_py_imputacion_tributaria_ids'] = [
+                    (6, 0, origin.l10n_py_imputacion_tributaria_ids.ids)
+                ]
+            elif move_type in REQUIRED_FISCAL_MOVE_TYPES and not vals.get('l10n_py_imputacion_tributaria_ids'):
                 company_id = vals.get('company_id') or self.env.company.id
                 company = self.env['res.company'].browse(company_id)
                 if company.l10n_py_imputacion_tributaria_ids:
@@ -277,7 +317,10 @@ class AccountMove(models.Model):
                     missing.append('Nro. Documento')
                 if not move.local_py_tipo_fiscal_id:
                     missing.append('Tipo Fiscal')
-                if not move.l10n_py_imputacion_tributaria_ids:
+                # En Nota de Crédito/Reembolso, la Imputación Tributaria se
+                # valida aparte (debe coincidir exactamente con la del
+                # Comprobante Asociado): ver _check_l10n_py_comprobante_asociado.
+                if move.move_type not in REFUND_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
                     missing.append('Imputación Tributaria')
                 if missing:
                     raise exceptions.ValidationError(

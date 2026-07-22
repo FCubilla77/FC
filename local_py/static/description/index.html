@@ -173,6 +173,8 @@
                 <li>En Factura de Proveedor, el campo Diario solo ofrece diarios de compra con Tipo Fiscal "Factura", "Nota de Debito" o "Autofactura"</li>
                 <li>En Reembolso de Proveedor (nota de crédito, incluido el asistente de Odoo), el campo Diario solo ofrece diarios de compra con Tipo Fiscal "Nota de Credito"</li>
                 <li>Imputación Tributaria es obligatoria para confirmar Factura y Nota de Crédito, tanto de Cliente como de Proveedor</li>
+                <li>En Nota de Crédito de Cliente y Reembolso de Proveedor, la Imputación Tributaria se copia automáticamente del Comprobante Asociado (factura de origen), pisando el autocompletado desde la Empresa</li>
+                <li>Al confirmar una Nota de Crédito/Reembolso, se exige que su Imputación Tributaria sea exactamente igual a la del Comprobante Asociado; si la factura de origen no tiene Imputación Tributaria cargada, se bloquea la confirmación pidiendo completarla primero en esa factura</li>
             </ul>
         </div>
     </div>
