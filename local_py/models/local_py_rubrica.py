@@ -103,6 +103,12 @@ class LocalPyRubrica(models.Model):
                 )
             if rec.numero_final < rec.numero_inicial:
                 raise ValidationError('"Número final" debe ser mayor o igual a "Número Inicial".')
+            esperado_hojas = rec.numero_final - rec.numero_inicial + 1
+            if rec.cantidad_hojas != esperado_hojas:
+                raise ValidationError(
+                    '"Cant. de hoja" (%s) no coincide con "Número final" - "Número Inicial" + 1 '
+                    '(debería ser %s).' % (rec.cantidad_hojas, esperado_hojas)
+                )
 
     @api.constrains('company_id', 'idrubrica', 'fecha', 'uso')
     def _check_unique_id_fecha_uso(self):

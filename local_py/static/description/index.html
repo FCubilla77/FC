@@ -185,6 +185,7 @@
                 <li>Nuevo registro de "Rubricas" de libros contables (Facturación &gt; Localización Paraguay &gt; Rubricas), con flujo Borrador/Confirmado, chatter, adjuntos de Imagen (sello) y Primera Hoja (comprobante del RUN), y control de que "Utilizado hasta" nunca supere "Número Inicial" para poder eliminar un registro; acceso restringido a Contabilidad: Administrador</li>
                 <li>Rúbricas: no se permiten dos registros de la misma compañía con igual combinación de Id, Fecha y Uso (validación activa incluso en Borrador)</li>
                 <li>Rúbricas: al confirmar, el "Número Inicial" debe continuar exactamente la numeración de la última rúbrica confirmada del mismo Uso (sin huecos ni superposición de hojas)</li>
+                <li>Rúbricas: al confirmar, se valida que "Cant. de hoja" sea igual a "Número final" - "Número Inicial" + 1</li>
             </ul>
         </div>
     </div>
