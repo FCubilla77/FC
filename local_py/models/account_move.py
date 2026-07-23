@@ -78,6 +78,44 @@ class AccountMove(models.Model):
         store=False,
     )
 
+    l10n_py_nro_fiscal = fields.Integer(
+        string='Nro. Fiscal',
+        copy=False,
+        readonly=True,
+        help='Numeración fiscal correlativa asignada por el proceso "Renumeración Fiscal '
+             'de Asientos". No es editable manualmente y, una vez asignada, no puede '
+             'sobrescribirse (la única forma de vaciarla es mediante la función '
+             '"Limpiar numeración" de la Configuración de Localización).',
+    )
+
+    def write(self, vals):
+        if 'l10n_py_nro_fiscal' in vals and not self.env.context.get('l10n_py_allow_nro_fiscal_write'):
+            for move in self:
+                if move.l10n_py_nro_fiscal and move.l10n_py_nro_fiscal != vals['l10n_py_nro_fiscal']:
+                    raise exceptions.UserError(
+                        'El campo "Nro. Fiscal" no puede modificarse una vez asignado.'
+                    )
+        return super().write(vals)
+
+    @api.constrains('l10n_py_nro_fiscal', 'company_id', 'date')
+    def _check_l10n_py_nro_fiscal_unique(self):
+        for move in self:
+            if not move.l10n_py_nro_fiscal or not move.date:
+                continue
+            year = move.date.year
+            domain = [
+                ('id', '!=', move.id),
+                ('company_id', '=', move.company_id.id),
+                ('l10n_py_nro_fiscal', '=', move.l10n_py_nro_fiscal),
+                ('date', '>=', '%s-01-01' % year),
+                ('date', '<=', '%s-12-31' % year),
+            ]
+            if self.search_count(domain):
+                raise exceptions.ValidationError(
+                    'Ya existe otro asiento con el mismo "Nro. Fiscal" (%s) en el año %s '
+                    'para esta compañía.' % (move.l10n_py_nro_fiscal, year)
+                )
+
     @api.onchange('move_type', 'company_id')
     def _onchange_l10n_py_imputacion_tributaria_default(self):
         """Autocompleta la Imputación Tributaria con la configurada en la

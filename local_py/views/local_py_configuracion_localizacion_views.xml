@@ -1,0 +1,64 @@
+<odoo>
+    <data>
+        <record id="view_local_py_configuracion_localizacion_form" model="ir.ui.view">
+            <field name="name">local_py.configuracion_localizacion.form</field>
+            <field name="model">local_py.configuracion_localizacion</field>
+            <field name="arch" type="xml">
+                <form string="Configuraciones Localización Py">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}"/>
+                                <field name="create_uid" string="Usuario" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="create_date" string="Fecha Creación" readonly="1"/>
+                                <field name="write_date" string="Última modificación" readonly="1"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Renumeración de Asiento" name="renumeracion">
+                                <field name="renumeracion_ids">
+                                    <list editable="bottom">
+                                        <field name="anio" string="Año"/>
+                                        <field name="numero_inicial" string="Número Asiento Fiscal Inicial"/>
+                                        <field name="ultimo_nro_utilizado" string="Ultimo Nro. Utilizado" readonly="1"/>
+                                        <field name="ultima_fecha_procesada" string="Ultima fecha procesada" readonly="1"/>
+                                        <button name="action_limpiar_numeracion" type="object" string="Limpiar"
+                                                invisible="not ultima_fecha_procesada"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_configuracion_localizacion_list" model="ir.ui.view">
+            <field name="name">local_py.configuracion_localizacion.list</field>
+            <field name="model">local_py.configuracion_localizacion</field>
+            <field name="arch" type="xml">
+                <list string="Configuraciones Localización Py">
+                    <field name="company_id"/>
+                    <field name="create_uid" string="Usuario"/>
+                    <field name="create_date" string="Fecha Creación"/>
+                    <field name="write_date" string="Última modificación"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_local_py_configuracion_localizacion" model="ir.actions.act_window">
+            <field name="name">Configuraciones Localización Py</field>
+            <field name="res_model">local_py.configuracion_localizacion</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_configuracion_localizacion"
+                  name="Configuraciones Localización Py"
+                  parent="menu_l10n_py_localizacion"
+                  action="action_local_py_configuracion_localizacion"
+                  groups="account.group_account_manager"
+                  sequence="10"/>
+    </data>
+</odoo>

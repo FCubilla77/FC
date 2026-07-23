@@ -1,0 +1,34 @@
+<odoo>
+    <data>
+        <record id="view_local_py_renumeracion_fiscal_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.renumeracion_fiscal.wizard.form</field>
+            <field name="model">local_py.renumeracion_fiscal.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Renumeración Fiscal de Asientos">
+                    <group>
+                        <field name="fecha_inicial"/>
+                        <field name="fecha_final"/>
+                    </group>
+                    <footer>
+                        <button name="action_ejecutar" type="object" string="Ejecutar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_renumeracion_fiscal_wizard" model="ir.actions.act_window">
+            <field name="name">Renumeración Fiscal de Asientos</field>
+            <field name="res_model">local_py.renumeracion_fiscal.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_renumeracion_fiscal_wizard"
+                  name="Renumeración Fiscal de Asientos"
+                  parent="menu_l10n_py_localizacion"
+                  action="action_local_py_renumeracion_fiscal_wizard"
+                  groups="account.group_account_manager"
+                  sequence="20"/>
+    </data>
+</odoo>

@@ -1,0 +1,27 @@
+<odoo>
+    <data>
+        <record id="view_local_py_limpiar_numeracion_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.limpiar_numeracion.wizard.form</field>
+            <field name="model">local_py.limpiar_numeracion.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Limpiar Numeración Fiscal">
+                    <div class="alert alert-warning" role="alert">
+                        Esta acción vaciará el "Nro. Fiscal" de todos los asientos entre
+                        "Fecha Desde" y la Última fecha procesada actual, y recalculará
+                        "Ultimo Nro. Utilizado" y "Ultima fecha procesada" según lo que quede
+                        vigente. No se puede deshacer. ¿Desea continuar?
+                    </div>
+                    <group>
+                        <field name="row_id" invisible="1"/>
+                        <field name="fecha_hasta"/>
+                        <field name="fecha_desde"/>
+                    </group>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

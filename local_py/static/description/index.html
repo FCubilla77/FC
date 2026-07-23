@@ -186,6 +186,12 @@
                 <li>Rúbricas: no se permiten dos registros de la misma compañía con igual combinación de Id, Fecha y Uso (validación activa incluso en Borrador)</li>
                 <li>Rúbricas: al confirmar, el "Número Inicial" debe continuar exactamente la numeración de la última rúbrica confirmada del mismo Uso (sin huecos ni superposición de hojas)</li>
                 <li>Rúbricas: al confirmar, se valida que "Cant. de hoja" sea igual a "Número final" - "Número Inicial" + 1</li>
+                <li>Nuevo modelo "Configuraciones Localización Py" (Facturación &gt; Localización Paraguay), un registro por Compañía, con pestaña "Renumeración de Asiento" (grilla por Año: Número Asiento Fiscal Inicial, Ultimo Nro. Utilizado, Ultima fecha procesada)</li>
+                <li>Nuevo proceso "Renumeración Fiscal de Asientos" (Facturación &gt; Localización Paraguay): asigna un "Nro. Fiscal" correlativo a todos los asientos contables (facturas, notas de crédito/débito, pagos, stock, banco, manuales) de un rango de fechas, continuando sin huecos ni superposición desde la última fecha procesada de cada año (o desde el 1° de enero, en la primera corrida del año)</li>
+                <li>"Nro. Fiscal" es siempre de solo lectura y, una vez asignado, no puede sobrescribirse; único por compañía y año</li>
+                <li>Función "Limpiar" por año en la grilla de Renumeración, para deshacer la numeración fiscal desde una fecha hacia atrás (con confirmación previa), recalculando automáticamente "Ultimo Nro. Utilizado" y "Ultima fecha procesada"</li>
+                <li>Columna "Nro. Fiscal" en la lista nativa de Asientos Contables, y nuevo menú "Asientos Fiscales" (Facturación &gt; Localización Paraguay) mostrando todos los asientos sin ningún filtro por defecto, ordenados por Nro. Fiscal</li>
+                <li>Todas las funcionalidades de este punto están restringidas a Contabilidad: Administrador</li>
             </ul>
         </div>
     </div>
