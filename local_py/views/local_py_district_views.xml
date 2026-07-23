@@ -35,8 +35,8 @@
 
         <menuitem id="menu_local_py_district"
                   name="Distritos"
-                  parent="contacts.menu_localisation"
+                  parent="menu_l10n_py_localizacion"
                   action="action_local_py_district"
-                  sequence="2"/>
+                  sequence="30"/>
     </data>
 </odoo>

@@ -12,11 +12,17 @@
                 <xpath expr="//field[@name='vat']" position="after">
                     <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria"/>
                 </xpath>
-                <xpath expr="//field[@name='country_id']" position="attributes">
-                    <attribute name="required">True</attribute>
+                <!-- Reordenar a País > Departamento > Ciudad, y usar el
+                     desplegable de Ciudad en lugar del texto libre nativo -->
+                <xpath expr="//field[@name='city'][hasclass('o_address_city')]" position="replace"/>
+                <xpath expr="//field[@name='country_id'][hasclass('o_address_country')]" position="replace"/>
+                <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="before">
+                    <field name="country_id" placeholder="País" class="o_address_country"
+                           options="{'no_open': True, 'no_create': True}" required="True"/>
                 </xpath>
-                <xpath expr="//field[@name='city']" position="replace">
-                    <field name="city_id"/>
+                <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="after">
+                    <field name="city_id" placeholder="Ciudad" class="o_address_city"
+                           domain="[('state_id', '=', state_id)]"/>
                 </xpath>
                 <xpath expr="//field[@name='street']" position="attributes">
                     <attribute name="required">True</attribute>
@@ -26,6 +32,7 @@
                 </xpath>
             </field>
         </record>
+
         <record model="ir.ui.view" id="view_partner_form_l10n_py">
             <field name="name">local_py.view_partner_form</field>
             <field name="model">res.partner</field>
@@ -40,8 +47,19 @@
                 <xpath expr="//field[@name='vat']" position="after">
                     <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal" invisible="not is_company"/>
                 </xpath>
-                <xpath expr="//field[@name='city']" position="before">
-                    <field name="city_id" placeholder="Ciudad"/>
+                <!-- Reordenar a País > Departamento > Ciudad, y usar el
+                     desplegable de Ciudad en lugar del texto libre nativo.
+                     Se aplica a los 2 bloques de dirección del formulario
+                     (persona/empresa), ya que el xpath matchea ambos. -->
+                <xpath expr="//field[@name='city'][hasclass('o_address_city')]" position="replace"/>
+                <xpath expr="//field[@name='country_id'][hasclass('o_address_country')]" position="replace"/>
+                <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="before">
+                    <field name="country_id" placeholder="País" class="o_address_country"
+                           options="{'no_open': True, 'no_create': True}"/>
+                </xpath>
+                <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="after">
+                    <field name="city_id" placeholder="Ciudad" class="o_address_city"
+                           domain="[('state_id', '=', state_id)]"/>
                 </xpath>
                 <xpath expr="//field[@name='street']" position="attributes">
                     <attribute name="placeholder">Calle 1</attribute>
@@ -51,9 +69,6 @@
                 </xpath>
                 <xpath expr="//field[@name='state_id']" position="attributes">
                     <attribute name="placeholder">Departamento</attribute>
-                </xpath>
-                <xpath expr="//field[@name='city']" position="attributes">
-                    <attribute name="invisible">True</attribute>
                 </xpath>
             </field>
         </record>

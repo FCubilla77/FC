@@ -1,253 +1,253 @@
 state_id/id,id,code,name
-"state_capital","distrito_asuncion_(distrito)","1","ASUNCION (DISTRITO)"
-"state_concepcion","distrito_belen","5","BELEN"
-"state_concepcion","distrito_concepcion_(municipio)","2","CONCEPCION (MUNICIPIO)"
-"state_concepcion","distrito_horqueta","7","HORQUETA"
-"state_concepcion","distrito_loreto","6","LORETO"
-"state_concepcion","distrito_san_carlos","4","SAN CARLOS"
-"state_concepcion","distrito_san_lazaro","3","SAN LAZARO"
-"state_concepcion","distrito_san_salvador","8","SAN SALVADOR"
-"state_concepcion","distrito_sargento_jose_felix_lopez","270","SARGENTO JOSE FELIX LOPEZ"
-"state_concepcion","distrito_yby_yau","9","YBY YA'U"
-"state_san_pedro","distrito_antequera","11","ANTEQUERA"
-"state_san_pedro","distrito_capiibary","226","CAPIIBARY"
-"state_san_pedro","distrito_chore","23","CHORE"
-"state_san_pedro","distrito_gral_e_aquino","12","GRAL. E.AQUINO"
-"state_san_pedro","distrito_guayaibi","220","GUAYAIBI"
-"state_san_pedro","distrito_isidoro_resquin","22","ISIDORO RESQUIN"
-"state_san_pedro","distrito_itacurubi_del_rosario","13","ITACURUBI DEL ROSARIO"
-"state_san_pedro","distrito_lima","15","LIMA"
-"state_san_pedro","distrito_nueva_germania","16","NUEVA GERMANIA"
-"state_san_pedro","distrito_san_estanislao_(santani)","14","SAN ESTANISLAO (SANTANI)"
-"state_san_pedro","distrito_san_jose_del_rosario","25","SAN JOSE DEL ROSARIO"
-"state_san_pedro","distrito_san_pablo","24","SAN PABLO"
-"state_san_pedro","distrito_san_pedro_de_ycuamandyyu","10","SAN PEDRO DE YCUAMANDYYU"
-"state_san_pedro","distrito_tacuati","17","TACUATI"
-"state_san_pedro","distrito_union","18","UNION"
-"state_san_pedro","distrito_villa_del_rosario","20","VILLA DEL ROSARIO"
-"state_san_pedro","distrito_yataity_del_norte","21","YATAITY DEL NORTE"
-"state_san_pedro","distrito_yrybucua","245","YRYBUCUA"
-"state_san_pedro","distrito_45285","19","25 DE diciembre"
-"state_cordillera","distrito_altos","27","ALTOS"
-"state_cordillera","distrito_arroyos_y_esteros","28","ARROYOS Y ESTEROS"
-"state_cordillera","distrito_atyra","29","ATYRA"
-"state_cordillera","distrito_caacupe","26","CAACUPE"
-"state_cordillera","distrito_caraguatay","30","CARAGUATAY"
-"state_cordillera","distrito_emboscada","31","EMBOSCADA"
-"state_cordillera","distrito_eusebio_ayala","32","EUSEBIO AYALA"
-"state_cordillera","distrito_isla_pucu","33","ISLA PUCU"
-"state_cordillera","distrito_itacurubi_de_la_cordillera","34","ITACURUBI DE LA CORDILLERA"
-"state_cordillera","distrito_juan_de_mena","35","JUAN DE MENA"
-"state_cordillera","distrito_loma_grande","43","LOMA GRANDE"
-"state_cordillera","distrito_mbocayaty_del_yhaguy","214","MBOCAYATY DEL YHAGUY"
-"state_cordillera","distrito_nueva_colombia","36","NUEVA COLOMBIA"
-"state_cordillera","distrito_piribebuy","37","PIRIBEBUY"
-"state_cordillera","distrito_san_bernardino","39","SAN BERNARDINO"
-"state_cordillera","distrito_san_jose_obrero","44","SAN JOSE OBRERO"
-"state_cordillera","distrito_santa_elena","40","SANTA ELENA"
-"state_cordillera","distrito_tobati","41","TOBATI"
-"state_cordillera","distrito_valenzuela","42","VALENZUELA"
-"state_cordillera","distrito_1ro_de_marzo","38","1RO.DE MARZO"
-"state_guaira","distrito_borja","47","BORJA"
-"state_guaira","distrito_cnel_martinez","50","CNEL. MARTINEZ"
-"state_guaira","distrito_dr_botrel","60","DR. BOTREL"
-"state_guaira","distrito_felix_perez_cardozo","52","FELIX PEREZ CARDOZO"
-"state_guaira","distrito_gral.eugenio_a_garay","49","GRAL.EUGENIO A. GARAY"
-"state_guaira","distrito_independencia_(r_d_melgarejo)","48","INDEPENDENCIA (R.D.MELGAREJO)"
-"state_guaira","distrito_itape","54","ITAPE"
-"state_guaira","distrito_iturbe","55","ITURBE"
-"state_guaira","distrito_jose_fassardi","51","JOSE FASSARDI"
-"state_guaira","distrito_mauricio_jose_troche","53","MAURICIO JOSE TROCHE"
-"state_guaira","distrito_mbocayaty","56","MBOCAYATY"
-"state_guaira","distrito_natalicio_talavera","57","NATALICIO TALAVERA"
-"state_guaira","distrito_ñumi","58","ÑUMI"
-"state_guaira","distrito_paso_yobay","225","PASO YOBAY"
-"state_guaira","distrito_san_salvador","46","SAN SALVADOR"
-"state_guaira","distrito_sin_equivalencia","246","SIN EQUIVALENCIA"
-"state_guaira","distrito_tebicuary","265","TEBICUARY"
-"state_guaira","distrito_villarrica","45","VILLARRICA"
-"state_guaira","distrito_yataity","59","YATAITY"
-"state_caaguazu","distrito_caaguazu","62","CAAGUAZU"
-"state_caaguazu","distrito_carayao","63","CARAYAO"
-"state_caaguazu","distrito_cecilio_baez","64","CECILIO BAEZ"
-"state_caaguazu","distrito_cnel_oviedo","61","CNEL. OVIEDO"
-"state_caaguazu","distrito_esculies","244","ESCULIES"
-"state_caaguazu","distrito_j_eulogio_estigarribia","72","J. EULOGIO ESTIGARRIBIA"
-"state_caaguazu","distrito_jose_d_ocampos","73","JOSE D. OCAMPOS"
-"state_caaguazu","distrito_juan_manuel_frutos","69","JUAN MANUEL FRUTOS"
-"state_caaguazu","distrito_la_pastora","229","LA PASTORA"
-"state_caaguazu","distrito_mcal_f_solano_lopez","76","MCAL.F.SOLANO LOPEZ"
-"state_caaguazu","distrito_nueva_londres","65","NUEVA LONDRES"
-"state_caaguazu","distrito_raul_a_oviedo","75","RAUL A. OVIEDO"
-"state_caaguazu","distrito_repatriacion","70","REPATRIACION"
-"state_caaguazu","distrito_RI3_corrales","74","R.I.3 CORRALES"
-"state_caaguazu","distrito_san_joaquin","66","SAN JOAQUIN"
-"state_caaguazu","distrito_san_jose_de_los_arroyos","67","SAN JOSE DE LOS ARROYOS"
-"state_caaguazu","distrito_santa_rosa_del_mbutuy","71","SANTA ROSA DEL MBUTUY"
-"state_caaguazu","distrito_simon_bolivar","228","SIMON BOLIVAR"
-"state_caaguazu","distrito_tembiapora","275","TEMBIAPORA"
-"state_caaguazu","distrito_vaqueria","237","VAQUERIA"
-"state_caaguazu","distrito_yhu","68","YHU"
-"state_caaguazu","distrito_44960","227","3 DE febrero"
-"state_caazapa","distrito_abai","83","ABAI"
-"state_caazapa","distrito_buena_vista","78","BUENA VISTA"
-"state_caazapa","distrito_caazapa","77","CAAZAPA"
-"state_caazapa","distrito_gral_h_morinigo","79","GRAL. H. MORINIGO"
-"state_caazapa","distrito_maciel","80","MACIEL"
-"state_caazapa","distrito_moises_bertoni","81","MOISES BERTONI"
-"state_caazapa","distrito_san_juan_nepomuceno","82","SAN JUAN NEPOMUCENO"
-"state_caazapa","distrito_tavai","84","TAVAI"
-"state_caazapa","distrito_yegros","85","YEGROS"
-"state_caazapa","distrito_yuty","86","YUTY"
-"state_caazapa","distrito_45049","272","3 DE mayo"
-"state_itapua","distrito_bella_vista","88","BELLA VISTA"
-"state_itapua","distrito_cambyreta","89","CAMBYRETA"
-"state_itapua","distrito_capitan_meza","90","CAPITAN MEZA"
-"state_itapua","distrito_capitan_miranda","92","CAPITAN MIRANDA"
-"state_itapua","distrito_carlos_a_lopez","107","CARLOS A. LOPEZ"
-"state_itapua","distrito_carmen_del_parana","91","CARMEN DEL PARANA"
-"state_itapua","distrito_coronel_bogado","93","CORONEL BOGADO"
-"state_itapua","distrito_edelira","109","EDELIRA"
-"state_itapua","distrito_encarnacion","87","ENCARNACION"
-"state_itapua","distrito_federico_chavez","243","FEDERICO CHAVEZ"
-"state_itapua","distrito_fram","94","FRAM"
-"state_itapua","distrito_gral_artigas","95","GRAL. ARTIGAS"
-"state_itapua","distrito_gral_delgado","96","GRAL. DELGADO"
-"state_itapua","distrito_heriberta_s_de_iglesias","114","HERIBERTA S.DE IGLESIAS"
-"state_itapua","distrito_hohenau","97","HOHENAU"
-"state_itapua","distrito_itapua_poty","232","ITAPUA POTY"
-"state_itapua","distrito_jesus","98","JESUS"
-"state_itapua","distrito_jose_leandro_oviedo","105","JOSE LEANDRO OVIEDO"
-"state_itapua","distrito_julio_d_otaño","108","JULIO D. OTAÑO"
-"state_itapua","distrito_la_paz","111","LA PAZ"
-"state_itapua","distrito_natalio","104","NATALIO"
-"state_itapua","distrito_nueva_alborada","102","NUEVA ALBORADA"
-"state_itapua","distrito_obligado","99","OBLIGADO"
-"state_itapua","distrito_pirapo","221","PIRAPO"
-"state_itapua","distrito_san_cosme_y_damian","100","SAN COSME Y DAMIAN"
-"state_itapua","distrito_san_juan_del_parana","110","SAN JUAN DEL PARANA"
-"state_itapua","distrito_san_pedro_del_parana","101","SAN PEDRO DEL PARANA"
-"state_itapua","distrito_san_rafael_del_parana","106","SAN RAFAEL DEL PARANA"
-"state_itapua","distrito_tomas_r_pereira","112","TOMAS R. PEREIRA"
-"state_itapua","distrito_trinidad","103","TRINIDAD"
-"state_itapua","distrito_yatytay","113","YATYTAY"
-"state_misiones","distrito_ayolas","116","AYOLAS"
-"state_misiones","distrito_san_ignacio","117","SAN IGNACIO"
-"state_misiones","distrito_san_juan_bautista","115","SAN JUAN BAUTISTA"
-"state_misiones","distrito_san_miguel","118","SAN MIGUEL"
-"state_misiones","distrito_san_patricio","119","SAN PATRICIO"
-"state_misiones","distrito_santa_maria","121","SANTA MARIA"
-"state_misiones","distrito_santa_rosa","122","SANTA ROSA"
-"state_misiones","distrito_santiago","120","SANTIAGO"
-"state_misiones","distrito_villa_florida","123","VILLA FLORIDA"
-"state_misiones","distrito_yabebyry","124","YABEBYRY"
-"state_paraguari","distrito_acahay","126","ACAHAY"
-"state_paraguari","distrito_caapucu","127","CAAPUCU"
-"state_paraguari","distrito_caballero","128","CABALLERO"
-"state_paraguari","distrito_carapegua","129","CARAPEGUA"
-"state_paraguari","distrito_escobar","131","ESCOBAR"
-"state_paraguari","distrito_la_colmena","130","LA COLMENA"
-"state_paraguari","distrito_mbuyapey","132","MBUYAPEY"
-"state_paraguari","distrito_paraguari","125","PARAGUARI"
-"state_paraguari","distrito_pirayu","133","PIRAYU"
-"state_paraguari","distrito_quiindy","134","QUIINDY"
-"state_paraguari","distrito_quyquyho","138","QUYQUYHO"
-"state_paraguari","distrito_roque_gonzalez","135","ROQUE GONZALEZ"
-"state_paraguari","distrito_sapucai","136","SAPUCAI"
-"state_paraguari","distrito_tebicuary_mi","140","TEBICUARY MI"
-"state_paraguari","distrito_yaguaron","141","YAGUARON"
-"state_paraguari","distrito_ybycui","137","YBYCUI"
-"state_paraguari","distrito_ybytymi","139","YBYTYMI"
-"state_alto_parana","distrito_ciudad_del_este","145","CIUDAD DEL ESTE"
-"state_alto_parana","distrito_domingo_martinez_de_irala","143","DOMINGO MARTINEZ DE IRALA"
-"state_alto_parana","distrito_hernandarias","142","HERNANDARIAS"
-"state_alto_parana","distrito_iruna","217","IRUÑA"
-"state_alto_parana","distrito_itakyry","147","ITAKYRY"
-"state_alto_parana","distrito_juan_e_oleary","148","JUAN E.O'LEARY"
-"state_alto_parana","distrito_juan_leon_mallorquin","146","JUAN LEON MALLORQUIN"
-"state_alto_parana","distrito_los_cedrales","211","LOS CEDRALES"
-"state_alto_parana","distrito_mbaracayu","219","MBARACAYU"
-"state_alto_parana","distrito_minga_guazu","210","MINGA GUAZU"
-"state_alto_parana","distrito_minga_pora","213","MINGA PORA"
-"state_alto_parana","distrito_naranjal","215","NARANJAL"
-"state_alto_parana","distrito_nueva_esperanza","240","NUEVA ESPERANZA"
-"state_alto_parana","distrito_nacunday","144","ÑACUNDAY"
-"state_alto_parana","distrito_puerto_pte_franco","149","PUERTO PTE.FRANCO"
-"state_alto_parana","distrito_san_alberto","212","SAN ALBERTO"
-"state_alto_parana","distrito_san_cristobal","151","SAN CRISTOBAL"
-"state_alto_parana","distrito_santa_fe_del_parana","239","SANTA FE DEL PARANA"
-"state_alto_parana","distrito_santa_rita","209","SANTA RITA"
-"state_alto_parana","distrito_santa_rosa_del_monday","216","SANTA ROSA DEL MONDAY"
-"state_alto_parana","distrito_yguazu","150","YGUAZU"
-"state_central","distrito_aregua","152","AREGUA"
-"state_central","distrito_capiata","153","CAPIATA"
-"state_central","distrito_fernando_de_la_mora","154","FERNANDO DE LA MORA"
-"state_central","distrito_guarambare","155","GUARAMBARE"
-"state_central","distrito_ita","156","ITA"
-"state_central","distrito_itaugua","157","ITAUGUA"
-"state_central","distrito_j_augusto_saldivar","170","J.AUGUSTO SALDIVAR"
-"state_central","distrito_lambare","169","LAMBARE"
-"state_central","distrito_limpio","158","LIMPIO"
-"state_central","distrito_loma_pyta","277","LOMA PYTA"
-"state_central","distrito_luque","159","LUQUE"
-"state_central","distrito_mariano_roque_alonso","160","MARIANO ROQUE ALONSO"
-"state_central","distrito_nueva_italia","162","NUEVA ITALIA"
-"state_central","distrito_nemby","161","ÑEMBY"
-"state_central","distrito_san_antonio","163","SAN ANTONIO"
-"state_central","distrito_san_lorenzo","164","SAN LORENZO"
-"state_central","distrito_villa_elisa","165","VILLA ELISA"
-"state_central","distrito_villeta","166","VILLETA"
-"state_central","distrito_ypacarai","167","YPACARAI"
-"state_central","distrito_ypane","168","YPANE"
-"state_neembucu","distrito_alberdi","172","ALBERDI"
-"state_neembucu","distrito_cerrito","173","CERRITO"
-"state_neembucu","distrito_desmochados","174","DESMOCHADOS"
-"state_neembucu","distrito_gral_jose_eduvigis_diaz","203","GRAL.JOSE EDUVIGIS DIAZ"
-"state_neembucu","distrito_guazu_cua","175","GUAZU CUA"
-"state_neembucu","distrito_humaita","176","HUMAITA"
-"state_neembucu","distrito_isla_umbu","177","ISLA UMBU"
-"state_neembucu","distrito_laureles","178","LAURELES"
-"state_neembucu","distrito_mayor_j_d_martinez","180","MAYOR J.D.MARTINEZ"
-"state_neembucu","distrito_paso_de_patria","179","PASO DE PATRIA"
-"state_neembucu","distrito_pilar","171","PILAR"
-"state_neembucu","distrito_san_juan_de_ñeembucu","181","SAN JUAN DE ÑEEMBUCU"
-"state_neembucu","distrito_tacuaras","182","TACUARAS"
-"state_neembucu","distrito_villa_franca","205","VILLA FRANCA"
-"state_neembucu","distrito_villa_franca","230","VILLA FRANCA"
-"state_neembucu","distrito_villa_oliva","183","VILLA OLIVA"
-"state_neembucu","distrito_villalbin","184","VILLALBIN"
-"state_neembucu","distrito_villalbin","231","VILLALBIN"
-"state_amambay","distrito_bella_vista","186","BELLA VISTA"
-"state_amambay","distrito_capitan_bado","187","CAPITAN BADO"
-"state_amambay","distrito_karapai","278","KARAPAI"
-"state_amambay","distrito_pedro_juan_caballero","185","PEDRO JUAN CABALLERO"
-"state_pte_hayes","distrito_benjamin_aceval(monte_sociedad","189","BENJAMIN ACEVAL(MONTE SOCIEDAD"
-"state_pte_hayes","distrito_jose_falcon","242","JOSE FALCON"
-"state_pte_hayes","distrito_nanawa","191","NANAWA"
-"state_pte_hayes","distrito_pozo_colorado","206","POZO COLORADO"
-"state_pte_hayes","distrito_pto_pinazco","190","PTO.PINAZCO"
-"state_pte_hayes","distrito_villa_hayes","188","VILLA HAYES"
-"state_boqueron","distrito_boqueron","193","BOQUERON"
-"state_boqueron","distrito_filadelfia","259","FILADELFIA"
-"state_boqueron","distrito_gral_eugenio_a_garay","234","GRAL. EUGENIO A. GARAY"
-"state_boqueron","distrito_loma_plata","260","LOMA PLATA"
-"state_boqueron","distrito_mcal_estigarribia","192","MCAL.ESTIGARRIBIA"
-"state_boqueron","distrito_pedro_pena","194","PEDRO P.PEÑA"
-"state_alto_paraguay","distrito_bahia_negra","196","BAHIA NEGRA"
-"state_alto_paraguay","distrito_fuerte_olimpo","195","FUERTE OLIMPO"
-"state_alto_paraguay","distrito_mayor_pablo_lagerenza","233","MAYOR PABLO LAGERENZA"
-"state_alto_paraguay","distrito_puerto_casado","218","PUERTO CASADO"
-"state_alto_paraguay","distrito_puerto_guarani","223","PUERTO GUARANI"
-"state_canindeyu","distrito_corpus_christi","200","CORPUS CHRISTI"
-"state_canindeyu","distrito_francisco_caballero_alvarez","202","FRANCISCO CABALLERO ALVAREZ"
-"state_canindeyu","distrito_itanara","201","ITANARA"
-"state_canindeyu","distrito_katuete","236","KATUETE"
-"state_canindeyu","distrito_la_paloma","235","LA PALOMA"
-"state_canindeyu","distrito_nueva_esperanza","238","NUEVA ESPERANZA"
-"state_canindeyu","distrito_salto_del_guaira","207","SALTO DEL GUAIRA"
-"state_canindeyu","distrito_san_isidro_del_curuguaty","197","SAN ISIDRO DEL CURUGUATY"
-"state_canindeyu","distrito_villa_ygatimi","198","VILLA YGATIMI"
-"state_canindeyu","distrito_yasy_kany","241","YASY KAÑY"
-"state_canindeyu","distrito_yby_pyta","274","YBY PYTA"
-"state_canindeyu","distrito_ybyrarobana","271","YBYRAROBANA"
-"state_canindeyu","distrito_ypejhu","199","YPEJHU
+state_capital,distrito_1,1,ASUNCION (DISTRITO)
+state_concepcion,distrito_5,5,BELEN
+state_concepcion,distrito_2,2,CONCEPCION (MUNICIPIO)
+state_concepcion,distrito_7,7,HORQUETA
+state_concepcion,distrito_6,6,LORETO
+state_concepcion,distrito_4,4,SAN CARLOS
+state_concepcion,distrito_3,3,SAN LAZARO
+state_concepcion,distrito_8,8,SAN SALVADOR
+state_concepcion,distrito_270,270,SARGENTO JOSE FELIX LOPEZ
+state_concepcion,distrito_9,9,YBY YA'U
+state_san_pedro,distrito_11,11,ANTEQUERA
+state_san_pedro,distrito_226,226,CAPIIBARY
+state_san_pedro,distrito_23,23,CHORE
+state_san_pedro,distrito_12,12,GRAL. E.AQUINO
+state_san_pedro,distrito_220,220,GUAYAIBI
+state_san_pedro,distrito_22,22,ISIDORO RESQUIN
+state_san_pedro,distrito_13,13,ITACURUBI DEL ROSARIO
+state_san_pedro,distrito_15,15,LIMA
+state_san_pedro,distrito_16,16,NUEVA GERMANIA
+state_san_pedro,distrito_14,14,SAN ESTANISLAO (SANTANI)
+state_san_pedro,distrito_25,25,SAN JOSE DEL ROSARIO
+state_san_pedro,distrito_24,24,SAN PABLO
+state_san_pedro,distrito_10,10,SAN PEDRO DE YCUAMANDYYU
+state_san_pedro,distrito_17,17,TACUATI
+state_san_pedro,distrito_18,18,UNION
+state_san_pedro,distrito_20,20,VILLA DEL ROSARIO
+state_san_pedro,distrito_21,21,YATAITY DEL NORTE
+state_san_pedro,distrito_245,245,YRYBUCUA
+state_san_pedro,distrito_19,19,25 DE diciembre
+state_cordillera,distrito_27,27,ALTOS
+state_cordillera,distrito_28,28,ARROYOS Y ESTEROS
+state_cordillera,distrito_29,29,ATYRA
+state_cordillera,distrito_26,26,CAACUPE
+state_cordillera,distrito_30,30,CARAGUATAY
+state_cordillera,distrito_31,31,EMBOSCADA
+state_cordillera,distrito_32,32,EUSEBIO AYALA
+state_cordillera,distrito_33,33,ISLA PUCU
+state_cordillera,distrito_34,34,ITACURUBI DE LA CORDILLERA
+state_cordillera,distrito_35,35,JUAN DE MENA
+state_cordillera,distrito_43,43,LOMA GRANDE
+state_cordillera,distrito_214,214,MBOCAYATY DEL YHAGUY
+state_cordillera,distrito_36,36,NUEVA COLOMBIA
+state_cordillera,distrito_37,37,PIRIBEBUY
+state_cordillera,distrito_39,39,SAN BERNARDINO
+state_cordillera,distrito_44,44,SAN JOSE OBRERO
+state_cordillera,distrito_40,40,SANTA ELENA
+state_cordillera,distrito_41,41,TOBATI
+state_cordillera,distrito_42,42,VALENZUELA
+state_cordillera,distrito_38,38,1RO.DE MARZO
+state_guaira,distrito_47,47,BORJA
+state_guaira,distrito_50,50,CNEL. MARTINEZ
+state_guaira,distrito_60,60,DR. BOTREL
+state_guaira,distrito_52,52,FELIX PEREZ CARDOZO
+state_guaira,distrito_49,49,GRAL.EUGENIO A. GARAY
+state_guaira,distrito_48,48,INDEPENDENCIA (R.D.MELGAREJO)
+state_guaira,distrito_54,54,ITAPE
+state_guaira,distrito_55,55,ITURBE
+state_guaira,distrito_51,51,JOSE FASSARDI
+state_guaira,distrito_53,53,MAURICIO JOSE TROCHE
+state_guaira,distrito_56,56,MBOCAYATY
+state_guaira,distrito_57,57,NATALICIO TALAVERA
+state_guaira,distrito_58,58,ÑUMI
+state_guaira,distrito_225,225,PASO YOBAY
+state_guaira,distrito_46,46,SAN SALVADOR
+state_guaira,distrito_246,246,SIN EQUIVALENCIA
+state_guaira,distrito_265,265,TEBICUARY
+state_guaira,distrito_45,45,VILLARRICA
+state_guaira,distrito_59,59,YATAITY
+state_caaguazu,distrito_62,62,CAAGUAZU
+state_caaguazu,distrito_63,63,CARAYAO
+state_caaguazu,distrito_64,64,CECILIO BAEZ
+state_caaguazu,distrito_61,61,CNEL. OVIEDO
+state_caaguazu,distrito_244,244,ESCULIES
+state_caaguazu,distrito_72,72,J. EULOGIO ESTIGARRIBIA
+state_caaguazu,distrito_73,73,JOSE D. OCAMPOS
+state_caaguazu,distrito_69,69,JUAN MANUEL FRUTOS
+state_caaguazu,distrito_229,229,LA PASTORA
+state_caaguazu,distrito_76,76,MCAL.F.SOLANO LOPEZ
+state_caaguazu,distrito_65,65,NUEVA LONDRES
+state_caaguazu,distrito_75,75,RAUL A. OVIEDO
+state_caaguazu,distrito_70,70,REPATRIACION
+state_caaguazu,distrito_74,74,R.I.3 CORRALES
+state_caaguazu,distrito_66,66,SAN JOAQUIN
+state_caaguazu,distrito_67,67,SAN JOSE DE LOS ARROYOS
+state_caaguazu,distrito_71,71,SANTA ROSA DEL MBUTUY
+state_caaguazu,distrito_228,228,SIMON BOLIVAR
+state_caaguazu,distrito_275,275,TEMBIAPORA
+state_caaguazu,distrito_237,237,VAQUERIA
+state_caaguazu,distrito_68,68,YHU
+state_caaguazu,distrito_227,227,3 DE febrero
+state_caazapa,distrito_83,83,ABAI
+state_caazapa,distrito_78,78,BUENA VISTA
+state_caazapa,distrito_77,77,CAAZAPA
+state_caazapa,distrito_79,79,GRAL. H. MORINIGO
+state_caazapa,distrito_80,80,MACIEL
+state_caazapa,distrito_81,81,MOISES BERTONI
+state_caazapa,distrito_82,82,SAN JUAN NEPOMUCENO
+state_caazapa,distrito_84,84,TAVAI
+state_caazapa,distrito_85,85,YEGROS
+state_caazapa,distrito_86,86,YUTY
+state_caazapa,distrito_272,272,3 DE mayo
+state_itapua,distrito_88,88,BELLA VISTA
+state_itapua,distrito_89,89,CAMBYRETA
+state_itapua,distrito_90,90,CAPITAN MEZA
+state_itapua,distrito_92,92,CAPITAN MIRANDA
+state_itapua,distrito_107,107,CARLOS A. LOPEZ
+state_itapua,distrito_91,91,CARMEN DEL PARANA
+state_itapua,distrito_93,93,CORONEL BOGADO
+state_itapua,distrito_109,109,EDELIRA
+state_itapua,distrito_87,87,ENCARNACION
+state_itapua,distrito_243,243,FEDERICO CHAVEZ
+state_itapua,distrito_94,94,FRAM
+state_itapua,distrito_95,95,GRAL. ARTIGAS
+state_itapua,distrito_96,96,GRAL. DELGADO
+state_itapua,distrito_114,114,HERIBERTA S.DE IGLESIAS
+state_itapua,distrito_97,97,HOHENAU
+state_itapua,distrito_232,232,ITAPUA POTY
+state_itapua,distrito_98,98,JESUS
+state_itapua,distrito_105,105,JOSE LEANDRO OVIEDO
+state_itapua,distrito_108,108,JULIO D. OTAÑO
+state_itapua,distrito_111,111,LA PAZ
+state_itapua,distrito_104,104,NATALIO
+state_itapua,distrito_102,102,NUEVA ALBORADA
+state_itapua,distrito_99,99,OBLIGADO
+state_itapua,distrito_221,221,PIRAPO
+state_itapua,distrito_100,100,SAN COSME Y DAMIAN
+state_itapua,distrito_110,110,SAN JUAN DEL PARANA
+state_itapua,distrito_101,101,SAN PEDRO DEL PARANA
+state_itapua,distrito_106,106,SAN RAFAEL DEL PARANA
+state_itapua,distrito_112,112,TOMAS R. PEREIRA
+state_itapua,distrito_103,103,TRINIDAD
+state_itapua,distrito_113,113,YATYTAY
+state_misiones,distrito_116,116,AYOLAS
+state_misiones,distrito_117,117,SAN IGNACIO
+state_misiones,distrito_115,115,SAN JUAN BAUTISTA
+state_misiones,distrito_118,118,SAN MIGUEL
+state_misiones,distrito_119,119,SAN PATRICIO
+state_misiones,distrito_121,121,SANTA MARIA
+state_misiones,distrito_122,122,SANTA ROSA
+state_misiones,distrito_120,120,SANTIAGO
+state_misiones,distrito_123,123,VILLA FLORIDA
+state_misiones,distrito_124,124,YABEBYRY
+state_paraguari,distrito_126,126,ACAHAY
+state_paraguari,distrito_127,127,CAAPUCU
+state_paraguari,distrito_128,128,CABALLERO
+state_paraguari,distrito_129,129,CARAPEGUA
+state_paraguari,distrito_131,131,ESCOBAR
+state_paraguari,distrito_130,130,LA COLMENA
+state_paraguari,distrito_132,132,MBUYAPEY
+state_paraguari,distrito_125,125,PARAGUARI
+state_paraguari,distrito_133,133,PIRAYU
+state_paraguari,distrito_134,134,QUIINDY
+state_paraguari,distrito_138,138,QUYQUYHO
+state_paraguari,distrito_135,135,ROQUE GONZALEZ
+state_paraguari,distrito_136,136,SAPUCAI
+state_paraguari,distrito_140,140,TEBICUARY MI
+state_paraguari,distrito_141,141,YAGUARON
+state_paraguari,distrito_137,137,YBYCUI
+state_paraguari,distrito_139,139,YBYTYMI
+state_alto_parana,distrito_145,145,CIUDAD DEL ESTE
+state_alto_parana,distrito_143,143,DOMINGO MARTINEZ DE IRALA
+state_alto_parana,distrito_142,142,HERNANDARIAS
+state_alto_parana,distrito_217,217,IRUÑA
+state_alto_parana,distrito_147,147,ITAKYRY
+state_alto_parana,distrito_148,148,JUAN E.O'LEARY
+state_alto_parana,distrito_146,146,JUAN LEON MALLORQUIN
+state_alto_parana,distrito_211,211,LOS CEDRALES
+state_alto_parana,distrito_219,219,MBARACAYU
+state_alto_parana,distrito_210,210,MINGA GUAZU
+state_alto_parana,distrito_213,213,MINGA PORA
+state_alto_parana,distrito_215,215,NARANJAL
+state_alto_parana,distrito_240,240,NUEVA ESPERANZA
+state_alto_parana,distrito_144,144,ÑACUNDAY
+state_alto_parana,distrito_149,149,PUERTO PTE.FRANCO
+state_alto_parana,distrito_212,212,SAN ALBERTO
+state_alto_parana,distrito_151,151,SAN CRISTOBAL
+state_alto_parana,distrito_239,239,SANTA FE DEL PARANA
+state_alto_parana,distrito_209,209,SANTA RITA
+state_alto_parana,distrito_216,216,SANTA ROSA DEL MONDAY
+state_alto_parana,distrito_150,150,YGUAZU
+state_central,distrito_152,152,AREGUA
+state_central,distrito_153,153,CAPIATA
+state_central,distrito_154,154,FERNANDO DE LA MORA
+state_central,distrito_155,155,GUARAMBARE
+state_central,distrito_156,156,ITA
+state_central,distrito_157,157,ITAUGUA
+state_central,distrito_170,170,J.AUGUSTO SALDIVAR
+state_central,distrito_169,169,LAMBARE
+state_central,distrito_158,158,LIMPIO
+state_central,distrito_277,277,LOMA PYTA
+state_central,distrito_159,159,LUQUE
+state_central,distrito_160,160,MARIANO ROQUE ALONSO
+state_central,distrito_162,162,NUEVA ITALIA
+state_central,distrito_161,161,ÑEMBY
+state_central,distrito_163,163,SAN ANTONIO
+state_central,distrito_164,164,SAN LORENZO
+state_central,distrito_165,165,VILLA ELISA
+state_central,distrito_166,166,VILLETA
+state_central,distrito_167,167,YPACARAI
+state_central,distrito_168,168,YPANE
+state_neembucu,distrito_172,172,ALBERDI
+state_neembucu,distrito_173,173,CERRITO
+state_neembucu,distrito_174,174,DESMOCHADOS
+state_neembucu,distrito_203,203,GRAL.JOSE EDUVIGIS DIAZ
+state_neembucu,distrito_175,175,GUAZU CUA
+state_neembucu,distrito_176,176,HUMAITA
+state_neembucu,distrito_177,177,ISLA UMBU
+state_neembucu,distrito_178,178,LAURELES
+state_neembucu,distrito_180,180,MAYOR J.D.MARTINEZ
+state_neembucu,distrito_179,179,PASO DE PATRIA
+state_neembucu,distrito_171,171,PILAR
+state_neembucu,distrito_181,181,SAN JUAN DE ÑEEMBUCU
+state_neembucu,distrito_182,182,TACUARAS
+state_neembucu,distrito_205,205,VILLA FRANCA
+state_neembucu,distrito_230,230,VILLA FRANCA
+state_neembucu,distrito_183,183,VILLA OLIVA
+state_neembucu,distrito_184,184,VILLALBIN
+state_neembucu,distrito_231,231,VILLALBIN
+state_amambay,distrito_186,186,BELLA VISTA
+state_amambay,distrito_187,187,CAPITAN BADO
+state_amambay,distrito_278,278,KARAPAI
+state_amambay,distrito_185,185,PEDRO JUAN CABALLERO
+state_pte_hayes,distrito_189,189,BENJAMIN ACEVAL(MONTE SOCIEDAD
+state_pte_hayes,distrito_242,242,JOSE FALCON
+state_pte_hayes,distrito_191,191,NANAWA
+state_pte_hayes,distrito_206,206,POZO COLORADO
+state_pte_hayes,distrito_190,190,PTO.PINAZCO
+state_pte_hayes,distrito_188,188,VILLA HAYES
+state_boqueron,distrito_193,193,BOQUERON
+state_boqueron,distrito_259,259,FILADELFIA
+state_boqueron,distrito_234,234,GRAL. EUGENIO A. GARAY
+state_boqueron,distrito_260,260,LOMA PLATA
+state_boqueron,distrito_192,192,MCAL.ESTIGARRIBIA
+state_boqueron,distrito_194,194,PEDRO P.PEÑA
+state_alto_paraguay,distrito_196,196,BAHIA NEGRA
+state_alto_paraguay,distrito_195,195,FUERTE OLIMPO
+state_alto_paraguay,distrito_233,233,MAYOR PABLO LAGERENZA
+state_alto_paraguay,distrito_218,218,PUERTO CASADO
+state_alto_paraguay,distrito_223,223,PUERTO GUARANI
+state_canindeyu,distrito_200,200,CORPUS CHRISTI
+state_canindeyu,distrito_202,202,FRANCISCO CABALLERO ALVAREZ
+state_canindeyu,distrito_201,201,ITANARA
+state_canindeyu,distrito_236,236,KATUETE
+state_canindeyu,distrito_235,235,LA PALOMA
+state_canindeyu,distrito_238,238,NUEVA ESPERANZA
+state_canindeyu,distrito_207,207,SALTO DEL GUAIRA
+state_canindeyu,distrito_197,197,SAN ISIDRO DEL CURUGUATY
+state_canindeyu,distrito_198,198,VILLA YGATIMI
+state_canindeyu,distrito_241,241,YASY KAÑY
+state_canindeyu,distrito_274,274,YBY PYTA
+state_canindeyu,distrito_271,271,YBYRAROBANA
+state_canindeyu,distrito_199,199,YPEJHU

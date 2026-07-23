@@ -6,6 +6,11 @@ import re
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
+    # El campo city_id ya existe de forma nativa (base_address_extended), pero
+    # sin dominio: se agrega acá para que solo ofrezca ciudades del Departamento
+    # seleccionado.
+    city_id = fields.Many2one(domain="[('state_id', '=', state_id)]")
+
     omitir_validacion = fields.Boolean(string='Omitir control de RUT', default=False)
     vat = fields.Char(string="RUT", index=True)
     l10n_py_tipo_identificacion_fiscal_id = fields.Many2one(
