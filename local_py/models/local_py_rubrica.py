@@ -104,6 +104,44 @@ class LocalPyRubrica(models.Model):
             if rec.numero_final < rec.numero_inicial:
                 raise ValidationError('"Número final" debe ser mayor o igual a "Número Inicial".')
 
+    @api.constrains('company_id', 'idrubrica', 'fecha', 'uso')
+    def _check_unique_id_fecha_uso(self):
+        for rec in self:
+            if not (rec.idrubrica and rec.fecha and rec.uso):
+                continue
+            duplicado = self.search_count([
+                ('id', '!=', rec.id),
+                ('company_id', '=', rec.company_id.id),
+                ('idrubrica', '=', rec.idrubrica),
+                ('fecha', '=', rec.fecha),
+                ('uso', '=', rec.uso),
+            ])
+            if duplicado:
+                raise ValidationError(
+                    'Ya existe otra rúbrica de esta compañía con la misma combinación de '
+                    'Id, Fecha y Uso.'
+                )
+
+    @api.constrains('state', 'numero_inicial', 'company_id', 'uso')
+    def _check_numeracion_correlativa(self):
+        for rec in self:
+            if rec.state != 'confirmed':
+                continue
+            anterior = self.search([
+                ('id', '!=', rec.id),
+                ('company_id', '=', rec.company_id.id),
+                ('uso', '=', rec.uso),
+                ('state', '=', 'confirmed'),
+            ], order='numero_final desc', limit=1)
+            if anterior:
+                esperado = anterior.numero_final + 1
+                if rec.numero_inicial != esperado:
+                    raise ValidationError(
+                        'El "Número Inicial" de esta rúbrica debe continuar la numeración de la '
+                        'última rúbrica confirmada del mismo Uso (%s): se esperaba %s, no %s.'
+                        % (dict(USO_SELECTION).get(rec.uso, rec.uso), esperado, rec.numero_inicial)
+                    )
+
     def action_confirm(self):
         for rec in self:
             rec.write({

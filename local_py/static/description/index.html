@@ -183,6 +183,8 @@
                 <li>Paraguay ya tiene cargado su código ISO-3166 Alpha-3 ("PRY")</li>
                 <li>En Compañía, País, Calle y Email pasan a ser obligatorios</li>
                 <li>Nuevo registro de "Rubricas" de libros contables (Facturación &gt; Localización Paraguay &gt; Rubricas), con flujo Borrador/Confirmado, chatter, adjuntos de Imagen (sello) y Primera Hoja (comprobante del RUN), y control de que "Utilizado hasta" nunca supere "Número Inicial" para poder eliminar un registro; acceso restringido a Contabilidad: Administrador</li>
+                <li>Rúbricas: no se permiten dos registros de la misma compañía con igual combinación de Id, Fecha y Uso (validación activa incluso en Borrador)</li>
+                <li>Rúbricas: al confirmar, el "Número Inicial" debe continuar exactamente la numeración de la última rúbrica confirmada del mismo Uso (sin huecos ni superposición de hojas)</li>
             </ul>
         </div>
     </div>
