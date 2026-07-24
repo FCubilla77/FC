@@ -41,10 +41,25 @@
                   parent="account.menu_finance"
                   sequence="90"/>
 
+        <menuitem id="menu_local_py_datos_maestros"
+                  name="Datos Maestros"
+                  parent="menu_l10n_py_localizacion"
+                  sequence="10"/>
+
+        <menuitem id="menu_local_py_configuraciones"
+                  name="Configuraciones"
+                  parent="menu_l10n_py_localizacion"
+                  sequence="20"/>
+
+        <menuitem id="menu_local_py_procesos"
+                  name="Procesos"
+                  parent="menu_l10n_py_localizacion"
+                  sequence="30"/>
+
         <menuitem id="menu_local_py_tipo_fiscal"
                   name="Tipo Fiscal"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_datos_maestros"
                   action="action_local_py_tipo_fiscal"
-                  sequence="10"/>
+                  sequence="40"/>
     </data>
 </odoo>

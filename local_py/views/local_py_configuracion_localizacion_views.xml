@@ -29,6 +29,9 @@
                                     </list>
                                 </field>
                             </page>
+                            <page string="Imputación Tributaria" name="imputacion_tributaria">
+                                <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags"/>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>
@@ -56,7 +59,7 @@
 
         <menuitem id="menu_local_py_configuracion_localizacion"
                   name="Configuraciones Localización Py"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_configuraciones"
                   action="action_local_py_configuracion_localizacion"
                   groups="account.group_account_manager"
                   sequence="10"/>

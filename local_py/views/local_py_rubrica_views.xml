@@ -84,7 +84,7 @@
 
         <menuitem id="menu_local_py_rubrica"
                   name="Rubricas"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_procesos"
                   action="action_local_py_rubrica"
                   groups="account.group_account_manager"
                   sequence="40"/>

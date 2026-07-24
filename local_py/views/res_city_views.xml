@@ -16,8 +16,8 @@
 
         <menuitem id="menu_local_py_city"
                   name="Ciudades"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_datos_maestros"
                   action="base_address_extended.action_res_city_tree"
-                  sequence="35"/>
+                  sequence="30"/>
     </data>
 </odoo>

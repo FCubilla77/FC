@@ -51,9 +51,9 @@
 
         <menuitem id="menu_l10n_py_config_paraguay_wizard"
                   name="Restablecer configuración Paraguay"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_procesos"
                   action="action_l10n_py_config_paraguay_wizard"
                   groups="account.group_account_manager"
-                  sequence="90"/>
+                  sequence="30"/>
     </data>
 </odoo>

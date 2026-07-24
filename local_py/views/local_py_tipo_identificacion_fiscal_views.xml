@@ -38,8 +38,8 @@
 
         <menuitem id="menu_local_py_tipo_identificacion_fiscal"
                   name="Tipo de Identificación Fiscal"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_datos_maestros"
                   action="action_local_py_tipo_identificacion_fiscal"
-                  sequence="15"/>
+                  sequence="50"/>
     </data>
 </odoo>

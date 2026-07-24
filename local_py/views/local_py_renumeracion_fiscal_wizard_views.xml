@@ -26,9 +26,9 @@
 
         <menuitem id="menu_local_py_renumeracion_fiscal_wizard"
                   name="Renumeración Fiscal de Asientos"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_procesos"
                   action="action_local_py_renumeracion_fiscal_wizard"
                   groups="account.group_account_manager"
-                  sequence="20"/>
+                  sequence="10"/>
     </data>
 </odoo>

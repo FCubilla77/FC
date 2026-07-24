@@ -92,5 +92,6 @@ class LocalPyRenumeracionFiscalWizard(models.TransientModel):
                 'message': '%s asiento(s) renumerado(s) correctamente.' % len(moves),
                 'type': 'success',
                 'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
             },
         }

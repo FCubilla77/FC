@@ -28,9 +28,9 @@
 
         <menuitem id="menu_local_py_asientos_fiscales"
                   name="Asientos Fiscales"
-                  parent="menu_l10n_py_localizacion"
+                  parent="menu_local_py_procesos"
                   action="action_local_py_asientos_fiscales"
                   groups="account.group_account_manager"
-                  sequence="30"/>
+                  sequence="20"/>
     </data>
 </odoo>

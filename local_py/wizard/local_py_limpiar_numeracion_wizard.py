@@ -65,5 +65,6 @@ class LocalPyLimpiarNumeracionWizard(models.TransientModel):
                 'message': '%s asiento(s) actualizados.' % len(moves),
                 'type': 'success',
                 'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
             },
         }

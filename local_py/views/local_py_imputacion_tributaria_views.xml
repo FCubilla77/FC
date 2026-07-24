@@ -33,11 +33,8 @@
             <field name="res_model">local_py.imputacion_tributaria</field>
             <field name="view_mode">list,form</field>
         </record>
-
-        <menuitem id="menu_local_py_imputacion_tributaria"
-                  name="Imputación Tributaria"
-                  parent="menu_l10n_py_localizacion"
-                  action="action_local_py_imputacion_tributaria"
-                  sequence="20"/>
+        <!-- Sin menú propio a partir de esta versión: se gestiona desde la
+             pestaña "Imputación Tributaria" de Configuraciones Localización Py.
+             Se mantiene la acción por si se necesita acceder técnicamente. -->
     </data>
 </odoo>
