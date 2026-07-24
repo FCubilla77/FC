@@ -88,6 +88,21 @@ class AccountMove(models.Model):
              '"Limpiar numeración" de la Configuración de Localización).',
     )
 
+    l10n_py_nro_fiscal_asignado = fields.Boolean(
+        string='Nro. Fiscal Asignado',
+        compute='_compute_l10n_py_nro_fiscal_asignado',
+        store=True,
+        help='Campo técnico de uso interno (no se muestra en pantalla). Sirve para que, '
+             'al ordenar por "Nro. Fiscal" en el reporte "Asientos Fiscales", los asientos '
+             'sin número asignado queden siempre al final, sin importar si el usuario '
+             'ordena ascendente o descendente.',
+    )
+
+    @api.depends('l10n_py_nro_fiscal')
+    def _compute_l10n_py_nro_fiscal_asignado(self):
+        for move in self:
+            move.l10n_py_nro_fiscal_asignado = bool(move.l10n_py_nro_fiscal)
+
     l10n_py_comentario = fields.Char(
         string='Comentario',
         copy=False,
