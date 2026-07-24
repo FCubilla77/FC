@@ -9,12 +9,16 @@ class LocalPyRenumeracionFiscalWizard(models.TransientModel):
     _name = 'local_py.renumeracion_fiscal.wizard'
     _description = 'Renumeración Fiscal de Asientos'
 
+    company_id = fields.Many2one(
+        'res.company', string='Compañía', required=True,
+        default=lambda self: self.env.company,
+    )
     fecha_inicial = fields.Date(string='Fecha Inicial', required=True)
     fecha_final = fields.Date(string='Fecha Final', required=True)
 
     def action_ejecutar(self):
         self.ensure_one()
-        company = self.env.company
+        company = self.company_id
         fecha_inicial = self.fecha_inicial
         fecha_final = self.fecha_final
 

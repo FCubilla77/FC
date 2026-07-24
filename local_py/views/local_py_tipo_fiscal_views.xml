@@ -4,7 +4,7 @@
             <field name="name">local_py.tipo_fiscal.list</field>
             <field name="model">local_py.tipo_fiscal</field>
             <field name="arch" type="xml">
-                <list string="Tipo Fiscal">
+                <list string="Tipos de Documentos Fiscales">
                     <field name="sequence" widget="handle"/>
                     <field name="code"/>
                     <field name="name"/>
@@ -17,7 +17,7 @@
             <field name="name">local_py.tipo_fiscal.form</field>
             <field name="model">local_py.tipo_fiscal</field>
             <field name="arch" type="xml">
-                <form string="Tipo Fiscal">
+                <form string="Tipos de Documentos Fiscales">
                     <sheet>
                         <group>
                             <field name="code"/>
@@ -31,7 +31,7 @@
         </record>
 
         <record id="action_local_py_tipo_fiscal" model="ir.actions.act_window">
-            <field name="name">Tipo Fiscal</field>
+            <field name="name">Tipos de Documentos Fiscales</field>
             <field name="res_model">local_py.tipo_fiscal</field>
             <field name="view_mode">list,form</field>
         </record>
@@ -57,7 +57,7 @@
                   sequence="30"/>
 
         <menuitem id="menu_local_py_tipo_fiscal"
-                  name="Tipo Fiscal"
+                  name="Tipos de Documentos Fiscales"
                   parent="menu_local_py_datos_maestros"
                   action="action_local_py_tipo_fiscal"
                   sequence="40"/>

@@ -43,6 +43,13 @@
                                invisible="move_type not in ('out_refund', 'in_refund')"/>
                     </group>
                 </xpath>
+                <!-- Comentario: aplica a TODOS los asientos (no solo Facturación), por
+                     eso se agrega fuera del grupo "Localización Paraguay" de arriba. -->
+                <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]/ancestor::group[last()]" position="after">
+                    <group string="Comentario">
+                        <field name="l10n_py_comentario" nolabel="1" colspan="2" placeholder="Comentario del asiento..."/>
+                    </group>
+                </xpath>
             </field>
         </record>
 

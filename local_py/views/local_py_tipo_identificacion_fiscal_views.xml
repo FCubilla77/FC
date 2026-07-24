@@ -4,7 +4,7 @@
             <field name="name">local_py.tipo_identificacion_fiscal.list</field>
             <field name="model">local_py.tipo_identificacion_fiscal</field>
             <field name="arch" type="xml">
-                <list string="Tipo de Identificación Fiscal">
+                <list string="Tipos de Identificación Fiscal">
                     <field name="sequence" widget="handle"/>
                     <field name="code"/>
                     <field name="name"/>
@@ -17,7 +17,7 @@
             <field name="name">local_py.tipo_identificacion_fiscal.form</field>
             <field name="model">local_py.tipo_identificacion_fiscal</field>
             <field name="arch" type="xml">
-                <form string="Tipo de Identificación Fiscal">
+                <form string="Tipos de Identificación Fiscal">
                     <sheet>
                         <group>
                             <field name="code"/>
@@ -31,13 +31,13 @@
         </record>
 
         <record id="action_local_py_tipo_identificacion_fiscal" model="ir.actions.act_window">
-            <field name="name">Tipo de Identificación Fiscal</field>
+            <field name="name">Tipos de Identificación Fiscal</field>
             <field name="res_model">local_py.tipo_identificacion_fiscal</field>
             <field name="view_mode">list,form</field>
         </record>
 
         <menuitem id="menu_local_py_tipo_identificacion_fiscal"
-                  name="Tipo de Identificación Fiscal"
+                  name="Tipos de Identificación Fiscal"
                   parent="menu_local_py_datos_maestros"
                   action="action_local_py_tipo_identificacion_fiscal"
                   sequence="50"/>

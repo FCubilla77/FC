@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models
+from odoo import api, exceptions, fields, models
 
 
 class LocalPyConfiguracionLocalizacion(models.Model):
@@ -28,6 +28,21 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         ('company_uniq', 'unique(company_id)',
          'Ya existe una Configuración de Localización para esta compañía.'),
     ]
+
+    @api.constrains('company_id')
+    def _check_company_unique(self):
+        """Refuerzo a nivel de código de la restricción de unicidad por
+        Compañía, independiente de la restricción de base de datos (que en
+        algún momento no llegó a aplicarse correctamente en una base ya
+        existente)."""
+        for rec in self:
+            if self.search_count([
+                ('id', '!=', rec.id),
+                ('company_id', '=', rec.company_id.id),
+            ]):
+                raise exceptions.ValidationError(
+                    'Ya existe una Configuración de Localización para esta compañía.'
+                )
 
     @api.onchange('l10n_py_imputacion_tributaria_ids')
     def _onchange_l10n_py_imputacion_tributaria_ids(self):

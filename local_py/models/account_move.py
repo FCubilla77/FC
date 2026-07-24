@@ -88,6 +88,58 @@ class AccountMove(models.Model):
              '"Limpiar numeración" de la Configuración de Localización).',
     )
 
+    l10n_py_comentario = fields.Char(
+        string='Comentario',
+        copy=False,
+        help='Para Facturas, Notas de Crédito y Pagos se autocompleta al confirmar '
+             '("Operación Contacto Nro. Documento"). Para Movimientos de Stock y '
+             'Bancarios también se autocompleta. Para asientos manuales queda libre '
+             'para que el usuario escriba lo que necesite. En todos los casos se puede '
+             'editar después. Se usa en informes contable-fiscales (ej. Libro Diario).',
+    )
+
+    def _l10n_py_build_comentario(self):
+        self.ensure_one()
+        partner_name = (self.partner_id.name or '').strip()
+
+        if self.move_type == 'out_invoice':
+            return ('Factura cliente %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+        if self.move_type == 'out_refund':
+            return ('Nota de Credito cliente %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+        if self.move_type == 'in_invoice':
+            return ('Factura proveedor %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+        if self.move_type == 'in_refund':
+            return ('Nota de Credito proveedor %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+
+        if self.origin_payment_id:
+            etiqueta = 'Pago cliente' if self.origin_payment_id.partner_type == 'customer' else 'Pago proveedor'
+            return ('%s %s %s' % (etiqueta, partner_name, self.name or '')).strip()
+
+        if self.statement_line_id:
+            referencia = self.statement_line_id.payment_ref or self.ref or ''
+            return ('Movimiento Bancario %s %s' % (partner_name, referencia)).strip()
+
+        if 'stock.valuation.layer' in self.env:
+            try:
+                valuation = self.env['stock.valuation.layer'].sudo().search(
+                    [('account_move_id', '=', self.id)], limit=1
+                )
+                if valuation:
+                    return ('Movimiento de Stock %s' % (valuation.description or '')).strip()
+            except Exception:
+                pass
+
+        return False
+
+    def _post(self, soft=True):
+        posted = super()._post(soft=soft)
+        for move in posted:
+            if not move.l10n_py_comentario:
+                comentario = move._l10n_py_build_comentario()
+                if comentario:
+                    move.l10n_py_comentario = comentario
+        return posted
+
     def write(self, vals):
         if 'l10n_py_nro_fiscal' in vals and not self.env.context.get('l10n_py_allow_nro_fiscal_write'):
             for move in self:

@@ -10,7 +10,7 @@
                     <field name="vat" string="RUT" required="False"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="after">
-                    <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria"/>
+                    <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria" readonly="1"/>
                 </xpath>
                 <!-- Reordenar a País > Departamento > Ciudad, y usar el
                      desplegable de Ciudad en lugar del texto libre nativo -->
