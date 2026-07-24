@@ -103,6 +103,22 @@ class AccountMove(models.Model):
         for move in self:
             move.l10n_py_nro_fiscal_asignado = bool(move.l10n_py_nro_fiscal)
 
+    l10n_py_nro_fiscal_display = fields.Integer(
+        string='Nro. Fiscal',
+        compute='_compute_l10n_py_nro_fiscal_display',
+        store=False,
+        help='Copia de solo lectura de "Nro. Fiscal", usada como columna en los '
+             'reportes de Localización Paraguay. Al no estar almacenada en la base '
+             'de datos, Odoo no permite reordenar la lista haciendo clic sobre esta '
+             'columna — así el orden siempre lo define la pantalla (numerados '
+             'primero, sin numerar al final), sin que un clic accidental lo altere.',
+    )
+
+    @api.depends('l10n_py_nro_fiscal')
+    def _compute_l10n_py_nro_fiscal_display(self):
+        for move in self:
+            move.l10n_py_nro_fiscal_display = move.l10n_py_nro_fiscal
+
     l10n_py_comentario = fields.Char(
         string='Comentario',
         copy=False,

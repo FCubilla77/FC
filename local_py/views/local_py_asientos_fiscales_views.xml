@@ -6,7 +6,7 @@
             <field name="arch" type="xml">
                 <list string="Asientos Fiscales" create="false"
                       default_order="l10n_py_nro_fiscal_asignado desc, l10n_py_nro_fiscal desc, date desc, name desc">
-                    <field name="l10n_py_nro_fiscal" readonly="1"/>
+                    <field name="l10n_py_nro_fiscal_display" readonly="1"/>
                     <field name="name"/>
                     <field name="date"/>
                     <field name="move_type"/>
