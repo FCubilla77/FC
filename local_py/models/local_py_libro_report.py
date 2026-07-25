@@ -77,29 +77,34 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             })
         return rows
 
-    def _build_mayor_rows(self, moves):
-        """Devuelve una lista de "filas" para Libro Mayor: agrupado por
-        cuenta contable, cada movimiento en orden cronológico con su saldo
-        acumulado."""
+    def _build_mayor_groups(self, moves):
+        """Devuelve una lista de GRUPOS de filas para Libro Mayor: un grupo
+        por cuenta contable (en orden), cada uno con su fila de encabezado
+        de cuenta y sus movimientos en orden cronológico con saldo
+        acumulado. Cada grupo se pagina de forma independiente (ver
+        _generar_oficial), para que ninguna hoja mezcle el detalle de más
+        de una cuenta — cada cuenta nueva arranca siempre en página propia."""
         lines = self.env['account.move.line'].search([
             ('move_id', 'in', moves.ids),
             ('display_type', 'not in', ('line_section', 'line_note')),
         ], order='account_id, date asc, move_id asc')
 
-        rows = []
+        groups = []
+        grupo_actual = None
         cuenta_actual = None
         saldo = 0.0
         for line in lines:
             if line.account_id != cuenta_actual:
                 cuenta_actual = line.account_id
                 saldo = 0.0
-                rows.append({
+                grupo_actual = [{
                     'tipo': 'cuenta',
                     'cuenta': cuenta_actual.code,
                     'nombre_cuenta': cuenta_actual.name,
-                })
+                }]
+                groups.append(grupo_actual)
             saldo += line.debit - line.credit
-            rows.append({
+            grupo_actual.append({
                 'tipo': 'linea',
                 'fecha': line.date,
                 'nro_asiento': line.move_id.l10n_py_nro_asiento_libro,
@@ -108,7 +113,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'haber': line.credit,
                 'saldo': saldo,
             })
-        return rows
+        return groups
 
     def _paginar(self, rows, lineas_por_pagina=LINEAS_POR_PAGINA):
         """Divide la lista de filas en páginas de tamaño fijo, agregando
@@ -197,9 +202,12 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         es_primera_generacion = not rubrica.generacion_ids
         if tipo_libro == 'diario':
             rows = self._build_diario_rows(moves)
+            paginas = self._paginar(rows)
         else:
-            rows = self._build_mayor_rows(moves)
-        paginas = self._paginar(rows)
+            grupos = self._build_mayor_groups(moves)
+            paginas = []
+            for grupo in grupos:
+                paginas.extend(self._paginar(grupo))
         cantidad_paginas_contenido = len(paginas)
 
         if es_primera_generacion:
