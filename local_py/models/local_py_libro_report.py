@@ -268,10 +268,75 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         rubrica.utilizado_hasta = pagina_hasta
         return generacion
 
+    def _try_repair_pdf(self, pdf_bytes):
+        """Intenta reconstruir un PDF con problemas menores de estructura
+        (xref dañado, objetos mal referenciados, etc.) usando pikepdf, que
+        es más tolerante que pypdf para este tipo de casos. Es una mejora
+        opcional: si pikepdf no está instalado en el servidor, devuelve
+        None sin generar ningún error, y el proceso sigue con el
+        comportamiento anterior (probar como imagen)."""
+        import io as _io
+
+        try:
+            import pikepdf
+        except ImportError:
+            _logger.info('Primera hoja: pikepdf no está instalado, se omite el intento de reparación.')
+            return None
+        try:
+            pdf = pikepdf.open(_io.BytesIO(pdf_bytes))
+            output = _io.BytesIO()
+            pdf.save(output)
+            return output.getvalue()
+        except Exception as exc:
+            _logger.info('Primera hoja: pikepdf no pudo reparar el archivo (%s).', exc)
+            return None
+
+    def _append_primera_hoja_como_imagen(self, primera_hoja_bytes, writer, PdfReader):
+        """Último recurso: si "Primera hoja" no se pudo leer como PDF ni
+        reparar, la trata como una imagen y la convierte a una página PDF
+        tamaño A4, centrada y escalada con margen."""
+        import io
+
+        try:
+            from PIL import Image
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.utils import ImageReader
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            raise UserError(
+                'El archivo "Primera hoja" no es un PDF válido (ni se pudo reparar), y '
+                'falta instalar Pillow/reportlab en el servidor para poder convertirlo '
+                'desde imagen. Pídale al administrador del servidor que ejecute: '
+                'pip install Pillow reportlab --break-system-packages'
+            )
+        image = Image.open(io.BytesIO(primera_hoja_bytes))
+        page_width, page_height = A4
+        img_width, img_height = image.size
+        margen = 0.9  # deja un margen alrededor de la imagen dentro de la hoja
+        escala = min(page_width / img_width, page_height / img_height) * margen
+        draw_width = img_width * escala
+        draw_height = img_height * escala
+        x = (page_width - draw_width) / 2
+        y = (page_height - draw_height) / 2
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=A4)
+        c.drawImage(
+            ImageReader(image), x, y, width=draw_width, height=draw_height,
+            preserveAspectRatio=True, mask='auto',
+        )
+        c.save()
+        buffer.seek(0)
+        portada_reader = PdfReader(buffer)
+        for page in portada_reader.pages:
+            writer.add_page(page)
+        _logger.info('Primera hoja: convertida desde imagen (%s x %s px).', img_width, img_height)
+
     def _merge_primera_hoja(self, rubrica, pdf_content):
         """Antepone el archivo "Primera hoja" de la Rúbrica como portada del
-        PDF generado, usando pypdf. Si "Primera hoja" no es un PDF válido
-        (por ejemplo, una imagen), la convierte a una página PDF primero."""
+        PDF generado, usando pypdf. Si no se puede leer directo (estructura
+        dañada), intenta repararlo con pikepdf (si está instalado); si
+        tampoco es un PDF válido (por ejemplo, es una imagen), la convierte
+        a una página PDF como último recurso."""
         import base64
         import io
 
@@ -297,42 +362,27 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             )
         except Exception as exc:
             _logger.info(
-                'Primera hoja: no se pudo leer como PDF directo (%s). Se intenta como imagen.',
+                'Primera hoja: no se pudo leer como PDF directo (%s). Se intenta reparar.',
                 exc,
             )
-            try:
-                from PIL import Image
-                from reportlab.lib.pagesizes import A4
-                from reportlab.lib.utils import ImageReader
-                from reportlab.pdfgen import canvas
-            except ImportError:
-                raise UserError(
-                    'El archivo "Primera hoja" no es un PDF válido, y falta instalar '
-                    'Pillow/reportlab en el servidor para poder convertirlo desde imagen. '
-                    'Pídale al administrador del servidor que ejecute: '
-                    'pip install Pillow reportlab --break-system-packages'
-                )
-            image = Image.open(io.BytesIO(primera_hoja_bytes))
-            page_width, page_height = A4
-            img_width, img_height = image.size
-            margen = 0.9  # deja un margen alrededor de la imagen dentro de la hoja
-            escala = min(page_width / img_width, page_height / img_height) * margen
-            draw_width = img_width * escala
-            draw_height = img_height * escala
-            x = (page_width - draw_width) / 2
-            y = (page_height - draw_height) / 2
-            buffer = io.BytesIO()
-            c = canvas.Canvas(buffer, pagesize=A4)
-            c.drawImage(
-                ImageReader(image), x, y, width=draw_width, height=draw_height,
-                preserveAspectRatio=True, mask='auto',
-            )
-            c.save()
-            buffer.seek(0)
-            portada_reader = PdfReader(buffer)
-            for page in portada_reader.pages:
-                writer.add_page(page)
-            _logger.info('Primera hoja: convertida desde imagen (%s x %s px).', img_width, img_height)
+            reparado = self._try_repair_pdf(primera_hoja_bytes)
+            if reparado:
+                try:
+                    portada_reader = PdfReader(io.BytesIO(reparado))
+                    for page in portada_reader.pages:
+                        writer.add_page(page)
+                    _logger.info(
+                        'Primera hoja: reparada con pikepdf y leída como PDF (%s página(s)).',
+                        len(portada_reader.pages),
+                    )
+                except Exception as exc2:
+                    _logger.info(
+                        'Primera hoja: la reparación no funcionó (%s). Se intenta como imagen.',
+                        exc2,
+                    )
+                    reparado = None
+            if not reparado:
+                self._append_primera_hoja_como_imagen(primera_hoja_bytes, writer, PdfReader)
 
         contenido_reader = PdfReader(io.BytesIO(pdf_content))
         for page in contenido_reader.pages:
