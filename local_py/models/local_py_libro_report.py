@@ -234,13 +234,16 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         if es_primera_generacion and rubrica.primera_hoja:
             pdf_final = self._merge_primera_hoja(rubrica, pdf_content)
 
+        import base64
+        pdf_final_b64 = base64.b64encode(pdf_final)
+
         generacion = self.env['local_py.rubrica.generacion'].create({
             'rubrica_id': rubrica.id,
             'fecha_desde': fecha_desde,
             'fecha_hasta': fecha_hasta,
             'pagina_desde': pagina_desde,
             'pagina_hasta': pagina_hasta,
-            'pdf_file': pdf_final,
+            'pdf_file': pdf_final_b64,
             'pdf_filename': '%s_%s_%s.pdf' % (
                 'Libro_Diario' if tipo_libro == 'diario' else 'Libro_Mayor',
                 fecha_desde.strftime('%Y%m%d'), fecha_hasta.strftime('%Y%m%d'),
