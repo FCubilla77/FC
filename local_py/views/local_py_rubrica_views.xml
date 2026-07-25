@@ -35,6 +35,23 @@
                             </group>
                         </group>
                     </sheet>
+                    <notebook>
+                        <page string="Generaciones Oficiales" name="generaciones">
+                            <field name="generacion_ids" readonly="1">
+                                <list editable="bottom" create="0" delete="0">
+                                    <field name="fecha_desde"/>
+                                    <field name="fecha_hasta"/>
+                                    <field name="pagina_desde"/>
+                                    <field name="pagina_hasta"/>
+                                    <field name="pdf_file" filename="pdf_filename" readonly="1"/>
+                                    <field name="pdf_filename" invisible="1"/>
+                                    <button name="action_anular" type="object" string="Anular"
+                                            groups="account.group_account_manager"
+                                            confirm="Esto anula esta generación y le devuelve las páginas consumidas a la Rúbrica. Solo puede aplicarse a la generación más reciente. ¿Confirma?"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                     <chatter/>
                 </form>
             </field>

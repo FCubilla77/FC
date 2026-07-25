@@ -1,0 +1,79 @@
+<odoo>
+    <data>
+        <template id="report_libro_diario_document">
+            <t t-call="web.basic_layout">
+                <t t-foreach="paginas" t-as="pagina" t-name="pagina_diario">
+                    <div style="page-break-after: always; font-size: 10px; font-family: Arial, sans-serif;">
+                        <table style="width: 100%; margin-bottom: 6px;">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <strong t-esc="company.name"/><br/>
+                                    LIBRO DIARIO<br/>
+                                    Fecha desde: <t t-esc="fecha_desde.strftime('%d/%m/%Y')"/>
+                                    hasta: <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
+                                </td>
+                                <td style="text-align: right; vertical-align: top;">
+                                    <img t-if="rubrica.imagen" t-att-src="image_data_uri(rubrica.imagen)"
+                                         style="max-height: 60px; max-width: 140px;"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Nro. Asiento</th>
+                                    <th style="padding: 3px;">Fecha</th>
+                                    <th style="padding: 3px;">Cuenta</th>
+                                    <th style="padding: 3px;">Nombre de Cuenta</th>
+                                    <th style="padding: 3px;">Débito</th>
+                                    <th style="padding: 3px;">Crédito</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="pagina" t-as="fila">
+                                    <tr t-if="fila['tipo'] == 'linea'">
+                                        <td style="padding: 2px;" t-esc="fila['nro_asiento']"/>
+                                        <td style="padding: 2px;" t-esc="fila['fecha'].strftime('%d/%m/%Y')"/>
+                                        <td style="padding: 2px;" t-esc="fila['cuenta']"/>
+                                        <td style="padding: 2px;" t-esc="fila['nombre_cuenta']"/>
+                                        <td style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['debe']" t-esc="'{:,.0f}'.format(fila['debe'])"/>
+                                        </td>
+                                        <td style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['haber']" t-esc="'{:,.0f}'.format(fila['haber'])"/>
+                                        </td>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'comentario'" style="font-style: italic;">
+                                        <td colspan="4" style="padding: 2px;">
+                                            Comentario: <t t-esc="fila['comentario']"/>
+                                        </td>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'arrastre'" style="font-weight: bold; background-color: #f5f5f5;">
+                                        <td colspan="4" style="padding: 2px;" t-esc="fila['texto']"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                        <div style="text-align: center; margin-top: 6px;">
+                            Pag. <t t-esc="pagina_inicial + pagina_index"/> de <t t-esc="total_paginas_libro"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_libro_diario" model="ir.actions.report">
+            <field name="name">Libro Diario</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_libro_diario_document</field>
+            <field name="report_file">local_py.report_libro_diario_document</field>
+            <field name="print_report_name">'Libro Diario'</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

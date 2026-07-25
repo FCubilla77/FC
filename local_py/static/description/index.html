@@ -201,6 +201,9 @@
                 <li>Renombrado visual (sin cambios técnicos): "Tipo Fiscal" ahora se muestra como "Tipos de Documentos Fiscales", y "Tipo de Identificación Fiscal" como "Tipos de Identificación Fiscal"</li>
                 <li>Imputación Tributaria: se edita únicamente desde la pestaña de Configuraciones Localización Py; en Ajustes &gt; Empresas queda visible pero de solo lectura (mismo dato, un solo lugar de edición)</li>
                 <li>Asientos Fiscales y columna "Nro. Fiscal" de Asientos Contables: la columna ya no se puede reordenar haciendo clic (se muestra con una copia de solo lectura); el orden queda fijo, con los ya numerados primero y los que aún no tienen número siempre al final</li>
+                <li>Nuevos reportes "Libro Diario" y "Libro Mayor" (Facturación &gt; Reportes), con el mismo criterio de asistente que Libro Ventas (Fecha desde/hasta + Compañía): botón "Ver Reporte" (vista en pantalla, de control) y botón "Descargar PDF" (oficial, formato paginado con Comentario y, en Libro Mayor, Saldo acumulado)</li>
+                <li>El PDF oficial de Libro Diario/Mayor exige que todo el rango ya tenga "Nro. Fiscal" asignado, y queda vinculado a la Rúbrica vigente (Uso = L. Diario / L. Mayor) de la Compañía: consume páginas de esa Rúbrica, respeta la numeración sin huecos ni superposición, antepone "Primera hoja" como portada en la primera generación, e incluye el sello ("Imagen") en la cabecera de cada página de contenido</li>
+                <li>Rúbricas: nueva pestaña "Generaciones Oficiales" con el historial de cada Libro Oficial generado (fechas y páginas usadas, PDF adjunto) y botón "Anular" sobre la generación más reciente, para deshacerla y devolver las páginas</li>
             </ul>
         </div>
     </div>

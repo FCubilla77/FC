@@ -66,6 +66,30 @@ class LocalPyRubrica(models.Model):
         [('draft', 'Borrador'), ('confirmed', 'Confirmado')],
         string='Estado', default='draft', required=True, copy=False, tracking=True,
     )
+    generacion_ids = fields.One2many(
+        'local_py.rubrica.generacion', 'rubrica_id', string='Generaciones Oficiales',
+    )
+
+    @api.model
+    def _get_rubrica_disponible(self, company_id, uso):
+        """Devuelve la Rúbrica Confirmada de esa Compañía y Uso que todavía
+        tiene hojas disponibles (Utilizado hasta < Número final, o sin usar
+        todavía). Si hay más de una candidata, no elige por su cuenta: pide
+        que se revise manualmente (posible problema de datos)."""
+        candidatas = self.search([
+            ('company_id', '=', company_id),
+            ('uso', '=', uso),
+            ('state', '=', 'confirmed'),
+        ]).filtered(lambda r: not r.utilizado_hasta or r.utilizado_hasta < r.numero_final)
+        if not candidatas:
+            return self.env['local_py.rubrica']
+        if len(candidatas) > 1:
+            raise UserError(
+                'Hay más de una Rúbrica Confirmada con hojas disponibles para "%s" en esta '
+                'compañía (%s). Revise manualmente cuál es la vigente antes de continuar.'
+                % (dict(USO_SELECTION).get(uso, uso), ', '.join(candidatas.mapped('idrubrica')))
+            )
+        return candidatas
 
     @api.constrains('idrubrica', 'nro_entrada')
     def _check_alfanumerico_10(self):
@@ -168,3 +192,38 @@ class LocalPyRubrica(models.Model):
                     '"Número Inicial" (%s).' % (rec.utilizado_hasta, rec.numero_inicial)
                 )
         return super().unlink()
+
+
+class LocalPyRubricaGeneracion(models.Model):
+    _name = 'local_py.rubrica.generacion'
+    _description = 'Generación Oficial de Libro (Diario/Mayor) sobre una Rúbrica'
+    _order = 'pagina_desde'
+
+    rubrica_id = fields.Many2one(
+        'local_py.rubrica', string='Rúbrica', required=True, ondelete='cascade',
+    )
+    fecha_desde = fields.Date(string='Fecha desde', required=True)
+    fecha_hasta = fields.Date(string='Fecha hasta', required=True)
+    pagina_desde = fields.Integer(string='Página desde', required=True)
+    pagina_hasta = fields.Integer(string='Página hasta', required=True)
+    pdf_file = fields.Binary(string='PDF Generado', attachment=True, readonly=True)
+    pdf_filename = fields.Char(string='Nombre de archivo')
+
+    def action_anular(self):
+        """Deshace esta generación (solo si es la más reciente de su
+        Rúbrica) y le devuelve las páginas consumidas."""
+        for rec in self:
+            ultima = rec.rubrica_id.generacion_ids.sorted('pagina_desde')[-1:]
+            if rec not in ultima:
+                raise UserError(
+                    'Solo se puede anular la generación más reciente de cada Rúbrica '
+                    '(para no dejar huecos en la numeración de páginas).'
+                )
+            rubrica = rec.rubrica_id
+            anteriores = rubrica.generacion_ids - rec
+            if anteriores:
+                nueva_ultima = anteriores.sorted('pagina_hasta')[-1]
+                rubrica.utilizado_hasta = nueva_ultima.pagina_hasta
+            else:
+                rubrica.utilizado_hasta = False
+            rec.unlink()

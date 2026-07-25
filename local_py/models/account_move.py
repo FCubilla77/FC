@@ -119,6 +119,21 @@ class AccountMove(models.Model):
         for move in self:
             move.l10n_py_nro_fiscal_display = move.l10n_py_nro_fiscal
 
+    l10n_py_nro_asiento_libro = fields.Char(
+        string='Nro. Asiento',
+        compute='_compute_l10n_py_nro_asiento_libro',
+        store=False,
+        help='Para Libro Diario/Libro Mayor: usa "Nro. Fiscal" si ya fue asignado; si '
+             'todavía no, muestra el identificador interno de Odoo como referencia '
+             '(solo válido para la vista en pantalla, de control — el PDF oficial '
+             'exige que todo el rango ya tenga Nro. Fiscal asignado).',
+    )
+
+    @api.depends('l10n_py_nro_fiscal')
+    def _compute_l10n_py_nro_asiento_libro(self):
+        for move in self:
+            move.l10n_py_nro_asiento_libro = str(move.l10n_py_nro_fiscal or move.id)
+
     l10n_py_comentario = fields.Char(
         string='Comentario',
         copy=False,
