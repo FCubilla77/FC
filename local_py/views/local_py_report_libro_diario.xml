@@ -74,6 +74,7 @@
         <record id="paperformat_libro_diario_mayor" model="report.paperformat">
             <field name="name">Libro Diario / Libro Mayor</field>
             <field name="format">A4</field>
+            <field name="orientation">Portrait</field>
             <field name="margin_top">15</field>
             <field name="margin_bottom">15</field>
             <field name="margin_left">20</field>

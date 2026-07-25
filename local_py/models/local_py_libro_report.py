@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import logging
 
 from odoo import models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 LINEAS_POR_PAGINA = 40
 
@@ -234,8 +237,18 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         )._render_qweb_pdf(report_action.report_name, [company.id])
 
         pdf_final = pdf_content
+        _logger.info(
+            'Libro Oficial (%s): es_primera_generacion=%s, primera_hoja cargada=%s, '
+            'generaciones previas de esta Rúbrica=%s',
+            tipo_libro, es_primera_generacion, bool(rubrica.primera_hoja),
+            rubrica.generacion_ids.ids,
+        )
         if es_primera_generacion and rubrica.primera_hoja:
             pdf_final = self._merge_primera_hoja(rubrica, pdf_content)
+            _logger.info(
+                'Primera hoja fusionada: PDF de contenido %s bytes -> PDF final %s bytes',
+                len(pdf_content), len(pdf_final),
+            )
 
         import base64
         pdf_final_b64 = base64.b64encode(pdf_final)
@@ -278,7 +291,15 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             portada_reader = PdfReader(io.BytesIO(primera_hoja_bytes))
             for page in portada_reader.pages:
                 writer.add_page(page)
-        except Exception:
+            _logger.info(
+                'Primera hoja: se leyó como PDF directo (%s página(s)).',
+                len(portada_reader.pages),
+            )
+        except Exception as exc:
+            _logger.info(
+                'Primera hoja: no se pudo leer como PDF directo (%s). Se intenta como imagen.',
+                exc,
+            )
             try:
                 from PIL import Image
                 from reportlab.lib.pagesizes import A4
@@ -311,10 +332,12 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             portada_reader = PdfReader(buffer)
             for page in portada_reader.pages:
                 writer.add_page(page)
+            _logger.info('Primera hoja: convertida desde imagen (%s x %s px).', img_width, img_height)
 
         contenido_reader = PdfReader(io.BytesIO(pdf_content))
         for page in contenido_reader.pages:
             writer.add_page(page)
+        _logger.info('PDF final: %s página(s) en total (portada + contenido).', len(writer.pages))
 
         output = io.BytesIO()
         writer.write(output)
