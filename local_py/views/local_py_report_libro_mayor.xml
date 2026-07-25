@@ -13,8 +13,11 @@
                                     hasta: <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
                                 </td>
                                 <td style="text-align: right; vertical-align: top;">
-                                    <img t-if="rubrica.imagen" t-att-src="image_data_uri(rubrica.imagen)"
-                                         style="max-height: 60px; max-width: 140px;"/>
+                                    <div t-if="rubrica.imagen"
+                                         style="display: inline-block; border: 1px solid #000000; padding: 4px; line-height: 0;">
+                                        <img t-att-src="image_data_uri(rubrica.imagen)"
+                                             style="max-height: 30px; max-width: 70px;"/>
+                                    </div>
                                 </td>
                             </tr>
                         </table>

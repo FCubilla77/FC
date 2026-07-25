@@ -45,19 +45,22 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     def _build_diario_rows(self, moves):
         """Devuelve una lista de "filas" para Libro Diario: por cada asiento,
         una fila por línea contable, y al final una fila de Comentario con
-        los totales de esa asiento."""
+        los totales de esa asiento. Nro. Asiento y Fecha solo se muestran en
+        la primera línea de cada asiento (las siguientes quedan en blanco)."""
         rows = []
         for move in moves:
-            lines = move.line_ids.filtered(lambda l: not l.display_type or l.display_type == 'product')
-            if not lines:
-                lines = move.line_ids
+            # Todas las líneas contables reales (excluye separadores visuales
+            # de sección/nota, que no tienen importe). Se incluyen las líneas
+            # de impuestos y la de cliente/proveedor (payment_term), que son
+            # justamente las que balancean el asiento en partida doble.
+            lines = move.line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))
             total_debe = sum(lines.mapped('debit'))
             total_haber = sum(lines.mapped('credit'))
-            for line in lines:
+            for index, line in enumerate(lines):
                 rows.append({
                     'tipo': 'linea',
-                    'nro_asiento': move.l10n_py_nro_asiento_libro,
-                    'fecha': move.date,
+                    'nro_asiento': move.l10n_py_nro_asiento_libro if index == 0 else '',
+                    'fecha': move.date if index == 0 else None,
                     'cuenta': line.account_id.code,
                     'nombre_cuenta': line.account_id.name,
                     'debe': line.debit,
@@ -278,6 +281,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         except Exception:
             try:
                 from PIL import Image
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.utils import ImageReader
                 from reportlab.pdfgen import canvas
             except ImportError:
                 raise UserError(
@@ -287,9 +292,20 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'pip install Pillow reportlab --break-system-packages'
                 )
             image = Image.open(io.BytesIO(primera_hoja_bytes))
+            page_width, page_height = A4
+            img_width, img_height = image.size
+            margen = 0.9  # deja un margen alrededor de la imagen dentro de la hoja
+            escala = min(page_width / img_width, page_height / img_height) * margen
+            draw_width = img_width * escala
+            draw_height = img_height * escala
+            x = (page_width - draw_width) / 2
+            y = (page_height - draw_height) / 2
             buffer = io.BytesIO()
-            c = canvas.Canvas(buffer, pagesize=image.size)
-            c.drawImage(io.BytesIO(primera_hoja_bytes), 0, 0, width=image.size[0], height=image.size[1])
+            c = canvas.Canvas(buffer, pagesize=A4)
+            c.drawImage(
+                ImageReader(image), x, y, width=draw_width, height=draw_height,
+                preserveAspectRatio=True, mask='auto',
+            )
             c.save()
             buffer.seek(0)
             portada_reader = PdfReader(buffer)
