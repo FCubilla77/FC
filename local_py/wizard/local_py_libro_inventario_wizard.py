@@ -40,9 +40,17 @@ class LocalPyLibroInventarioWizard(models.TransientModel):
             'rubrica': self.env['local_py.rubrica'],
         }
         report_action = self.env.ref('local_py.action_report_libro_inventario_html')
-        return report_action.with_context(
+        html_content, _ = report_action.with_context(
             local_py_libro_render_data=render_context
-        ).report_action(self, config=False)
+        )._render_qweb_html(report_action.report_name, [self.company_id.id])
+
+        import base64
+        data_uri = 'data:text/html;base64,%s' % base64.b64encode(html_content).decode()
+        return {
+            'type': 'ir.actions.act_url',
+            'url': data_uri,
+            'target': 'new',
+        }
 
     def action_descargar_pdf(self):
         self.ensure_one()

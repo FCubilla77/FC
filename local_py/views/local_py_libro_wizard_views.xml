@@ -71,18 +71,23 @@
             <field name="context">{'default_tipo_libro': 'mayor'}</field>
         </record>
 
+        <menuitem id="menu_local_py_reportes_localizacion"
+                  name="Reportes Localización Py"
+                  parent="account.menu_finance_reports"
+                  sequence="40"/>
+
         <menuitem id="menu_local_py_libro_diario"
                   name="Libro Diario"
-                  parent="account.menu_finance_reports"
+                  parent="menu_local_py_reportes_localizacion"
                   action="action_local_py_libro_diario_wizard"
                   groups="account.group_account_manager"
-                  sequence="55"/>
+                  sequence="30"/>
 
         <menuitem id="menu_local_py_libro_mayor"
                   name="Libro Mayor"
-                  parent="account.menu_finance_reports"
+                  parent="menu_local_py_reportes_localizacion"
                   action="action_local_py_libro_mayor_wizard"
                   groups="account.group_account_manager"
-                  sequence="56"/>
+                  sequence="40"/>
     </data>
 </odoo>

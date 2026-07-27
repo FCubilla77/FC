@@ -104,14 +104,14 @@
 
         <menuitem id="menu_libro_ventas_marangatu"
                   name="Libro Ventas"
-                  parent="account.menu_finance_reports"
+                  parent="local_py.menu_local_py_reportes_localizacion"
                   action="action_libro_ventas_marangatu_wizard"
-                  sequence="45"/>
+                  sequence="10"/>
 
         <menuitem id="menu_libro_compras_marangatu"
                   name="Libro Compras"
-                  parent="account.menu_finance_reports"
+                  parent="local_py.menu_local_py_reportes_localizacion"
                   action="action_libro_compras_marangatu_wizard"
-                  sequence="46"/>
+                  sequence="20"/>
     </data>
 </odoo>

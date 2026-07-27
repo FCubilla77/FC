@@ -28,9 +28,9 @@
 
         <menuitem id="menu_local_py_libro_inventario"
                   name="Libro Inventario"
-                  parent="account.menu_finance_reports"
+                  parent="local_py.menu_local_py_reportes_localizacion"
                   action="action_local_py_libro_inventario_wizard"
                   groups="account.group_account_manager"
-                  sequence="57"/>
+                  sequence="50"/>
     </data>
 </odoo>

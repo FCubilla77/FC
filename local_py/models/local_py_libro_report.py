@@ -243,7 +243,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 acumulado[clave] = {'nombre': nombre, 'saldo': 0.0}
             acumulado[clave]['saldo'] += line.debit - line.credit
 
-        items = sorted(acumulado.values(), key=lambda x: x['saldo'], reverse=True)
+        items = sorted(acumulado.values(), key=lambda x: abs(x['saldo']), reverse=True)
 
         filas = [{'tipo': 'detalle_header', 'etiqueta': etiqueta}]
         if detalle.nivel == 'top_n' and detalle.cantidad_top and len(items) > detalle.cantidad_top:
