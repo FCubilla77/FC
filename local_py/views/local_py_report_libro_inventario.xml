@@ -1,0 +1,87 @@
+<odoo>
+    <data>
+        <template id="report_libro_inventario_document">
+            <t t-call="web.basic_layout">
+                <t t-foreach="paginas" t-as="pagina">
+                    <div style="page-break-after: always; font-size: 10px; font-family: Arial, sans-serif;">
+                        <table style="width: 100%; margin-bottom: 6px;">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <strong t-esc="company.name"/><br/>
+                                    LIBRO INVENTARIO (BALANCE GENERAL)<br/>
+                                    Al: <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
+                                </td>
+                                <td style="text-align: right; vertical-align: top;">
+                                    <div t-if="rubrica and rubrica.imagen"
+                                         style="display: inline-block; border: 1px solid #000000; padding: 4px; line-height: 0;">
+                                        <img t-att-src="image_data_uri(rubrica.imagen)" width="70" height="30"
+                                             style="width: 70px; height: 30px; max-width: 70px; max-height: 30px;"/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px; text-align: left;">Cuenta</th>
+                                    <th style="padding: 3px; text-align: left;">Nombre / Detalle</th>
+                                    <th style="padding: 3px;">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="pagina" t-as="fila">
+                                    <tr t-if="fila['tipo'] == 'grupo_balance'" style="font-weight: bold; background-color: #dddddd;">
+                                        <td colspan="3" style="padding: 3px;" t-esc="fila['nombre']"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'cuenta_balance'" style="font-weight: bold;">
+                                        <td style="padding: 2px;" t-esc="fila['cuenta']"/>
+                                        <td style="padding: 2px;" t-esc="fila['nombre_cuenta']"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'detalle_header'" style="font-style: italic; color: #555555;">
+                                        <td style="padding: 2px 2px 2px 20px;"/>
+                                        <td style="padding: 2px;" t-esc="fila['etiqueta']"/>
+                                        <td style="padding: 2px;"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'detalle_linea'">
+                                        <td style="padding: 2px;"/>
+                                        <td style="padding: 2px 2px 2px 20px;" t-esc="fila['nombre']"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'detalle_subtotal'" style="font-style: italic; border-top: 1px solid #999999;">
+                                        <td style="padding: 2px;"/>
+                                        <td style="padding: 2px 2px 2px 20px;">Subtotal</td>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                        <div style="text-align: center; margin-top: 6px;">
+                            Pag. <t t-esc="pagina_inicial + pagina_index"/> de <t t-esc="total_paginas_libro"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_libro_inventario" model="ir.actions.report">
+            <field name="name">Libro Inventario</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_libro_inventario_document</field>
+            <field name="report_file">local_py.report_libro_inventario_document</field>
+            <field name="print_report_name">'Libro Inventario'</field>
+            <field name="paperformat_id" ref="local_py.paperformat_libro_diario_mayor"/>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+
+        <record id="action_report_libro_inventario_html" model="ir.actions.report">
+            <field name="name">Libro Inventario (vista de control)</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">local_py.report_libro_inventario_document</field>
+            <field name="report_file">local_py.report_libro_inventario_document</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

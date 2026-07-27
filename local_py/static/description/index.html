@@ -208,6 +208,9 @@
                 <li>Libro Diario: corregido el armado de líneas contables (antes excluía por error las líneas de impuestos y de cliente/proveedor, dejando asientos desbalanceados); Nro. Asiento y Fecha ahora solo se muestran en la primera línea de cada asiento</li>
                 <li>"Primera hoja" de la Rúbrica: si el PDF cargado tiene algún problema menor de estructura, el sistema intenta repararlo automáticamente antes de usarlo como portada (mejora opcional, no requiere nada adicional si no hace falta)</li>
                 <li>Libro Mayor: cada cuenta contable arranca siempre en una página nueva (nunca comparte hoja con el cierre de la cuenta anterior), acorde a la normativa</li>
+                <li>Nuevo reporte "Libro Inventario" (Facturación &gt; Reportes): formato de balance completo (todas las cuentas de Activo/Pasivo/Patrimonio), con detalle configurable por Contacto o por Producto para las cuentas que se necesiten (ej. Clientes a cobrar, Proveedores a pagar, Inventario), con opción de mostrar todo o solo los X mayores agrupando el resto en "Otros"</li>
+                <li>Configuración del detalle de Libro Inventario: nueva pestaña en Configuraciones Localización Py</li>
+                <li>Libro Inventario sigue el mismo vínculo con Rúbrica que Diario/Mayor (PDF oficial que consume páginas de la Rúbrica "L. Inventario", con Primera Hoja y sello), con validación de fechas propia de un reporte de saldo acumulado (siempre desde el 1° de enero, sin exigir continuidad "sin huecos" entre generaciones, ya que no es un listado de tramos de asientos)</li>
             </ul>
         </div>
     </div>

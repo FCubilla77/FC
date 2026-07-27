@@ -32,6 +32,16 @@
                             <page string="Imputación Tributaria" name="imputacion_tributaria">
                                 <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags"/>
                             </page>
+                            <page string="Detalle Libro Inventario" name="libro_inventario_detalle">
+                                <field name="libro_inventario_detalle_ids">
+                                    <list editable="bottom">
+                                        <field name="account_id"/>
+                                        <field name="criterio"/>
+                                        <field name="nivel"/>
+                                        <field name="cantidad_top" invisible="nivel != 'top_n'"/>
+                                    </list>
+                                </field>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>

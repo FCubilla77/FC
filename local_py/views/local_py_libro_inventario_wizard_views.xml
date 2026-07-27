@@ -1,0 +1,36 @@
+<odoo>
+    <data>
+        <record id="view_local_py_libro_inventario_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.libro_inventario.wizard.form</field>
+            <field name="model">local_py.libro_inventario.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Libro Inventario de Cuentas">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}"/>
+                        <field name="fecha"/>
+                    </group>
+                    <footer>
+                        <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-secondary"/>
+                        <button name="action_descargar_pdf" type="object" string="Descargar PDF (Oficial)" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_libro_inventario_wizard" model="ir.actions.act_window">
+            <field name="name">Libro Inventario</field>
+            <field name="res_model">local_py.libro_inventario.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_local_py_libro_inventario_wizard_form"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_libro_inventario"
+                  name="Libro Inventario"
+                  parent="account.menu_finance_reports"
+                  action="action_local_py_libro_inventario_wizard"
+                  groups="account.group_account_manager"
+                  sequence="57"/>
+    </data>
+</odoo>

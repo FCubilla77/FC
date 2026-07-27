@@ -26,13 +26,30 @@ class ReportLibroMayor(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportLibroInventario(models.AbstractModel):
+    _name = 'report.local_py.report_libro_inventario_document'
+    _description = 'Reporte Libro Inventario'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
+BALANCE_GROUPS = [
+    ('Activo', ('asset_receivable', 'asset_cash', 'asset_current', 'asset_non_current',
+                'asset_prepayments', 'asset_fixed')),
+    ('Pasivo', ('liability_payable', 'liability_credit_card', 'liability_current',
+                'liability_non_current')),
+    ('Patrimonio', ('equity', 'equity_unaffected')),
+]
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
-    """Lógica compartida para armar el contenido paginado de Libro Diario y
-    Libro Mayor, y para vincular la generación oficial en PDF con la
-    Rúbrica correspondiente. No es un modelo con tabla propia: es un
-    conjunto de métodos reutilizados por el wizard."""
+    """Lógica compartida para armar el contenido paginado de Libro Diario,
+    Libro Mayor y Libro Inventario, y para vincular la generación oficial
+    en PDF con la Rúbrica correspondiente. No es un modelo con tabla
+    propia: es un conjunto de métodos reutilizados por los wizards."""
     _name = 'local_py.libro_report.builder'
-    _description = 'Armado de Libro Diario / Libro Mayor'
+    _description = 'Armado de Libro Diario / Libro Mayor / Libro Inventario'
 
     # ------------------------------------------------------------------
     # Armado del contenido (independiente de si es vista en pantalla o PDF)
@@ -115,6 +132,99 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             })
         return groups
 
+    def _get_balance_group(self, account_type):
+        for label, tipos in BALANCE_GROUPS:
+            if account_type in tipos:
+                return label
+        return None  # Ingresos/Gastos/Fuera de balance: no forman parte del Balance
+
+    def _build_inventario_rows(self, company, fecha, config):
+        """Devuelve una lista de "filas" para Libro Inventario: todas las
+        cuentas de Activo/Pasivo/Patrimonio con su saldo acumulado desde el
+        1° de enero del año de "fecha" hasta "fecha" — y, para las cuentas
+        configuradas en la pestaña "Detalle Libro Inventario", además el
+        detalle por Contacto o por Producto debajo (con "Otros" si el nivel
+        es "Top X")."""
+        fecha_inicio = fecha.replace(month=1, day=1)
+        domain_base = [
+            ('move_id.company_id', '=', company.id),
+            ('move_id.state', '=', 'posted'),
+            ('date', '>=', fecha_inicio),
+            ('date', '<=', fecha),
+        ]
+
+        detalle_por_cuenta = {}
+        if config:
+            for det in config.libro_inventario_detalle_ids:
+                detalle_por_cuenta[det.account_id.id] = det
+
+        accounts = self.env['account.account'].search([
+            ('company_ids', 'in', company.id),
+        ], order='code')
+
+        rows = []
+        grupo_actual = None
+        for account in accounts:
+            grupo = self._get_balance_group(account.account_type)
+            if not grupo:
+                continue  # cuenta de Ingresos/Gastos/Fuera de balance: no aplica a este reporte
+            lines = self.env['account.move.line'].search(domain_base + [('account_id', '=', account.id)])
+            saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
+            if not saldo and not lines:
+                continue  # sin ningún movimiento en el período: se omite para no alargar el reporte
+            if grupo != grupo_actual:
+                grupo_actual = grupo
+                rows.append({'tipo': 'grupo_balance', 'nombre': grupo})
+            rows.append({
+                'tipo': 'cuenta_balance',
+                'cuenta': account.code,
+                'nombre_cuenta': account.name,
+                'saldo': saldo,
+            })
+
+            detalle = detalle_por_cuenta.get(account.id)
+            if detalle:
+                rows.extend(self._build_inventario_detalle(lines, detalle))
+
+        return rows
+
+    def _build_inventario_detalle(self, lines, detalle):
+        """Arma las filas de detalle (por Contacto o por Producto) de una
+        cuenta configurada, aplicando el recorte "Top X" si corresponde."""
+        campo = 'partner_id' if detalle.criterio == 'contacto' else 'product_id'
+        etiqueta = 'Contacto' if detalle.criterio == 'contacto' else 'Producto'
+
+        acumulado = {}
+        for line in lines:
+            registro = line[campo]
+            clave = registro.id if registro else False
+            nombre = registro.display_name if registro else 'Sin %s' % etiqueta.lower()
+            if clave not in acumulado:
+                acumulado[clave] = {'nombre': nombre, 'saldo': 0.0}
+            acumulado[clave]['saldo'] += line.debit - line.credit
+
+        items = sorted(acumulado.values(), key=lambda x: x['saldo'], reverse=True)
+
+        filas = [{'tipo': 'detalle_header', 'etiqueta': etiqueta}]
+        if detalle.nivel == 'top_n' and detalle.cantidad_top and len(items) > detalle.cantidad_top:
+            principales = items[:detalle.cantidad_top]
+            resto = items[detalle.cantidad_top:]
+            for item in principales:
+                filas.append({'tipo': 'detalle_linea', 'nombre': item['nombre'], 'saldo': item['saldo']})
+            filas.append({
+                'tipo': 'detalle_linea',
+                'nombre': 'Otros',
+                'saldo': sum(x['saldo'] for x in resto),
+            })
+        else:
+            for item in items:
+                filas.append({'tipo': 'detalle_linea', 'nombre': item['nombre'], 'saldo': item['saldo']})
+        filas.append({
+            'tipo': 'detalle_subtotal',
+            'saldo': sum(x['saldo'] for x in items),
+        })
+        return filas
+
     def _paginar(self, rows, lineas_por_pagina=LINEAS_POR_PAGINA):
         """Divide la lista de filas en páginas de tamaño fijo, agregando
         filas de arrastre "Viene de la página anterior" / "Pasa a la
@@ -154,15 +264,31 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         paginas.append(pagina_actual)
         return paginas
 
+    def _paginar_simple(self, rows, lineas_por_pagina=LINEAS_POR_PAGINA):
+        """Pagina una lista de filas en tramos de tamaño fijo, sin agregar
+        filas de arrastre de Débito/Crédito (no aplica a un reporte de
+        formato balance, donde lo que se acumula es el Saldo, no un
+        movimiento de período)."""
+        return [
+            rows[i:i + lineas_por_pagina]
+            for i in range(0, len(rows), lineas_por_pagina)
+        ] or [[]]
+
     # ------------------------------------------------------------------
     # Generación oficial (PDF + consumo de Rúbrica)
     # ------------------------------------------------------------------
-    def _generar_oficial(self, tipo_libro, company, fecha_desde, fecha_hasta):
+    def _generar_oficial(self, tipo_libro, company, fecha_desde, fecha_hasta, config=None):
         """Valida todo lo necesario, arma el PDF oficial, lo vincula a la
         Rúbrica correspondiente (consumiendo páginas), y devuelve el
-        registro local.py.rubrica.generacion creado."""
+        registro local.py.rubrica.generacion creado.
+
+        Para Libro Inventario (tipo_libro='inventario'), "fecha_desde" es
+        siempre el 1° de enero del año de "fecha_hasta" (armado por el
+        wizard) — es un reporte de saldo acumulado, no de un tramo de
+        asientos, por eso no aplican las mismas validaciones de "sin
+        huecos" ni de Nro. Fiscal completo que sí aplican a Diario/Mayor."""
         Rubrica = self.env['local_py.rubrica']
-        uso = tipo_libro  # 'diario' o 'mayor', coincide con USO_SELECTION
+        uso = tipo_libro  # 'diario', 'mayor' o 'inventario', coincide con USO_SELECTION
 
         if fecha_hasta < fecha_desde:
             raise UserError('"Fecha hasta" no puede ser anterior a "Fecha desde".')
@@ -175,39 +301,57 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             )
 
         ultima_gen = rubrica.generacion_ids.sorted('fecha_hasta')[-1:]
-        if ultima_gen:
-            esperado = ultima_gen.fecha_hasta + timedelta(days=1)
-            if fecha_desde != esperado:
+        if tipo_libro in ('diario', 'mayor'):
+            if ultima_gen:
+                esperado = ultima_gen.fecha_hasta + timedelta(days=1)
+                if fecha_desde != esperado:
+                    raise UserError(
+                        'La "Fecha desde" debe ser %s (el día siguiente a la última '
+                        'generación oficial de esta Rúbrica). No se permiten huecos ni '
+                        'superposición.' % esperado.strftime('%d/%m/%Y')
+                    )
+        else:
+            # Libro Inventario: es un reporte de saldo acumulado (siempre desde el
+            # 1° de enero), no de un tramo de asientos — no corresponde exigir
+            # continuidad sin huecos, pero sí que cada generación nueva sea de una
+            # fecha más reciente que la anterior (orden cronológico de archivo).
+            if ultima_gen and fecha_hasta <= ultima_gen.fecha_hasta:
                 raise UserError(
-                    'La "Fecha desde" debe ser %s (el día siguiente a la última generación '
-                    'oficial de esta Rúbrica). No se permiten huecos ni superposición.'
-                    % esperado.strftime('%d/%m/%Y')
+                    'Ya existe una generación oficial de este libro con fecha %s. La '
+                    'nueva "Fecha" tiene que ser posterior a esa.'
+                    % ultima_gen.fecha_hasta.strftime('%d/%m/%Y')
                 )
 
-        moves = self.env['account.move'].search(
-            self._get_moves_domain(company, fecha_desde, fecha_hasta),
-            order='date asc, id asc',
-        )
-        if not moves:
-            raise UserError('No hay asientos confirmados en el rango de fechas elegido.')
-
-        sin_numerar = moves.filtered(lambda m: not m.l10n_py_nro_fiscal)
-        if sin_numerar:
-            raise UserError(
-                'Hay %s asiento(s) en el rango elegido sin "Nro. Fiscal" asignado. Corra '
-                'primero la Renumeración Fiscal de Asientos para todo el período antes de '
-                'generar el Libro Oficial.' % len(sin_numerar)
-            )
-
         es_primera_generacion = not rubrica.generacion_ids
-        if tipo_libro == 'diario':
-            rows = self._build_diario_rows(moves)
-            paginas = self._paginar(rows)
+
+        if tipo_libro in ('diario', 'mayor'):
+            moves = self.env['account.move'].search(
+                self._get_moves_domain(company, fecha_desde, fecha_hasta),
+                order='date asc, id asc',
+            )
+            if not moves:
+                raise UserError('No hay asientos confirmados en el rango de fechas elegido.')
+            sin_numerar = moves.filtered(lambda m: not m.l10n_py_nro_fiscal)
+            if sin_numerar:
+                raise UserError(
+                    'Hay %s asiento(s) en el rango elegido sin "Nro. Fiscal" asignado. '
+                    'Corra primero la Renumeración Fiscal de Asientos para todo el '
+                    'período antes de generar el Libro Oficial.' % len(sin_numerar)
+                )
+            if tipo_libro == 'diario':
+                rows = self._build_diario_rows(moves)
+                paginas = self._paginar(rows)
+            else:
+                grupos = self._build_mayor_groups(moves)
+                paginas = []
+                for grupo in grupos:
+                    paginas.extend(self._paginar(grupo))
         else:
-            grupos = self._build_mayor_groups(moves)
-            paginas = []
-            for grupo in grupos:
-                paginas.extend(self._paginar(grupo))
+            rows = self._build_inventario_rows(company, fecha_hasta, config)
+            if not rows:
+                raise UserError('No hay cuentas con movimientos en el período para mostrar.')
+            paginas = self._paginar_simple(rows)
+
         cantidad_paginas_contenido = len(paginas)
 
         if es_primera_generacion:
@@ -226,10 +370,11 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 % (cantidad_paginas_contenido + (1 if es_primera_generacion else 0), disponibles)
             )
 
-        report_xmlid = (
-            'local_py.action_report_libro_diario' if tipo_libro == 'diario'
-            else 'local_py.action_report_libro_mayor'
-        )
+        report_xmlid = {
+            'diario': 'local_py.action_report_libro_diario',
+            'mayor': 'local_py.action_report_libro_mayor',
+            'inventario': 'local_py.action_report_libro_inventario',
+        }[tipo_libro]
         report_action = self.env.ref(report_xmlid)
         render_context = {
             'company': company,
@@ -269,7 +414,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             'pagina_hasta': pagina_hasta,
             'pdf_file': pdf_final_b64,
             'pdf_filename': '%s_%s_%s.pdf' % (
-                'Libro_Diario' if tipo_libro == 'diario' else 'Libro_Mayor',
+                {'diario': 'Libro_Diario', 'mayor': 'Libro_Mayor', 'inventario': 'Libro_Inventario'}[tipo_libro],
                 fecha_desde.strftime('%Y%m%d'), fecha_hasta.strftime('%Y%m%d'),
             ),
         })

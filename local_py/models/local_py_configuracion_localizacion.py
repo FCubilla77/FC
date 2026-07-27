@@ -23,6 +23,10 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'tributario de esta Compañía (IVA, IRE, IRP-RSP). "No Imputa" no '
              'puede combinarse con las otras opciones.',
     )
+    libro_inventario_detalle_ids = fields.One2many(
+        'local_py.libro_inventario.detalle_cuenta', 'config_id',
+        string='Detalle Libro Inventario',
+    )
 
     _sql_constraints = [
         ('company_uniq', 'unique(company_id)',
@@ -86,3 +90,28 @@ class LocalPyConfiguracionLocalizacionRenumeracion(models.Model):
                 'default_fecha_hasta': self.ultima_fecha_procesada,
             },
         }
+
+
+class LocalPyLibroInventarioDetalleCuenta(models.Model):
+    _name = 'local_py.libro_inventario.detalle_cuenta'
+    _description = 'Detalle de Cuenta para Libro Inventario'
+
+    config_id = fields.Many2one(
+        'local_py.configuracion_localizacion', string='Configuración',
+        required=True, ondelete='cascade',
+    )
+    account_id = fields.Many2one('account.account', string='Cuenta', required=True)
+    criterio = fields.Selection(
+        [('contacto', 'Por Contacto'), ('producto', 'Por Producto')],
+        string='Criterio', required=True,
+    )
+    nivel = fields.Selection(
+        [('todos', 'Mostrar todo'), ('top_n', 'Mostrar solo los X mayores')],
+        string='Nivel de detalle', required=True, default='todos',
+    )
+    cantidad_top = fields.Integer(string='Cantidad (X)')
+
+    _sql_constraints = [
+        ('account_config_uniq', 'unique(config_id, account_id)',
+         'Esta cuenta ya está configurada para detallarse en Libro Inventario.'),
+    ]
