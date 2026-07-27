@@ -34,15 +34,6 @@ class ReportLibroInventario(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
-BALANCE_GROUPS = [
-    ('Activo', ('asset_receivable', 'asset_cash', 'asset_current', 'asset_non_current',
-                'asset_prepayments', 'asset_fixed')),
-    ('Pasivo', ('liability_payable', 'liability_credit_card', 'liability_current',
-                'liability_non_current')),
-    ('Patrimonio', ('equity', 'equity_unaffected')),
-]
-
-
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
@@ -132,19 +123,26 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             })
         return groups
 
-    def _get_balance_group(self, account_type):
-        for label, tipos in BALANCE_GROUPS:
-            if account_type in tipos:
-                return label
-        return None  # Ingresos/Gastos/Fuera de balance: no forman parte del Balance
+    def _get_balance_section_code(self, code):
+        """Devuelve True si el código (de una cuenta o de un Título)
+        pertenece a Activo/Pasivo/Patrimonio (primer segmento 1, 2 o 3, en
+        el plan de cuentas de Paraguay) — es decir, si corresponde al
+        Balance General. Ingresos/Costos/Gastos (4-7) quedan afuera, ya que
+        pertenecen al Estado de Resultados, no al Libro Inventario."""
+        if not code:
+            return False
+        return code.split('.')[0] in ('1', '2', '3')
 
     def _build_inventario_rows(self, company, fecha, config):
-        """Devuelve una lista de "filas" para Libro Inventario: todas las
-        cuentas de Activo/Pasivo/Patrimonio con su saldo acumulado desde el
-        1° de enero del año de "fecha" hasta "fecha" — y, para las cuentas
-        configuradas en la pestaña "Detalle Libro Inventario", además el
-        detalle por Contacto o por Producto debajo (con "Otros" si el nivel
-        es "Top X")."""
+        """Devuelve una lista de "filas" para Libro Inventario, con el
+        mismo formato jerárquico de Título/Imputable que el reporte de
+        Plan de Cuentas (Activo, Pasivo, Patrimonio): cada Título muestra
+        la suma de los saldos de las cuentas imputables que contiene
+        (incluyendo las de sus Títulos hijos), y cada cuenta imputable
+        muestra su propio saldo acumulado desde el 1° de enero del año de
+        "fecha" hasta "fecha". Para las cuentas configuradas en la pestaña
+        "Detalle Libro Inventario", además se agrega el detalle por
+        Contacto o por Producto debajo (con "Otros" si el nivel es "Top X")."""
         fecha_inicio = fecha.replace(month=1, day=1)
         domain_base = [
             ('move_id.company_id', '=', company.id),
@@ -162,29 +160,71 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             ('company_ids', 'in', company.id),
         ], order='code')
 
-        rows = []
-        grupo_actual = None
+        # 1) Saldo de cada cuenta imputable relevante (Activo/Pasivo/Patrimonio)
+        saldo_por_cuenta = {}
+        lines_por_cuenta = {}
         for account in accounts:
-            grupo = self._get_balance_group(account.account_type)
-            if not grupo:
-                continue  # cuenta de Ingresos/Gastos/Fuera de balance: no aplica a este reporte
+            if not self._get_balance_section_code(account.code):
+                continue
             lines = self.env['account.move.line'].search(domain_base + [('account_id', '=', account.id)])
             saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
             if not saldo and not lines:
                 continue  # sin ningún movimiento en el período: se omite para no alargar el reporte
-            if grupo != grupo_actual:
-                grupo_actual = grupo
-                rows.append({'tipo': 'grupo_balance', 'nombre': grupo})
-            rows.append({
+            saldo_por_cuenta[account.id] = saldo
+            lines_por_cuenta[account.id] = lines
+
+        if not saldo_por_cuenta:
+            return []
+
+        cuentas_relevantes = self.env['account.account'].browse(list(saldo_por_cuenta.keys()))
+
+        # 2) "Subir" el saldo de cada cuenta a todos sus Títulos ancestros
+        saldo_por_grupo = {}
+        for account in cuentas_relevantes:
+            grupo = account.group_id
+            vistos = set()
+            while grupo and grupo.id not in vistos:
+                vistos.add(grupo.id)
+                saldo_por_grupo[grupo.id] = saldo_por_grupo.get(grupo.id, 0.0) + saldo_por_cuenta[account.id]
+                grupo = grupo.parent_id
+
+        # 3) Armar nodos combinados (Títulos + Imputables), en el mismo orden
+        # jerárquico que Plan de Cuentas (por código)
+        nodos = []
+        if saldo_por_grupo:
+            for grupo in self.env['account.group'].browse(list(saldo_por_grupo.keys())):
+                nodos.append({
+                    'code': grupo.code_prefix_start or '',
+                    'tipo': 'titulo',
+                    'cuenta': grupo.code_prefix_start or '',
+                    'nombre_cuenta': grupo.name,
+                    'saldo': saldo_por_grupo[grupo.id],
+                })
+        for account in cuentas_relevantes:
+            nodos.append({
+                'code': account.code or '',
                 'tipo': 'cuenta_balance',
                 'cuenta': account.code,
                 'nombre_cuenta': account.name,
-                'saldo': saldo,
+                'saldo': saldo_por_cuenta[account.id],
+                '_account_id': account.id,
             })
+        nodos.sort(key=lambda n: n['code'])
 
-            detalle = detalle_por_cuenta.get(account.id)
-            if detalle:
-                rows.extend(self._build_inventario_detalle(lines, detalle))
+        rows = []
+        for nodo in nodos:
+            nivel = nodo['code'].count('.') + 1 if nodo['code'] else 0
+            rows.append({
+                'tipo': nodo['tipo'],
+                'cuenta': nodo['cuenta'],
+                'nombre_cuenta': nodo['nombre_cuenta'],
+                'saldo': nodo['saldo'],
+                'nivel': nivel,
+            })
+            if nodo['tipo'] == 'cuenta_balance':
+                detalle = detalle_por_cuenta.get(nodo['_account_id'])
+                if detalle:
+                    rows.extend(self._build_inventario_detalle(lines_por_cuenta[nodo['_account_id']], detalle))
 
         return rows
 

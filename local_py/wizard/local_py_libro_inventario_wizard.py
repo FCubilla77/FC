@@ -42,7 +42,7 @@ class LocalPyLibroInventarioWizard(models.TransientModel):
         report_action = self.env.ref('local_py.action_report_libro_inventario_html')
         return report_action.with_context(
             local_py_libro_render_data=render_context
-        ).report_action(self)
+        ).report_action(self, config=False)
 
     def action_descargar_pdf(self):
         self.ensure_one()

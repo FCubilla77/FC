@@ -30,11 +30,14 @@
                             </thead>
                             <tbody>
                                 <t t-foreach="pagina" t-as="fila">
-                                    <tr t-if="fila['tipo'] == 'grupo_balance'" style="font-weight: bold; background-color: #dddddd;">
-                                        <td colspan="3" style="padding: 3px;" t-esc="fila['nombre']"/>
+                                    <tr t-if="fila['tipo'] == 'titulo'"
+                                        t-attf-style="font-weight: bold; background-color: #{'dddddd' if fila['nivel'] &lt;= 1 else 'eeeeee'};">
+                                        <td t-attf-style="padding: 3px 3px 3px #{4 + (fila['nivel'] - 1) * 12}px;" t-esc="fila['cuenta']"/>
+                                        <td style="padding: 3px;" t-esc="fila['nombre_cuenta']"/>
+                                        <td style="padding: 3px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
                                     </tr>
-                                    <tr t-elif="fila['tipo'] == 'cuenta_balance'" style="font-weight: bold;">
-                                        <td style="padding: 2px;" t-esc="fila['cuenta']"/>
+                                    <tr t-elif="fila['tipo'] == 'cuenta_balance'">
+                                        <td t-attf-style="padding: 2px 2px 2px #{4 + fila['nivel'] * 12}px;" t-esc="fila['cuenta']"/>
                                         <td style="padding: 2px;" t-esc="fila['nombre_cuenta']"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
                                     </tr>
