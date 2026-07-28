@@ -34,6 +34,14 @@ class ReportLibroInventario(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportEstadoResultado(models.AbstractModel):
+    _name = 'report.local_py.report_estado_resultado_document'
+    _description = 'Reporte Estado de Resultado'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
@@ -123,26 +131,27 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             })
         return groups
 
-    def _get_balance_section_code(self, code):
-        """Devuelve True si el código (de una cuenta o de un Título)
-        pertenece a Activo/Pasivo/Patrimonio (primer segmento 1, 2 o 3, en
-        el plan de cuentas de Paraguay) — es decir, si corresponde al
-        Balance General. Ingresos/Costos/Gastos (4-7) quedan afuera, ya que
-        pertenecen al Estado de Resultados, no al Libro Inventario."""
-        if not code:
-            return False
-        return code.split('.')[0] in ('1', '2', '3')
-
-    def _build_inventario_rows(self, company, fecha, config):
-        """Devuelve una lista de "filas" para Libro Inventario, con el
-        mismo formato jerárquico de Título/Imputable que el reporte de
-        Plan de Cuentas (Activo, Pasivo, Patrimonio): cada Título muestra
-        la suma de los saldos de las cuentas imputables que contiene
+    def _build_balance_style_rows(self, company, fecha, config, detalle_ids, prefijos,
+                                   prefijos_signo_invertido=(), fila_total_label=None):
+        """Arma una lista de "filas" con el mismo formato jerárquico de
+        Título/Imputable que usa Plan de Cuentas: cada Título muestra la
+        suma de los saldos de las cuentas imputables que contiene
         (incluyendo las de sus Títulos hijos), y cada cuenta imputable
         muestra su propio saldo acumulado desde el 1° de enero del año de
-        "fecha" hasta "fecha". Para las cuentas configuradas en la pestaña
-        "Detalle Libro Inventario", además se agrega el detalle por
-        Contacto o por Producto debajo (con "Otros" si el nivel es "Top X")."""
+        "fecha" hasta "fecha". Método genérico usado tanto por Libro
+        Inventario (prefijos 1/2/3, formato Balance) como por Estado de
+        Resultados (prefijos 4/5/6/7, con signo invertido en Ingresos para
+        mostrarlos en positivo, y una fila de Resultado del Ejercicio al
+        final).
+
+        - prefijos: primeros segmentos de código a incluir (ej. ('1','2','3')).
+        - prefijos_signo_invertido: de esos, cuáles se muestran como
+          Crédito-Débito en vez de Débito-Crédito (ej. Ingresos).
+        - fila_total_label: si se pasa, se agrega una fila final con la
+          suma de todo lo relevado (ej. "Resultado del Ejercicio").
+        - detalle_ids: registros de configuración de detalle (Contacto/
+          Producto) a aplicar sobre las cuentas que correspondan.
+        """
         fecha_inicio = fecha.replace(month=1, day=1)
         domain_base = [
             ('move_id.company_id', '=', company.id),
@@ -151,23 +160,24 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             ('date', '<=', fecha),
         ]
 
-        detalle_por_cuenta = {}
-        if config:
-            for det in config.libro_inventario_detalle_ids:
-                detalle_por_cuenta[det.account_id.id] = det
+        detalle_por_cuenta = {det.account_id.id: det for det in detalle_ids} if detalle_ids else {}
 
         accounts = self.env['account.account'].search([
             ('company_ids', 'in', company.id),
         ], order='code')
 
-        # 1) Saldo de cada cuenta imputable relevante (Activo/Pasivo/Patrimonio)
+        # 1) Saldo de cada cuenta imputable relevante
         saldo_por_cuenta = {}
         lines_por_cuenta = {}
         for account in accounts:
-            if not self._get_balance_section_code(account.code):
+            segmento = (account.code or '').split('.')[0] if account.code else False
+            if segmento not in prefijos:
                 continue
             lines = self.env['account.move.line'].search(domain_base + [('account_id', '=', account.id)])
-            saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
+            if segmento in prefijos_signo_invertido:
+                saldo = sum(lines.mapped('credit')) - sum(lines.mapped('debit'))
+            else:
+                saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
             if not saldo and not lines:
                 continue  # sin ningún movimiento en el período: se omite para no alargar el reporte
             saldo_por_cuenta[account.id] = saldo
@@ -226,7 +236,41 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 if detalle:
                     rows.extend(self._build_inventario_detalle(lines_por_cuenta[nodo['_account_id']], detalle))
 
+        if fila_total_label:
+            total = sum(saldo_por_cuenta.values())
+            rows.append({
+                'tipo': 'titulo',
+                'cuenta': '',
+                'nombre_cuenta': fila_total_label,
+                'saldo': total,
+                'nivel': 0,
+            })
+
         return rows
+
+    def _build_inventario_rows(self, company, fecha, config):
+        """Devuelve las filas de Libro Inventario (Activo/Pasivo/Patrimonio,
+        formato Balance). Para las cuentas configuradas en la pestaña
+        "Detalle Libro Inventario", además se agrega el detalle por
+        Contacto o por Producto debajo (con "Otros" si el nivel es "Top X")."""
+        detalle_ids = config.libro_inventario_detalle_ids if config else self.env['local_py.libro_inventario.detalle_cuenta']
+        return self._build_balance_style_rows(
+            company, fecha, config, detalle_ids, prefijos=('1', '2', '3'),
+        )
+
+    def _build_estado_resultado_rows(self, company, fecha, config):
+        """Devuelve las filas de Estado de Resultados (Ingresos: prefijos 4
+        y 6; Costos/Gastos: prefijos 5 y 7), con Ingresos mostrados en
+        positivo (Crédito - Débito) y una fila final de "Resultado del
+        Ejercicio". Reutiliza la misma configuración de detalle por cuenta
+        que Libro Inventario (Contacto/Producto), por si alguna cuenta de
+        Ingresos o Gastos también necesitara detallarse."""
+        detalle_ids = config.libro_inventario_detalle_ids if config else self.env['local_py.libro_inventario.detalle_cuenta']
+        return self._build_balance_style_rows(
+            company, fecha, config, detalle_ids, prefijos=('4', '5', '6', '7'),
+            prefijos_signo_invertido=('4', '6'),
+            fila_total_label='Resultado del Ejercicio',
+        )
 
     def _build_inventario_detalle(self, lines, detalle):
         """Arma las filas de detalle (por Contacto o por Producto) de una
@@ -328,7 +372,10 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         asientos, por eso no aplican las mismas validaciones de "sin
         huecos" ni de Nro. Fiscal completo que sí aplican a Diario/Mayor."""
         Rubrica = self.env['local_py.rubrica']
-        uso = tipo_libro  # 'diario', 'mayor' o 'inventario', coincide con USO_SELECTION
+        # Estado de Resultados comparte la misma Rúbrica ("L. Inventario") que
+        # Libro Inventario — juntos forman los Estados Financieros Clasificados
+        # de DNIT (Obligación 948), no tienen un Uso propio en el catálogo.
+        uso = 'inventario' if tipo_libro in ('inventario', 'estado_resultado') else tipo_libro
 
         if fecha_hasta < fecha_desde:
             raise UserError('"Fecha hasta" no puede ser anterior a "Fecha desde".')
@@ -351,15 +398,17 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                         'superposición.' % esperado.strftime('%d/%m/%Y')
                     )
         else:
-            # Libro Inventario: es un reporte de saldo acumulado (siempre desde el
-            # 1° de enero), no de un tramo de asientos — no corresponde exigir
-            # continuidad sin huecos, pero sí que cada generación nueva sea de una
-            # fecha más reciente que la anterior (orden cronológico de archivo).
-            if ultima_gen and fecha_hasta <= ultima_gen.fecha_hasta:
+            # Libro Inventario y Estado de Resultados: son reportes de saldo
+            # acumulado (siempre desde el 1° de enero), no un tramo de asientos
+            # — no corresponde exigir continuidad sin huecos. Comparten la misma
+            # Rúbrica y suelen generarse juntos para la misma fecha (por eso se
+            # permite fecha IGUAL a la última, y solo se bloquea una fecha
+            # anterior a una ya generada).
+            if ultima_gen and fecha_hasta < ultima_gen.fecha_hasta:
                 raise UserError(
-                    'Ya existe una generación oficial de este libro con fecha %s. La '
-                    'nueva "Fecha" tiene que ser posterior a esa.'
-                    % ultima_gen.fecha_hasta.strftime('%d/%m/%Y')
+                    'Ya existe una generación oficial de este libro (o de su libro '
+                    'complementario) con fecha %s. La nueva "Fecha" no puede ser '
+                    'anterior a esa.' % ultima_gen.fecha_hasta.strftime('%d/%m/%Y')
                 )
 
         es_primera_generacion = not rubrica.generacion_ids
@@ -386,8 +435,13 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 paginas = []
                 for grupo in grupos:
                     paginas.extend(self._paginar(grupo))
-        else:
+        elif tipo_libro == 'inventario':
             rows = self._build_inventario_rows(company, fecha_hasta, config)
+            if not rows:
+                raise UserError('No hay cuentas con movimientos en el período para mostrar.')
+            paginas = self._paginar_simple(rows)
+        else:
+            rows = self._build_estado_resultado_rows(company, fecha_hasta, config)
             if not rows:
                 raise UserError('No hay cuentas con movimientos en el período para mostrar.')
             paginas = self._paginar_simple(rows)
@@ -414,6 +468,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             'diario': 'local_py.action_report_libro_diario',
             'mayor': 'local_py.action_report_libro_mayor',
             'inventario': 'local_py.action_report_libro_inventario',
+            'estado_resultado': 'local_py.action_report_estado_resultado',
         }[tipo_libro]
         report_action = self.env.ref(report_xmlid)
         render_context = {
@@ -454,7 +509,10 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             'pagina_hasta': pagina_hasta,
             'pdf_file': pdf_final_b64,
             'pdf_filename': '%s_%s_%s.pdf' % (
-                {'diario': 'Libro_Diario', 'mayor': 'Libro_Mayor', 'inventario': 'Libro_Inventario'}[tipo_libro],
+                {
+                    'diario': 'Libro_Diario', 'mayor': 'Libro_Mayor',
+                    'inventario': 'Libro_Inventario', 'estado_resultado': 'Estado_Resultado',
+                }[tipo_libro],
                 fecha_desde.strftime('%Y%m%d'), fecha_hasta.strftime('%Y%m%d'),
             ),
         })

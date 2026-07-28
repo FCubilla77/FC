@@ -1,0 +1,36 @@
+<odoo>
+    <data>
+        <record id="view_local_py_estado_resultado_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.estado_resultado.wizard.form</field>
+            <field name="model">local_py.estado_resultado.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Estado de Resultado">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}"/>
+                        <field name="fecha"/>
+                    </group>
+                    <footer>
+                        <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-secondary"/>
+                        <button name="action_descargar_pdf" type="object" string="Descargar PDF (Oficial)" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_estado_resultado_wizard" model="ir.actions.act_window">
+            <field name="name">Estado de Resultado</field>
+            <field name="res_model">local_py.estado_resultado.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_local_py_estado_resultado_wizard_form"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_estado_resultado"
+                  name="Estado de Resultado"
+                  parent="local_py.menu_local_py_reportes_localizacion"
+                  action="action_local_py_estado_resultado_wizard"
+                  groups="account.group_account_manager"
+                  sequence="55"/>
+    </data>
+</odoo>
