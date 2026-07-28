@@ -90,3 +90,17 @@ class StockQuant(models.Model):
         })
         move.action_post()
         self.l10n_py_asiento_ajuste_id = move.id
+
+        # Vincula también el movimiento de stock correspondiente (el que aparece en
+        # "Historial de movimientos"), para poder verlo desde esa pantalla también.
+        move_stock = self.env['stock.move'].search([
+            ('product_id', '=', product.id),
+            ('is_inventory', '=', True),
+            ('state', '=', 'done'),
+            ('company_id', '=', company.id),
+            '|',
+            ('location_id', '=', self.location_id.id),
+            ('location_dest_id', '=', self.location_id.id),
+        ], order='id desc', limit=1)
+        if move_stock:
+            move_stock.l10n_py_asiento_ajuste_id = move.id
