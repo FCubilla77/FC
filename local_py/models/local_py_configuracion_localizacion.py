@@ -27,6 +27,14 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         'local_py.libro_inventario.detalle_cuenta', 'config_id',
         string='Detalle Libro Inventario',
     )
+    l10n_py_asiento_ajuste_inventario = fields.Boolean(
+        string='Generar Asiento por Ajuste de Inventario Físico',
+        help='Si está activo, al aplicar un ajuste desde Inventario > Operaciones > '
+             'Ajustes > Inventario físico, se genera automáticamente un asiento contable '
+             '(Débito/Crédito entre la cuenta de valoración de inventario y la cuenta de '
+             'gastos configuradas en la Categoría del producto). Ese asiento queda '
+             'protegido: no se puede eliminar ni restablecer a borrador.',
+    )
 
     _sql_constraints = [
         ('company_uniq', 'unique(company_id)',

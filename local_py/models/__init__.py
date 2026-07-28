@@ -18,3 +18,4 @@ from . import local_py_plan_cuentas_report
 from . import local_py_rubrica
 from . import local_py_configuracion_localizacion
 from . import local_py_libro_report
+from . import stock_quant

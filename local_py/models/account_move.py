@@ -559,3 +559,33 @@ class AccountMove(models.Model):
                 raise exceptions.ValidationError(
                     'La fecha del documento supera la fecha de vencimiento del timbrado'
                 )
+
+    # ------------------------------------------------------------------
+    # Protección de los asientos generados por Ajuste de Inventario Físico
+    # ------------------------------------------------------------------
+    def _l10n_py_filtrar_asientos_ajuste_inventario(self):
+        if not self:
+            return self.browse()
+        return self.filtered(
+            lambda m: self.env['stock.quant'].sudo().search_count(
+                [('l10n_py_asiento_ajuste_id', '=', m.id)]
+            )
+        )
+
+    def button_draft(self):
+        bloqueados = self._l10n_py_filtrar_asientos_ajuste_inventario()
+        if bloqueados:
+            raise exceptions.UserError(
+                'No se puede restablecer a borrador: %s asiento(s) provienen de un Ajuste de '
+                'Inventario Físico y no pueden modificarse.' % len(bloqueados)
+            )
+        return super().button_draft()
+
+    def unlink(self):
+        bloqueados = self._l10n_py_filtrar_asientos_ajuste_inventario()
+        if bloqueados:
+            raise exceptions.UserError(
+                'No se puede eliminar: %s asiento(s) provienen de un Ajuste de Inventario '
+                'Físico y no pueden eliminarse.' % len(bloqueados)
+            )
+        return super().unlink()

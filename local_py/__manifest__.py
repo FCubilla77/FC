@@ -19,9 +19,9 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.07.001",
+    "version": "2026.08.001",
     "license": "LGPL-3",
-    "depends": ["base", "account", "base_address_extended", "mail"],
+    "depends": ["base", "account", "base_address_extended", "mail", "stock"],
     "data": [
         "security/ir.model.access.csv",
         "data/data.xml",

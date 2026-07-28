@@ -42,6 +42,11 @@
                                     </list>
                                 </field>
                             </page>
+                            <page string="Ajuste Inventario Físico" name="ajuste_inventario_fisico">
+                                <group>
+                                    <field name="l10n_py_asiento_ajuste_inventario"/>
+                                </group>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>
