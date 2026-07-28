@@ -45,10 +45,17 @@ class LocalPyLibroInventarioWizard(models.TransientModel):
         )._render_qweb_html(report_action.report_name, [self.company_id.id])
 
         import base64
-        data_uri = 'data:text/html;base64,%s' % base64.b64encode(html_content).decode()
+        attachment = self.env['ir.attachment'].create({
+            'name': 'Libro Inventario (vista de control).html',
+            'type': 'binary',
+            'datas': base64.b64encode(html_content),
+            'mimetype': 'text/html',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
         return {
             'type': 'ir.actions.act_url',
-            'url': data_uri,
+            'url': '/web/content/%s?download=false' % attachment.id,
             'target': 'new',
         }
 
