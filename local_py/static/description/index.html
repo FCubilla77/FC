@@ -227,6 +227,7 @@
                 <li>Corregido: faltaba declarar "stock_account" como dependencia del módulo (necesaria para el reporte de Movimiento de Stock Valorizado)</li>
                 <li>Corrección real del error de Movimiento de Stock Valorizado: Odoo 19 eliminó por completo el modelo "stock.valuation.layer" (no era un problema de dependencias) — el reporte ahora lee los datos de valoración directamente desde stock.move, como corresponde en esta versión</li>
                 <li>Corregido un segundo error en el mismo reporte: el filtro usaba un campo calculado que no está guardado en la base de datos ("is_valued"), reemplazado por los campos equivalentes que sí lo están</li>
+                <li>Movimiento de Stock Valorizado: nueva columna "Fecha Sistema" (fecha y hora exacta en que cada registro ingresó al sistema, que es el criterio real de ordenamiento); el rango de fechas ahora incluye el día completo de "Fecha hasta" (hasta las 23:59:59), en vez de cortar a la medianoche de ese día</li>
             </ul>
         </div>
     </div>

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 import logging
 
 from odoo import models
@@ -382,11 +382,13 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         Nota técnica: Odoo 19 eliminó el modelo stock.valuation.layer — el
         detalle de valoración de cada movimiento ahora vive directo en
         stock.move (campos value/is_in/is_out/quantity/price_unit)."""
+        fecha_desde_dt = datetime.combine(fecha_desde, time.min)
+        fecha_hasta_dt = datetime.combine(fecha_hasta, time.max)
         domain = [
             ('company_id', '=', company.id),
             ('state', '=', 'done'),
-            ('date', '>=', fecha_desde),
-            ('date', '<=', fecha_hasta),
+            ('date', '>=', fecha_desde_dt),
+            ('date', '<=', fecha_hasta_dt),
             '|', ('is_in', '=', True), ('is_out', '=', True),
         ]
         if product_ids:
@@ -447,6 +449,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             rows.append({
                 'tipo': 'linea',
                 'fecha': move.date,
+                'fecha_sistema': move.create_date,
                 'cantidad': move.quantity,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
