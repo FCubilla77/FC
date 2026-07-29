@@ -17,29 +17,31 @@
                         <table style="width: 100%; border-collapse: collapse;" border="1">
                             <thead>
                                 <tr style="background-color: #eeeeee;">
-                                    <th style="padding: 3px;">Fecha</th>
-                                    <th style="padding: 3px;">Fecha Sistema</th>
-                                    <th style="padding: 3px;">Cantidad</th>
-                                    <th style="padding: 3px;">Costo Unitario</th>
-                                    <th style="padding: 3px;">Costo Total</th>
-                                    <th style="padding: 3px;">Débito</th>
-                                    <th style="padding: 3px;">Crédito</th>
-                                    <th style="padding: 3px;">Saldo</th>
+                                    <th style="padding: 3px; text-align: left;">Fecha</th>
+                                    <th style="padding: 3px; text-align: left;">Fecha Sistema</th>
+                                    <th style="padding: 3px; text-align: left;">Referencia</th>
+                                    <th style="padding: 3px; text-align: right;">Cantidad</th>
+                                    <th style="padding: 3px; text-align: right;">Costo Unitario</th>
+                                    <th style="padding: 3px; text-align: right;">Costo Total</th>
+                                    <th style="padding: 3px; text-align: right;">Débito</th>
+                                    <th style="padding: 3px; text-align: right;">Crédito</th>
+                                    <th style="padding: 3px; text-align: right;">Saldo</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="pagina" t-as="fila">
                                     <tr t-if="fila['tipo'] == 'producto'" style="font-weight: bold; background-color: #dddddd;">
-                                        <td colspan="8" style="padding: 3px;" t-esc="fila['nombre']"/>
+                                        <td colspan="9" style="padding: 3px;" t-esc="fila['nombre']"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'cuenta'" style="font-weight: bold; background-color: #f0f0f0;">
-                                        <td colspan="8" style="padding: 2px 2px 2px 12px;">
+                                        <td colspan="9" style="padding: 2px 2px 2px 12px;">
                                             <t t-esc="fila['cuenta']"/> - <t t-esc="fila['nombre_cuenta']"/>
                                         </td>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'linea'">
                                         <td style="padding: 2px 2px 2px 24px;" t-esc="fila['fecha'].strftime('%d/%m/%Y %H:%M') if fila['fecha'] else ''"/>
                                         <td style="padding: 2px;" t-esc="fila['fecha_sistema'].strftime('%d/%m/%Y %H:%M:%S') if fila['fecha_sistema'] else ''"/>
+                                        <td style="padding: 2px;" t-esc="fila['referencia']"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['cantidad'])"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['costo_unitario'])"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['costo_total'])"/>
@@ -52,16 +54,16 @@
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'total_cuenta'" style="font-style: italic; border-top: 1px solid #999999;">
-                                        <td colspan="5" style="padding: 2px 2px 2px 12px;">Total por cuenta</td>
+                                        <td colspan="6" style="padding: 2px 2px 2px 12px;">Total por cuenta</td>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
-                                        <td style="padding: 2px;"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'total_producto'" style="font-weight: bold; border-top: 1px solid #000000;">
-                                        <td colspan="5" style="padding: 2px;">Total por producto</td>
+                                        <td colspan="6" style="padding: 2px;">Total por producto</td>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
                                         <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
-                                        <td style="padding: 2px;"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
                                     </tr>
                                 </t>
                             </tbody>

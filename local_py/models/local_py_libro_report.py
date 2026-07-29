@@ -400,19 +400,24 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         producto_actual = None
         cuenta_actual = None
         saldo = 0.0
+        saldo_producto = 0.0
         total_cuenta_debe = total_cuenta_haber = 0.0
         total_producto_debe = total_producto_haber = 0.0
 
         def cerrar_cuenta():
+            nonlocal saldo_producto
             if cuenta_actual is not None:
                 rows.append({
-                    'tipo': 'total_cuenta', 'total_debe': total_cuenta_debe, 'total_haber': total_cuenta_haber,
+                    'tipo': 'total_cuenta', 'total_debe': total_cuenta_debe,
+                    'total_haber': total_cuenta_haber, 'saldo': saldo,
                 })
+                saldo_producto += saldo
 
         def cerrar_producto():
             if producto_actual is not None:
                 rows.append({
-                    'tipo': 'total_producto', 'total_debe': total_producto_debe, 'total_haber': total_producto_haber,
+                    'tipo': 'total_producto', 'total_debe': total_producto_debe,
+                    'total_haber': total_producto_haber, 'saldo': saldo_producto,
                 })
 
         for move in moves:
@@ -424,6 +429,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 cerrar_producto()
                 producto_actual = producto
                 cuenta_actual = None
+                saldo_producto = 0.0
                 total_producto_debe = total_producto_haber = 0.0
                 rows.append({'tipo': 'producto', 'nombre': producto.display_name})
 
@@ -450,6 +456,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'tipo': 'linea',
                 'fecha': move.date,
                 'fecha_sistema': move.create_date,
+                'referencia': move.reference or move.name or '',
                 'cantidad': move.quantity,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
