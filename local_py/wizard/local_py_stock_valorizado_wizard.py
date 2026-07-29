@@ -83,6 +83,9 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
         })
         fmt_producto = workbook.add_format({'bold': True, 'bg_color': '#DDDDDD'})
         fmt_cuenta = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0'})
+        fmt_saldo_inicial = workbook.add_format({'italic': True})
+        fmt_saldo_inicial_num = workbook.add_format({'italic': True, 'num_format': '#,##0', 'align': 'right'})
+        fmt_saldo_inicial_qty = workbook.add_format({'italic': True, 'num_format': '#,##0.00', 'align': 'right'})
         fmt_texto = workbook.add_format({})
         fmt_qty = workbook.add_format({'num_format': '#,##0.00', 'align': 'right'})
         fmt_money = workbook.add_format({'num_format': '#,##0', 'align': 'right'})
@@ -96,20 +99,29 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
         headers = [
             'Fecha', 'Fecha Sistema', 'Referencia', 'Nro. Fiscal', 'Cantidad',
             'Costo Unitario', 'Costo Total', 'Débito', 'Crédito', 'Saldo',
+            'Saldo Cantidad', 'Costo Promedio',
         ]
         for col, header in enumerate(headers):
             sheet.write(0, col, header, fmt_header)
-        anchos = [16, 18, 20, 10, 10, 14, 14, 12, 12, 14]
+        anchos = [16, 18, 20, 10, 10, 14, 14, 12, 12, 14, 14, 14]
         for col, ancho in enumerate(anchos):
             sheet.set_column(col, col, ancho)
 
         fila_excel = 1
         for fila in rows:
             if fila['tipo'] == 'producto':
-                sheet.merge_range(fila_excel, 0, fila_excel, 9, fila['nombre'], fmt_producto)
+                sheet.merge_range(fila_excel, 0, fila_excel, 11, fila['nombre'], fmt_producto)
             elif fila['tipo'] == 'cuenta':
                 texto = '%s - %s' % (fila['cuenta'], fila['nombre_cuenta'])
-                sheet.merge_range(fila_excel, 0, fila_excel, 9, texto, fmt_cuenta)
+                sheet.merge_range(fila_excel, 0, fila_excel, 11, texto, fmt_cuenta)
+            elif fila['tipo'] == 'saldo_inicial':
+                sheet.merge_range(fila_excel, 0, fila_excel, 8, fila['referencia'], fmt_saldo_inicial)
+                sheet.write_number(fila_excel, 9, fila['saldo'], fmt_saldo_inicial_num)
+                sheet.write_number(fila_excel, 10, fila['saldo_cantidad'], fmt_saldo_inicial_qty)
+                if fila['costo_promedio'] is not False:
+                    sheet.write_number(fila_excel, 11, fila['costo_promedio'], fmt_saldo_inicial_qty)
+                else:
+                    sheet.write(fila_excel, 11, '', fmt_saldo_inicial)
             elif fila['tipo'] == 'linea':
                 sheet.write(fila_excel, 0, fila['fecha'].strftime('%d/%m/%Y %H:%M') if fila['fecha'] else '', fmt_texto)
                 sheet.write(
@@ -124,6 +136,11 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 sheet.write_number(fila_excel, 7, fila['debe'], fmt_money)
                 sheet.write_number(fila_excel, 8, fila['haber'], fmt_money)
                 sheet.write_number(fila_excel, 9, fila['saldo'], fmt_money)
+                sheet.write_number(fila_excel, 10, fila['saldo_cantidad'], fmt_qty)
+                if fila['costo_promedio'] is not False:
+                    sheet.write_number(fila_excel, 11, fila['costo_promedio'], fmt_qty)
+                else:
+                    sheet.write(fila_excel, 11, '', fmt_texto)
             elif fila['tipo'] == 'total_cuenta':
                 sheet.merge_range(fila_excel, 0, fila_excel, 3, 'Total por cuenta', fmt_total_texto)
                 sheet.write_number(fila_excel, 4, fila['total_cantidad'], fmt_total_qty)
@@ -132,6 +149,8 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 sheet.write_number(fila_excel, 7, fila['total_debe'], fmt_total_money)
                 sheet.write_number(fila_excel, 8, fila['total_haber'], fmt_total_money)
                 sheet.write_number(fila_excel, 9, fila['saldo'], fmt_total_money)
+                sheet.write(fila_excel, 10, '', fmt_total_texto)
+                sheet.write(fila_excel, 11, '', fmt_total_texto)
             elif fila['tipo'] == 'total_producto':
                 sheet.merge_range(fila_excel, 0, fila_excel, 3, 'Total por producto', fmt_total_producto_texto)
                 sheet.write_number(fila_excel, 4, fila['total_cantidad'], fmt_total_producto_qty)
@@ -140,6 +159,8 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 sheet.write_number(fila_excel, 7, fila['total_debe'], fmt_total_producto_money)
                 sheet.write_number(fila_excel, 8, fila['total_haber'], fmt_total_producto_money)
                 sheet.write_number(fila_excel, 9, fila['saldo'], fmt_total_producto_money)
+                sheet.write(fila_excel, 10, '', fmt_total_producto_texto)
+                sheet.write(fila_excel, 11, '', fmt_total_producto_texto)
             fila_excel += 1
 
         workbook.close()

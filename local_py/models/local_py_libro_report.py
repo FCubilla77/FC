@@ -369,15 +369,45 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     # ------------------------------------------------------------------
     # Movimiento de Stock Valorizado (solo de control, sin PDF)
     # ------------------------------------------------------------------
+    def _saldo_inicial_producto(self, company, producto, fecha_desde_dt):
+        """Suma agregada (sin traer el detalle línea por línea, para no
+        afectar el rendimiento) de valor y cantidad de todos los
+        movimientos de un producto ANTERIORES a "fecha_desde_dt" — el punto
+        de partida cuando el reporte no arranca desde el principio de la
+        historia del producto."""
+        Move = self.env['stock.move']
+        base_domain = [
+            ('product_id', '=', producto.id),
+            ('company_id', '=', company.id),
+            ('state', '=', 'done'),
+            ('date', '<', fecha_desde_dt),
+        ]
+        entradas = Move._read_group(
+            base_domain + [('is_in', '=', True)], aggregates=['value:sum', 'quantity:sum'],
+        )
+        salidas = Move._read_group(
+            base_domain + [('is_out', '=', True)], aggregates=['value:sum', 'quantity:sum'],
+        )
+        valor_entrada, cantidad_entrada = entradas[0] if entradas else (0.0, 0.0)
+        valor_salida, cantidad_salida = salidas[0] if salidas else (0.0, 0.0)
+        valor_inicial = abs(valor_entrada or 0.0) - abs(valor_salida or 0.0)
+        cantidad_inicial = (cantidad_entrada or 0.0) - (cantidad_salida or 0.0)
+        return valor_inicial, cantidad_inicial
+
     def _build_stock_valorizado_rows(self, company, fecha_desde, fecha_hasta, product_ids=None):
         """Arma las filas de "Movimiento de Stock Valorizado": agrupado por
         Producto (cada uno arranca en página nueva) y, dentro de cada
         Producto, por Cuenta (la de valoración de inventario configurada en
         su Categoría), con cada movimiento en el orden real en que ingresó
         al sistema (create_date del movimiento, sin posibilidad de
-        reordenar) y su Saldo acumulado. El rango de fechas filtra por la
-        fecha del movimiento de stock (campo "date"), no por cuándo se
-        cargó el registro.
+        reordenar), su Saldo (valor acumulado), Saldo Cantidad (cantidad
+        acumulada) y Costo Promedio (Saldo / Saldo Cantidad) en cada línea.
+        El rango de fechas filtra por la fecha del movimiento de stock
+        (campo "date"), no por cuándo se cargó el registro. Si el rango no
+        arranca desde el principio de la historia del producto, la primera
+        línea de cada Cuenta es un "Saldo Inicial" con el acumulado de todo
+        lo anterior a "Fecha desde" (calculado por agregación, sin traer el
+        detalle histórico completo).
 
         Nota técnica: Odoo 19 eliminó el modelo stock.valuation.layer — el
         detalle de valoración de cada movimiento ahora vive directo en
@@ -396,10 +426,16 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
 
         moves = self.env['stock.move'].search(domain, order='product_id, create_date, id')
 
+        def costo_promedio(valor_acum, cantidad_acum):
+            if not cantidad_acum:
+                return False
+            return valor_acum / cantidad_acum
+
         rows = []
         producto_actual = None
         cuenta_actual = None
         saldo = 0.0
+        saldo_cantidad = 0.0
         saldo_producto = 0.0
         total_cuenta_debe = total_cuenta_haber = total_cuenta_cantidad = 0.0
         total_producto_debe = total_producto_haber = total_producto_cantidad = 0.0
@@ -438,23 +474,32 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             if cuenta != cuenta_actual:
                 cerrar_cuenta()
                 cuenta_actual = cuenta
-                saldo = 0.0
                 total_cuenta_debe = total_cuenta_haber = total_cuenta_cantidad = 0.0
                 rows.append({
                     'tipo': 'cuenta', 'cuenta': cuenta.code if cuenta else '',
                     'nombre_cuenta': cuenta.name if cuenta else 'Sin cuenta configurada',
                 })
+                saldo, saldo_cantidad = self._saldo_inicial_producto(company, producto, fecha_desde_dt)
+                rows.append({
+                    'tipo': 'saldo_inicial',
+                    'referencia': 'Saldo Inicial',
+                    'saldo': saldo,
+                    'saldo_cantidad': saldo_cantidad,
+                    'costo_promedio': costo_promedio(saldo, saldo_cantidad),
+                })
 
             valor = abs(move.value)
             debe = valor if move.is_in else 0.0
             haber = valor if move.is_out else 0.0
+            cantidad_con_signo = move.quantity if move.is_in else -move.quantity
             saldo += debe - haber
+            saldo_cantidad += cantidad_con_signo
             total_cuenta_debe += debe
             total_cuenta_haber += haber
-            total_cuenta_cantidad += move.quantity
+            total_cuenta_cantidad += cantidad_con_signo
             total_producto_debe += debe
             total_producto_haber += haber
-            total_producto_cantidad += move.quantity
+            total_producto_cantidad += cantidad_con_signo
 
             asiento = move.account_move_id
             rows.append({
@@ -469,6 +514,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'debe': debe,
                 'haber': haber,
                 'saldo': saldo,
+                'saldo_cantidad': saldo_cantidad,
+                'costo_promedio': costo_promedio(saldo, saldo_cantidad),
             })
 
         cerrar_cuenta()
