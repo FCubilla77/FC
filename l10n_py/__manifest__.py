@@ -8,7 +8,7 @@
     "summary": "Paquete de Localización Fiscal Paraguay: plan de cuentas, grupos, "
                "impuestos y valores de compañía por defecto (account.chart.template)",
     "description": """
-        Localización Fiscal / Paquete: Paraguay
+        Localización Fiscal / Paquete: Paraguay.
         =========================================
         Este módulo implementa el mecanismo nativo de Odoo de Paquete de
         Localización Fiscal (account.chart.template) para Paraguay:
