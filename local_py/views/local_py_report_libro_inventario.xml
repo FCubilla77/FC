@@ -34,12 +34,12 @@
                                         t-attf-style="font-weight: bold; background-color: #{'dddddd' if fila['nivel'] &lt;= 1 else 'eeeeee'};">
                                         <td t-attf-style="padding: 3px 3px 3px #{4 + (fila['nivel'] - 1) * 12}px;" t-esc="fila['cuenta']"/>
                                         <td style="padding: 3px;" t-esc="fila['nombre_cuenta']"/>
-                                        <td style="padding: 3px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                        <td style="padding: 3px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'cuenta_balance'">
                                         <td t-attf-style="padding: 2px 2px 2px #{4 + fila['nivel'] * 12}px;" t-esc="fila['cuenta']"/>
                                         <td style="padding: 2px;" t-esc="fila['nombre_cuenta']"/>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'detalle_header'" style="font-style: italic; color: #555555;">
                                         <td style="padding: 2px 2px 2px 20px;"/>
@@ -49,12 +49,12 @@
                                     <tr t-elif="fila['tipo'] == 'detalle_linea'">
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px 2px 2px 20px;" t-esc="fila['nombre']"/>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'detalle_subtotal'" style="font-style: italic; border-top: 1px solid #999999;">
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px 2px 2px 20px;">Subtotal</td>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
                                     </tr>
                                 </t>
                             </tbody>

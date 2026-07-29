@@ -2,6 +2,8 @@
 
 from odoo import api, fields, models
 
+from ..models.local_py_libro_report import fmt_pyg
+
 
 class LocalPyStockValorizadoWizard(models.TransientModel):
     _name = 'local_py.stock_valorizado.wizard'
@@ -41,6 +43,7 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
             'pagina_inicial': 1,
             'total_paginas_libro': len(paginas) or 1,
             'rubrica': self.env['local_py.rubrica'],
+            'fmt_pyg': fmt_pyg,
         }
         report_action = self.env.ref('local_py.action_report_stock_valorizado_html')
         html_content, _ = report_action.with_context(
@@ -98,12 +101,12 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
 
         headers = [
             'Fecha', 'Fecha Sistema', 'Referencia', 'Nro. Fiscal', 'Cantidad',
-            'Costo Unitario', 'Costo Total', 'Débito', 'Crédito', 'Saldo',
-            'Saldo Cantidad', 'Costo Promedio',
+            'Costo Unitario', 'Costo Total', 'Débito', 'Crédito', 'Valor Acumulado',
+            'Cantidad Acumulada', 'Costo Promedio',
         ]
         for col, header in enumerate(headers):
             sheet.write(0, col, header, fmt_header)
-        anchos = [16, 18, 20, 10, 10, 14, 14, 12, 12, 14, 14, 14]
+        anchos = [12, 20, 20, 10, 10, 14, 14, 12, 12, 15, 16, 14]
         for col, ancho in enumerate(anchos):
             sheet.set_column(col, col, ancho)
 
@@ -123,7 +126,7 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 else:
                     sheet.write(fila_excel, 11, '', fmt_saldo_inicial)
             elif fila['tipo'] == 'linea':
-                sheet.write(fila_excel, 0, fila['fecha'].strftime('%d/%m/%Y %H:%M') if fila['fecha'] else '', fmt_texto)
+                sheet.write(fila_excel, 0, fila['fecha'].strftime('%d/%m/%Y') if fila['fecha'] else '', fmt_texto)
                 sheet.write(
                     fila_excel, 1,
                     fila['fecha_sistema'].strftime('%d/%m/%Y %H:%M:%S') if fila['fecha_sistema'] else '', fmt_texto,
@@ -149,8 +152,11 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 sheet.write_number(fila_excel, 7, fila['total_debe'], fmt_total_money)
                 sheet.write_number(fila_excel, 8, fila['total_haber'], fmt_total_money)
                 sheet.write_number(fila_excel, 9, fila['saldo'], fmt_total_money)
-                sheet.write(fila_excel, 10, '', fmt_total_texto)
-                sheet.write(fila_excel, 11, '', fmt_total_texto)
+                sheet.write_number(fila_excel, 10, fila['saldo_cantidad'], fmt_total_qty)
+                if fila['costo_promedio'] is not False:
+                    sheet.write_number(fila_excel, 11, fila['costo_promedio'], fmt_total_qty)
+                else:
+                    sheet.write(fila_excel, 11, '', fmt_total_texto)
             elif fila['tipo'] == 'total_producto':
                 sheet.merge_range(fila_excel, 0, fila_excel, 3, 'Total por producto', fmt_total_producto_texto)
                 sheet.write_number(fila_excel, 4, fila['total_cantidad'], fmt_total_producto_qty)
@@ -159,8 +165,11 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
                 sheet.write_number(fila_excel, 7, fila['total_debe'], fmt_total_producto_money)
                 sheet.write_number(fila_excel, 8, fila['total_haber'], fmt_total_producto_money)
                 sheet.write_number(fila_excel, 9, fila['saldo'], fmt_total_producto_money)
-                sheet.write(fila_excel, 10, '', fmt_total_producto_texto)
-                sheet.write(fila_excel, 11, '', fmt_total_producto_texto)
+                sheet.write_number(fila_excel, 10, fila['saldo_cantidad'], fmt_total_producto_qty)
+                if fila['costo_promedio'] is not False:
+                    sheet.write_number(fila_excel, 11, fila['costo_promedio'], fmt_total_producto_qty)
+                else:
+                    sheet.write(fila_excel, 11, '', fmt_total_producto_texto)
             fila_excel += 1
 
         workbook.close()

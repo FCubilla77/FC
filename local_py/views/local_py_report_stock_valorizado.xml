@@ -14,7 +14,21 @@
                                 </td>
                             </tr>
                         </table>
-                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;" border="1">
+                            <colgroup>
+                                <col style="width: 8%;"/>
+                                <col style="width: 12%;"/>
+                                <col style="width: 12%;"/>
+                                <col style="width: 6%;"/>
+                                <col style="width: 7%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 8%;"/>
+                                <col style="width: 7%;"/>
+                            </colgroup>
                             <thead>
                                 <tr style="background-color: #eeeeee;">
                                     <th style="padding: 3px; text-align: left;">Fecha</th>
@@ -26,8 +40,8 @@
                                     <th align="right" style="padding: 3px; text-align: right;">Costo Total</th>
                                     <th align="right" style="padding: 3px; text-align: right;">Débito</th>
                                     <th align="right" style="padding: 3px; text-align: right;">Crédito</th>
-                                    <th align="right" style="padding: 3px; text-align: right;">Saldo</th>
-                                    <th align="right" style="padding: 3px; text-align: right;">Saldo Cantidad</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Valor Acumulado</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Cantidad Acumulada</th>
                                     <th align="right" style="padding: 3px; text-align: right;">Costo Promedio</th>
                                 </tr>
                             </thead>
@@ -51,55 +65,59 @@
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px;"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['saldo_cantidad'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo_cantidad'], 2)"/>
                                         <td align="right" style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['costo_promedio'] is not False" t-esc="'{:,.2f}'.format(fila['costo_promedio'])"/>
+                                            <t t-if="fila['costo_promedio'] is not False" t-esc="fmt_pyg(fila['costo_promedio'], 2)"/>
                                         </td>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'linea'">
-                                        <td style="padding: 2px 2px 2px 24px;" t-esc="fila['fecha'].strftime('%d/%m/%Y %H:%M') if fila['fecha'] else ''"/>
+                                        <td style="padding: 2px 2px 2px 24px;" t-esc="fila['fecha'].strftime('%d/%m/%Y') if fila['fecha'] else ''"/>
                                         <td style="padding: 2px;" t-esc="fila['fecha_sistema'].strftime('%d/%m/%Y %H:%M:%S') if fila['fecha_sistema'] else ''"/>
                                         <td style="padding: 2px;" t-esc="fila['referencia']"/>
                                         <td align="right" style="padding: 2px; text-align: right;">
                                             <t t-if="fila['nro_fiscal']" t-esc="fila['nro_fiscal']"/>
                                         </td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['cantidad'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['costo_unitario'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['costo_total'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['cantidad'], 2)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['costo_unitario'], 2)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['costo_total'])"/>
                                         <td align="right" style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['debe']" t-esc="'{:,.0f}'.format(fila['debe'])"/>
+                                            <t t-if="fila['debe']" t-esc="fmt_pyg(fila['debe'])"/>
                                         </td>
                                         <td align="right" style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['haber']" t-esc="'{:,.0f}'.format(fila['haber'])"/>
+                                            <t t-if="fila['haber']" t-esc="fmt_pyg(fila['haber'])"/>
                                         </td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['saldo_cantidad'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo_cantidad'], 2)"/>
                                         <td align="right" style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['costo_promedio'] is not False" t-esc="'{:,.2f}'.format(fila['costo_promedio'])"/>
+                                            <t t-if="fila['costo_promedio'] is not False" t-esc="fmt_pyg(fila['costo_promedio'], 2)"/>
                                         </td>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'total_cuenta'" style="font-style: italic; border-top: 1px solid #999999;">
                                         <td colspan="4" style="padding: 2px 2px 2px 12px;">Total por cuenta</td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['total_cantidad'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_cantidad'], 2)"/>
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px;"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
-                                        <td style="padding: 2px;"/>
-                                        <td style="padding: 2px;"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_debe'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_haber'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo_cantidad'], 2)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['costo_promedio'] is not False" t-esc="fmt_pyg(fila['costo_promedio'], 2)"/>
+                                        </td>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'total_producto'" style="font-weight: bold; border-top: 1px solid #000000;">
                                         <td colspan="4" style="padding: 2px;">Total por producto</td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['total_cantidad'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_cantidad'], 2)"/>
                                         <td style="padding: 2px;"/>
                                         <td style="padding: 2px;"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
-                                        <td style="padding: 2px;"/>
-                                        <td style="padding: 2px;"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_debe'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_haber'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo_cantidad'], 2)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['costo_promedio'] is not False" t-esc="fmt_pyg(fila['costo_promedio'], 2)"/>
+                                        </td>
                                     </tr>
                                 </t>
                             </tbody>

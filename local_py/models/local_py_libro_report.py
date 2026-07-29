@@ -10,6 +10,16 @@ _logger = logging.getLogger(__name__)
 LINEAS_POR_PAGINA = 40
 
 
+def fmt_pyg(valor, decimales=0):
+    """Formatea un número al estilo guaraní: punto como separador de miles,
+    coma como separador decimal (al revés de la convención en inglés que
+    usa Python por defecto)."""
+    if valor is False or valor is None:
+        return ''
+    texto = '{:,.{}f}'.format(valor, decimales)
+    return texto.replace(',', '\ufffc').replace('.', ',').replace('\ufffc', '.')
+
+
 class ReportLibroDiario(models.AbstractModel):
     _name = 'report.local_py.report_libro_diario_document'
     _description = 'Reporte Libro Diario'
@@ -437,25 +447,29 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         saldo = 0.0
         saldo_cantidad = 0.0
         saldo_producto = 0.0
+        saldo_cantidad_producto = 0.0
         total_cuenta_debe = total_cuenta_haber = total_cuenta_cantidad = 0.0
         total_producto_debe = total_producto_haber = total_producto_cantidad = 0.0
 
         def cerrar_cuenta():
-            nonlocal saldo_producto
+            nonlocal saldo_producto, saldo_cantidad_producto
             if cuenta_actual is not None:
                 rows.append({
                     'tipo': 'total_cuenta', 'total_debe': total_cuenta_debe,
                     'total_haber': total_cuenta_haber, 'total_cantidad': total_cuenta_cantidad,
-                    'saldo': saldo,
+                    'saldo': saldo, 'saldo_cantidad': saldo_cantidad,
+                    'costo_promedio': costo_promedio(saldo, saldo_cantidad),
                 })
                 saldo_producto += saldo
+                saldo_cantidad_producto += saldo_cantidad
 
         def cerrar_producto():
             if producto_actual is not None:
                 rows.append({
                     'tipo': 'total_producto', 'total_debe': total_producto_debe,
                     'total_haber': total_producto_haber, 'total_cantidad': total_producto_cantidad,
-                    'saldo': saldo_producto,
+                    'saldo': saldo_producto, 'saldo_cantidad': saldo_cantidad_producto,
+                    'costo_promedio': costo_promedio(saldo_producto, saldo_cantidad_producto),
                 })
 
         for move in moves:
@@ -468,6 +482,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 producto_actual = producto
                 cuenta_actual = None
                 saldo_producto = 0.0
+                saldo_cantidad_producto = 0.0
                 total_producto_debe = total_producto_haber = total_producto_cantidad = 0.0
                 rows.append({'tipo': 'producto', 'nombre': producto.display_name})
 
@@ -508,7 +523,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha_sistema': move.create_date,
                 'referencia': move.reference or move.name or '',
                 'nro_fiscal': asiento.l10n_py_nro_fiscal if asiento else False,
-                'cantidad': move.quantity,
+                'cantidad': cantidad_con_signo,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
                 'debe': debe,
@@ -643,6 +658,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             'pagina_inicial': primera_pagina_contenido,
             'total_paginas_libro': pagina_hasta,
             'rubrica': rubrica,
+            'fmt_pyg': fmt_pyg,
         }
         pdf_content, _ = report_action.with_context(
             local_py_libro_render_data=render_context

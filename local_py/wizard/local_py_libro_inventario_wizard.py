@@ -2,6 +2,8 @@
 
 from odoo import api, fields, models
 
+from ..models.local_py_libro_report import fmt_pyg
+
 
 class LocalPyLibroInventarioWizard(models.TransientModel):
     _name = 'local_py.libro_inventario.wizard'
@@ -38,6 +40,7 @@ class LocalPyLibroInventarioWizard(models.TransientModel):
             'pagina_inicial': 1,
             'total_paginas_libro': len(paginas) or 1,
             'rubrica': self.env['local_py.rubrica'],
+            'fmt_pyg': fmt_pyg,
         }
         report_action = self.env.ref('local_py.action_report_libro_inventario_html')
         html_content, _ = report_action.with_context(

@@ -47,17 +47,17 @@
                                         <td style="padding: 2px;" t-esc="fila['fecha'].strftime('%d/%m/%Y')"/>
                                         <td style="padding: 2px;" t-esc="fila['comentario']"/>
                                         <td style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['debe']" t-esc="'{:,.0f}'.format(fila['debe'])"/>
+                                            <t t-if="fila['debe']" t-esc="fmt_pyg(fila['debe'])"/>
                                         </td>
                                         <td style="padding: 2px; text-align: right;">
-                                            <t t-if="fila['haber']" t-esc="'{:,.0f}'.format(fila['haber'])"/>
+                                            <t t-if="fila['haber']" t-esc="fmt_pyg(fila['haber'])"/>
                                         </td>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
                                     </tr>
                                     <tr t-elif="fila['tipo'] == 'arrastre'" style="font-weight: bold; background-color: #f5f5f5;">
                                         <td colspan="5" style="padding: 2px;" t-esc="fila['texto']"/>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
-                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_debe'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_haber'])"/>
                                         <td style="padding: 2px;"/>
                                     </tr>
                                 </t>
