@@ -224,6 +224,7 @@
                 <li>Se quitó la validación de duplicado en Factura de Cliente a nivel de asiento (era redundante: Timbrado/Nro. Documento/Tipo Fiscal se completan siempre desde el Diario, que ya tiene su propio control de unicidad)</li>
                 <li>Nuevo botón en los Asientos Contables: si el asiento fue generado por un Ajuste de Inventario Físico, muestra un botón para volver directo a ese registro de Inventario</li>
                 <li>Nuevo reporte "Movimiento de stock valorizado" (Inventario &gt; Reportes): vista de control (sin descarga en PDF) con formato Producto &gt; Cuenta &gt; movimientos (Fecha, Cantidad, Costo Unitario, Costo Total, Débito, Crédito, Saldo) &gt; Total por cuenta &gt; Total por producto; filtra por rango de fecha de movimiento y por uno o varios productos (vacío = todos); el orden es siempre por secuencia de ingreso al sistema y no se puede alterar</li>
+                <li>Corregido: faltaba declarar "stock_account" como dependencia del módulo (necesaria para el reporte de Movimiento de Stock Valorizado)</li>
             </ul>
         </div>
     </div>
