@@ -385,9 +385,9 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         domain = [
             ('company_id', '=', company.id),
             ('state', '=', 'done'),
-            ('is_valued', '=', True),
             ('date', '>=', fecha_desde),
             ('date', '<=', fecha_hasta),
+            '|', ('is_in', '=', True), ('is_out', '=', True),
         ]
         if product_ids:
             domain.append(('product_id', 'in', product_ids.ids))
