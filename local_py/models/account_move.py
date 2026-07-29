@@ -144,6 +144,34 @@ class AccountMove(models.Model):
              'editar después. Se usa en informes contable-fiscales (ej. Libro Diario).',
     )
 
+    l10n_py_ajuste_inventario_quant_id = fields.Many2one(
+        'stock.quant', string='Ajuste de Inventario Físico origen',
+        compute='_compute_l10n_py_ajuste_inventario_quant_id',
+        help='Si este asiento fue generado automáticamente por un Ajuste de '
+             'Inventario Físico, aquí queda la referencia de vuelta a ese registro.',
+    )
+
+    def _compute_l10n_py_ajuste_inventario_quant_id(self):
+        Quant = self.env['stock.quant'].sudo()
+        for move in self:
+            move.l10n_py_ajuste_inventario_quant_id = Quant.search(
+                [('l10n_py_asiento_ajuste_id', '=', move.id)], limit=1
+            )
+
+    def action_l10n_py_ver_ajuste_inventario(self):
+        self.ensure_one()
+        quant = self.l10n_py_ajuste_inventario_quant_id
+        if not quant:
+            return False
+        return {
+            'name': 'Ajuste de Inventario Físico',
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.quant',
+            'view_mode': 'form',
+            'res_id': quant.id,
+            'views': [(False, 'form')],
+        }
+
     def _l10n_py_build_comentario(self):
         self.ensure_one()
         partner_name = (self.partner_id.name or '').strip()
@@ -487,38 +515,19 @@ class AccountMove(models.Model):
                     'El campo Nro. Documento solo admite números y el carácter "-".'
                 )
 
-    # ------------------------------------------------------------------
-    # Unicidad - lado venta: por Nro. Documento, separado por move_type.
-    # Al igual que en proveedor, solo se valida al CONFIRMAR (state='posted'),
-    # no al guardar en borrador.
-    # ------------------------------------------------------------------
-    @api.constrains('l10n_py_nro_documento', 'move_type', 'state')
-    def _check_l10n_py_nro_documento_unique_sale(self):
-        for move in self:
-            if (
-                move.move_type in SALE_MOVE_TYPES
-                and move.state == 'posted'
-                and move.l10n_py_nro_documento
-            ):
-                domain = [
-                    ('id', '!=', move.id),
-                    ('l10n_py_nro_documento', '=', move.l10n_py_nro_documento),
-                    ('move_type', '=', move.move_type),
-                    ('state', '=', 'posted'),
-                    ('company_id', '=', move.company_id.id),
-                ]
-                if self.search_count(domain):
-                    label = 'factura de venta' if move.move_type == 'out_invoice' else 'nota de crédito de venta'
-                    raise exceptions.ValidationError(
-                        'Ya existe otra %s confirmada con el mismo Nro. Documento: %s'
-                        % (label, move.l10n_py_nro_documento)
-                    )
+    # Nota: no hay una validación de unicidad de Nro. Documento a nivel de Factura de
+    # Cliente (venta) — Timbrado, Nro. Documento y Tipo Fiscal se completan siempre
+    # desde el Diario (no se editan a mano), y ya existe el control correspondiente en
+    # account.journal (_check_l10n_py_unique_timbrado_per_tipo_fiscal), que impide que
+    # dos Diarios de venta compartan esa misma combinación. Repetirlo acá sería
+    # redundante.
 
     # ------------------------------------------------------------------
     # Unicidad - lado proveedor: por proveedor + Timbrado + Nro. Documento,
     # solo entre facturas/notas de crédito CONFIRMADAS, separado por move_type
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'move_type', 'state', 'partner_id')
+    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'move_type', 'state', 'partner_id',
+                     'local_py_tipo_fiscal_id')
     def _check_l10n_py_duplicate_purchase(self):
         for move in self:
             if (
@@ -535,13 +544,14 @@ class AccountMove(models.Model):
                     ('partner_id', '=', move.partner_id.id),
                     ('l10n_py_timbrado', '=', move.l10n_py_timbrado),
                     ('l10n_py_nro_documento', '=', move.l10n_py_nro_documento),
+                    ('local_py_tipo_fiscal_id', '=', move.local_py_tipo_fiscal_id.id),
                     ('company_id', '=', move.company_id.id),
                 ]
                 if self.search_count(domain):
                     label = 'factura de proveedor' if move.move_type == 'in_invoice' else 'nota de crédito de proveedor'
                     raise exceptions.ValidationError(
-                        'Ya existe otra %s confirmada con el mismo proveedor, Timbrado y Nro. Documento.'
-                        % label
+                        'Ya existe otra %s confirmada con el mismo proveedor, Timbrado, Nro. '
+                        'Documento y Tipo Fiscal.' % label
                     )
 
     # ------------------------------------------------------------------

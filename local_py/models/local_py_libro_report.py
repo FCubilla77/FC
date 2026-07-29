@@ -42,6 +42,14 @@ class ReportEstadoResultado(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportStockValorizado(models.AbstractModel):
+    _name = 'report.local_py.report_stock_valorizado_document'
+    _description = 'Reporte Movimiento de Stock Valorizado'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
@@ -357,6 +365,91 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             rows[i:i + lineas_por_pagina]
             for i in range(0, len(rows), lineas_por_pagina)
         ] or [[]]
+
+    # ------------------------------------------------------------------
+    # Movimiento de Stock Valorizado (solo de control, sin PDF)
+    # ------------------------------------------------------------------
+    def _build_stock_valorizado_rows(self, company, fecha_desde, fecha_hasta, product_ids=None):
+        """Arma las filas de "Movimiento de Stock Valorizado": agrupado por
+        Producto (cada uno arranca en página nueva) y, dentro de cada
+        Producto, por Cuenta (la de valoración de inventario configurada en
+        su Categoría), con cada movimiento en el orden real en que ingresó
+        al sistema (create_date de la capa de valoración, sin posibilidad
+        de reordenar) y su Saldo acumulado. El rango de fechas filtra por la
+        fecha del movimiento de stock, no por cuándo se cargó el registro."""
+        domain = [
+            ('company_id', '=', company.id),
+            ('stock_move_id.date', '>=', fecha_desde),
+            ('stock_move_id.date', '<=', fecha_hasta),
+        ]
+        if product_ids:
+            domain.append(('product_id', 'in', product_ids.ids))
+
+        layers = self.env['stock.valuation.layer'].search(domain, order='product_id, create_date, id')
+
+        rows = []
+        producto_actual = None
+        cuenta_actual = None
+        saldo = 0.0
+        total_cuenta_debe = total_cuenta_haber = 0.0
+        total_producto_debe = total_producto_haber = 0.0
+
+        def cerrar_cuenta():
+            if cuenta_actual is not None:
+                rows.append({
+                    'tipo': 'total_cuenta', 'total_debe': total_cuenta_debe, 'total_haber': total_cuenta_haber,
+                })
+
+        def cerrar_producto():
+            if producto_actual is not None:
+                rows.append({
+                    'tipo': 'total_producto', 'total_debe': total_producto_debe, 'total_haber': total_producto_haber,
+                })
+
+        for layer in layers:
+            producto = layer.product_id
+            cuenta = producto.categ_id.property_stock_valuation_account_id
+
+            if producto != producto_actual:
+                cerrar_cuenta()
+                cerrar_producto()
+                producto_actual = producto
+                cuenta_actual = None
+                total_producto_debe = total_producto_haber = 0.0
+                rows.append({'tipo': 'producto', 'nombre': producto.display_name})
+
+            if cuenta != cuenta_actual:
+                cerrar_cuenta()
+                cuenta_actual = cuenta
+                saldo = 0.0
+                total_cuenta_debe = total_cuenta_haber = 0.0
+                rows.append({
+                    'tipo': 'cuenta', 'cuenta': cuenta.code if cuenta else '',
+                    'nombre_cuenta': cuenta.name if cuenta else 'Sin cuenta configurada',
+                })
+
+            debe = layer.value if layer.value > 0 else 0.0
+            haber = -layer.value if layer.value < 0 else 0.0
+            saldo += debe - haber
+            total_cuenta_debe += debe
+            total_cuenta_haber += haber
+            total_producto_debe += debe
+            total_producto_haber += haber
+
+            rows.append({
+                'tipo': 'linea',
+                'fecha': layer.stock_move_id.date,
+                'cantidad': layer.quantity,
+                'costo_unitario': layer.unit_cost,
+                'costo_total': layer.value,
+                'debe': debe,
+                'haber': haber,
+                'saldo': saldo,
+            })
+
+        cerrar_cuenta()
+        cerrar_producto()
+        return rows
 
     # ------------------------------------------------------------------
     # Generación oficial (PDF + consumo de Rúbrica)

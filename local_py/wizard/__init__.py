@@ -10,3 +10,4 @@ from . import local_py_limpiar_numeracion_wizard
 from . import local_py_libro_wizard
 from . import local_py_libro_inventario_wizard
 from . import local_py_estado_resultado_wizard
+from . import local_py_stock_valorizado_wizard

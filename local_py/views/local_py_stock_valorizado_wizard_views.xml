@@ -1,0 +1,38 @@
+<odoo>
+    <data>
+        <record id="view_local_py_stock_valorizado_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.stock_valorizado.wizard.form</field>
+            <field name="model">local_py.stock_valorizado.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Movimiento de Stock Valorizado">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}"/>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="product_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                    </group>
+                    <footer>
+                        <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_stock_valorizado_wizard" model="ir.actions.act_window">
+            <field name="name">Movimiento de stock valorizado</field>
+            <field name="res_model">local_py.stock_valorizado.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_local_py_stock_valorizado_wizard_form"/>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_stock_valorizado"
+                  name="Movimiento de stock valorizado"
+                  parent="stock.menu_warehouse_report"
+                  action="action_local_py_stock_valorizado_wizard"
+                  groups="account.group_account_manager"
+                  sequence="20"/>
+    </data>
+</odoo>

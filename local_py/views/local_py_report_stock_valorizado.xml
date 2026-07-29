@@ -1,0 +1,84 @@
+<odoo>
+    <data>
+        <template id="report_stock_valorizado_document">
+            <t t-call="web.basic_layout">
+                <t t-foreach="paginas" t-as="pagina">
+                    <div style="page-break-after: always; font-size: 10px; font-family: Arial, sans-serif;">
+                        <table style="width: 100%; margin-bottom: 6px;">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <strong t-esc="company.name"/><br/>
+                                    MOVIMIENTO DE STOCK VALORIZADO (vista de control)<br/>
+                                    Fecha desde: <t t-esc="fecha_desde.strftime('%d/%m/%Y')"/>
+                                    hasta: <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Fecha</th>
+                                    <th style="padding: 3px;">Cantidad</th>
+                                    <th style="padding: 3px;">Costo Unitario</th>
+                                    <th style="padding: 3px;">Costo Total</th>
+                                    <th style="padding: 3px;">Débito</th>
+                                    <th style="padding: 3px;">Crédito</th>
+                                    <th style="padding: 3px;">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="pagina" t-as="fila">
+                                    <tr t-if="fila['tipo'] == 'producto'" style="font-weight: bold; background-color: #dddddd;">
+                                        <td colspan="7" style="padding: 3px;" t-esc="fila['nombre']"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'cuenta'" style="font-weight: bold; background-color: #f0f0f0;">
+                                        <td colspan="7" style="padding: 2px 2px 2px 12px;">
+                                            <t t-esc="fila['cuenta']"/> - <t t-esc="fila['nombre_cuenta']"/>
+                                        </td>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'linea'">
+                                        <td style="padding: 2px 2px 2px 24px;" t-esc="fila['fecha'].strftime('%d/%m/%Y %H:%M') if fila['fecha'] else ''"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['cantidad'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.2f}'.format(fila['costo_unitario'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['costo_total'])"/>
+                                        <td style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['debe']" t-esc="'{:,.0f}'.format(fila['debe'])"/>
+                                        </td>
+                                        <td style="padding: 2px; text-align: right;">
+                                            <t t-if="fila['haber']" t-esc="'{:,.0f}'.format(fila['haber'])"/>
+                                        </td>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['saldo'])"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'total_cuenta'" style="font-style: italic; border-top: 1px solid #999999;">
+                                        <td colspan="4" style="padding: 2px 2px 2px 12px;">Total por cuenta</td>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
+                                        <td style="padding: 2px;"/>
+                                    </tr>
+                                    <tr t-elif="fila['tipo'] == 'total_producto'" style="font-weight: bold; border-top: 1px solid #000000;">
+                                        <td colspan="4" style="padding: 2px;">Total por producto</td>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_debe'])"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="'{:,.0f}'.format(fila['total_haber'])"/>
+                                        <td style="padding: 2px;"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                        <div style="text-align: center; margin-top: 6px;">
+                            Pag. <t t-esc="pagina_inicial + pagina_index"/> de <t t-esc="total_paginas_libro"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_stock_valorizado_html" model="ir.actions.report">
+            <field name="name">Movimiento de Stock Valorizado (vista de control)</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">local_py.report_stock_valorizado_document</field>
+            <field name="report_file">local_py.report_stock_valorizado_document</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -50,6 +50,16 @@
                         <field name="l10n_py_comentario" nolabel="1" colspan="2" placeholder="Comentario del asiento..."/>
                     </group>
                 </xpath>
+                <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                    <button name="action_l10n_py_ver_ajuste_inventario" type="object"
+                            class="oe_stat_button" icon="fa-cubes"
+                            invisible="not l10n_py_ajuste_inventario_quant_id">
+                        <field name="l10n_py_ajuste_inventario_quant_id" invisible="1"/>
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Ajuste de Inventario Físico</span>
+                        </div>
+                    </button>
+                </xpath>
             </field>
         </record>
 
