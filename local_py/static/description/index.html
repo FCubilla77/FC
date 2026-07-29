@@ -225,6 +225,7 @@
                 <li>Nuevo botón en los Asientos Contables: si el asiento fue generado por un Ajuste de Inventario Físico, muestra un botón para volver directo a ese registro de Inventario</li>
                 <li>Nuevo reporte "Movimiento de stock valorizado" (Inventario &gt; Reportes): vista de control (sin descarga en PDF) con formato Producto &gt; Cuenta &gt; movimientos (Fecha, Cantidad, Costo Unitario, Costo Total, Débito, Crédito, Saldo) &gt; Total por cuenta &gt; Total por producto; filtra por rango de fecha de movimiento y por uno o varios productos (vacío = todos); el orden es siempre por secuencia de ingreso al sistema y no se puede alterar</li>
                 <li>Corregido: faltaba declarar "stock_account" como dependencia del módulo (necesaria para el reporte de Movimiento de Stock Valorizado)</li>
+                <li>Corrección real del error de Movimiento de Stock Valorizado: Odoo 19 eliminó por completo el modelo "stock.valuation.layer" (no era un problema de dependencias) — el reporte ahora lee los datos de valoración directamente desde stock.move, como corresponde en esta versión</li>
             </ul>
         </div>
     </div>

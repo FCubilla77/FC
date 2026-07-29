@@ -374,18 +374,25 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         Producto (cada uno arranca en página nueva) y, dentro de cada
         Producto, por Cuenta (la de valoración de inventario configurada en
         su Categoría), con cada movimiento en el orden real en que ingresó
-        al sistema (create_date de la capa de valoración, sin posibilidad
-        de reordenar) y su Saldo acumulado. El rango de fechas filtra por la
-        fecha del movimiento de stock, no por cuándo se cargó el registro."""
+        al sistema (create_date del movimiento, sin posibilidad de
+        reordenar) y su Saldo acumulado. El rango de fechas filtra por la
+        fecha del movimiento de stock (campo "date"), no por cuándo se
+        cargó el registro.
+
+        Nota técnica: Odoo 19 eliminó el modelo stock.valuation.layer — el
+        detalle de valoración de cada movimiento ahora vive directo en
+        stock.move (campos value/is_in/is_out/quantity/price_unit)."""
         domain = [
             ('company_id', '=', company.id),
-            ('stock_move_id.date', '>=', fecha_desde),
-            ('stock_move_id.date', '<=', fecha_hasta),
+            ('state', '=', 'done'),
+            ('is_valued', '=', True),
+            ('date', '>=', fecha_desde),
+            ('date', '<=', fecha_hasta),
         ]
         if product_ids:
             domain.append(('product_id', 'in', product_ids.ids))
 
-        layers = self.env['stock.valuation.layer'].search(domain, order='product_id, create_date, id')
+        moves = self.env['stock.move'].search(domain, order='product_id, create_date, id')
 
         rows = []
         producto_actual = None
@@ -406,8 +413,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'tipo': 'total_producto', 'total_debe': total_producto_debe, 'total_haber': total_producto_haber,
                 })
 
-        for layer in layers:
-            producto = layer.product_id
+        for move in moves:
+            producto = move.product_id
             cuenta = producto.categ_id.property_stock_valuation_account_id
 
             if producto != producto_actual:
@@ -428,8 +435,9 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'nombre_cuenta': cuenta.name if cuenta else 'Sin cuenta configurada',
                 })
 
-            debe = layer.value if layer.value > 0 else 0.0
-            haber = -layer.value if layer.value < 0 else 0.0
+            valor = abs(move.value)
+            debe = valor if move.is_in else 0.0
+            haber = valor if move.is_out else 0.0
             saldo += debe - haber
             total_cuenta_debe += debe
             total_cuenta_haber += haber
@@ -438,10 +446,10 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
 
             rows.append({
                 'tipo': 'linea',
-                'fecha': layer.stock_move_id.date,
-                'cantidad': layer.quantity,
-                'costo_unitario': layer.unit_cost,
-                'costo_total': layer.value,
+                'fecha': move.date,
+                'cantidad': move.quantity,
+                'costo_unitario': move.price_unit or move.standard_price,
+                'costo_total': move.value,
                 'debe': debe,
                 'haber': haber,
                 'saldo': saldo,
