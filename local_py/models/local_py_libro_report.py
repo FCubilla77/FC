@@ -401,15 +401,16 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         cuenta_actual = None
         saldo = 0.0
         saldo_producto = 0.0
-        total_cuenta_debe = total_cuenta_haber = 0.0
-        total_producto_debe = total_producto_haber = 0.0
+        total_cuenta_debe = total_cuenta_haber = total_cuenta_cantidad = 0.0
+        total_producto_debe = total_producto_haber = total_producto_cantidad = 0.0
 
         def cerrar_cuenta():
             nonlocal saldo_producto
             if cuenta_actual is not None:
                 rows.append({
                     'tipo': 'total_cuenta', 'total_debe': total_cuenta_debe,
-                    'total_haber': total_cuenta_haber, 'saldo': saldo,
+                    'total_haber': total_cuenta_haber, 'total_cantidad': total_cuenta_cantidad,
+                    'saldo': saldo,
                 })
                 saldo_producto += saldo
 
@@ -417,7 +418,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             if producto_actual is not None:
                 rows.append({
                     'tipo': 'total_producto', 'total_debe': total_producto_debe,
-                    'total_haber': total_producto_haber, 'saldo': saldo_producto,
+                    'total_haber': total_producto_haber, 'total_cantidad': total_producto_cantidad,
+                    'saldo': saldo_producto,
                 })
 
         for move in moves:
@@ -430,14 +432,14 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 producto_actual = producto
                 cuenta_actual = None
                 saldo_producto = 0.0
-                total_producto_debe = total_producto_haber = 0.0
+                total_producto_debe = total_producto_haber = total_producto_cantidad = 0.0
                 rows.append({'tipo': 'producto', 'nombre': producto.display_name})
 
             if cuenta != cuenta_actual:
                 cerrar_cuenta()
                 cuenta_actual = cuenta
                 saldo = 0.0
-                total_cuenta_debe = total_cuenta_haber = 0.0
+                total_cuenta_debe = total_cuenta_haber = total_cuenta_cantidad = 0.0
                 rows.append({
                     'tipo': 'cuenta', 'cuenta': cuenta.code if cuenta else '',
                     'nombre_cuenta': cuenta.name if cuenta else 'Sin cuenta configurada',
@@ -449,14 +451,18 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             saldo += debe - haber
             total_cuenta_debe += debe
             total_cuenta_haber += haber
+            total_cuenta_cantidad += move.quantity
             total_producto_debe += debe
             total_producto_haber += haber
+            total_producto_cantidad += move.quantity
 
+            asiento = move.account_move_id
             rows.append({
                 'tipo': 'linea',
                 'fecha': move.date,
                 'fecha_sistema': move.create_date,
                 'referencia': move.reference or move.name or '',
+                'nro_fiscal': asiento.l10n_py_nro_fiscal if asiento else False,
                 'cantidad': move.quantity,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
