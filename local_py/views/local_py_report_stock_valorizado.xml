@@ -1,10 +1,13 @@
 <odoo>
     <data>
         <template id="report_stock_valorizado_document">
+            <style>
+                @page { size: A4 landscape; margin: 15mm 15mm 15mm 20mm; }
+            </style>
             <t t-call="web.basic_layout">
                 <t t-foreach="paginas" t-as="pagina">
-                    <div style="page-break-after: always; font-size: 10px; font-family: Arial, sans-serif;">
-                        <table style="width: 100%; margin-bottom: 6px;">
+                    <div style="page-break-after: always; font-size: 10px; font-family: Arial, sans-serif; width: 262mm;">
+                        <table style="width: 262mm; margin-bottom: 6px;">
                             <tr>
                                 <td style="vertical-align: top;">
                                     <strong t-esc="company.name"/><br/>
@@ -14,20 +17,20 @@
                                 </td>
                             </tr>
                         </table>
-                        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;" border="1">
+                        <table style="width: 262mm; border-collapse: collapse; table-layout: fixed;" border="1">
                             <colgroup>
-                                <col style="width: 8%;"/>
-                                <col style="width: 12%;"/>
-                                <col style="width: 12%;"/>
-                                <col style="width: 6%;"/>
-                                <col style="width: 7%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 8%;"/>
-                                <col style="width: 7%;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 32mm;"/>
+                                <col style="width: 32mm;"/>
+                                <col style="width: 15mm;"/>
+                                <col style="width: 18mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 21mm;"/>
+                                <col style="width: 18mm;"/>
                             </colgroup>
                             <thead>
                                 <tr style="background-color: #eeeeee;">
