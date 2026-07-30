@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.09.012",
+    "version": "2026.10.001",
     "license": "LGPL-3",
     "depends": ["base", "account", "base_address_extended", "mail", "stock", "stock_account"],
     "data": [
@@ -53,6 +53,7 @@
         "views/local_py_estado_resultado_wizard_views.xml",
         "views/stock_quant_move_views.xml",
         "views/local_py_report_stock_valorizado.xml",
+        "views/local_py_stock_valorizado_linea_views.xml",
         "views/local_py_stock_valorizado_wizard_views.xml",
         "views/account_journal_views.xml",
         "views/account_move_views.xml",

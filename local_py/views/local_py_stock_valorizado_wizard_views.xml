@@ -14,6 +14,7 @@
                     </group>
                     <footer>
                         <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button name="action_descargar_pdf" type="object" string="Descargar PDF" class="btn-secondary"/>
                         <button name="action_descargar_excel" type="object" string="Descargar Excel" class="btn-secondary"/>
                         <button string="Cancelar" class="btn-secondary" special="cancel"/>
                     </footer>

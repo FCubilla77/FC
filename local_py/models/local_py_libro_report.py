@@ -404,6 +404,97 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         cantidad_inicial = (cantidad_entrada or 0.0) - (cantidad_salida or 0.0)
         return valor_inicial, cantidad_inicial
 
+    def _build_stock_valorizado_lineas_planas(self, company, fecha_desde, fecha_hasta, product_ids=None):
+        """Versión "plana" de Movimiento de Stock Valorizado: una lista de
+        diccionarios, uno por fila real (incluyendo el Saldo Inicial de
+        cada Cuenta como una línea más, que también participa de los
+        totales de Débito/Crédito/Cantidad) — pensada para volcarse en la
+        tabla temporal local_py.stock_valorizado.linea y mostrarse como
+        lista nativa de Odoo, agrupada por Producto y Cuenta (Odoo arma
+        los encabezados de grupo y subtotales solo)."""
+        fecha_desde_dt = datetime.combine(fecha_desde, time.min)
+        fecha_hasta_dt = datetime.combine(fecha_hasta, time.max)
+        domain = [
+            ('company_id', '=', company.id),
+            ('state', '=', 'done'),
+            ('date', '>=', fecha_desde_dt),
+            ('date', '<=', fecha_hasta_dt),
+            '|', ('is_in', '=', True), ('is_out', '=', True),
+        ]
+        if product_ids:
+            domain.append(('product_id', 'in', product_ids.ids))
+
+        moves = self.env['stock.move'].search(domain, order='product_id, create_date, id')
+
+        def costo_promedio(valor_acum, cantidad_acum):
+            if not cantidad_acum:
+                return False
+            return valor_acum / cantidad_acum
+
+        lineas = []
+        secuencia = 0
+        producto_actual = None
+        cuenta_actual = None
+        saldo = 0.0
+        saldo_cantidad = 0.0
+
+        for move in moves:
+            producto = move.product_id
+            cuenta = producto.categ_id.property_stock_valuation_account_id
+
+            if producto != producto_actual or cuenta != cuenta_actual:
+                producto_actual = producto
+                cuenta_actual = cuenta
+                saldo, saldo_cantidad = self._saldo_inicial_producto(company, producto, fecha_desde_dt)
+                if saldo or saldo_cantidad:
+                    secuencia += 1
+                    lineas.append({
+                        'sequence': secuencia,
+                        'producto_id': producto.id,
+                        'cuenta_id': cuenta.id if cuenta else False,
+                        'referencia': 'Saldo Inicial',
+                        'nro_fiscal': False,
+                        'cantidad': saldo_cantidad,
+                        'costo_unitario': 0.0,
+                        'costo_total': saldo,
+                        'debe': saldo if saldo > 0 else 0.0,
+                        'haber': -saldo if saldo < 0 else 0.0,
+                        'fecha_real': False,
+                        'fecha_sistema_real': False,
+                        'valor_acumulado_real': saldo,
+                        'cantidad_acumulada_real': saldo_cantidad,
+                        'costo_promedio_real': costo_promedio(saldo, saldo_cantidad) or 0.0,
+                    })
+
+            valor = abs(move.value)
+            debe = valor if move.is_in else 0.0
+            haber = valor if move.is_out else 0.0
+            cantidad_con_signo = move.quantity if move.is_in else -move.quantity
+            saldo += debe - haber
+            saldo_cantidad += cantidad_con_signo
+
+            asiento = move.account_move_id
+            secuencia += 1
+            lineas.append({
+                'sequence': secuencia,
+                'producto_id': producto.id,
+                'cuenta_id': cuenta.id if cuenta else False,
+                'referencia': move.reference or move.name or '',
+                'nro_fiscal': asiento.l10n_py_nro_fiscal if asiento else False,
+                'cantidad': cantidad_con_signo,
+                'costo_unitario': move.price_unit or move.standard_price,
+                'costo_total': move.value,
+                'debe': debe,
+                'haber': haber,
+                'fecha_real': move.date,
+                'fecha_sistema_real': move.create_date,
+                'valor_acumulado_real': saldo,
+                'cantidad_acumulada_real': saldo_cantidad,
+                'costo_promedio_real': costo_promedio(saldo, saldo_cantidad) or 0.0,
+            })
+
+        return lineas
+
     def _build_stock_valorizado_rows(self, company, fecha_desde, fecha_hasta, product_ids=None):
         """Arma las filas de "Movimiento de Stock Valorizado": agrupado por
         Producto (cada uno arranca en página nueva) y, dentro de cada

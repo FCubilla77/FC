@@ -31,6 +31,28 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
     def action_ver_reporte(self):
         self.ensure_one()
         builder = self.env['local_py.libro_report.builder']
+        lineas = builder._build_stock_valorizado_lineas_planas(
+            self.company_id, self.fecha_desde, self.fecha_hasta, self.product_ids,
+        )
+        Linea = self.env['local_py.stock_valorizado.linea']
+        Linea.search([('wizard_id', '=', self.id)]).unlink()
+        for vals in lineas:
+            vals['wizard_id'] = self.id
+            Linea.create(vals)
+
+        return {
+            'name': 'Movimiento de Stock Valorizado (vista de control)',
+            'type': 'ir.actions.act_window',
+            'res_model': 'local_py.stock_valorizado.linea',
+            'view_mode': 'list',
+            'views': [(self.env.ref('local_py.view_local_py_stock_valorizado_linea_list').id, 'list')],
+            'domain': [('wizard_id', '=', self.id)],
+            'context': {'group_by': ['producto_id', 'cuenta_id']},
+        }
+
+    def action_descargar_pdf(self):
+        self.ensure_one()
+        builder = self.env['local_py.libro_report.builder']
         rows = builder._build_stock_valorizado_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.product_ids,
         )
@@ -45,24 +67,26 @@ class LocalPyStockValorizadoWizard(models.TransientModel):
             'rubrica': self.env['local_py.rubrica'],
             'fmt_pyg': fmt_pyg,
         }
-        report_action = self.env.ref('local_py.action_report_stock_valorizado_html')
-        html_content, _ = report_action.with_context(
+        report_action = self.env.ref('local_py.action_report_stock_valorizado_pdf')
+        pdf_content, _ = report_action.with_context(
             local_py_libro_render_data=render_context
-        )._render_qweb_html(report_action.report_name, [self.company_id.id])
+        )._render_qweb_pdf(report_action.report_name, [self.company_id.id])
 
         import base64
         attachment = self.env['ir.attachment'].create({
-            'name': 'Movimiento de Stock Valorizado (vista de control).html',
+            'name': 'Movimiento_Stock_Valorizado_%s_%s.pdf' % (
+                self.fecha_desde.strftime('%Y%m%d'), self.fecha_hasta.strftime('%Y%m%d'),
+            ),
             'type': 'binary',
-            'datas': base64.b64encode(html_content),
-            'mimetype': 'text/html',
+            'datas': base64.b64encode(pdf_content),
+            'mimetype': 'application/pdf',
             'res_model': self._name,
             'res_id': self.id,
         })
         return {
             'type': 'ir.actions.act_url',
-            'url': '/web/content/%s?download=false' % attachment.id,
-            'target': 'new',
+            'url': '/web/content/%s?download=true' % attachment.id,
+            'target': 'self',
         }
 
     def action_descargar_excel(self):

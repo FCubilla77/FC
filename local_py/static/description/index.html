@@ -237,6 +237,8 @@
                 <li>Todos los reportes de Localización Paraguay (Libro Diario, Libro Mayor, Libro Inventario, Estado de Resultado, Movimiento de Stock Valorizado) ahora muestran los números con el formato de moneda guaraní: punto como separador de miles, coma como separador decimal</li>
                 <li>Movimiento de Stock Valorizado: "Saldo" renombrado a "Valor Acumulado" y "Saldo Cantidad" a "Cantidad Acumulada"; la columna Cantidad ahora muestra signo negativo en las salidas; "Total por cuenta" y "Total por producto" ahora también muestran Cantidad Acumulada y Costo Promedio; columna "Fecha" sin hora y más angosta, columna "Fecha Sistema" más ancha (ya no ocupa dos líneas)</li>
                 <li>Movimiento de Stock Valorizado: configurado para imprimirse en hoja A4 horizontal, con anchos de columna fijos (en milímetros, no porcentaje) para que todas las páginas queden con exactamente las mismas dimensiones</li>
+                <li>Movimiento de Stock Valorizado: la vista en pantalla ahora es una lista nativa de Odoo (agrupada por Producto y Cuenta, con subtotales automáticos de Cantidad/Costo Total/Débito/Crédito), con orden fijo (no se puede reordenar con clic, ya que las columnas de saldo acumulado solo tienen sentido en el orden real de carga)</li>
+                <li>Movimiento de Stock Valorizado: nuevo botón "Descargar PDF", generado en el servidor (mismo motor confiable que ya usan Libro Diario/Mayor) — resuelve de forma definitiva la impresión en A4, que antes dependía de la función "Imprimir" del navegador</li>
             </ul>
         </div>
     </div>

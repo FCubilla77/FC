@@ -1,0 +1,25 @@
+<odoo>
+    <data>
+        <record id="view_local_py_stock_valorizado_linea_list" model="ir.ui.view">
+            <field name="name">local_py.stock_valorizado.linea.list</field>
+            <field name="model">local_py.stock_valorizado.linea</field>
+            <field name="arch" type="xml">
+                <list string="Movimiento de Stock Valorizado" create="false" edit="false" delete="false"
+                      default_order="sequence">
+                    <field name="fecha" string="Fecha"/>
+                    <field name="fecha_sistema" string="Fecha Sistema"/>
+                    <field name="referencia" string="Referencia"/>
+                    <field name="nro_fiscal" string="Nro. Fiscal" optional="show"/>
+                    <field name="cantidad" string="Cantidad" sum="Cantidad"/>
+                    <field name="costo_unitario" string="Costo Unitario"/>
+                    <field name="costo_total" string="Costo Total" sum="Costo Total"/>
+                    <field name="debe" string="Débito" sum="Débito"/>
+                    <field name="haber" string="Crédito" sum="Crédito"/>
+                    <field name="valor_acumulado" string="Valor Acumulado"/>
+                    <field name="cantidad_acumulada" string="Cantidad Acumulada"/>
+                    <field name="costo_promedio" string="Costo Promedio"/>
+                </list>
+            </field>
+        </record>
+    </data>
+</odoo>
