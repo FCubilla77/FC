@@ -180,8 +180,10 @@ class AccountMove(models.Model):
     )
 
     def _compute_l10n_py_orden_pago_id(self):
+        Payment = self.env['account.payment'].sudo()
         for move in self:
-            move.l10n_py_orden_pago_id = move.payment_id.l10n_py_orden_pago_id
+            payment = Payment.search([('move_id', '=', move.id)], limit=1)
+            move.l10n_py_orden_pago_id = payment.l10n_py_orden_pago_id
 
     def action_l10n_py_ver_orden_pago(self):
         self.ensure_one()
