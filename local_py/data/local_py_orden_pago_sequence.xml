@@ -1,0 +1,11 @@
+<odoo>
+    <data noupdate="1">
+        <record id="seq_local_py_orden_pago" model="ir.sequence">
+            <field name="name">Orden de Pago</field>
+            <field name="code">local_py.orden_pago</field>
+            <field name="prefix">OP/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

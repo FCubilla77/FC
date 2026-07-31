@@ -35,6 +35,12 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'gastos configuradas en la Categoría del producto). Ese asiento queda '
              'protegido: no se puede eliminar ni restablecer a borrador.',
     )
+    l10n_py_activar_retenciones = fields.Boolean(
+        string='Activar Retenciones',
+        help='Preparación para la funcionalidad de Retenciones (aún en desarrollo). '
+             'Por ahora, la Orden de Pago ya permite usar un Diario de Retención como '
+             'un medio de pago más, sin cálculo automático todavía.',
+    )
 
     _sql_constraints = [
         ('company_uniq', 'unique(company_id)',

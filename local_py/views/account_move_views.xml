@@ -59,6 +59,14 @@
                             <span class="o_stat_text">Ajuste de Inventario Físico</span>
                         </div>
                     </button>
+                    <button name="action_l10n_py_ver_orden_pago" type="object"
+                            class="oe_stat_button" icon="fa-money"
+                            invisible="not l10n_py_orden_pago_id">
+                        <field name="l10n_py_orden_pago_id" invisible="1"/>
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Orden de Pago</span>
+                        </div>
+                    </button>
                 </xpath>
             </field>
         </record>

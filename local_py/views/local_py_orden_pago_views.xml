@@ -1,0 +1,110 @@
+<odoo>
+    <data>
+        <record id="view_local_py_orden_pago_form" model="ir.ui.view">
+            <field name="name">local_py.orden_pago.form</field>
+            <field name="model">local_py.orden_pago</field>
+            <field name="arch" type="xml">
+                <form string="Orden de Pago">
+                    <header>
+                        <button name="action_marcar_en_proceso" type="object" string="Marcar En Proceso"
+                                class="btn-primary" invisible="state != 'borrador'"/>
+                        <button name="action_confirmar" type="object" string="Confirmar"
+                                class="btn-primary" invisible="state != 'en_proceso'"
+                                confirm="Esto genera un pago por cada Medio de Pago y concilia contra las facturas seleccionadas. ¿Confirma?"/>
+                        <button name="action_volver_borrador" type="object" string="Volver a Borrador"
+                                invisible="state != 'en_proceso'"/>
+                        <button name="action_deshacer_confirmacion" type="object" string="Deshacer Confirmación"
+                                invisible="state != 'confirmado'"
+                                confirm="Esto cancela los pagos generados y deshace la conciliación contra las facturas. Si algún pago ya está conciliado con el banco, se bloqueará. ¿Confirma?"/>
+                        <field name="state" widget="statusbar" statusbar_visible="borrador,en_proceso,confirmado"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="partner_id" options="{'no_create': True}"
+                                       domain="[('supplier_rank', '>', 0)]"/>
+                                <field name="fecha"/>
+                            </group>
+                            <group>
+                                <field name="currency_id" options="{'no_create': True}"/>
+                                <field name="comentario"/>
+                                <field name="total_facturas"/>
+                                <field name="total_medios"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Facturas" name="facturas">
+                                <button name="action_cargar_facturas_pendientes" type="object"
+                                        string="Cargar Facturas Pendientes" class="btn-secondary"
+                                        invisible="state != 'borrador'"/>
+                                <field name="factura_ids">
+                                    <list editable="bottom">
+                                        <field name="move_id" readonly="1"/>
+                                        <field name="fecha_vencimiento" readonly="1"/>
+                                        <field name="total_original" readonly="1"/>
+                                        <field name="saldo_pendiente" readonly="1"/>
+                                        <field name="importe_a_pagar"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Medios" name="medios">
+                                <field name="medio_ids">
+                                    <list editable="bottom">
+                                        <field name="journal_id"/>
+                                        <field name="importe"/>
+                                        <field name="fecha_emision"/>
+                                        <field name="fecha_vencimiento"/>
+                                        <field name="nro_documento"/>
+                                        <field name="banco"/>
+                                        <field name="chequera"/>
+                                        <field name="cuenta_banco"/>
+                                        <field name="payment_id" readonly="1"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="company_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_orden_pago_list" model="ir.ui.view">
+            <field name="name">local_py.orden_pago.list</field>
+            <field name="model">local_py.orden_pago</field>
+            <field name="arch" type="xml">
+                <list string="Órdenes de Pago">
+                    <field name="name"/>
+                    <field name="fecha"/>
+                    <field name="partner_id"/>
+                    <field name="total_medios"/>
+                    <field name="currency_id"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'borrador'"
+                           decoration-warning="state == 'en_proceso'"
+                           decoration-success="state == 'confirmado'"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_local_py_orden_pago" model="ir.actions.act_window">
+            <field name="name">Orden de Pago</field>
+            <field name="res_model">local_py.orden_pago</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_orden_pago"
+                  name="Orden de Pago"
+                  parent="account.menu_finance_payables"
+                  action="action_local_py_orden_pago"
+                  groups="account.group_account_manager"
+                  sequence="15"/>
+    </data>
+</odoo>

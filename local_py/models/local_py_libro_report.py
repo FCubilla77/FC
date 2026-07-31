@@ -60,6 +60,20 @@ class ReportStockValorizado(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportOrdenPago(models.AbstractModel):
+    _name = 'report.local_py.report_orden_pago_document'
+    _description = 'Reporte Orden de Pago'
+
+    def _get_report_values(self, docids, data=None):
+        docs = self.env['local_py.orden_pago'].browse(docids)
+        return {
+            'doc_ids': docids,
+            'doc_model': 'local_py.orden_pago',
+            'docs': docs,
+            'fmt_pyg': fmt_pyg,
+        }
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial

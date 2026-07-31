@@ -21,3 +21,7 @@ from . import local_py_libro_report
 from . import stock_quant
 from . import stock_move
 from . import local_py_stock_valorizado_linea
+from . import account_payment
+from . import local_py_orden_pago_factura
+from . import local_py_orden_pago_medio
+from . import local_py_orden_pago

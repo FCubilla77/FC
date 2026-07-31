@@ -47,6 +47,11 @@
                                     <field name="l10n_py_asiento_ajuste_inventario"/>
                                 </group>
                             </page>
+                            <page string="Retenciones" name="retenciones">
+                                <group>
+                                    <field name="l10n_py_activar_retenciones"/>
+                                </group>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>

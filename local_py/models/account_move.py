@@ -172,6 +172,31 @@ class AccountMove(models.Model):
             'views': [(False, 'form')],
         }
 
+    l10n_py_orden_pago_id = fields.Many2one(
+        'local_py.orden_pago', string='Orden de Pago origen',
+        compute='_compute_l10n_py_orden_pago_id',
+        help='Si este asiento proviene de un pago generado por una Orden de Pago, aquí '
+             'queda la referencia de vuelta a esa Orden de Pago.',
+    )
+
+    def _compute_l10n_py_orden_pago_id(self):
+        for move in self:
+            move.l10n_py_orden_pago_id = move.payment_id.l10n_py_orden_pago_id
+
+    def action_l10n_py_ver_orden_pago(self):
+        self.ensure_one()
+        orden = self.l10n_py_orden_pago_id
+        if not orden:
+            return False
+        return {
+            'name': 'Orden de Pago',
+            'type': 'ir.actions.act_window',
+            'res_model': 'local_py.orden_pago',
+            'view_mode': 'form',
+            'res_id': orden.id,
+            'views': [(False, 'form')],
+        }
+
     def _l10n_py_build_comentario(self):
         self.ensure_one()
         partner_name = (self.partner_id.name or '').strip()
