@@ -35,6 +35,7 @@
                                 <field name="comentario" readonly="state != 'borrador'"/>
                                 <field name="total_facturas"/>
                                 <field name="total_medios"/>
+                                <field name="diferencia"/>
                             </group>
                         </group>
                         <notebook>
@@ -45,6 +46,7 @@
                                 <field name="factura_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
                                         <field name="move_id" readonly="1"/>
+                                        <field name="fecha_factura" readonly="1"/>
                                         <field name="fecha_vencimiento" readonly="1"/>
                                         <field name="total_original" readonly="1"/>
                                         <field name="saldo_pendiente" readonly="1"/>

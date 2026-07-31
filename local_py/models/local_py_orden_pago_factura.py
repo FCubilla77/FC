@@ -17,6 +17,7 @@ class LocalPyOrdenPagoFactura(models.Model):
              'factura con varios vencimientos tiene una línea por cada cuota).',
     )
     move_id = fields.Many2one(related='move_line_id.move_id', string='Factura')
+    fecha_factura = fields.Date(related='move_id.invoice_date', string='Fecha Factura')
     fecha_vencimiento = fields.Date(related='move_line_id.date_maturity', string='Vencimiento')
     total_original = fields.Monetary(
         string='Total Original', compute='_compute_montos', currency_field='currency_id',

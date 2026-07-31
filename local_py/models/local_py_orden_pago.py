@@ -45,12 +45,23 @@ class LocalPyOrdenPago(models.Model):
     total_medios = fields.Monetary(
         string='Total Medios de Pago', compute='_compute_totales', currency_field='currency_id',
     )
+    diferencia = fields.Monetary(
+        string='Diferencia', compute='_compute_totales', currency_field='currency_id',
+        help='Total a Pagar (Facturas) menos Total Medios de Pago. Tiene que quedar en '
+             'cero antes de poder pasar a "En Proceso".',
+    )
 
     @api.depends('factura_ids.importe_a_pagar', 'medio_ids.importe')
     def _compute_totales(self):
         for orden in self:
             orden.total_facturas = sum(orden.factura_ids.mapped('importe_a_pagar'))
             orden.total_medios = sum(orden.medio_ids.mapped('importe'))
+            orden.diferencia = orden.total_facturas - orden.total_medios
+
+    @api.onchange('partner_id')
+    def _onchange_partner_id(self):
+        if self.factura_ids:
+            self.factura_ids = [(5, 0, 0)]
 
     @api.model_create_multi
     def create(self, vals_list):
