@@ -79,6 +79,29 @@ class LocalPyOrdenPago(models.Model):
     # ------------------------------------------------------------------
     # Flujo de estados
     # ------------------------------------------------------------------
+    def _verificar_cotizaciones_cargadas(self, monedas):
+        """Bloquea si falta la cotización exacta del día para alguna
+        moneda — para no usar en silencio la última cotización cargada,
+        que puede no ser la del día."""
+        self.ensure_one()
+        monedas_a_convertir = monedas - self.currency_id
+        monedas_sin_cotizacion = self.env['res.currency']
+        for moneda in monedas_a_convertir:
+            existe = self.env['res.currency.rate'].search_count([
+                ('currency_id', '=', moneda.id),
+                ('company_id', 'in', (self.company_id.id, False)),
+                ('name', '=', self.fecha),
+            ])
+            if not existe:
+                monedas_sin_cotizacion |= moneda
+        if monedas_sin_cotizacion:
+            raise UserError(
+                'Falta cargar la cotización del %s para: %s. Cárguela en Ajustes > '
+                'Contabilidad > Monedas antes de continuar — de lo contrario se usaría la '
+                'última cotización cargada, que puede no ser la del día.'
+                % (self.fecha.strftime('%d/%m/%Y'), ', '.join(monedas_sin_cotizacion.mapped('name')))
+            )
+
     def action_cargar_facturas_pendientes(self):
         """Trae todas las facturas/cuotas pendientes de pago del proveedor
         seleccionado, en CUALQUIER moneda — cada una conserva su propia
@@ -99,6 +122,9 @@ class LocalPyOrdenPago(models.Model):
             ('reconciled', '=', False),
             ('id', 'not in', ya_cargadas.ids),
         ])
+
+        self._verificar_cotizaciones_cargadas(lineas.mapped('currency_id'))
+
         nuevas = self.env['local_py.orden_pago.factura']
         for linea in lineas:
             importe = abs(linea.amount_residual_currency) if linea.currency_id else abs(linea.amount_residual)
@@ -135,7 +161,9 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
-            orden.factura_ids._set_cotizacion_default(orden.fecha)
+            a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
+            orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
+            a_refrescar._set_cotizacion_default(orden.fecha)
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '

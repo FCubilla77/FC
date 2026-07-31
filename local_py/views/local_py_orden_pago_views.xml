@@ -61,7 +61,7 @@
                                         <field name="currency_id" readonly="1"/>
                                         <field name="total_original" readonly="1"/>
                                         <field name="saldo_pendiente" readonly="1"/>
-                                        <field name="importe_a_pagar"/>
+                                        <field name="importe_a_pagar" class="bg-success-subtle"/>
                                         <field name="cotizacion"/>
                                         <field name="valor_convertido" readonly="1"/>
                                         <field name="diferencia_cambio" readonly="1" optional="show"/>
