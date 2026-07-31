@@ -244,6 +244,7 @@
                 <li>Corregido: al abrir cualquier factura pagada mediante una Orden de Pago, el sistema daba error — asumí un campo "payment_id" directo en el asiento contable que no existe en Odoo 19; corregido para buscar el pago por su relación real</li>
                 <li>Orden de Pago: al cambiar el Proveedor en Borrador, se limpia automáticamente la grilla de Facturas (no se pueden mezclar facturas de distintos proveedores); nuevo campo "Diferencia" en la cabecera (Total Facturas menos Total Medios); nueva columna "Fecha Factura" en la grilla de Facturas; reducido a la mitad el espacio en blanco superior del reporte de impresión</li>
                 <li>Orden de Pago: nuevo botón "Descargar PDF" junto a "Marcar En Proceso"; nueva columna "Cuota" en la grilla de Facturas (y en el reporte PDF), con la misma etiqueta que tiene esa línea en el apunte contable de la factura</li>
+                <li>Orden de Pago: nuevos campos "Fecha En Proceso" y "Fecha Confirmación" en la cabecera (debajo de Proveedor), que se cargan al avanzar de estado y se limpian al volver para atrás; corregido el total de la columna "Importe a Pagar" en el reporte PDF (había quedado desalineado desde que se agregó la columna Cuota)</li>
             </ul>
         </div>
     </div>

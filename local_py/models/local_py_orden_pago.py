@@ -27,6 +27,8 @@ class LocalPyOrdenPago(models.Model):
     partner_id = fields.Many2one(
         'res.partner', string='Proveedor', required=True, tracking=True,
     )
+    fecha_en_proceso = fields.Datetime(string='Fecha En Proceso', readonly=True, copy=False)
+    fecha_confirmacion = fields.Datetime(string='Fecha Confirmación', readonly=True, copy=False)
     state = fields.Selection(
         [('borrador', 'Borrador'), ('en_proceso', 'En Proceso'), ('confirmado', 'Confirmado')],
         string='Estado', default='borrador', required=True, copy=False, tracking=True,
@@ -115,20 +117,20 @@ class LocalPyOrdenPago(models.Model):
                     'pagar de las Facturas seleccionadas (%s).'
                     % (orden.total_medios, orden.total_facturas)
                 )
-        self.write({'state': 'en_proceso'})
+        self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
 
     def action_volver_borrador(self):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede volver a Borrador desde el estado "En Proceso".')
-        self.write({'state': 'borrador'})
+        self.write({'state': 'borrador', 'fecha_en_proceso': False})
 
     def action_confirmar(self):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
             orden._generar_pagos()
-        self.write({'state': 'confirmado'})
+        self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
 
     def action_deshacer_confirmacion(self):
         """Vuelve una Orden de Pago Confirmada a "En Proceso": deshace la
@@ -152,7 +154,7 @@ class LocalPyOrdenPago(models.Model):
                 pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
                 pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
             orden.medio_ids.write({'payment_id': False})
-        self.write({'state': 'en_proceso'})
+        self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 
     # ------------------------------------------------------------------
     # Generación de pagos

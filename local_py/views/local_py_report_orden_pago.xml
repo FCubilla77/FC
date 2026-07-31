@@ -42,7 +42,7 @@
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.importe_a_pagar)"/>
                                     </tr>
                                     <tr style="font-weight: bold; border-top: 1px solid #000000;">
-                                        <td colspan="4" style="padding: 2px;">Total</td>
+                                        <td colspan="5" style="padding: 2px;">Total</td>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_facturas)"/>
                                     </tr>
                                 </tbody>

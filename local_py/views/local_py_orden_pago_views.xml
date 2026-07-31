@@ -31,6 +31,8 @@
                                 <field name="partner_id" options="{'no_create': True}"
                                        domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"/>
                                 <field name="fecha" readonly="state != 'borrador'"/>
+                                <field name="fecha_en_proceso" invisible="not fecha_en_proceso"/>
+                                <field name="fecha_confirmacion" invisible="not fecha_confirmacion"/>
                             </group>
                             <group>
                                 <field name="currency_id" options="{'no_create': True}" readonly="state != 'borrador'"/>
