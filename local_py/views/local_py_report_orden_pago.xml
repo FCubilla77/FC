@@ -27,9 +27,12 @@
                                         <th style="padding: 3px;">Factura</th>
                                         <th style="padding: 3px;">Cuota</th>
                                         <th style="padding: 3px;">Vencimiento</th>
+                                        <th style="padding: 3px;">Moneda</th>
                                         <th align="right" style="padding: 3px; text-align: right;">Total Original</th>
                                         <th align="right" style="padding: 3px; text-align: right;">Saldo Pendiente</th>
                                         <th align="right" style="padding: 3px; text-align: right;">Importe a Pagar</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Cotización</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Valor Convertido</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -37,12 +40,15 @@
                                         <td style="padding: 2px;" t-esc="f.move_id.name"/>
                                         <td style="padding: 2px;" t-esc="f.move_line_id.name or ''"/>
                                         <td style="padding: 2px;" t-esc="f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else ''"/>
+                                        <td style="padding: 2px;" t-esc="f.currency_id.name"/>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.total_original)"/>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.saldo_pendiente)"/>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.importe_a_pagar)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.cotizacion, 4)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.valor_convertido)"/>
                                     </tr>
                                     <tr style="font-weight: bold; border-top: 1px solid #000000;">
-                                        <td colspan="5" style="padding: 2px;">Total</td>
+                                        <td colspan="8" style="padding: 2px;">Total</td>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_facturas)"/>
                                     </tr>
                                 </tbody>

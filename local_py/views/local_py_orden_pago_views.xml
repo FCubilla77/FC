@@ -47,16 +47,26 @@
                                 <button name="action_cargar_facturas_pendientes" type="object"
                                         string="Cargar Facturas Pendientes" class="btn-secondary"
                                         invisible="state != 'borrador'"/>
+                                <div class="alert alert-info" role="alert" invisible="not hay_monedas_distintas">
+                                    Hay facturas en una moneda distinta a la de la cabecera. Al Confirmar,
+                                    el sistema va a actualizar la Cotización y los valores convertidos con
+                                    la tasa vigente en ese momento (salvo las que hayas corregido a mano).
+                                </div>
                                 <field name="factura_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
                                         <field name="move_id" readonly="1"/>
                                         <field name="cuota" readonly="1"/>
                                         <field name="fecha_factura" readonly="1"/>
                                         <field name="fecha_vencimiento" readonly="1"/>
+                                        <field name="currency_id" readonly="1"/>
                                         <field name="total_original" readonly="1"/>
                                         <field name="saldo_pendiente" readonly="1"/>
                                         <field name="importe_a_pagar"/>
-                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="cotizacion"/>
+                                        <field name="valor_convertido" readonly="1"/>
+                                        <field name="diferencia_cambio" readonly="1" optional="show"/>
+                                        <field name="cotizacion_manual" column_invisible="1"/>
+                                        <field name="header_currency_id" column_invisible="1"/>
                                     </list>
                                 </field>
                             </page>

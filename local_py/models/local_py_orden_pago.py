@@ -52,13 +52,17 @@ class LocalPyOrdenPago(models.Model):
         help='Total a Pagar (Facturas) menos Total Medios de Pago. Tiene que quedar en '
              'cero antes de poder pasar a "En Proceso".',
     )
+    hay_monedas_distintas = fields.Boolean(compute='_compute_totales')
 
-    @api.depends('factura_ids.importe_a_pagar', 'medio_ids.importe')
+    @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
     def _compute_totales(self):
         for orden in self:
-            orden.total_facturas = sum(orden.factura_ids.mapped('importe_a_pagar'))
+            orden.total_facturas = sum(orden.factura_ids.mapped('valor_convertido'))
             orden.total_medios = sum(orden.medio_ids.mapped('importe'))
             orden.diferencia = orden.total_facturas - orden.total_medios
+            orden.hay_monedas_distintas = bool(
+                orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
+            )
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -77,8 +81,8 @@ class LocalPyOrdenPago(models.Model):
     # ------------------------------------------------------------------
     def action_cargar_facturas_pendientes(self):
         """Trae todas las facturas/cuotas pendientes de pago del proveedor
-        seleccionado, en la misma moneda de la cabecera (por ahora, el
-        pago en varias monedas queda para una versión futura). No
+        seleccionado, en CUALQUIER moneda — cada una conserva su propia
+        moneda y su propia Cotización contra la Moneda de la Cabecera. No
         duplica las que ya estén cargadas."""
         self.ensure_one()
         if self.state != 'borrador':
@@ -93,15 +97,17 @@ class LocalPyOrdenPago(models.Model):
             ('account_id.account_type', '=', 'liability_payable'),
             ('move_id.state', '=', 'posted'),
             ('reconciled', '=', False),
-            ('currency_id', '=', self.currency_id.id),
             ('id', 'not in', ya_cargadas.ids),
         ])
+        nuevas = self.env['local_py.orden_pago.factura']
         for linea in lineas:
-            self.env['local_py.orden_pago.factura'].create({
+            importe = abs(linea.amount_residual_currency) if linea.currency_id else abs(linea.amount_residual)
+            nuevas |= self.env['local_py.orden_pago.factura'].create({
                 'orden_pago_id': self.id,
                 'move_line_id': linea.id,
-                'importe_a_pagar': abs(linea.amount_residual),
+                'importe_a_pagar': importe,
             })
+        nuevas._set_cotizacion_default(self.fecha)
 
     def action_marcar_en_proceso(self):
         for orden in self:
@@ -129,6 +135,13 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
+            orden.factura_ids._set_cotizacion_default(orden.fecha)
+            if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
+                raise UserError(
+                    'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '
+                    'coincide (Facturas: %s, Medios: %s). Revise los importes antes de volver '
+                    'a Confirmar.' % (orden.total_facturas, orden.total_medios)
+                )
             orden._generar_pagos()
         self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
 
