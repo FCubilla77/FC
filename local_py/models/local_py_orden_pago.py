@@ -16,19 +16,16 @@ class LocalPyOrdenPago(models.Model):
     )
     fecha = fields.Date(
         string='Fecha', required=True, default=fields.Date.context_today, tracking=True,
-        readonly=True, states={'borrador': [('readonly', False)]},
     )
     currency_id = fields.Many2one(
         'res.currency', string='Moneda', required=True,
         default=lambda self: self.env.company.currency_id,
-        readonly=True, states={'borrador': [('readonly', False)]},
     )
     comentario = fields.Char(
-        string='Comentario', readonly=True, states={'borrador': [('readonly', False)]},
+        string='Comentario',
     )
     partner_id = fields.Many2one(
         'res.partner', string='Proveedor', required=True, tracking=True,
-        readonly=True, states={'borrador': [('readonly', False)]},
     )
     state = fields.Selection(
         [('borrador', 'Borrador'), ('en_proceso', 'En Proceso'), ('confirmado', 'Confirmado')],
@@ -37,11 +34,9 @@ class LocalPyOrdenPago(models.Model):
 
     factura_ids = fields.One2many(
         'local_py.orden_pago.factura', 'orden_pago_id', string='Facturas',
-        readonly=True, states={'borrador': [('readonly', False)]},
     )
     medio_ids = fields.One2many(
         'local_py.orden_pago.medio', 'orden_pago_id', string='Medios de Pago',
-        readonly=True, states={'borrador': [('readonly', False)]},
     )
 
     total_facturas = fields.Monetary(

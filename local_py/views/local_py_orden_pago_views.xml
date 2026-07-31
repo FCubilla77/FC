@@ -24,14 +24,15 @@
                         </div>
                         <group>
                             <group>
-                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"
+                                       readonly="state != 'borrador'"/>
                                 <field name="partner_id" options="{'no_create': True}"
-                                       domain="[('supplier_rank', '>', 0)]"/>
-                                <field name="fecha"/>
+                                       domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"/>
+                                <field name="fecha" readonly="state != 'borrador'"/>
                             </group>
                             <group>
-                                <field name="currency_id" options="{'no_create': True}"/>
-                                <field name="comentario"/>
+                                <field name="currency_id" options="{'no_create': True}" readonly="state != 'borrador'"/>
+                                <field name="comentario" readonly="state != 'borrador'"/>
                                 <field name="total_facturas"/>
                                 <field name="total_medios"/>
                             </group>
@@ -41,7 +42,7 @@
                                 <button name="action_cargar_facturas_pendientes" type="object"
                                         string="Cargar Facturas Pendientes" class="btn-secondary"
                                         invisible="state != 'borrador'"/>
-                                <field name="factura_ids">
+                                <field name="factura_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
                                         <field name="move_id" readonly="1"/>
                                         <field name="fecha_vencimiento" readonly="1"/>
@@ -53,7 +54,7 @@
                                 </field>
                             </page>
                             <page string="Medios" name="medios">
-                                <field name="medio_ids">
+                                <field name="medio_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
                                         <field name="journal_id"/>
                                         <field name="importe"/>
