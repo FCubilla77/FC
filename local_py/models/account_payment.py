@@ -13,6 +13,12 @@ class AccountPayment(models.Model):
              'restablecer a borrador ni eliminar directamente — solo a través de esa '
              'Orden de Pago, para no generar inconsistencias entre ambos.',
     )
+    l10n_py_orden_pago_medio_id = fields.Many2one(
+        'local_py.orden_pago.medio', string='Medio de Pago origen', readonly=True, copy=False,
+        help='Fila de la pestaña Medios que generó este pago. Si esa fila tuvo que '
+             'repartirse entre varias facturas, puede generar más de un pago (todos '
+             'con el importe exacto que le corresponde a cada factura).',
+    )
 
     def _l10n_py_check_orden_pago_lock(self):
         if self.env.context.get('l10n_py_allow_orden_pago_write'):
@@ -33,7 +39,8 @@ class AccountPayment(models.Model):
         # Solo bloquea cambios "reales" hechos por un usuario común; nuestro propio
         # flujo de generación siempre usa el contexto de bypass o crea el registro
         # (no lo modifica después), así que este candado no le afecta.
-        if not self.env.context.get('l10n_py_allow_orden_pago_write') and set(vals.keys()) - {'l10n_py_orden_pago_id'}:
+        allowed_keys = {'l10n_py_orden_pago_id', 'l10n_py_orden_pago_medio_id'}
+        if not self.env.context.get('l10n_py_allow_orden_pago_write') and set(vals.keys()) - allowed_keys:
             self._l10n_py_check_orden_pago_lock()
         return super().write(vals)
 

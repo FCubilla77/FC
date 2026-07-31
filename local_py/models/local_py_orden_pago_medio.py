@@ -28,10 +28,12 @@ class LocalPyOrdenPagoMedio(models.Model):
     chequera = fields.Char(string='Chequera')
     cuenta_banco = fields.Char(string='Cuenta Banco')
 
-    payment_id = fields.Many2one(
-        'account.payment', string='Pago', readonly=True, copy=False,
-        help='Pago generado por esta fila al Confirmar la Orden de Pago — cada fila de Medios '
-             'genera siempre su propio pago, sin consolidar con otras filas.',
+    payment_ids = fields.One2many(
+        'account.payment', 'l10n_py_orden_pago_medio_id', string='Pago(s)',
+        help='Pago(s) generado(s) por esta fila al Confirmar la Orden de Pago. Normalmente '
+             'es uno solo — si esta fila tuvo que repartirse entre varias facturas (por '
+             'ejemplo, un solo cheque que alcanza para pagar dos facturas), va a haber más '
+             'de un pago, cada uno por el importe exacto que le corresponde a cada factura.',
     )
 
     @api.constrains('importe')

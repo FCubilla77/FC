@@ -154,7 +154,7 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'confirmado':
                 raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
-            pagos = orden.medio_ids.mapped('payment_id')
+            pagos = orden.medio_ids.mapped('payment_ids')
             lineas_pago = pagos.mapped('move_id.line_ids')
             if any(lineas_pago.mapped('statement_line_id')):
                 raise UserError(
@@ -166,39 +166,74 @@ class LocalPyOrdenPago(models.Model):
                 pago.move_id.line_ids.remove_move_reconcile()
                 pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
                 pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
-            orden.medio_ids.write({'payment_id': False})
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 
     # ------------------------------------------------------------------
     # Generación de pagos
     # ------------------------------------------------------------------
     def _generar_pagos(self):
+        """Genera los pagos y los concilia contra las Facturas/Cuotas
+        seleccionadas.
+
+        IMPORTANTE: no se hace un solo reconcile() masivo mezclando todas
+        las Facturas con todos los Medios — Odoo no reparte ese cruce de
+        forma proporcional, aplica el importe que puede a lo primero que
+        encuentra y puede dejar facturas sin cobertura (bug detectado en
+        pruebas reales). En cambio, se arma primero un plan de asignación
+        exacto (qué porción de cada Medio le corresponde a cada Factura,
+        en la moneda de la cabecera) y se genera un pago por cada porción,
+        conciliado siempre 1 a 1 contra su factura específica — así el
+        importe que Odoo aplica en cada conciliación es exactamente el
+        que corresponde, sin ambigüedad, y el mecanismo nativo de
+        diferencia de cambio se dispara igual de bien caso por caso."""
         self.ensure_one()
         AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
-        lineas_a_conciliar = self.factura_ids.mapped('move_line_id')
-        lineas_pagos_payable = self.env['account.move.line']
+        currency = self.currency_id
 
-        for medio in self.medio_ids:
+        facturas_pend = [[f, f.valor_convertido] for f in self.factura_ids]
+        medios_pend = [[m, m.importe] for m in self.medio_ids]
+        asignaciones = []
+
+        i = j = 0
+        while i < len(facturas_pend) and j < len(medios_pend):
+            factura, monto_f = facturas_pend[i]
+            medio, monto_m = medios_pend[j]
+            monto = min(monto_f, monto_m)
+            if currency.compare_amounts(monto, 0) > 0:
+                asignaciones.append((factura, medio, monto))
+            facturas_pend[i][1] -= monto
+            medios_pend[j][1] -= monto
+            if currency.is_zero(facturas_pend[i][1]):
+                i += 1
+            if currency.is_zero(medios_pend[j][1]):
+                j += 1
+
+        if i < len(facturas_pend) or j < len(medios_pend):
+            raise UserError(
+                'No se pudo repartir exactamente el importe de los Medios de Pago contra '
+                'las Facturas/Cuotas seleccionadas. Revise los importes antes de continuar.'
+            )
+
+        for factura, medio, monto in asignaciones:
             comentario = 'Pago Orden de Pago %s' % self.name
             payment = AccountPayment.create({
                 'payment_type': 'outbound',
                 'partner_type': 'supplier',
                 'partner_id': self.partner_id.id,
                 'journal_id': medio.journal_id.id,
-                'amount': medio.importe,
+                'amount': monto,
                 'currency_id': self.currency_id.id,
                 'date': self.fecha,
                 'company_id': self.company_id.id,
                 'memo': comentario,
                 'l10n_py_orden_pago_id': self.id,
+                'l10n_py_orden_pago_medio_id': medio.id,
             })
             payment.action_post()
             if payment.move_id:
                 payment.move_id.l10n_py_comentario = comentario
-            medio.payment_id = payment.id
 
-            lineas_pagos_payable |= payment.move_id.line_ids.filtered(
+            linea_pago_payable = payment.move_id.line_ids.filtered(
                 lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
             )
-
-        (lineas_a_conciliar + lineas_pagos_payable).reconcile()
+            (factura.move_line_id + linea_pago_payable).reconcile()
