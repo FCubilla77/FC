@@ -25,6 +25,7 @@
                                 <thead>
                                     <tr style="background-color: #eeeeee;">
                                         <th style="padding: 3px;">Factura</th>
+                                        <th style="padding: 3px;">Cuota</th>
                                         <th style="padding: 3px;">Vencimiento</th>
                                         <th align="right" style="padding: 3px; text-align: right;">Total Original</th>
                                         <th align="right" style="padding: 3px; text-align: right;">Saldo Pendiente</th>
@@ -34,6 +35,7 @@
                                 <tbody>
                                     <tr t-foreach="o.factura_ids" t-as="f">
                                         <td style="padding: 2px;" t-esc="f.move_id.name"/>
+                                        <td style="padding: 2px;" t-esc="f.move_line_id.name or ''"/>
                                         <td style="padding: 2px;" t-esc="f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else ''"/>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.total_original)"/>
                                         <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.saldo_pendiente)"/>

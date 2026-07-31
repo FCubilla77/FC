@@ -18,6 +18,11 @@ class LocalPyOrdenPagoFactura(models.Model):
     )
     move_id = fields.Many2one(related='move_line_id.move_id', string='Factura')
     fecha_factura = fields.Date(related='move_id.invoice_date', string='Fecha Factura')
+    cuota = fields.Char(
+        related='move_line_id.name', string='Cuota',
+        help='Misma etiqueta que tiene esta línea en el apunte contable de la factura '
+             '(por ejemplo, "Cuota 1/3" si la factura tiene varios vencimientos).',
+    )
     fecha_vencimiento = fields.Date(related='move_line_id.date_maturity', string='Vencimiento')
     total_original = fields.Monetary(
         string='Total Original', compute='_compute_montos', currency_field='currency_id',
