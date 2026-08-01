@@ -11,3 +11,5 @@ from . import local_py_libro_wizard
 from . import local_py_libro_inventario_wizard
 from . import local_py_estado_resultado_wizard
 from . import local_py_stock_valorizado_wizard
+from . import local_py_orden_pago_deshacer_wizard
+from . import local_py_impresion_cheques_wizard

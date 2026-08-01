@@ -79,7 +79,7 @@
                                         <field name="fecha_vencimiento"/>
                                         <field name="nro_documento"/>
                                         <field name="banco"/>
-                                        <field name="chequera"/>
+                                        <field name="chequera_id" readonly="1"/>
                                         <field name="cuenta_banco"/>
                                         <field name="payment_ids" readonly="1" widget="many2many_tags"/>
                                         <field name="currency_id" column_invisible="1"/>

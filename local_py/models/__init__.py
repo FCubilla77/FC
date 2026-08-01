@@ -25,3 +25,5 @@ from . import account_payment
 from . import local_py_orden_pago_factura
 from . import local_py_orden_pago_medio
 from . import local_py_orden_pago
+from . import local_py_chequera
+from . import local_py_chequera_cheque

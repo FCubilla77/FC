@@ -1,0 +1,46 @@
+<odoo>
+    <data>
+        <template id="report_impresion_cheques_document">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-size: 11px;">
+                        <h2>Comprobante de Cheques Emitidos</h2>
+                        <p><em>Diseño de control provisorio — el formato definitivo del cheque físico se
+                            ajustará más adelante.</em></p>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Número</th>
+                                    <th style="padding: 3px;">Chequera</th>
+                                    <th style="padding: 3px;">Fecha Emisión</th>
+                                    <th style="padding: 3px;">Orden de Pago</th>
+                                    <th style="padding: 3px;">Proveedor</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="docs" t-as="cheque">
+                                    <td style="padding: 2px;" t-esc="cheque.numero"/>
+                                    <td style="padding: 2px;" t-esc="cheque.chequera_id.name"/>
+                                    <td style="padding: 2px;" t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
+                                    <td style="padding: 2px;" t-esc="cheque.orden_pago_medio_id.orden_pago_id.name"/>
+                                    <td style="padding: 2px;" t-esc="cheque.payment_id.partner_id.display_name"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="cheque.payment_id.amount"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_impresion_cheques" model="ir.actions.report">
+            <field name="name">Comprobante de Cheques Emitidos</field>
+            <field name="model">local_py.chequera.cheque</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_impresion_cheques_document</field>
+            <field name="report_file">local_py.report_impresion_cheques_document</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

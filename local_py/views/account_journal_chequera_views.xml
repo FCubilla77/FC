@@ -1,0 +1,31 @@
+<odoo>
+    <data>
+        <record id="view_account_journal_form_chequera" model="ir.ui.view">
+            <field name="name">account.journal.form.l10n.py.chequera</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Chequeras" name="l10n_py_chequeras" invisible="type != 'bank'">
+                        <field name="l10n_py_chequera_ids">
+                            <list editable="bottom">
+                                <field name="name"/>
+                                <field name="bank_id"/>
+                                <field name="cuenta_bancaria_id"/>
+                                <field name="currency_id"/>
+                                <field name="tipo"/>
+                                <field name="numero_inicial"/>
+                                <field name="numero_final"/>
+                                <field name="siguiente_numero" readonly="1"/>
+                                <field name="state" widget="badge"
+                                       decoration-success="state == 'activo'"
+                                       decoration-muted="state == 'finalizado'"
+                                       decoration-danger="state == 'cancelado'"/>
+                            </list>
+                        </field>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

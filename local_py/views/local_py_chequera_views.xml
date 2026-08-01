@@ -1,0 +1,89 @@
+<odoo>
+    <data>
+        <record id="view_local_py_chequera_form" model="ir.ui.view">
+            <field name="name">local_py.chequera.form</field>
+            <field name="model">local_py.chequera</field>
+            <field name="arch" type="xml">
+                <form string="Chequera">
+                    <header>
+                        <field name="state" widget="statusbar" statusbar_visible="activo,finalizado,cancelado"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="diario_id" options="{'no_create': True}"/>
+                                <field name="bank_id" options="{'no_create': True}"/>
+                                <field name="cuenta_bancaria_id" options="{'no_create': True}"/>
+                                <field name="currency_id" options="{'no_create': True}"/>
+                            </group>
+                            <group>
+                                <field name="tipo"/>
+                                <field name="numero_inicial"/>
+                                <field name="numero_final"/>
+                                <field name="ultimo_numero_utilizado"/>
+                                <field name="siguiente_numero"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Cheques" name="cheques">
+                                <field name="cheque_ids">
+                                    <list editable="bottom" decoration-muted="estado == 'anulado'">
+                                        <field name="numero"/>
+                                        <field name="estado" widget="badge"
+                                               decoration-success="estado == 'emitido'"
+                                               decoration-danger="estado == 'anulado'"
+                                               decoration-warning="estado == 'reutilizable'"/>
+                                        <field name="fecha_emision"/>
+                                        <field name="motivo_anulacion"/>
+                                        <field name="payment_id" readonly="1"/>
+                                        <field name="orden_pago_medio_id" readonly="1"/>
+                                        <button name="action_anular" type="object" string="Anular" icon="fa-ban"
+                                                invisible="estado == 'anulado'"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_chequera_list" model="ir.ui.view">
+            <field name="name">local_py.chequera.list</field>
+            <field name="model">local_py.chequera</field>
+            <field name="arch" type="xml">
+                <list string="Chequeras">
+                    <field name="name"/>
+                    <field name="diario_id"/>
+                    <field name="bank_id"/>
+                    <field name="currency_id"/>
+                    <field name="tipo"/>
+                    <field name="numero_inicial"/>
+                    <field name="numero_final"/>
+                    <field name="siguiente_numero"/>
+                    <field name="state" widget="badge"
+                           decoration-success="state == 'activo'"
+                           decoration-muted="state == 'finalizado'"
+                           decoration-danger="state == 'cancelado'"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_local_py_chequera" model="ir.actions.act_window">
+            <field name="name">Chequeras</field>
+            <field name="res_model">local_py.chequera</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_chequera"
+                  name="Chequeras"
+                  parent="menu_local_py_datos_maestros"
+                  action="action_local_py_chequera"
+                  groups="account.group_account_manager"
+                  sequence="60"/>
+    </data>
+</odoo>

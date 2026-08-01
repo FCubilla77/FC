@@ -178,22 +178,44 @@ class LocalPyOrdenPago(models.Model):
         conciliación contra las facturas y cancela/elimina los pagos
         generados. Se bloquea si algún pago ya fue conciliado con el
         extracto bancario (hay que deshacer esa conciliación a mano,
-        primero, desde Contabilidad > Banco)."""
-        for orden in self:
-            if orden.state != 'confirmado':
-                raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
-            pagos = orden.medio_ids.mapped('payment_ids')
-            lineas_pago = pagos.mapped('move_id.line_ids')
-            if any(lineas_pago.mapped('statement_line_id')):
-                raise UserError(
-                    'Uno o más pagos de esta Orden de Pago ya están conciliados con el extracto '
-                    'bancario. Deshaga esa conciliación manualmente en Contabilidad > Banco antes '
-                    'de continuar.'
-                )
-            for pago in pagos:
-                pago.move_id.line_ids.remove_move_reconcile()
-                pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
-                pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+        primero, desde Contabilidad > Banco). Si alguno de los Medios ya
+        tenía su cheque impreso, se pregunta primero si ese número se
+        reutiliza (queda disponible para otra Orden de Pago) o se anula
+        (se registra como cheque anulado)."""
+        self.ensure_one()
+        if self.state != 'confirmado':
+            raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
+        pagos = self.medio_ids.mapped('payment_ids')
+        lineas_pago = pagos.mapped('move_id.line_ids')
+        if any(lineas_pago.mapped('statement_line_id')):
+            raise UserError(
+                'Uno o más pagos de esta Orden de Pago ya están conciliados con el extracto '
+                'bancario. Deshaga esa conciliación manualmente en Contabilidad > Banco antes '
+                'de continuar.'
+            )
+        cheques_emitidos = self.env['local_py.chequera.cheque'].search([
+            ('payment_id', 'in', pagos.ids), ('estado', '=', 'emitido'),
+        ])
+        if cheques_emitidos:
+            return {
+                'name': 'Cheques ya impresos',
+                'type': 'ir.actions.act_window',
+                'res_model': 'local_py.orden_pago.deshacer_wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'default_orden_pago_id': self.id,
+                    'default_cheque_ids': [(6, 0, cheques_emitidos.ids)],
+                },
+            }
+        self._deshacer_confirmacion_efectivo()
+
+    def _deshacer_confirmacion_efectivo(self):
+        pagos = self.medio_ids.mapped('payment_ids')
+        for pago in pagos:
+            pago.move_id.line_ids.remove_move_reconcile()
+            pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
+            pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 
     # ------------------------------------------------------------------

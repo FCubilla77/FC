@@ -20,12 +20,12 @@ class LocalPyOrdenPagoMedio(models.Model):
     currency_id = fields.Many2one(related='orden_pago_id.currency_id')
 
     # Datos de referencia — hoy son solo texto/fecha libres; más adelante se
-    # van a vincular a los modelos reales de Chequera y Retención.
+    # van a vincular a los modelos reales de Retención.
     fecha_emision = fields.Date(string='Fecha Emisión')
     fecha_vencimiento = fields.Date(string='Fecha Venc.')
     nro_documento = fields.Char(string='Nro. Documento')
     banco = fields.Char(string='Banco')
-    chequera = fields.Char(string='Chequera')
+    chequera_id = fields.Many2one('local_py.chequera', string='Chequera')
     cuenta_banco = fields.Char(string='Cuenta Banco')
 
     payment_ids = fields.One2many(
@@ -36,8 +36,49 @@ class LocalPyOrdenPagoMedio(models.Model):
              'de un pago, cada uno por el importe exacto que le corresponde a cada factura.',
     )
 
+    @api.onchange('journal_id')
+    def _onchange_journal_id_chequera(self):
+        for medio in self:
+            chequera = self.env['local_py.chequera'].search([
+                ('diario_id', '=', medio.journal_id.id), ('state', '=', 'activo'),
+            ], limit=1)
+            medio.chequera_id = chequera
+            if chequera:
+                medio.banco = chequera.bank_id.name
+                medio.cuenta_banco = chequera.cuenta_bancaria_id.display_name
+                if not medio.fecha_emision:
+                    medio.fecha_emision = medio.orden_pago_id.fecha
+                if chequera.tipo == 'al_dia':
+                    medio.fecha_vencimiento = medio.fecha_emision
+
     @api.constrains('importe')
     def _check_importe(self):
         for medio in self:
             if medio.importe <= 0:
                 raise ValidationError('El importe de cada Medio de Pago debe ser mayor a cero.')
+
+    @api.constrains('chequera_id', 'currency_id')
+    def _check_chequera_moneda(self):
+        for medio in self:
+            if medio.chequera_id and medio.chequera_id.currency_id != medio.currency_id:
+                raise ValidationError(
+                    'La Chequera "%s" está en %s, pero la Orden de Pago está en %s. No se '
+                    'puede usar esa Chequera acá.'
+                    % (medio.chequera_id.name, medio.chequera_id.currency_id.name, medio.currency_id.name)
+                )
+
+    @api.constrains('chequera_id', 'fecha_emision', 'fecha_vencimiento')
+    def _check_chequera_tipo_fechas(self):
+        for medio in self:
+            if not medio.chequera_id or not medio.fecha_emision or not medio.fecha_vencimiento:
+                continue
+            if medio.chequera_id.tipo == 'al_dia' and medio.fecha_emision != medio.fecha_vencimiento:
+                raise ValidationError(
+                    'La Chequera "%s" es "Al día": la Fecha de Emisión y la Fecha de '
+                    'Vencimiento del cheque deben ser la misma.' % medio.chequera_id.name
+                )
+            if medio.chequera_id.tipo == 'diferido' and medio.fecha_vencimiento <= medio.fecha_emision:
+                raise ValidationError(
+                    'La Chequera "%s" es "Diferido": la Fecha de Vencimiento debe ser '
+                    'posterior a la Fecha de Emisión.' % medio.chequera_id.name
+                )

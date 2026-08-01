@@ -1,0 +1,31 @@
+<odoo>
+    <data>
+        <record id="view_local_py_orden_pago_deshacer_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.orden_pago.deshacer_wizard.form</field>
+            <field name="model">local_py.orden_pago.deshacer_wizard</field>
+            <field name="arch" type="xml">
+                <form string="Cheques ya impresos">
+                    <p>
+                        Esta Orden de Pago ya tiene cheques impresos. Elegí qué hacer con ellos
+                        antes de deshacer la confirmación:
+                    </p>
+                    <field name="cheque_ids" readonly="1">
+                        <list>
+                            <field name="numero"/>
+                            <field name="chequera_id"/>
+                            <field name="fecha_emision"/>
+                        </list>
+                    </field>
+                    <group>
+                        <field name="decision" widget="radio"/>
+                    </group>
+                    <field name="orden_pago_id" invisible="1"/>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,44 @@
+<odoo>
+    <data>
+        <record id="view_local_py_impresion_cheques_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.impresion_cheques.wizard.form</field>
+            <field name="model">local_py.impresion_cheques.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Impresión Masiva de Cheques">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                        <field name="journal_id" options="{'no_create': True}"/>
+                        <field name="chequera_id" readonly="1"/>
+                        <field name="siguiente_numero" readonly="1"/>
+                    </group>
+                    <field name="pago_ids" readonly="1">
+                        <list>
+                            <field name="date"/>
+                            <field name="partner_id"/>
+                            <field name="amount"/>
+                            <field name="l10n_py_orden_pago_id"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_imprimir" type="object" string="Imprimir" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_impresion_cheques_wizard" model="ir.actions.act_window">
+            <field name="name">Impresión de Cheques</field>
+            <field name="res_model">local_py.impresion_cheques.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_impresion_cheques"
+                  name="Impresión de Cheques"
+                  parent="local_py.menu_local_py_reportes_localizacion"
+                  action="action_local_py_impresion_cheques_wizard"
+                  groups="account.group_account_manager"
+                  sequence="60"/>
+    </data>
+</odoo>

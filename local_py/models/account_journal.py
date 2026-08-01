@@ -18,6 +18,11 @@ class AccountJournal(models.Model):
         help='Número de timbrado asignado por la SET (hasta 8 dígitos, sin decimales, sin negativos). '
              'Aplica únicamente a diarios de venta.',
     )
+    l10n_py_chequera_ids = fields.One2many(
+        'local_py.chequera', 'diario_id', string='Chequeras',
+        help='Chequeras asociadas a este Diario. Puede haber varias, pero solo una puede '
+             'estar Activa a la vez.',
+    )
     l10n_py_nro_documento = fields.Char(
         string='Nro. Documento',
         size=15,
