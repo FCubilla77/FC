@@ -13,7 +13,7 @@ class LocalPyChequeraCheque(models.Model):
     numero = fields.Integer(string='Número', required=True)
     estado = fields.Selection(
         [('emitido', 'Emitido'), ('anulado', 'Anulado'), ('reutilizable', 'Reutilizable')],
-        string='Estado', default='emitido', required=True, copy=False, tracking=True,
+        string='Estado', default='emitido', required=True, copy=False,
     )
     fecha_emision = fields.Date(string='Fecha Emisión')
     motivo_anulacion = fields.Char(string='Motivo')
@@ -25,10 +25,10 @@ class LocalPyChequeraCheque(models.Model):
         'local_py.orden_pago.medio', string='Medio de Pago origen', readonly=True, copy=False,
     )
 
-    _sql_constraints = [
-        ('numero_chequera_uniq', 'unique(chequera_id, numero)',
-         'Ese número ya existe para esta Chequera.'),
-    ]
+    _numero_chequera_uniq = models.Constraint(
+        'unique(chequera_id, numero)',
+        'Ese número ya existe para esta Chequera.',
+    )
 
     def action_anular(self):
         """Anula un cheque puntual (dañado, perdido, etc.) sin tocar la

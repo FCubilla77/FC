@@ -42,10 +42,10 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'un medio de pago más, sin cálculo automático todavía.',
     )
 
-    _sql_constraints = [
-        ('company_uniq', 'unique(company_id)',
-         'Ya existe una Configuración de Localización para esta compañía.'),
-    ]
+    _company_uniq = models.Constraint(
+        'unique(company_id)',
+        'Ya existe una Configuración de Localización para esta compañía.',
+    )
 
     @api.constrains('company_id')
     def _check_company_unique(self):
@@ -125,7 +125,7 @@ class LocalPyLibroInventarioDetalleCuenta(models.Model):
     )
     cantidad_top = fields.Integer(string='Cantidad (X)')
 
-    _sql_constraints = [
-        ('account_config_uniq', 'unique(config_id, account_id)',
-         'Esta cuenta ya está configurada para detallarse en Libro Inventario.'),
-    ]
+    _account_config_uniq = models.Constraint(
+        'unique(config_id, account_id)',
+        'Esta cuenta ya está configurada para detallarse en Libro Inventario.',
+    )

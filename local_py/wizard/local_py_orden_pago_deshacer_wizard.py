@@ -8,7 +8,10 @@ class LocalPyOrdenPagoDeshacerWizard(models.TransientModel):
     _description = 'Decisión sobre cheques ya impresos al deshacer una confirmación'
 
     orden_pago_id = fields.Many2one('local_py.orden_pago', required=True)
-    cheque_ids = fields.Many2many('local_py.chequera.cheque', string='Cheques ya impresos')
+    cheque_ids = fields.Many2many(
+        'local_py.chequera.cheque', relation='local_py_deshacer_wizard_cheque_rel',
+        string='Cheques ya impresos',
+    )
     decision = fields.Selection(
         [('reutilizable', 'Reutilizar (el número queda disponible para otra Orden de Pago)'),
          ('anulado', 'Anular (se registra como cheque anulado)')],

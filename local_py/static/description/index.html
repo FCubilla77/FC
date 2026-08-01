@@ -254,6 +254,7 @@
                 <li>Orden de Pago / Medios: al elegir un Diario con Chequera Activa, se autocompletan Chequera, Banco y Cuenta Banco; se valida que el Tipo de la Chequera (Al día/Diferido) sea consistente con las fechas cargadas, y que la moneda de la Chequera coincida con la de la Orden de Pago</li>
                 <li>Al "Deshacer Confirmación" de una Orden de Pago con cheques ya impresos, se pregunta primero si esos cheques se reutilizan (el número queda disponible para otra Orden de Pago) o se anulan</li>
                 <li>Nueva pantalla "Impresión de Cheques" (Facturación → Reportes → Reportes Localización Py): toma un Diario, muestra su Chequera Activa y el próximo número disponible, lista los pagos confirmados pendientes de imprimir de ese Diario (no se puede mezclar Diarios/Chequeras distintas), y al imprimir asigna los números en forma consecutiva y genera un comprobante en PDF (el diseño gráfico definitivo del cheque físico se ajustará en una próxima versión)</li>
+                <li>Corregidos 3 errores de instalación de Chequera: nombre de tabla de relación demasiado largo para PostgreSQL (bloqueaba la instalación por completo); "_sql_constraints" (sintaxis eliminada desde Odoo 17, reemplazada por "models.Constraint" — también corregido en 2 lugares antiguos del módulo que no se habían detectado hasta ahora); y un parámetro "tracking" en campos de modelos que no heredan el sistema de seguimiento de Odoo</li>
             </ul>
         </div>
     </div>

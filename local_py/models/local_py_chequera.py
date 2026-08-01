@@ -37,7 +37,7 @@ class LocalPyChequera(models.Model):
     )
     state = fields.Selection(
         [('activo', 'Activo'), ('finalizado', 'Finalizado'), ('cancelado', 'Cancelado')],
-        string='Estado', default='activo', required=True, copy=False, tracking=True,
+        string='Estado', default='activo', required=True, copy=False,
     )
     diario_id = fields.Many2one(
         'account.journal', string='Diario', required=True,
