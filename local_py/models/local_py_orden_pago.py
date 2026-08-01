@@ -143,6 +143,7 @@ class LocalPyOrdenPago(models.Model):
                 raise UserError('Agregue al menos una factura/cuota a pagar antes de continuar.')
             if not orden.medio_ids:
                 raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
+            orden.medio_ids._resolver_chequera()
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'El total de Medios de Pago (%s) debe coincidir exactamente con el total a '
@@ -161,6 +162,7 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
+            orden.medio_ids._resolver_chequera()
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(orden.fecha)

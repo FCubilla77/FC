@@ -36,6 +36,25 @@ class LocalPyOrdenPagoMedio(models.Model):
              'de un pago, cada uno por el importe exacto que le corresponde a cada factura.',
     )
 
+    def _resolver_chequera(self):
+        """Asigna/refresca la Chequera Activa de cada fila según su Diario,
+        de forma explícita del lado del servidor — no depende únicamente
+        de que el evento de interfaz (onchange) se haya disparado y
+        guardado correctamente."""
+        for medio in self:
+            chequera = self.env['local_py.chequera'].search([
+                ('diario_id', '=', medio.journal_id.id), ('state', '=', 'activo'),
+            ], limit=1)
+            vals = {'chequera_id': chequera.id}
+            if chequera:
+                vals['banco'] = chequera.bank_id.name
+                vals['cuenta_banco'] = chequera.cuenta_bancaria_id.display_name
+                if not medio.fecha_emision:
+                    vals['fecha_emision'] = medio.orden_pago_id.fecha
+                if chequera.tipo == 'al_dia':
+                    vals['fecha_vencimiento'] = vals.get('fecha_emision', medio.fecha_emision)
+            medio.write(vals)
+
     @api.onchange('journal_id')
     def _onchange_journal_id_chequera(self):
         for medio in self:
