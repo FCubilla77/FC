@@ -257,6 +257,8 @@
                 <li>Corregidos 3 errores de instalación de Chequera: nombre de tabla de relación demasiado largo para PostgreSQL (bloqueaba la instalación por completo); "_sql_constraints" (sintaxis eliminada desde Odoo 17, reemplazada por "models.Constraint" — también corregido en 2 lugares antiguos del módulo que no se habían detectado hasta ahora); y un parámetro "tracking" en campos de modelos que no heredan el sistema de seguimiento de Odoo</li>
                 <li>Corregido: la Chequera de cada Medio de Pago no siempre quedaba guardada (dependía únicamente de un evento de interfaz), lo que impedía luego encontrar esos cheques en Impresión Masiva. Ahora se resuelve también del lado del servidor, tanto al marcar "En Proceso" como al Confirmar</li>
                 <li>Corregido: Impresión Masiva de Cheques nunca encontraba pagos pendientes — comparaba el estado del pago contra "posted", un valor que no existe en Odoo 19 para ese campo (los valores reales son otros); ya corregido</li>
+                <li>Corregido: al imprimir cheques por primera vez, aparecía el asistente de configuración de diseño de Odoo (mismo ajuste que ya se hizo antes en Libro Inventario)</li>
+                <li>Diseño real del cheque para impresión: hoja de 175mm x 76mm (medida oficial del Banco Central del Paraguay, Resolución N° 3, Acta N° 1 de 2017), con Número de Cheque, Cuenta, Fecha, Beneficiario, monto en números y en letras (con conversor de número a letras en español, nuevo), y espacio de firma — reemplaza el comprobante de control provisorio de la versión anterior</li>
             </ul>
         </div>
     </div>

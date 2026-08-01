@@ -1,45 +1,86 @@
 <odoo>
     <data>
         <template id="report_impresion_cheques_document">
-            <t t-call="web.html_container">
-                <t t-call="web.external_layout">
-                    <div class="page" style="font-size: 11px;">
-                        <h2>Comprobante de Cheques Emitidos</h2>
-                        <p><em>Diseño de control provisorio — el formato definitivo del cheque físico se
-                            ajustará más adelante.</em></p>
-                        <table style="width: 100%; border-collapse: collapse;" border="1">
-                            <thead>
-                                <tr style="background-color: #eeeeee;">
-                                    <th style="padding: 3px;">Número</th>
-                                    <th style="padding: 3px;">Chequera</th>
-                                    <th style="padding: 3px;">Fecha Emisión</th>
-                                    <th style="padding: 3px;">Orden de Pago</th>
-                                    <th style="padding: 3px;">Proveedor</th>
-                                    <th align="right" style="padding: 3px; text-align: right;">Importe</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr t-foreach="docs" t-as="cheque">
-                                    <td style="padding: 2px;" t-esc="cheque.numero"/>
-                                    <td style="padding: 2px;" t-esc="cheque.chequera_id.name"/>
-                                    <td style="padding: 2px;" t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
-                                    <td style="padding: 2px;" t-esc="cheque.orden_pago_medio_id.orden_pago_id.name"/>
-                                    <td style="padding: 2px;" t-esc="cheque.payment_id.partner_id.display_name"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="cheque.payment_id.amount"/>
-                                </tr>
-                            </tbody>
-                        </table>
+            <t t-call="web.basic_layout">
+                <t t-foreach="docs" t-as="cheque">
+                    <div style="page-break-after: always; width: 175mm; height: 76mm; position: relative;
+                                font-family: Arial, sans-serif; font-size: 9px; border: 1px dashed #cccccc;
+                                box-sizing: border-box; padding: 3mm;">
+
+                        <!-- Fila 1: Cuenta, Serie, Número de Cheque (arriba a la derecha, según BCP) -->
+                        <div style="position: absolute; top: 3mm; left: 3mm; width: 90mm;">
+                            <strong t-esc="cheque.payment_id.company_id.name"/><br/>
+                            <span t-esc="cheque.chequera_id.bank_id.name"/>
+                        </div>
+                        <div style="position: absolute; top: 3mm; right: 3mm; text-align: right;">
+                            <div>N° <strong t-esc="str(cheque.numero).zfill(8)"/></div>
+                            <div>Fecha:
+                                <t t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
+                            </div>
+                        </div>
+
+                        <!-- Fila 2: Cuenta / Sucursal -->
+                        <div style="position: absolute; top: 12mm; left: 3mm;">
+                            Cuenta N°: <span t-esc="cheque.chequera_id.cuenta_bancaria_id.acc_number"/>
+                        </div>
+
+                        <!-- Páguese a la orden de -->
+                        <div style="position: absolute; top: 22mm; left: 3mm; width: 169mm;">
+                            Páguese a la orden de:
+                            <strong t-esc="cheque.payment_id.partner_id.display_name"/>
+                            <div style="border-bottom: 1px solid #000000; width: 169mm;"/>
+                        </div>
+
+                        <!-- Monto en letras -->
+                        <div style="position: absolute; top: 32mm; left: 3mm; width: 130mm;">
+                            <span t-esc="numero_a_letras(cheque.payment_id.amount)"/>
+                            <span t-esc="cheque.payment_id.currency_id.name"/>
+                            <div style="border-bottom: 1px solid #000000; width: 130mm;"/>
+                        </div>
+
+                        <!-- Monto en números (recuadro) -->
+                        <div style="position: absolute; top: 30mm; right: 3mm; width: 35mm; height: 10mm;
+                                    border: 1px solid #000000; text-align: right; padding: 1mm;
+                                    font-weight: bold; font-size: 11px;">
+                            <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
+                        </div>
+
+                        <!-- Lugar y fecha de emisión -->
+                        <div style="position: absolute; top: 46mm; left: 3mm;">
+                            <span t-esc="cheque.payment_id.company_id.city or ''"/>,
+                            <span t-esc="cheque.fecha_emision.strftime('%d de %m de %Y') if cheque.fecha_emision else ''"/>
+                        </div>
+
+                        <!-- Firma -->
+                        <div style="position: absolute; bottom: 5mm; right: 20mm; width: 60mm; text-align: center;">
+                            <div style="border-top: 1px solid #000000; padding-top: 1mm;">Firma</div>
+                        </div>
                     </div>
                 </t>
             </t>
         </template>
 
+        <record id="paperformat_impresion_cheques" model="report.paperformat">
+            <field name="name">Cheque (175x76mm, BCP)</field>
+            <field name="format">custom</field>
+            <field name="page_height">76</field>
+            <field name="page_width">175</field>
+            <field name="orientation">Landscape</field>
+            <field name="margin_top">0</field>
+            <field name="margin_bottom">0</field>
+            <field name="margin_left">0</field>
+            <field name="margin_right">0</field>
+            <field name="header_spacing">0</field>
+            <field name="dpi">90</field>
+        </record>
+
         <record id="action_report_impresion_cheques" model="ir.actions.report">
-            <field name="name">Comprobante de Cheques Emitidos</field>
+            <field name="name">Cheque</field>
             <field name="model">local_py.chequera.cheque</field>
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">local_py.report_impresion_cheques_document</field>
             <field name="report_file">local_py.report_impresion_cheques_document</field>
+            <field name="paperformat_id" ref="paperformat_impresion_cheques"/>
             <field name="binding_model_id" eval="False"/>
         </record>
     </data>

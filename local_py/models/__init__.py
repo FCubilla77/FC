@@ -27,3 +27,5 @@ from . import local_py_orden_pago_medio
 from . import local_py_orden_pago
 from . import local_py_chequera
 from . import local_py_chequera_cheque
+from . import local_py_numero_a_letras
+from . import local_py_report_impresion_cheques

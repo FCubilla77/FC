@@ -71,4 +71,4 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
                 medio.nro_documento = str(numero)
 
         report_action = self.env.ref('local_py.action_report_impresion_cheques')
-        return report_action.report_action(cheques)
+        return report_action.report_action(cheques, config=False)
