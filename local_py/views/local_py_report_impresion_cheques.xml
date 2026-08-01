@@ -2,70 +2,88 @@
     <data>
         <template id="report_impresion_cheques_document">
             <t t-call="web.basic_layout">
-                <t t-foreach="docs" t-as="cheque">
-                    <div style="page-break-after: always; width: 175mm; height: 76mm; position: relative;
-                                font-family: Arial, sans-serif; font-size: 9px; border: 1px dashed #cccccc;
-                                box-sizing: border-box; padding: 3mm;">
+                <t t-foreach="paginas" t-as="pagina">
+                    <div style="page-break-after: always; width: 275mm; font-family: Arial, sans-serif; font-size: 9px;">
+                        <t t-foreach="pagina" t-as="cheque">
+                            <div style="width: 275mm; height: 76mm; display: flex; border-bottom: 1px dashed #999999;
+                                        box-sizing: border-box;">
 
-                        <!-- Fila 1: Cuenta, Serie, Número de Cheque (arriba a la derecha, según BCP) -->
-                        <div style="position: absolute; top: 3mm; left: 3mm; width: 90mm;">
-                            <strong t-esc="cheque.payment_id.company_id.name"/><br/>
-                            <span t-esc="cheque.chequera_id.bank_id.name"/>
-                        </div>
-                        <div style="position: absolute; top: 3mm; right: 3mm; text-align: right;">
-                            <div>N° <strong t-esc="str(cheque.numero).zfill(8)"/></div>
-                            <div>Fecha:
-                                <t t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
+                                <!-- Talón (izquierda) -->
+                                <div style="width: 100mm; height: 76mm; box-sizing: border-box; padding: 3mm;
+                                            border-right: 1px dotted #999999; position: relative;">
+                                    <div style="position: absolute; top: 3mm; right: 3mm; font-weight: bold;">
+                                        <span t-esc="str(cheque.numero).zfill(8)"/>
+                                    </div>
+                                    <div style="position: absolute; top: 3mm; left: 3mm;">
+                                        Fecha:
+                                        <span t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
+                                    </div>
+                                    <div style="position: absolute; top: 10mm; left: 3mm;"
+                                         t-if="cheque.orden_pago_medio_id.fecha_vencimiento and cheque.orden_pago_medio_id.chequera_id.tipo == 'diferido'">
+                                        Fecha Venc.:
+                                        <span t-esc="cheque.orden_pago_medio_id.fecha_vencimiento.strftime('%d/%m/%Y')"/>
+                                    </div>
+                                    <div style="position: absolute; top: 20mm; left: 3mm; width: 94mm;">
+                                        A: <span t-esc="cheque.payment_id.partner_id.display_name"/>
+                                    </div>
+                                    <div style="position: absolute; top: 30mm; left: 3mm; width: 94mm;
+                                                 font-weight: bold; font-size: 11px;">
+                                        Gs. <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
+                                    </div>
+                                </div>
+
+                                <!-- Cheque (derecha) -->
+                                <div style="width: 175mm; height: 76mm; box-sizing: border-box; padding: 3mm;
+                                            position: relative;">
+                                    <div style="position: absolute; top: 3mm; left: 3mm; width: 90mm;">
+                                        <strong t-esc="cheque.payment_id.company_id.name"/><br/>
+                                        <span t-esc="cheque.chequera_id.bank_id.name"/>
+                                    </div>
+                                    <div style="position: absolute; top: 3mm; right: 3mm; text-align: right;">
+                                        <div>N° <strong t-esc="str(cheque.numero).zfill(8)"/></div>
+                                        <div>Fecha:
+                                            <t t-esc="cheque.fecha_emision.strftime('%d/%m/%Y') if cheque.fecha_emision else ''"/>
+                                        </div>
+                                    </div>
+                                    <div style="position: absolute; top: 12mm; left: 3mm;">
+                                        Cuenta N°: <span t-esc="cheque.chequera_id.cuenta_bancaria_id.acc_number"/>
+                                    </div>
+                                    <div style="position: absolute; top: 22mm; left: 3mm; width: 169mm;">
+                                        Páguese a la orden de:
+                                        <strong t-esc="cheque.payment_id.partner_id.display_name"/>
+                                        <div style="border-bottom: 1px solid #000000; width: 169mm;"/>
+                                    </div>
+                                    <div style="position: absolute; top: 32mm; left: 3mm; width: 130mm;">
+                                        <span t-esc="numero_a_letras(cheque.payment_id.amount)"/>
+                                        <span t-esc="cheque.payment_id.currency_id.name"/>
+                                        <div style="border-bottom: 1px solid #000000; width: 130mm;"/>
+                                    </div>
+                                    <div style="position: absolute; top: 30mm; right: 3mm; width: 35mm; height: 10mm;
+                                                border: 1px solid #000000; text-align: right; padding: 1mm;
+                                                font-weight: bold; font-size: 11px;">
+                                        <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
+                                    </div>
+                                    <div style="position: absolute; top: 46mm; left: 3mm;">
+                                        <span t-esc="cheque.payment_id.company_id.city or ''"/>,
+                                        <span t-esc="cheque.fecha_emision.strftime('%d de %m de %Y') if cheque.fecha_emision else ''"/>
+                                    </div>
+                                    <div style="position: absolute; bottom: 5mm; right: 20mm; width: 60mm; text-align: center;">
+                                        <div style="border-top: 1px solid #000000; padding-top: 1mm;">Firma</div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Fila 2: Cuenta / Sucursal -->
-                        <div style="position: absolute; top: 12mm; left: 3mm;">
-                            Cuenta N°: <span t-esc="cheque.chequera_id.cuenta_bancaria_id.acc_number"/>
-                        </div>
-
-                        <!-- Páguese a la orden de -->
-                        <div style="position: absolute; top: 22mm; left: 3mm; width: 169mm;">
-                            Páguese a la orden de:
-                            <strong t-esc="cheque.payment_id.partner_id.display_name"/>
-                            <div style="border-bottom: 1px solid #000000; width: 169mm;"/>
-                        </div>
-
-                        <!-- Monto en letras -->
-                        <div style="position: absolute; top: 32mm; left: 3mm; width: 130mm;">
-                            <span t-esc="numero_a_letras(cheque.payment_id.amount)"/>
-                            <span t-esc="cheque.payment_id.currency_id.name"/>
-                            <div style="border-bottom: 1px solid #000000; width: 130mm;"/>
-                        </div>
-
-                        <!-- Monto en números (recuadro) -->
-                        <div style="position: absolute; top: 30mm; right: 3mm; width: 35mm; height: 10mm;
-                                    border: 1px solid #000000; text-align: right; padding: 1mm;
-                                    font-weight: bold; font-size: 11px;">
-                            <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
-                        </div>
-
-                        <!-- Lugar y fecha de emisión -->
-                        <div style="position: absolute; top: 46mm; left: 3mm;">
-                            <span t-esc="cheque.payment_id.company_id.city or ''"/>,
-                            <span t-esc="cheque.fecha_emision.strftime('%d de %m de %Y') if cheque.fecha_emision else ''"/>
-                        </div>
-
-                        <!-- Firma -->
-                        <div style="position: absolute; bottom: 5mm; right: 20mm; width: 60mm; text-align: center;">
-                            <div style="border-top: 1px solid #000000; padding-top: 1mm;">Firma</div>
-                        </div>
+                        </t>
                     </div>
                 </t>
             </t>
         </template>
 
         <record id="paperformat_impresion_cheques" model="report.paperformat">
-            <field name="name">Cheque (175x76mm, BCP)</field>
+            <field name="name">Cheque con talón (275x228mm, 3 por hoja)</field>
             <field name="format">custom</field>
-            <field name="page_height">76</field>
-            <field name="page_width">175</field>
-            <field name="orientation">Landscape</field>
+            <field name="page_height">228</field>
+            <field name="page_width">275</field>
+            <field name="orientation">Portrait</field>
             <field name="margin_top">0</field>
             <field name="margin_bottom">0</field>
             <field name="margin_left">0</field>

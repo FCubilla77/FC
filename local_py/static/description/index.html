@@ -259,6 +259,11 @@
                 <li>Corregido: Impresión Masiva de Cheques nunca encontraba pagos pendientes — comparaba el estado del pago contra "posted", un valor que no existe en Odoo 19 para ese campo (los valores reales son otros); ya corregido</li>
                 <li>Corregido: al imprimir cheques por primera vez, aparecía el asistente de configuración de diseño de Odoo (mismo ajuste que ya se hizo antes en Libro Inventario)</li>
                 <li>Diseño real del cheque para impresión: hoja de 175mm x 76mm (medida oficial del Banco Central del Paraguay, Resolución N° 3, Acta N° 1 de 2017), con Número de Cheque, Cuenta, Fecha, Beneficiario, monto en números y en letras (con conversor de número a letras en español, nuevo), y espacio de firma — reemplaza el comprobante de control provisorio de la versión anterior</li>
+                <li>Impresión de Cheques: rediseñada a partir de la papelería real del usuario — hoja con talón a la izquierda (Fecha, Beneficiario, Importe, y Fecha Venc. para chequeras Diferidas) y cheque a la derecha, 3 cheques por hoja</li>
+                <li>Orden de Pago / Medios: nuevo campo para reutilizar un Cheque puntual en estado "Reutilizable" (en vez de tomar siempre el siguiente número de la Chequera); bloquea con aviso si se intenta reutilizar un cheque que no está en ese estado</li>
+                <li>Corregido: si se anulaba un cheque de una Orden de Pago que seguía Confirmada, el sistema ya no permitía generar el cheque de reemplazo — ahora ese pago vuelve a aparecer como pendiente de imprimir automáticamente</li>
+                <li>Orden de Pago: ya no se puede eliminar (se agregó "Archivar", que oculta el registro sin perder el historial ni dejar huecos en la numeración)</li>
+                <li>Cheque: ya no se puede eliminar — solo "Anular", para no dejar huecos en la numeración de cheques</li>
             </ul>
         </div>
     </div>

@@ -11,6 +11,7 @@ class LocalPyOrdenPago(models.Model):
     _order = 'fecha desc, id desc'
 
     name = fields.Char(string='Número', default='Nuevo', copy=False, readonly=True)
+    active = fields.Boolean(default=True)
     company_id = fields.Many2one(
         'res.company', string='Compañía', required=True, default=lambda self: self.env.company,
     )
@@ -75,6 +76,13 @@ class LocalPyOrdenPago(models.Model):
             if vals.get('name', 'Nuevo') == 'Nuevo':
                 vals['name'] = self.env['ir.sequence'].next_by_code('local_py.orden_pago') or 'Nuevo'
         return super().create(vals_list)
+
+    def unlink(self):
+        raise UserError(
+            'No se puede eliminar una Orden de Pago (para no dejar huecos en la '
+            'numeración). Use "Archivar" en su lugar — el registro queda oculto de las '
+            'vistas normales, pero el historial se conserva.'
+        )
 
     # ------------------------------------------------------------------
     # Flujo de estados

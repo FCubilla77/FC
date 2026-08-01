@@ -30,6 +30,12 @@ class LocalPyChequeraCheque(models.Model):
         'Ese número ya existe para esta Chequera.',
     )
 
+    def unlink(self):
+        raise UserError(
+            'No se puede eliminar un Cheque (para no dejar huecos en la numeración). '
+            'Use "Anular" en su lugar.'
+        )
+
     def action_anular(self):
         """Anula un cheque puntual (dañado, perdido, etc.) sin tocar la
         Orden de Pago ni el pago que lo generó — ambos siguen intactos,

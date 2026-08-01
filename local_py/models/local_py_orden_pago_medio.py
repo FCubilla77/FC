@@ -26,6 +26,13 @@ class LocalPyOrdenPagoMedio(models.Model):
     nro_documento = fields.Char(string='Nro. Documento')
     banco = fields.Char(string='Banco')
     chequera_id = fields.Many2one('local_py.chequera', string='Chequera')
+    cheque_reutilizar_id = fields.Many2one(
+        'local_py.chequera.cheque', string='Reutilizar Cheque N°',
+        domain="[('chequera_id', '=', chequera_id), ('estado', '=', 'reutilizable')]",
+        help='Si se elige un cheque acá, al imprimir NO se toma el siguiente número '
+             'disponible de la Chequera — se reactiva este número puntual (que había '
+             'quedado Reutilizable por una Orden de Pago anterior revertida).',
+    )
     cuenta_banco = fields.Char(string='Cuenta Banco')
 
     payment_ids = fields.One2many(
@@ -100,4 +107,14 @@ class LocalPyOrdenPagoMedio(models.Model):
                 raise ValidationError(
                     'La Chequera "%s" es "Diferido": la Fecha de Vencimiento debe ser '
                     'posterior a la Fecha de Emisión.' % medio.chequera_id.name
+                )
+
+    @api.constrains('cheque_reutilizar_id')
+    def _check_cheque_reutilizar(self):
+        for medio in self:
+            if medio.cheque_reutilizar_id and medio.cheque_reutilizar_id.estado != 'reutilizable':
+                raise ValidationError(
+                    'El cheque N° %s ya se utilizó (estado: %s) y no puede reutilizarse — '
+                    'solo se pueden reutilizar cheques en estado "Reutilizable".'
+                    % (medio.cheque_reutilizar_id.numero, medio.cheque_reutilizar_id.estado)
                 )

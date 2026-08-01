@@ -12,10 +12,12 @@ class ReportImpresionCheques(models.AbstractModel):
 
     def _get_report_values(self, docids, data=None):
         cheques = self.env['local_py.chequera.cheque'].browse(docids)
+        paginas = [cheques[i:i + 3] for i in range(0, len(cheques), 3)] or [cheques]
         return {
             'doc_ids': docids,
             'doc_model': 'local_py.chequera.cheque',
             'docs': cheques,
+            'paginas': paginas,
             'numero_a_letras': numero_a_letras,
             'fmt_pyg': fmt_pyg,
         }

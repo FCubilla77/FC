@@ -80,6 +80,7 @@
                                         <field name="nro_documento"/>
                                         <field name="banco"/>
                                         <field name="chequera_id" readonly="1"/>
+                                        <field name="cheque_reutilizar_id" options="{'no_create': True}"/>
                                         <field name="cuenta_banco"/>
                                         <field name="payment_ids" readonly="1" widget="many2many_tags"/>
                                         <field name="currency_id" column_invisible="1"/>
