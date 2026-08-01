@@ -39,7 +39,7 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
             ('journal_id', '=', self.journal_id.id),
             ('chequera_id', '!=', False),
         ])
-        pagos = medios.mapped('payment_ids').filtered(lambda p: p.state == 'posted')
+        pagos = medios.mapped('payment_ids').filtered(lambda p: p.state in ('in_process', 'paid'))
         ya_impresos = self.env['local_py.chequera.cheque'].search(
             [('payment_id', 'in', pagos.ids)]
         ).mapped('payment_id')
