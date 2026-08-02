@@ -26,12 +26,15 @@ class LocalPyOrdenPagoMedio(models.Model):
     nro_documento = fields.Char(string='Nro. Documento')
     banco = fields.Char(string='Banco')
     chequera_id = fields.Many2one('local_py.chequera', string='Chequera')
+    orden_pago_partner_id = fields.Many2one(related='orden_pago_id.partner_id', string='Proveedor (para filtro)')
     cheque_reutilizar_id = fields.Many2one(
         'local_py.chequera.cheque', string='Reutilizar Cheque N°',
-        domain="[('chequera_id', '=', chequera_id), ('estado', '=', 'reutilizable')]",
-        help='Si se elige un cheque acá, al imprimir NO se toma el siguiente número '
-             'disponible de la Chequera — se reactiva este número puntual (que había '
-             'quedado Reutilizable por una Orden de Pago anterior revertida).',
+        domain="[('chequera_id', '=', chequera_id), ('estado', '=', 'reutilizable'),"
+               " ('payment_id.partner_id', '=', orden_pago_partner_id)]",
+        help='Solo se pueden reutilizar cheques que hayan sido emitidos originalmente '
+             'para el mismo Proveedor de esta Orden de Pago. Al Confirmar, este número '
+             'se reactiva directamente (pasa de Reutilizable a Emitido) — no vuelve a '
+             'pasar por Impresión Masiva, ya que el papel físico ya se imprimió antes.',
     )
     cuenta_banco = fields.Char(string='Cuenta Banco')
 

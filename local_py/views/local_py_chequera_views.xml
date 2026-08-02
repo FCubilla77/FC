@@ -37,10 +37,12 @@
                                                decoration-success="estado == 'emitido'"
                                                decoration-danger="estado == 'anulado'"
                                                decoration-warning="estado == 'reutilizable'"/>
-                                        <field name="fecha_emision"/>
+                                        <field name="fecha_emision" readonly="1"/>
+                                        <field name="fecha_vencimiento" readonly="1"/>
                                         <field name="motivo_anulacion"/>
-                                        <field name="payment_id" readonly="1"/>
-                                        <field name="orden_pago_medio_id" readonly="1"/>
+                                        <field name="orden_pago_id" readonly="1" string="Orden de Pago"/>
+                                        <field name="payment_id" readonly="1" options="{'no_create': True}"/>
+                                        <field name="orden_pago_medio_id" column_invisible="1"/>
                                         <button name="action_anular" type="object" string="Anular" icon="fa-ban"
                                                 invisible="estado == 'anulado'"/>
                                     </list>

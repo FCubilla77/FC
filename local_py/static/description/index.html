@@ -264,6 +264,9 @@
                 <li>Corregido: si se anulaba un cheque de una Orden de Pago que seguía Confirmada, el sistema ya no permitía generar el cheque de reemplazo — ahora ese pago vuelve a aparecer como pendiente de imprimir automáticamente</li>
                 <li>Orden de Pago: ya no se puede eliminar (se agregó "Archivar", que oculta el registro sin perder el historial ni dejar huecos en la numeración)</li>
                 <li>Cheque: ya no se puede eliminar — solo "Anular", para no dejar huecos en la numeración de cheques</li>
+                <li>Reutilizar cheque: corregido para que se reactive directo al Confirmar la Orden de Pago (no vuelve a pasar por Impresión Masiva, ya que el papel físico ya se imprimió antes); la lista de selección ahora muestra Banco/Número/Importe/Fecha y solo permite elegir cheques emitidos originalmente para el mismo Proveedor</li>
+                <li>Chequera: nueva columna "Fecha Venc." en la grilla de Cheques; "Fecha Emisión" y "Fecha Venc." ahí bloqueadas; la columna de Medio de Pago origen ahora muestra el número real de la Orden de Pago (clickeable, abre esa Orden de Pago) en vez del dato técnico interno; "Agregar línea" ya no permite crear pagos por accidente (queda solo para registrar cheques anulados manualmente, actualizando la numeración de la Chequera)</li>
+                <li>Orden de Pago: agregada la cinta "Archivado" en el formulario, igual que en Contactos</li>
             </ul>
         </div>
     </div>

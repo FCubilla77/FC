@@ -293,6 +293,22 @@ class LocalPyOrdenPago(models.Model):
             if payment.move_id:
                 payment.move_id.l10n_py_comentario = comentario
 
+            if medio.cheque_reutilizar_id:
+                cheque = medio.cheque_reutilizar_id
+                if cheque.estado != 'reutilizable':
+                    raise UserError(
+                        'El cheque N° %s ya no está en estado "Reutilizable" — revise la '
+                        'fila de Medios.' % cheque.numero
+                    )
+                cheque.write({
+                    'estado': 'emitido',
+                    'fecha_emision': payment.date,
+                    'payment_id': payment.id,
+                    'orden_pago_medio_id': medio.id,
+                    'motivo_anulacion': False,
+                })
+                medio.write({'cheque_reutilizar_id': False, 'nro_documento': str(cheque.numero)})
+
             linea_pago_payable = payment.move_id.line_ids.filtered(
                 lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
             )

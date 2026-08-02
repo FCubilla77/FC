@@ -35,9 +35,10 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
 
     def _get_medios_pendientes(self):
         """Filas de Medios de este Diario que todavía necesitan que se les
-        imprima/reimprima un cheque — ya sea porque nunca tuvieron uno,
-        porque el último que tuvieron fue Anulado (hay que reemplazarlo),
-        o porque están marcadas para Reutilizar un número puntual."""
+        imprima/reimprima un cheque — porque nunca tuvieron uno, o porque
+        el último que tuvieron fue Anulado (hay que reemplazarlo). Los
+        cheques reutilizados NO pasan por acá: ya se reactivan solos al
+        Confirmar la Orden de Pago, sin necesidad de volver a imprimirlos."""
         self.ensure_one()
         if not self.journal_id:
             return self.env['local_py.orden_pago.medio']
@@ -49,9 +50,6 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
         for medio in medios:
             pagos = medio.payment_ids.filtered(lambda p: p.state in ('in_process', 'paid'))
             if not pagos:
-                continue
-            if medio.cheque_reutilizar_id:
-                pendientes |= medio
                 continue
             ultimo_cheque = self.env['local_py.chequera.cheque'].search(
                 [('payment_id', 'in', pagos.ids)], order='id desc', limit=1
@@ -75,33 +73,15 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
             if not pago:
                 continue
 
-            if medio.cheque_reutilizar_id:
-                cheque = medio.cheque_reutilizar_id
-                if cheque.estado != 'reutilizable':
-                    raise UserError(
-                        'El cheque N° %s ya no está en estado "Reutilizable" — revise la '
-                        'fila de Medios de "%s".' % (cheque.numero, medio.orden_pago_id.name)
-                    )
-                cheque.write({
-                    'estado': 'emitido',
-                    'fecha_emision': pago.date,
-                    'payment_id': pago.id,
-                    'orden_pago_medio_id': medio.id,
-                    'motivo_anulacion': False,
-                })
-                numero = cheque.numero
-                medio.cheque_reutilizar_id = False
-            else:
-                numero = self.chequera_id._asignar_siguiente_numero()
-                cheque = Cheque.create({
-                    'chequera_id': self.chequera_id.id,
-                    'numero': numero,
-                    'estado': 'emitido',
-                    'fecha_emision': pago.date,
-                    'payment_id': pago.id,
-                    'orden_pago_medio_id': medio.id,
-                })
-
+            numero = self.chequera_id._asignar_siguiente_numero()
+            cheque = Cheque.create({
+                'chequera_id': self.chequera_id.id,
+                'numero': numero,
+                'estado': 'emitido',
+                'fecha_emision': pago.date,
+                'payment_id': pago.id,
+                'orden_pago_medio_id': medio.id,
+            })
             cheques |= cheque
             medio.nro_documento = str(numero)
 
