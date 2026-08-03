@@ -80,17 +80,31 @@ class LocalPyOrdenPagoFactura(models.Model):
                 linea.saldo_pendiente = abs(linea.move_line_id.amount_residual)
 
     @api.depends('importe_a_pagar', 'cotizacion', 'currency_id', 'header_currency_id',
-                 'move_line_id.balance', 'move_line_id.amount_currency')
+                 'move_line_id.balance', 'move_line_id.amount_currency', 'orden_pago_id.fecha')
     def _compute_conversion(self):
         for linea in self:
             linea.valor_convertido = linea.importe_a_pagar * (linea.cotizacion or 0.0)
+
             amount_currency = linea.move_line_id.amount_currency
             if amount_currency:
                 tasa_original = abs(linea.move_line_id.balance / amount_currency)
             else:
                 tasa_original = 1.0
-            valor_original_proporcional = linea.importe_a_pagar * tasa_original
-            linea.diferencia_cambio = linea.valor_convertido - valor_original_proporcional
+            # tasa_original está en Moneda de la Empresa por unidad de Moneda de la
+            # Factura — hay que llevarlo a la Moneda de la Cabecera antes de comparar,
+            # para no mezclar unidades distintas en la resta.
+            valor_original_moneda_empresa = linea.importe_a_pagar * tasa_original
+            company = linea.orden_pago_id.company_id
+            moneda_empresa = company.currency_id
+            if moneda_empresa and moneda_empresa != linea.header_currency_id:
+                fecha = linea.orden_pago_id.fecha or fields.Date.context_today(linea)
+                valor_original_cabecera = moneda_empresa._convert(
+                    valor_original_moneda_empresa, linea.header_currency_id, company, fecha,
+                )
+            else:
+                valor_original_cabecera = valor_original_moneda_empresa
+
+            linea.diferencia_cambio = linea.valor_convertido - valor_original_cabecera
 
     @api.onchange('cotizacion')
     def _onchange_cotizacion(self):
