@@ -13,7 +13,7 @@
                         <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
                     </group>
                     <footer>
-                        <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button name="action_ver_reporte" type="object" string="Descargar PDF" class="btn-primary"/>
                         <button string="Cancelar" class="btn-secondary" special="cancel"/>
                     </footer>
                 </form>

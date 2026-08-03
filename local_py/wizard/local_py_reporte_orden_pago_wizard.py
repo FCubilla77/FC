@@ -40,6 +40,23 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
             'fmt_pyg': fmt_pyg,
         }
         report_action = self.env.ref('local_py.action_report_orden_pago_listado')
-        return report_action.with_context(local_py_libro_render_data=render_context).report_action(
-            self.company_id, config=False,
-        )
+        pdf_content, _ = report_action.with_context(
+            local_py_libro_render_data=render_context
+        )._render_qweb_pdf(report_action.report_name, [self.company_id.id])
+
+        import base64
+        attachment = self.env['ir.attachment'].create({
+            'name': 'Informe_Orden_de_Pago_%s_%s.pdf' % (
+                self.fecha_desde.strftime('%Y%m%d'), self.fecha_hasta.strftime('%Y%m%d'),
+            ),
+            'type': 'binary',
+            'datas': base64.b64encode(pdf_content),
+            'mimetype': 'application/pdf',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/web/content/%s?download=true' % attachment.id,
+            'target': 'self',
+        }
