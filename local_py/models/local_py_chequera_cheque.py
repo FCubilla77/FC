@@ -18,6 +18,11 @@ class LocalPyChequeraCheque(models.Model):
     fecha_emision = fields.Date(string='Fecha Emisión')
     fecha_vencimiento = fields.Date(related='orden_pago_medio_id.fecha_vencimiento', string='Fecha Venc.')
     motivo_anulacion = fields.Char(string='Motivo')
+    importe = fields.Monetary(
+        related='payment_id.amount', string='Importe', currency_field='moneda_pago_id',
+    )
+    moneda_pago_id = fields.Many2one(related='payment_id.currency_id', string='Moneda (para importe)')
+    proveedor = fields.Many2one(related='payment_id.partner_id', string='Proveedor')
     payment_id = fields.Many2one(
         'account.payment', string='Pago', readonly=True, copy=False,
         help='Pago para el cual se emitió originalmente este número de cheque.',

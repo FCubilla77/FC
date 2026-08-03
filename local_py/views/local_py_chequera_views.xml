@@ -40,6 +40,9 @@
                                         <field name="fecha_emision" readonly="1"/>
                                         <field name="fecha_vencimiento" readonly="1"/>
                                         <field name="motivo_anulacion"/>
+                                        <field name="importe" readonly="1"/>
+                                        <field name="proveedor" readonly="1"/>
+                                        <field name="moneda_pago_id" column_invisible="1"/>
                                         <field name="orden_pago_id" readonly="1" string="Orden de Pago"/>
                                         <field name="payment_id" readonly="1" options="{'no_create': True}"/>
                                         <field name="orden_pago_medio_id" column_invisible="1"/>

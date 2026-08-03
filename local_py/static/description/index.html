@@ -275,6 +275,9 @@
                 <li>Corregido el espacio en blanco desperdiciado a los costados en Informe de Orden de Pago e Informe de Cheques (usaban un layout que no aprovechaba el ancho completo); ahora incluyen numeración de página automática ("Page X / Y", en inglés por ser el mecanismo estándar de Odoo — avisar si se necesita en español)</li>
                 <li>Quitado el encabezado con logo que había traído el nuevo layout en Informe de Orden de Pago e Informe de Cheques, volviendo al encabezado de texto simple anterior (se conserva la numeración de página y el ancho completo)</li>
                 <li>Corregido de verdad: el encabezado con logo no se podía ocultar con un simple estilo, porque Odoo lo genera aparte al armar el PDF — se volvió al layout sin logo (igual que en 2026.14.003 y anteriores), y el ancho completo se logra ahora anulando el límite de ancho de ese layout con una regla de estilo específica, sin depender del layout con logo para conseguirlo</li>
+                <li>Corregido: Informe de Cheques no mostraba los cheques Anulados registrados manualmente sin Fecha Emisión, generando saltos aparentes en la numeración — ahora esos cheques siempre se incluyen, sin importar el rango de fechas elegido</li>
+                <li>Chequera: nuevas columnas "Importe" y "Proveedor" en la grilla de Cheques, después de "Motivo"</li>
+                <li>Corregido un bug real en Orden de Pago: si cambiabas la Moneda de la cabecera después de haber cargado facturas, la Cotización de cada factura quedaba con el valor calculado contra la moneda anterior, sin actualizarse — ahora se refresca automáticamente al cambiar la Moneda (y también, por las dudas, al marcar "En Proceso")</li>
             </ul>
         </div>
     </div>

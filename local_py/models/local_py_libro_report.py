@@ -1051,8 +1051,9 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         Cheque y su subtotal por Chequera."""
         domain = [
             ('chequera_id.company_id', '=', company.id),
-            ('fecha_emision', '>=', fecha_desde),
-            ('fecha_emision', '<=', fecha_hasta),
+            '|',
+            ('fecha_emision', '=', False),
+            '&', ('fecha_emision', '>=', fecha_desde), ('fecha_emision', '<=', fecha_hasta),
         ]
         if chequera_ids:
             domain.append(('chequera_id', 'in', chequera_ids.ids))

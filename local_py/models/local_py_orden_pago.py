@@ -70,6 +70,12 @@ class LocalPyOrdenPago(models.Model):
         if self.factura_ids:
             self.factura_ids = [(5, 0, 0)]
 
+    @api.onchange('currency_id', 'fecha')
+    def _onchange_currency_id_cotizacion(self):
+        a_refrescar = self.factura_ids.filtered(lambda f: not f.cotizacion_manual)
+        if a_refrescar:
+            a_refrescar._set_cotizacion_default(self.fecha)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -163,6 +169,9 @@ class LocalPyOrdenPago(models.Model):
             if not orden.medio_ids:
                 raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
             orden.medio_ids._resolver_chequera()
+            a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
+            if a_refrescar:
+                a_refrescar._set_cotizacion_default(orden.fecha)
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'El total de Medios de Pago (%s) debe coincidir exactamente con el total a '
