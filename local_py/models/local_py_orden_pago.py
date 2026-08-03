@@ -109,7 +109,7 @@ class LocalPyOrdenPago(models.Model):
         moneda — para no usar en silencio la última cotización cargada,
         que puede no ser la del día."""
         self.ensure_one()
-        monedas_a_convertir = monedas - self.currency_id
+        monedas_a_convertir = monedas - self.currency_id - self.company_id.currency_id
         monedas_sin_cotizacion = self.env['res.currency']
         for moneda in monedas_a_convertir:
             existe = self.env['res.currency.rate'].search_count([

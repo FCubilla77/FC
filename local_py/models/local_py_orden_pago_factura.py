@@ -54,13 +54,18 @@ class LocalPyOrdenPagoFactura(models.Model):
         string='Valor a Pagar (Moneda Cabecera)', compute='_compute_conversion',
         currency_field='header_currency_id',
     )
+    company_currency_id = fields.Many2one(
+        related='orden_pago_id.company_id.currency_id', string='Moneda de la Empresa',
+    )
     diferencia_cambio = fields.Monetary(
         string='Diferencia de Cambio (vista previa)', compute='_compute_conversion',
-        currency_field='header_currency_id',
-        help='Estimación, comparando la cotización original de la factura contra la '
-             'cotización de esta Orden de Pago. El asiento real de diferencia de cambio '
-             'lo genera Odoo de forma nativa al Confirmar, con la cotización vigente en '
-             'ese momento (puede no coincidir exactamente con esta vista previa).',
+        currency_field='company_currency_id',
+        help='Estimación en la Moneda de la Empresa — la diferencia de cambio siempre '
+             'ocurre ahí, sin importar en qué moneda esté la Orden de Pago (la factura '
+             'se contabilizó originalmente contra una cuenta en Moneda de la Empresa, a '
+             'una cotización distinta a la de hoy). El asiento real lo genera Odoo de '
+             'forma nativa al Confirmar (puede no coincidir centavo a centavo con esta '
+             'vista previa).',
     )
 
     @api.depends('currency_id', 'header_currency_id')
@@ -85,26 +90,30 @@ class LocalPyOrdenPagoFactura(models.Model):
         for linea in self:
             linea.valor_convertido = linea.importe_a_pagar * (linea.cotizacion or 0.0)
 
-            amount_currency = linea.move_line_id.amount_currency
-            if amount_currency:
-                tasa_original = abs(linea.move_line_id.balance / amount_currency)
-            else:
-                tasa_original = 1.0
-            # tasa_original está en Moneda de la Empresa por unidad de Moneda de la
-            # Factura — hay que llevarlo a la Moneda de la Cabecera antes de comparar,
-            # para no mezclar unidades distintas en la resta.
-            valor_original_moneda_empresa = linea.importe_a_pagar * tasa_original
             company = linea.orden_pago_id.company_id
             moneda_empresa = company.currency_id
-            if moneda_empresa and moneda_empresa != linea.header_currency_id:
-                fecha = linea.orden_pago_id.fecha or fields.Date.context_today(linea)
-                valor_original_cabecera = moneda_empresa._convert(
-                    valor_original_moneda_empresa, linea.header_currency_id, company, fecha,
+            fecha = linea.orden_pago_id.fecha or fields.Date.context_today(linea)
+
+            # La Diferencia de Cambio es siempre un fenómeno en Moneda de la Empresa —
+            # la factura se contabilizó originalmente contra una cuenta en esa moneda, a
+            # una cotización dada; hoy se paga a otra. Esto es independiente de en qué
+            # Moneda esté la Orden de Pago (la Cotización de arriba convierte a la
+            # Moneda de la Cabecera, que es un dato distinto).
+            amount_currency = linea.move_line_id.amount_currency
+            if amount_currency:
+                tasa_original_empresa = abs(linea.move_line_id.balance / amount_currency)
+            else:
+                tasa_original_empresa = 1.0
+            valor_original_empresa = linea.importe_a_pagar * tasa_original_empresa
+
+            if linea.currency_id and moneda_empresa and linea.currency_id != moneda_empresa:
+                valor_hoy_empresa = linea.currency_id._convert(
+                    linea.importe_a_pagar, moneda_empresa, company, fecha,
                 )
             else:
-                valor_original_cabecera = valor_original_moneda_empresa
+                valor_hoy_empresa = linea.importe_a_pagar
 
-            linea.diferencia_cambio = linea.valor_convertido - valor_original_cabecera
+            linea.diferencia_cambio = valor_hoy_empresa - valor_original_empresa
 
     @api.onchange('cotizacion')
     def _onchange_cotizacion(self):

@@ -279,6 +279,8 @@
                 <li>Chequera: nuevas columnas "Importe" y "Proveedor" en la grilla de Cheques, después de "Motivo"</li>
                 <li>Corregido un bug real en Orden de Pago: si cambiabas la Moneda de la cabecera después de haber cargado facturas, la Cotización de cada factura quedaba con el valor calculado contra la moneda anterior, sin actualizarse — ahora se refresca automáticamente al cambiar la Moneda (y también, por las dudas, al marcar "En Proceso")</li>
                 <li>Corregido: la columna "Diferencia de Cambio (vista previa)" en Facturas mostraba números sin sentido cuando la Moneda de la Factura coincidía con la de la Cabecera (mezclaba Guaraníes con la otra moneda directamente, sin convertir) — el asiento contable real de diferencia de cambio, generado por Odoo al Confirmar, siempre estuvo correcto; solo esta columna de vista previa estaba mal calculada</li>
+                <li>Corregido: al cargar facturas con la cabecera en una moneda extranjera, el sistema pedía sin necesidad la cotización de la moneda de la empresa (Guaraníes) contra sí misma</li>
+                <li>Rediseñada la columna "Diferencia de Cambio (vista previa)" en Facturas: ahora siempre se expresa en Guaraníes (moneda de la empresa), sin importar la Moneda de la Orden de Pago — usa su propia conversión factura→Guaraníes, independiente de la Cotización factura→cabecera que ya se usa para los Medios</li>
             </ul>
         </div>
     </div>
