@@ -13,3 +13,5 @@ from . import local_py_estado_resultado_wizard
 from . import local_py_stock_valorizado_wizard
 from . import local_py_orden_pago_deshacer_wizard
 from . import local_py_impresion_cheques_wizard
+from . import local_py_reporte_orden_pago_wizard
+from . import local_py_reporte_cheques_wizard

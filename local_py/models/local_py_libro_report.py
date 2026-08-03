@@ -74,6 +74,22 @@ class ReportOrdenPago(models.AbstractModel):
         }
 
 
+class ReportOrdenPagoListado(models.AbstractModel):
+    _name = 'report.local_py.report_orden_pago_listado_document'
+    _description = 'Reporte de Orden de Pago (listado)'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
+class ReportChequesEmitidos(models.AbstractModel):
+    _name = 'report.local_py.report_cheques_listado_document'
+    _description = 'Reporte de Cheques Emitidos (listado)'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
@@ -928,3 +944,155 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         output = io.BytesIO()
         writer.write(output)
         return output.getvalue()
+
+    # ------------------------------------------------------------------
+    # Reporte de Orden de Pago
+    # ------------------------------------------------------------------
+    def _build_reporte_orden_pago_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None, partner_ids=None):
+        """Arma las filas del Reporte de Orden de Pago: agrupado por
+        Moneda y, dentro de cada Moneda, por Orden de Pago (ordenado por
+        número), con el detalle de sus Medios y Facturas. Las Órdenes de
+        Pago Archivadas (operaciones canceladas, nunca ejecutadas)
+        aparecen solo a efectos de control numérico de la secuencia —
+        con importe en cero y sin sumar a ningún total. Devuelve además
+        el resumen cruzado de Medios por Moneda (por tipo de Diario)."""
+        domain = [
+            ('company_id', '=', company.id),
+            ('fecha', '>=', fecha_desde),
+            ('fecha', '<=', fecha_hasta),
+        ]
+        if currency_ids:
+            domain.append(('currency_id', 'in', currency_ids.ids))
+        if partner_ids:
+            domain.append(('partner_id', 'in', partner_ids.ids))
+
+        ordenes = self.env['local_py.orden_pago'].with_context(active_test=False).search(
+            domain, order='currency_id, name',
+        )
+
+        rows = []
+        resumen = {}  # {(currency, diario_name): total}
+        moneda_actual = None
+        total_moneda_medios = total_moneda_facturas = total_moneda_op = 0.0
+
+        def cerrar_moneda():
+            if moneda_actual is not None:
+                rows.append({
+                    'tipo': 'total_moneda', 'moneda': moneda_actual.name,
+                    'total_medios': total_moneda_medios, 'total_facturas': total_moneda_facturas,
+                    'total_op': total_moneda_op,
+                })
+
+        for orden in ordenes:
+            if orden.currency_id != moneda_actual:
+                cerrar_moneda()
+                moneda_actual = orden.currency_id
+                total_moneda_medios = total_moneda_facturas = total_moneda_op = 0.0
+                rows.append({'tipo': 'moneda', 'moneda': moneda_actual.name})
+
+            es_archivada = not orden.active
+            total_op = 0.0 if es_archivada else orden.total_medios
+
+            rows.append({
+                'tipo': 'orden_pago',
+                'name': orden.name,
+                'estado': 'Archivado' if es_archivada else dict(orden._fields['state'].selection).get(orden.state),
+                'fecha': orden.fecha,
+                'proveedor': orden.partner_id.display_name,
+                'total': total_op,
+            })
+
+            if not es_archivada:
+                for medio in orden.medio_ids:
+                    rows.append({
+                        'tipo': 'medio',
+                        'referencia': medio.payment_ids[:1].name if medio.payment_ids else '',
+                        'diario': medio.journal_id.name,
+                        'importe': medio.importe,
+                        'nro_documento': medio.nro_documento or '',
+                        'banco': medio.banco or '',
+                        'fecha_emision': medio.fecha_emision,
+                    })
+                    clave = (moneda_actual, medio.journal_id.name)
+                    resumen[clave] = resumen.get(clave, 0.0) + medio.importe
+                for factura in orden.factura_ids:
+                    rows.append({
+                        'tipo': 'factura',
+                        'factura': factura.move_id.name,
+                        'nro_documento': factura.move_line_id.move_id.l10n_py_nro_documento or '',
+                        'importe_aplicado': factura.importe_a_pagar,
+                    })
+
+                rows.append({
+                    'tipo': 'total_op', 'total_medios': orden.total_medios,
+                    'total_facturas': sum(orden.factura_ids.mapped('importe_a_pagar')),
+                    'total_op': orden.total_medios,
+                })
+                total_moneda_medios += orden.total_medios
+                total_moneda_facturas += sum(orden.factura_ids.mapped('importe_a_pagar'))
+                total_moneda_op += orden.total_medios
+            else:
+                rows.append({'tipo': 'total_op', 'total_medios': 0.0, 'total_facturas': 0.0, 'total_op': 0.0})
+
+        cerrar_moneda()
+
+        resumen_por_moneda = {}
+        for (moneda, diario), total in resumen.items():
+            resumen_por_moneda.setdefault(moneda, {})[diario] = total
+
+        return rows, resumen_por_moneda
+
+    # ------------------------------------------------------------------
+    # Reporte de Cheques Emitidos
+    # ------------------------------------------------------------------
+    def _build_reporte_cheques_rows(self, company, fecha_desde, fecha_hasta, chequera_ids=None):
+        """Arma las filas del Reporte de Cheques Emitidos: agrupado por
+        Chequera (con su Diario, Banco y Tipo), con el detalle de cada
+        Cheque y su subtotal por Chequera."""
+        domain = [
+            ('chequera_id.company_id', '=', company.id),
+            ('fecha_emision', '>=', fecha_desde),
+            ('fecha_emision', '<=', fecha_hasta),
+        ]
+        if chequera_ids:
+            domain.append(('chequera_id', 'in', chequera_ids.ids))
+
+        cheques = self.env['local_py.chequera.cheque'].search(domain, order='chequera_id, numero')
+
+        rows = []
+        chequera_actual = None
+        total_chequera = 0.0
+
+        def cerrar_chequera():
+            if chequera_actual is not None:
+                rows.append({'tipo': 'total_chequera', 'total': total_chequera})
+
+        for cheque in cheques:
+            if cheque.chequera_id != chequera_actual:
+                cerrar_chequera()
+                chequera_actual = cheque.chequera_id
+                total_chequera = 0.0
+                rows.append({
+                    'tipo': 'chequera',
+                    'diario': chequera_actual.diario_id.name,
+                    'chequera': chequera_actual.name,
+                    'banco': chequera_actual.bank_id.name,
+                    'tipo_chequera': dict(chequera_actual._fields['tipo'].selection).get(chequera_actual.tipo),
+                })
+
+            importe = cheque.payment_id.amount if cheque.payment_id else 0.0
+            rows.append({
+                'tipo': 'cheque',
+                'numero': cheque.numero,
+                'orden_pago': cheque.orden_pago_id.name or '',
+                'estado': dict(cheque._fields['estado'].selection).get(cheque.estado),
+                'fecha_emision': cheque.fecha_emision,
+                'fecha_vencimiento': cheque.fecha_vencimiento,
+                'importe': importe,
+                'proveedor': cheque.payment_id.partner_id.display_name if cheque.payment_id else '',
+            })
+            if cheque.estado != 'anulado':
+                total_chequera += importe
+
+        cerrar_chequera()
+        return rows

@@ -267,6 +267,9 @@
                 <li>Reutilizar cheque: corregido para que se reactive directo al Confirmar la Orden de Pago (no vuelve a pasar por Impresión Masiva, ya que el papel físico ya se imprimió antes); la lista de selección ahora muestra Banco/Número/Importe/Fecha y solo permite elegir cheques emitidos originalmente para el mismo Proveedor</li>
                 <li>Chequera: nueva columna "Fecha Venc." en la grilla de Cheques; "Fecha Emisión" y "Fecha Venc." ahí bloqueadas; la columna de Medio de Pago origen ahora muestra el número real de la Orden de Pago (clickeable, abre esa Orden de Pago) en vez del dato técnico interno; "Agregar línea" ya no permite crear pagos por accidente (queda solo para registrar cheques anulados manualmente, actualizando la numeración de la Chequera)</li>
                 <li>Orden de Pago: agregada la cinta "Archivado" en el formulario, igual que en Contactos</li>
+                <li>Orden de Pago: nueva validación — no se puede Archivar una Orden de Pago Confirmada (Archivar es solo para operaciones que nunca se ejecutaron); si hace falta anularla, primero hay que "Deshacer Confirmación"</li>
+                <li>Nuevo reporte "Informe de Orden de Pago" (Facturación &gt; Reportes &gt; Reportes Localización Py): filtra por rango de fecha, una o varias Monedas, uno o varios Proveedores; agrupado por Moneda y Orden de Pago (ordenado por número), con el detalle de Medios y Facturas de cada una y sus totales; las Órdenes de Pago Archivadas aparecen solo a efectos de control numérico, sin sumar valores; incluye al final el "Resumen de Medios por Monedas"</li>
+                <li>Nuevo reporte "Informe de Cheques" (Facturación &gt; Reportes &gt; Reportes Localización Py): filtra por rango de fecha y una o varias Chequeras; agrupado por Chequera, con el detalle de cada Cheque (Número, Orden de Pago, Estado, Fechas, Importe, Proveedor) y su subtotal</li>
             </ul>
         </div>
     </div>

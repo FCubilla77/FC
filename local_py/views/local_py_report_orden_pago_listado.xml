@@ -1,0 +1,123 @@
+<odoo>
+    <data>
+        <template id="report_orden_pago_listado_document">
+            <t t-call="web.basic_layout">
+                <div style="font-size: 8px; font-family: Arial, sans-serif; width: 262mm;">
+                    <table style="width: 100%; margin-bottom: 6px;">
+                        <tr>
+                            <td>
+                                <strong t-esc="company.name"/><br/>
+                                INFORME DE ORDEN DE PAGO<br/>
+                                Fecha desde: <t t-esc="fecha_desde.strftime('%d/%m/%Y')"/>
+                                al <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <table style="width: 100%; border-collapse: collapse;" border="1">
+                        <thead>
+                            <tr style="background-color: #eeeeee;">
+                                <th style="padding: 2px;">Orden de Pago</th>
+                                <th style="padding: 2px;">Estado</th>
+                                <th style="padding: 2px;">Fecha</th>
+                                <th style="padding: 2px;">Proveedor</th>
+                                <th align="right" style="padding: 2px; text-align: right;">Importe</th>
+                                <th style="padding: 2px;">Pago</th>
+                                <th style="padding: 2px;">Diario</th>
+                                <th align="right" style="padding: 2px; text-align: right;">Importe</th>
+                                <th style="padding: 2px;">Nro. Doc.</th>
+                                <th style="padding: 2px;">Banco</th>
+                                <th style="padding: 2px;">F. Emisión</th>
+                                <th style="padding: 2px;">Factura</th>
+                                <th style="padding: 2px;">Nro. Doc.</th>
+                                <th align="right" style="padding: 2px; text-align: right;">Importe Aplicado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="rows" t-as="fila">
+                                <tr t-if="fila['tipo'] == 'moneda'" style="font-weight: bold; background-color: #dddddd;">
+                                    <td colspan="14" style="padding: 3px;" t-esc="fila['moneda']"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'orden_pago'" style="font-weight: bold;">
+                                    <td style="padding: 2px;" t-esc="fila['name']"/>
+                                    <td style="padding: 2px;" t-esc="fila['estado']"/>
+                                    <td style="padding: 2px;" t-esc="fila['fecha'].strftime('%d/%m/%Y') if fila['fecha'] else ''"/>
+                                    <td style="padding: 2px;" t-esc="fila['proveedor']"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total']) if fila['total'] else '-'"/>
+                                    <td colspan="9" style="padding: 2px;"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'medio'">
+                                    <td colspan="5" style="padding: 2px;"/>
+                                    <td style="padding: 2px 2px 2px 12px;" t-esc="fila['referencia']"/>
+                                    <td style="padding: 2px;" t-esc="fila['diario']"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe'])"/>
+                                    <td style="padding: 2px;" t-esc="fila['nro_documento']"/>
+                                    <td style="padding: 2px;" t-esc="fila['banco']"/>
+                                    <td style="padding: 2px;" t-esc="fila['fecha_emision'].strftime('%d/%m/%Y') if fila['fecha_emision'] else ''"/>
+                                    <td colspan="3" style="padding: 2px;"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'factura'">
+                                    <td colspan="11" style="padding: 2px;"/>
+                                    <td style="padding: 2px 2px 2px 12px;" t-esc="fila['factura']"/>
+                                    <td style="padding: 2px;" t-esc="fila['nro_documento']"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe_aplicado'])"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'total_op'" style="border-top: 1px solid #999999; font-style: italic;">
+                                    <td colspan="4" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_op']) if fila['total_op'] else '-'"/>
+                                    <td colspan="2" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_medios']) if fila['total_medios'] else '-'"/>
+                                    <td colspan="3" style="padding: 2px;"/>
+                                    <td colspan="2" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_facturas']) if fila['total_facturas'] else '-'"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'total_moneda'" style="font-weight: bold; background-color: #f0f0f0; border-top: 2px solid #000000;">
+                                    <td colspan="4" style="padding: 2px;">Total <t t-esc="fila['moneda']"/></td>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_op'])"/>
+                                    <td colspan="2" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_medios'])"/>
+                                    <td colspan="3" style="padding: 2px;"/>
+                                    <td colspan="2" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_facturas'])"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div style="page-break-before: always;"/>
+                    <table style="width: 60mm; border-collapse: collapse; margin-top: 6px;" border="1">
+                        <tr style="background-color: #d9ead3; font-weight: bold;">
+                            <td colspan="2" style="padding: 3px; text-align: center;">RESUMEN DE MEDIOS POR MONEDAS</td>
+                        </tr>
+                        <t t-foreach="resumen.items()" t-as="grupo_moneda">
+                            <tr style="background-color: #d9ead3; font-weight: bold;">
+                                <td colspan="2" style="padding: 2px;" t-esc="grupo_moneda[0].name"/>
+                            </tr>
+                            <t t-set="total_moneda_resumen" t-value="0.0"/>
+                            <t t-foreach="grupo_moneda[1].items()" t-as="linea_diario">
+                                <tr>
+                                    <td style="padding: 2px;" t-esc="linea_diario[0]"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(linea_diario[1])"/>
+                                </tr>
+                                <t t-set="total_moneda_resumen" t-value="total_moneda_resumen + linea_diario[1]"/>
+                            </t>
+                            <tr style="background-color: #cfe2f3; font-weight: bold;">
+                                <td style="padding: 2px;">TOTAL</td>
+                                <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(total_moneda_resumen)"/>
+                            </tr>
+                        </t>
+                    </table>
+                </div>
+            </t>
+        </template>
+
+        <record id="action_report_orden_pago_listado" model="ir.actions.report">
+            <field name="name">Informe de Orden de Pago</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_orden_pago_listado_document</field>
+            <field name="report_file">local_py.report_orden_pago_listado_document</field>
+            <field name="paperformat_id" ref="paperformat_stock_valorizado"/>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

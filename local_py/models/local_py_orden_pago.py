@@ -84,6 +84,17 @@ class LocalPyOrdenPago(models.Model):
             'vistas normales, pero el historial se conserva.'
         )
 
+    def write(self, vals):
+        if vals.get('active') is False:
+            confirmadas = self.filtered(lambda o: o.state == 'confirmado')
+            if confirmadas:
+                raise UserError(
+                    'No se puede archivar una Orden de Pago Confirmada (Archivar es solo '
+                    'para operaciones que nunca se ejecutaron). Si de verdad hace falta '
+                    'anularla, use primero "Deshacer Confirmación".'
+                )
+        return super().write(vals)
+
     # ------------------------------------------------------------------
     # Flujo de estados
     # ------------------------------------------------------------------

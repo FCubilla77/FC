@@ -1,0 +1,73 @@
+<odoo>
+    <data>
+        <template id="report_cheques_listado_document">
+            <t t-call="web.basic_layout">
+                <div style="font-size: 9px; font-family: Arial, sans-serif; width: 262mm;">
+                    <table style="width: 100%; margin-bottom: 6px;">
+                        <tr>
+                            <td>
+                                <strong t-esc="company.name"/><br/>
+                                INFORME DE CHEQUES<br/>
+                                Fecha desde: <t t-esc="fecha_desde.strftime('%d/%m/%Y')"/>
+                                hasta <t t-esc="fecha_hasta.strftime('%d/%m/%Y')"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <table style="width: 100%; border-collapse: collapse;" border="1">
+                        <thead>
+                            <tr style="background-color: #eeeeee;">
+                                <th style="padding: 2px;">Diario / Chequera</th>
+                                <th style="padding: 2px;">Banco</th>
+                                <th style="padding: 2px;">Tipo</th>
+                                <th align="right" style="padding: 2px; text-align: right;">Número</th>
+                                <th style="padding: 2px;">Orden de Pago</th>
+                                <th style="padding: 2px;">Estado</th>
+                                <th style="padding: 2px;">F. Emisión</th>
+                                <th style="padding: 2px;">F. Venc.</th>
+                                <th align="right" style="padding: 2px; text-align: right;">Importe</th>
+                                <th style="padding: 2px;">Proveedor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="rows" t-as="fila">
+                                <tr t-if="fila['tipo'] == 'chequera'" style="font-weight: bold; background-color: #dddddd;">
+                                    <td style="padding: 3px;">
+                                        <t t-esc="fila['diario']"/> - <t t-esc="fila['chequera']"/>
+                                    </td>
+                                    <td style="padding: 3px;" t-esc="fila['banco']"/>
+                                    <td style="padding: 3px;" t-esc="fila['tipo_chequera']"/>
+                                    <td colspan="7" style="padding: 3px;"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'cheque'">
+                                    <td colspan="3" style="padding: 2px;"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="str(fila['numero']).zfill(8)"/>
+                                    <td style="padding: 2px;" t-esc="fila['orden_pago']"/>
+                                    <td style="padding: 2px;" t-esc="fila['estado']"/>
+                                    <td style="padding: 2px;" t-esc="fila['fecha_emision'].strftime('%d/%m/%Y') if fila['fecha_emision'] else ''"/>
+                                    <td style="padding: 2px;" t-esc="fila['fecha_vencimiento'].strftime('%d/%m/%Y') if fila['fecha_vencimiento'] else ''"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe']) if fila['importe'] else '-'"/>
+                                    <td style="padding: 2px;" t-esc="fila['proveedor']"/>
+                                </tr>
+                                <tr t-elif="fila['tipo'] == 'total_chequera'" style="font-weight: bold; border-top: 1px solid #000000;">
+                                    <td colspan="8" style="padding: 2px;">Total</td>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total'])"/>
+                                    <td style="padding: 2px;"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </template>
+
+        <record id="action_report_cheques_listado" model="ir.actions.report">
+            <field name="name">Informe de Cheques</field>
+            <field name="model">res.company</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_cheques_listado_document</field>
+            <field name="report_file">local_py.report_cheques_listado_document</field>
+            <field name="paperformat_id" ref="paperformat_stock_valorizado"/>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
