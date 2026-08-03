@@ -70,6 +70,22 @@
                 <xpath expr="//field[@name='state_id']" position="attributes">
                     <attribute name="placeholder">Departamento</attribute>
                 </xpath>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Localización" name="l10n_py_localizacion">
+                        <group>
+                            <group string="IVA">
+                                <field name="l10n_py_retencion_iva"/>
+                                <field name="l10n_py_retencion_iva_porcentaje"
+                                       invisible="not l10n_py_retencion_iva"/>
+                            </group>
+                            <group string="Renta">
+                                <field name="l10n_py_retencion_renta"/>
+                                <field name="l10n_py_retencion_renta_porcentaje"
+                                       invisible="not l10n_py_retencion_renta"/>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
             </field>
         </record>
     </data>

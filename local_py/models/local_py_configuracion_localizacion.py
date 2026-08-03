@@ -35,11 +35,27 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'gastos configuradas en la Categoría del producto). Ese asiento queda '
              'protegido: no se puede eliminar ni restablecer a borrador.',
     )
-    l10n_py_activar_retenciones = fields.Boolean(
-        string='Activar Retenciones',
-        help='Preparación para la funcionalidad de Retenciones (aún en desarrollo). '
-             'Por ahora, la Orden de Pago ya permite usar un Diario de Retención como '
-             'un medio de pago más, sin cálculo automático todavía.',
+    l10n_py_retencion_iva = fields.Boolean(string='Retención IVA')
+    l10n_py_retencion_iva_porcentaje = fields.Float(
+        string='Porcentaje Retención Predeterminado (IVA)', digits=(5, 2),
+    )
+    l10n_py_retencion_iva_minimo = fields.Monetary(
+        string='Valor Imponible Mínimo (IVA)', currency_field='company_currency_id',
+        help='Monto mínimo de la operación (en la moneda de la empresa) a partir del '
+             'cual corresponde retener. Por debajo de este valor, no se retiene.',
+    )
+    l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
+    l10n_py_retencion_renta_porcentaje = fields.Float(
+        string='Porcentaje Retención Predeterminado (Renta)', digits=(5, 2),
+    )
+    l10n_py_retencion_renta_minimo = fields.Monetary(
+        string='Valor Imponible Mínimo (Renta)', currency_field='company_currency_id',
+        help='Monto mínimo de la operación (en la moneda de la empresa) a partir del '
+             'cual corresponde retener. Por debajo de este valor, no se retiene.',
+    )
+    company_currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda de la Empresa')
+    no_retencion_ids = fields.One2many(
+        'local_py.no_retencion', 'config_id', string='Resoluciones de No Retención',
     )
 
     _company_uniq = models.Constraint(

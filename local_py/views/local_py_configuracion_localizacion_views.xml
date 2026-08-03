@@ -49,8 +49,32 @@
                             </page>
                             <page string="Retenciones" name="retenciones">
                                 <group>
-                                    <field name="l10n_py_activar_retenciones"/>
+                                    <group string="IVA">
+                                        <field name="l10n_py_retencion_iva"/>
+                                        <field name="l10n_py_retencion_iva_porcentaje"
+                                               invisible="not l10n_py_retencion_iva"/>
+                                        <field name="l10n_py_retencion_iva_minimo"
+                                               invisible="not l10n_py_retencion_iva"/>
+                                    </group>
+                                    <group string="Renta">
+                                        <field name="l10n_py_retencion_renta"/>
+                                        <field name="l10n_py_retencion_renta_porcentaje"
+                                               invisible="not l10n_py_retencion_renta"/>
+                                        <field name="l10n_py_retencion_renta_minimo"
+                                               invisible="not l10n_py_retencion_renta"/>
+                                    </group>
                                 </group>
+                                <field name="company_currency_id" invisible="1"/>
+                                <separator string="Resoluciones de No Retención"/>
+                                <field name="no_retencion_ids">
+                                    <list editable="bottom">
+                                        <field name="partner_id" options="{'no_create': True}"/>
+                                        <field name="tipo_retencion"/>
+                                        <field name="fecha_desde"/>
+                                        <field name="fecha_hasta"/>
+                                        <field name="nro_resolucion"/>
+                                    </list>
+                                </field>
                             </page>
                         </notebook>
                     </sheet>
