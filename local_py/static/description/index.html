@@ -272,6 +272,7 @@
                 <li>Nuevo reporte "Informe de Cheques" (Facturación &gt; Reportes &gt; Reportes Localización Py): filtra por rango de fecha y una o varias Chequeras; agrupado por Chequera, con el detalle de cada Cheque (Número, Orden de Pago, Estado, Fechas, Importe, Proveedor) y su subtotal</li>
                 <li>Corregido: los reportes "Informe de Orden de Pago" e "Informe de Cheques" daban error al generarse — usaban un mecanismo que no conserva los datos armados al ir y volver del navegador; ahora generan el PDF directamente en el servidor, como ya hacen el resto de los reportes del módulo</li>
                 <li>Informe de Orden de Pago e Informe de Cheques: agregado el botón "Ver Reporte" (vista previa en pantalla, mismo mecanismo que Libro Inventario) además de "Descargar PDF"; anchos de columna fijos para aprovechar todo el ancho de la hoja, con los mismos márgenes ya definidos</li>
+                <li>Corregido el espacio en blanco desperdiciado a los costados en Informe de Orden de Pago e Informe de Cheques (usaban un layout que no aprovechaba el ancho completo); ahora incluyen numeración de página automática ("Page X / Y", en inglés por ser el mecanismo estándar de Odoo — avisar si se necesita en español)</li>
             </ul>
         </div>
     </div>

@@ -1,8 +1,9 @@
 <odoo>
     <data>
         <template id="report_orden_pago_listado_document">
-            <t t-call="web.basic_layout">
-                <div style="font-size: 8px; font-family: Arial, sans-serif; width: 262mm;">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                <div style="font-size: 8px; font-family: Arial, sans-serif; width: 100%;">
                     <table style="width: 100%; margin-bottom: 6px;">
                         <tr>
                             <td>
@@ -13,22 +14,22 @@
                             </td>
                         </tr>
                     </table>
-                    <table style="width: 262mm; border-collapse: collapse; table-layout: fixed;" border="1">
+                    <table style="width: 100%; border-collapse: collapse; table-layout: fixed;" border="1">
                         <colgroup>
-                            <col style="width: 22mm;"/>
-                            <col style="width: 16mm;"/>
-                            <col style="width: 14mm;"/>
-                            <col style="width: 30mm;"/>
-                            <col style="width: 22mm;"/>
-                            <col style="width: 18mm;"/>
-                            <col style="width: 24mm;"/>
-                            <col style="width: 20mm;"/>
-                            <col style="width: 14mm;"/>
-                            <col style="width: 14mm;"/>
-                            <col style="width: 14mm;"/>
-                            <col style="width: 24mm;"/>
-                            <col style="width: 14mm;"/>
-                            <col style="width: 16mm;"/>
+                            <col style="width: 8.4%;"/>
+                            <col style="width: 6.1%;"/>
+                            <col style="width: 5.3%;"/>
+                            <col style="width: 11.5%;"/>
+                            <col style="width: 8.4%;"/>
+                            <col style="width: 6.9%;"/>
+                            <col style="width: 9.2%;"/>
+                            <col style="width: 7.6%;"/>
+                            <col style="width: 5.3%;"/>
+                            <col style="width: 5.3%;"/>
+                            <col style="width: 5.3%;"/>
+                            <col style="width: 9.2%;"/>
+                            <col style="width: 5.3%;"/>
+                            <col style="width: 6.1%;"/>
                         </colgroup>
                         <thead>
                             <tr style="background-color: #eeeeee;">
@@ -123,6 +124,7 @@
                         </t>
                     </table>
                 </div>
+                </t>
             </t>
         </template>
 
