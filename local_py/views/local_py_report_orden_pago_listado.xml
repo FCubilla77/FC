@@ -13,7 +13,23 @@
                             </td>
                         </tr>
                     </table>
-                    <table style="width: 100%; border-collapse: collapse;" border="1">
+                    <table style="width: 262mm; border-collapse: collapse; table-layout: fixed;" border="1">
+                        <colgroup>
+                            <col style="width: 22mm;"/>
+                            <col style="width: 16mm;"/>
+                            <col style="width: 14mm;"/>
+                            <col style="width: 30mm;"/>
+                            <col style="width: 22mm;"/>
+                            <col style="width: 18mm;"/>
+                            <col style="width: 24mm;"/>
+                            <col style="width: 20mm;"/>
+                            <col style="width: 14mm;"/>
+                            <col style="width: 14mm;"/>
+                            <col style="width: 14mm;"/>
+                            <col style="width: 24mm;"/>
+                            <col style="width: 14mm;"/>
+                            <col style="width: 16mm;"/>
+                        </colgroup>
                         <thead>
                             <tr style="background-color: #eeeeee;">
                                 <th style="padding: 2px;">Orden de Pago</th>

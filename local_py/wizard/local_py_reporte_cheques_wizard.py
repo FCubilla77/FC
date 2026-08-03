@@ -27,13 +27,13 @@ class LocalPyReporteChequesWizard(models.TransientModel):
         res.setdefault('fecha_hasta', today)
         return res
 
-    def action_ver_reporte(self):
+    def _armar_render_context(self):
         self.ensure_one()
         builder = self.env['local_py.libro_report.builder']
         rows = builder._build_reporte_cheques_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.chequera_ids,
         )
-        render_context = {
+        return {
             'company': self.company_id,
             'fecha_desde': self.fecha_desde,
             'fecha_hasta': self.fecha_hasta,
@@ -41,6 +41,33 @@ class LocalPyReporteChequesWizard(models.TransientModel):
             'chequera_ids': self.chequera_ids,
             'fmt_pyg': fmt_pyg,
         }
+
+    def action_ver_reporte(self):
+        self.ensure_one()
+        render_context = self._armar_render_context()
+        report_action = self.env.ref('local_py.action_report_cheques_listado')
+        html_content, _ = report_action.with_context(
+            local_py_libro_render_data=render_context
+        )._render_qweb_html(report_action.report_name, [self.company_id.id])
+
+        import base64
+        attachment = self.env['ir.attachment'].create({
+            'name': 'Informe de Cheques (vista de control).html',
+            'type': 'binary',
+            'datas': base64.b64encode(html_content),
+            'mimetype': 'text/html',
+            'res_model': self._name,
+            'res_id': self.id,
+        })
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/web/content/%s?download=false' % attachment.id,
+            'target': 'new',
+        }
+
+    def action_descargar_pdf(self):
+        self.ensure_one()
+        render_context = self._armar_render_context()
         report_action = self.env.ref('local_py.action_report_cheques_listado')
         pdf_content, _ = report_action.with_context(
             local_py_libro_render_data=render_context
