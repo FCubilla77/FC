@@ -46,10 +46,10 @@ class LocalPyConfiguracionLocalizacion(models.Model):
     )
     l10n_py_diario_retencion_iva_id = fields.Many2one(
         'account.journal', string='Diario de Retención IVA',
-        domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]",
-        help='Diario de tipo Banco, con su propia cuenta transitoria (igual que '
-             'cualquier banco real que después se concilia) — Odoo no permite generar '
-             'Pagos sobre Diarios Misceláneos/Generales.',
+        domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
+        help='Diario de tipo Misceláneo. La Retención no genera un Pago (Odoo no lo '
+             'permite sobre Diarios Misceláneos) — genera un asiento contable propio, '
+             'conciliado directamente contra la factura.',
     )
     l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
     l10n_py_retencion_renta_porcentaje = fields.Float(

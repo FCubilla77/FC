@@ -42,6 +42,11 @@ class LocalPyOrdenPagoMedio(models.Model):
         help='Marca las filas que el sistema agregó solo por el cálculo automático de '
              'Retención IVA — no se generan a mano.',
     )
+    retencion_move_id = fields.Many2one(
+        'account.move', string='Asiento de Retención', readonly=True, copy=False,
+        help='La Retención no genera un Pago (Odoo no lo permite sobre Diarios '
+             'Misceláneos) — genera este asiento contable propio.',
+    )
 
     payment_ids = fields.One2many(
         'account.payment', 'l10n_py_orden_pago_medio_id', string='Pago(s)',

@@ -347,10 +347,15 @@ class LocalPyOrdenPago(models.Model):
             pago.move_id.line_ids.remove_move_reconcile()
             pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
             pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+        medios_retencion = self.medio_ids.filtered('es_retencion')
+        for asiento in medios_retencion.mapped('retencion_move_id'):
+            asiento.line_ids.remove_move_reconcile()
+            asiento.button_draft()
+            asiento.unlink()
         self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
         ]).unlink()
-        self.medio_ids.filtered('es_retencion').unlink()
+        medios_retencion.unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 
     # ------------------------------------------------------------------
@@ -400,6 +405,14 @@ class LocalPyOrdenPago(models.Model):
             )
 
         for factura, medio, monto in asignaciones:
+            if medio.es_retencion:
+                move = self._crear_movimiento_retencion(medio, factura, monto)
+                linea_payable = move.line_ids.filtered(
+                    lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
+                )
+                (factura.move_line_id + linea_payable).reconcile()
+                continue
+
             comentario = 'Pago Orden de Pago %s' % self.name
             payment = AccountPayment.create({
                 'payment_type': 'outbound',
@@ -438,3 +451,60 @@ class LocalPyOrdenPago(models.Model):
                 lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
             )
             (factura.move_line_id + linea_pago_payable).reconcile()
+
+    def _crear_movimiento_retencion(self, medio, factura, monto_header):
+        """Genera el asiento contable de la Retención IVA (débito a la
+        cuenta por pagar del Proveedor, crédito a la cuenta del Diario de
+        Retención) y lo deja listo para conciliar contra la factura. No
+        se usa account.payment porque Odoo no permite generar Pagos sobre
+        Diarios de tipo Misceláneo."""
+        self.ensure_one()
+        company = self.company_id
+        journal = medio.journal_id
+        cuenta_retencion = journal.default_account_id
+        if not cuenta_retencion:
+            raise UserError(
+                'El Diario de Retención "%s" no tiene una Cuenta configurada '
+                '(Contabilidad > Diarios > esa Cuenta contable).' % journal.name
+            )
+        cuenta_proveedor = factura.move_line_id.account_id
+        factura_currency = factura.move_line_id.currency_id or company.currency_id
+        es_moneda_extranjera = factura_currency != company.currency_id
+
+        if self.currency_id == company.currency_id:
+            monto_company = monto_header
+        else:
+            monto_company = self.currency_id._convert(monto_header, company.currency_id, company, self.fecha)
+
+        if es_moneda_extranjera:
+            monto_moneda_factura = monto_header / (factura.cotizacion or 1.0)
+        else:
+            monto_moneda_factura = monto_company
+
+        concepto = 'Retención IVA - %s' % self.name
+        move = self.env['account.move'].create({
+            'journal_id': journal.id,
+            'date': self.fecha,
+            'ref': concepto,
+            'line_ids': [
+                (0, 0, {
+                    'name': concepto,
+                    'account_id': cuenta_proveedor.id,
+                    'partner_id': self.partner_id.id,
+                    'debit': monto_company,
+                    'credit': 0.0,
+                    'currency_id': factura_currency.id if es_moneda_extranjera else False,
+                    'amount_currency': monto_moneda_factura if es_moneda_extranjera else 0.0,
+                }),
+                (0, 0, {
+                    'name': concepto,
+                    'account_id': cuenta_retencion.id,
+                    'partner_id': self.partner_id.id,
+                    'debit': 0.0,
+                    'credit': monto_company,
+                }),
+            ],
+        })
+        move.action_post()
+        medio.retencion_move_id = move.id
+        return move
