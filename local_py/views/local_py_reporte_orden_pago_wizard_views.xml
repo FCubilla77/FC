@@ -11,6 +11,7 @@
                         <field name="fecha_hasta"/>
                         <field name="currency_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="incluir_archivadas"/>
                     </group>
                     <footer>
                         <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>

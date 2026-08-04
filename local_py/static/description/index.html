@@ -277,6 +277,10 @@
                 <li>Orden de Pago: nueva validación — no se puede Archivar una Orden de Pago Confirmada (Archivar es solo para operaciones que nunca se ejecutaron); si hace falta anularla, primero hay que "Deshacer Confirmación"</li>
                 <li>Rediseñada la columna "Diferencia de Cambio (vista previa)" en Facturas: ahora siempre se expresa en Guaraníes (moneda de la empresa), sin importar la Moneda de la Orden de Pago — usa su propia conversión factura→Guaraníes, independiente de la Cotización factura→cabecera que ya se usa para los Medios</li>
                 <li>Cambiado el criterio de "Diferencia" en Orden de Pago: ahora resta también la Retención IVA (estimada), para que el usuario vea directamente cuánto falta cargar en Medios reales (Efectivo, Transferencia, Cheque, etc.), sin tener que restar la retención a mano</li>
+                <li>Corregido: una vez Confirmada la Orden de Pago, "Diferencia" descontaba la Retención IVA una segunda vez (ya estaba incluida en Total Medios de Pago desde que se generó la fila real de Retención) — ahora, con la Orden Confirmada, vuelve al cálculo simple (Total Facturas menos Total Medios)</li>
+                <li>Orden de Pago: nueva columna "Nro. Documento" en la grilla de Facturas, justo después de "Factura"</li>
+                <li>Orden de Pago: columna "Pago(s)" de Medios renombrada a "Doc. relacionados"; para las filas de Retención Emitida, muestra ahora el número del asiento contable generado (ej. RETEM/2026/08/0002) en vez de quedar vacía</li>
+                <li>Orden de Pago: el campo Comentario de la cabecera se movió a la columna izquierda, debajo de las Fechas, dejando la columna derecha solo con los campos de Moneda y valores</li>
             </ul>
             <h5 style="margin-top: 20px;">Chequera</h5>
             <ul>
@@ -299,6 +303,9 @@
                 <li>Nuevo reporte "Informe de Cheques" (Facturación &gt; Reportes &gt; Reportes Localización Py): filtra por rango de fecha y una o varias Chequeras; agrupado por Chequera, con el detalle de cada Cheque (Número, Orden de Pago, Estado, Fechas, Importe, Proveedor) y su subtotal</li>
                 <li>Informe de Orden de Pago e Informe de Cheques: agregado el botón "Ver Reporte" (vista previa en pantalla, mismo mecanismo que Libro Inventario) además de "Descargar PDF"; anchos de columna fijos para aprovechar todo el ancho de la hoja, con los mismos márgenes ya definidos</li>
                 <li>Quitado el encabezado con logo que había traído el nuevo layout en Informe de Orden de Pago e Informe de Cheques, volviendo al encabezado de texto simple anterior (se conserva la numeración de página y el ancho completo)</li>
+                <li>Informe de Orden de Pago: nuevo filtro "Incluir Órdenes Archivadas" (Sí/No)</li>
+                <li>Corregido un bug real en Informe de Orden de Pago: la columna "Importe Aplicado" sumaba los importes de facturas en distintas monedas sin convertir cuando una misma Orden de Pago tenía facturas en más de una moneda — ahora usa siempre el valor ya convertido a la Moneda de la Cabecera, consistente en toda la columna</li>
+                <li>Informe de Orden de Pago, Informe de Cheques e Impresión de Cheques: los valores en monedas distintas a Guaraníes ahora se imprimen con la cantidad de decimales configurada en cada Moneda (Ajustes &gt; Contabilidad &gt; Monedas), en vez de asumir siempre el formato sin decimales de Guaraníes</li>
             </ul>
             <h5 style="margin-top: 20px;">Retenciones</h5>
             <ul>
@@ -307,6 +314,8 @@
                 <li>Nuevo modelo y menú "Localización Paraguay &gt; Retenciones Emitidas": un registro por cada Retención practicada (Pendiente / Levantada / Anulada), con carga manual del Número de Comprobante por ahora (la integración automática con Tesaka de la DNIT queda para una próxima versión)</li>
                 <li>Deshacer Confirmación de una Orden de Pago con Retenciones: si todas están Pendientes, se eliminan solas al revertir; si alguna ya está Levantada ante la DNIT, se bloquea hasta anularla manualmente primero en Retenciones Emitidas</li>
                 <li>Orden de Pago: nueva columna "Retención IVA (estimada)" en Facturas (fondo rojo), y total "Retención IVA (estimada)" en la cabecera — muestra, ya desde Borrador, lo que el sistema va a retener al Confirmar, para que se pueda cargar Medios ya descontando ese valor y no romper el cuadre al Confirmar. Reutiliza exactamente el mismo cálculo que se usa al Confirmar (no es una fórmula aparte que se pueda desincronizar)</li>
+                <li>Corregido: la columna "Factura de la Retención" en Medios mostraba el dato técnico interno en vez de algo legible — ahora muestra el Nro. Documento de la factura</li>
+                <li>Al Confirmar, la Fecha Emisión de las filas de Retención se completa con la Fecha de Confirmación; el Nro. Documento se sincroniza automáticamente con el Nro. Comprobante cada vez que se actualiza en Localización Paraguay &gt; Retenciones Emitidas</li>
             </ul>
         </div>
     </div>

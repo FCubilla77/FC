@@ -2,7 +2,7 @@
 
 from odoo import api, fields, models
 
-from ..models.local_py_libro_report import fmt_pyg
+from ..models.local_py_libro_report import fmt_pyg, fmt_moneda
 
 
 class LocalPyReporteChequesWizard(models.TransientModel):
@@ -40,6 +40,7 @@ class LocalPyReporteChequesWizard(models.TransientModel):
             'rows': rows,
             'chequera_ids': self.chequera_ids,
             'fmt_pyg': fmt_pyg,
+            'fmt_moneda': fmt_moneda,
         }
 
     def action_ver_reporte(self):

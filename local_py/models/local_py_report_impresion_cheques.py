@@ -3,7 +3,7 @@
 from odoo import models
 
 from .local_py_numero_a_letras import numero_a_letras
-from .local_py_libro_report import fmt_pyg
+from .local_py_libro_report import fmt_pyg, fmt_moneda
 
 
 class ReportImpresionCheques(models.AbstractModel):
@@ -20,4 +20,5 @@ class ReportImpresionCheques(models.AbstractModel):
             'paginas': paginas,
             'numero_a_letras': numero_a_letras,
             'fmt_pyg': fmt_pyg,
+            'fmt_moneda': fmt_moneda,
         }

@@ -58,12 +58,12 @@
                                     <td style="padding: 2px;" t-esc="fila['estado']"/>
                                     <td style="padding: 2px;" t-esc="fila['fecha_emision'].strftime('%d/%m/%Y') if fila['fecha_emision'] else ''"/>
                                     <td style="padding: 2px;" t-esc="fila['fecha_vencimiento'].strftime('%d/%m/%Y') if fila['fecha_vencimiento'] else ''"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe']) if fila['importe'] else '-'"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['importe'], fila['moneda_obj']) if fila['importe'] else '-'"/>
                                     <td style="padding: 2px;" t-esc="fila['proveedor']"/>
                                 </tr>
                                 <tr t-elif="fila['tipo'] == 'total_chequera'" style="font-weight: bold; border-top: 1px solid #000000;">
                                     <td colspan="8" style="padding: 2px;">Total</td>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total'], fila['moneda_obj'])"/>
                                     <td style="padding: 2px;"/>
                                 </tr>
                             </t>

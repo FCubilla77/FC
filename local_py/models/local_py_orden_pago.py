@@ -77,14 +77,17 @@ class LocalPyOrdenPago(models.Model):
                 orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
             )
             if orden.state == 'confirmado':
-                # Ya está generada de verdad — se muestra la real, no una estimación.
+                # Ya está generada de verdad — la fila de Retención ya es un Medio
+                # real más, incluido en total_medios. No hay que restarla aparte
+                # (si no, se descontaría dos veces).
                 orden.total_retencion_iva_estimada = sum(
                     orden.medio_ids.filtered('es_retencion').mapped('importe')
                 )
+                orden.diferencia = orden.total_facturas - orden.total_medios
             else:
                 evaluacion = orden._evaluar_retencion_iva()
                 orden.total_retencion_iva_estimada = sum(m[1] for m in evaluacion.values())
-            orden.diferencia = orden.total_facturas - orden.total_medios - orden.total_retencion_iva_estimada
+                orden.diferencia = orden.total_facturas - orden.total_medios - orden.total_retencion_iva_estimada
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -239,6 +242,10 @@ class LocalPyOrdenPago(models.Model):
                 )
             orden._generar_pagos()
         self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
+        for orden in self:
+            orden.medio_ids.filtered('es_retencion').write({
+                'fecha_emision': orden.fecha_confirmacion.date(),
+            })
 
     def _get_acumulado_mensual_iva_previo(self, partner, fecha):
         """Suma el Valor Imponible (proporcional a lo pagado, en Gs.) de

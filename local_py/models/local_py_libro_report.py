@@ -20,6 +20,16 @@ def fmt_pyg(valor, decimales=0):
     return texto.replace(',', '\ufffc').replace('.', ',').replace('\ufffc', '.')
 
 
+def fmt_moneda(valor, currency):
+    """Igual que fmt_pyg, pero usando los Decimales configurados en la
+    propia Moneda (res.currency.decimal_places) — así cada moneda se
+    imprime con la cantidad de decimales que corresponde (por ejemplo,
+    Guaraníes sin decimales, Dólares con 2), en vez de asumir siempre el
+    formato guaraní."""
+    decimales = currency.decimal_places if currency else 0
+    return fmt_pyg(valor, decimales)
+
+
 class ReportLibroDiario(models.AbstractModel):
     _name = 'report.local_py.report_libro_diario_document'
     _description = 'Reporte Libro Diario'
@@ -948,7 +958,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     # ------------------------------------------------------------------
     # Reporte de Orden de Pago
     # ------------------------------------------------------------------
-    def _build_reporte_orden_pago_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None, partner_ids=None):
+    def _build_reporte_orden_pago_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None,
+                                        partner_ids=None, incluir_archivadas=True):
         """Arma las filas del Reporte de Orden de Pago: agrupado por
         Moneda y, dentro de cada Moneda, por Orden de Pago (ordenado por
         número), con el detalle de sus Medios y Facturas. Las Órdenes de
@@ -965,6 +976,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             domain.append(('currency_id', 'in', currency_ids.ids))
         if partner_ids:
             domain.append(('partner_id', 'in', partner_ids.ids))
+        if not incluir_archivadas:
+            domain.append(('active', '=', True))
 
         ordenes = self.env['local_py.orden_pago'].with_context(active_test=False).search(
             domain, order='currency_id, name',
@@ -980,7 +993,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 rows.append({
                     'tipo': 'total_moneda', 'moneda': moneda_actual.name,
                     'total_medios': total_moneda_medios, 'total_facturas': total_moneda_facturas,
-                    'total_op': total_moneda_op,
+                    'total_op': total_moneda_op, 'moneda_obj': moneda_actual,
                 })
 
         for orden in ordenes:
@@ -1000,39 +1013,52 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha': orden.fecha,
                 'proveedor': orden.partner_id.display_name,
                 'total': total_op,
+                'moneda_obj': moneda_actual,
             })
 
             if not es_archivada:
                 for medio in orden.medio_ids:
                     rows.append({
                         'tipo': 'medio',
-                        'referencia': medio.payment_ids[:1].name if medio.payment_ids else '',
+                        'referencia': medio.documentos_relacionados or '',
                         'diario': medio.journal_id.name,
                         'importe': medio.importe,
                         'nro_documento': medio.nro_documento or '',
                         'banco': medio.banco or '',
                         'fecha_emision': medio.fecha_emision,
+                        'moneda_obj': moneda_actual,
                     })
                     clave = (moneda_actual, medio.journal_id.name)
                     resumen[clave] = resumen.get(clave, 0.0) + medio.importe
+                # El "Importe Aplicado" se expresa siempre en la Moneda de la
+                # Cabecera (valor_convertido) — no en la moneda propia de cada
+                # factura (importe_a_pagar), ya que una misma Orden de Pago
+                # puede tener facturas en monedas distintas, y sumarlas tal
+                # cual mezclaría unidades distintas en el total.
                 for factura in orden.factura_ids:
                     rows.append({
                         'tipo': 'factura',
                         'factura': factura.move_id.name,
                         'nro_documento': factura.move_line_id.move_id.l10n_py_nro_documento or '',
-                        'importe_aplicado': factura.importe_a_pagar,
+                        'importe_aplicado': factura.valor_convertido,
+                        'moneda_obj': moneda_actual,
                     })
 
+                total_facturas_op = sum(orden.factura_ids.mapped('valor_convertido'))
                 rows.append({
                     'tipo': 'total_op', 'total_medios': orden.total_medios,
-                    'total_facturas': sum(orden.factura_ids.mapped('importe_a_pagar')),
+                    'total_facturas': total_facturas_op,
                     'total_op': orden.total_medios,
+                    'moneda_obj': moneda_actual,
                 })
                 total_moneda_medios += orden.total_medios
-                total_moneda_facturas += sum(orden.factura_ids.mapped('importe_a_pagar'))
+                total_moneda_facturas += total_facturas_op
                 total_moneda_op += orden.total_medios
             else:
-                rows.append({'tipo': 'total_op', 'total_medios': 0.0, 'total_facturas': 0.0, 'total_op': 0.0})
+                rows.append({
+                    'tipo': 'total_op', 'total_medios': 0.0, 'total_facturas': 0.0, 'total_op': 0.0,
+                    'moneda_obj': moneda_actual,
+                })
 
         cerrar_moneda()
 
@@ -1066,7 +1092,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
 
         def cerrar_chequera():
             if chequera_actual is not None:
-                rows.append({'tipo': 'total_chequera', 'total': total_chequera})
+                rows.append({'tipo': 'total_chequera', 'total': total_chequera, 'moneda_obj': chequera_actual.currency_id})
 
         for cheque in cheques:
             if cheque.chequera_id != chequera_actual:
@@ -1091,6 +1117,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha_vencimiento': cheque.fecha_vencimiento,
                 'importe': importe,
                 'proveedor': cheque.payment_id.partner_id.display_name if cheque.payment_id else '',
+                'moneda_obj': chequera_actual.currency_id,
             })
             if cheque.estado != 'anulado':
                 total_chequera += importe

@@ -9,6 +9,18 @@ class LocalPyRetencionEmitida(models.Model):
     _description = 'Retención Emitida'
     _order = 'fecha desc'
 
+    def write(self, vals):
+        result = super().write(vals)
+        if 'numero_comprobante' in vals:
+            for retencion in self:
+                medio = self.env['local_py.orden_pago.medio'].search([
+                    ('orden_pago_id', '=', retencion.orden_pago_id.id),
+                    ('retencion_factura_id', '=', retencion.orden_pago_factura_id.id),
+                ], limit=1)
+                if medio:
+                    medio.nro_documento = vals['numero_comprobante']
+        return result
+
     orden_pago_id = fields.Many2one('local_py.orden_pago', string='Orden de Pago', required=True, ondelete='cascade')
     orden_pago_factura_id = fields.Many2one(
         'local_py.orden_pago.factura', string='Factura (Orden de Pago)', required=True, ondelete='cascade',

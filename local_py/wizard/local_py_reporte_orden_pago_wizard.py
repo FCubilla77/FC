@@ -16,6 +16,11 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
     fecha_hasta = fields.Date(string='Fecha hasta', required=True)
     currency_ids = fields.Many2many('res.currency', string='Moneda', help='Vacío = todas.')
     partner_ids = fields.Many2many('res.partner', string='Proveedor', help='Vacío = todos.')
+    incluir_archivadas = fields.Boolean(
+        string='Incluir Órdenes Archivadas', default=True,
+        help='Las Órdenes de Pago Archivadas aparecen solo a efectos de control numérico '
+             'de la secuencia, sin sumar valores a ningún total.',
+    )
 
     @api.model
     def default_get(self, fields_list):
@@ -30,6 +35,7 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
         builder = self.env['local_py.libro_report.builder']
         rows, resumen = builder._build_reporte_orden_pago_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.currency_ids, self.partner_ids,
+            self.incluir_archivadas,
         )
         return {
             'company': self.company_id,

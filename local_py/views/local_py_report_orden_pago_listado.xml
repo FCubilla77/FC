@@ -59,14 +59,14 @@
                                     <td style="padding: 2px;" t-esc="fila['estado']"/>
                                     <td style="padding: 2px;" t-esc="fila['fecha'].strftime('%d/%m/%Y') if fila['fecha'] else ''"/>
                                     <td style="padding: 2px;" t-esc="fila['proveedor']"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total']) if fila['total'] else '-'"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total'], fila['moneda_obj']) if fila['total'] else '-'"/>
                                     <td colspan="9" style="padding: 2px;"/>
                                 </tr>
                                 <tr t-elif="fila['tipo'] == 'medio'">
                                     <td colspan="5" style="padding: 2px;"/>
                                     <td style="padding: 2px 2px 2px 12px;" t-esc="fila['referencia']"/>
                                     <td style="padding: 2px;" t-esc="fila['diario']"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['importe'], fila['moneda_obj'])"/>
                                     <td style="padding: 2px;" t-esc="fila['nro_documento']"/>
                                     <td style="padding: 2px;" t-esc="fila['banco']"/>
                                     <td style="padding: 2px;" t-esc="fila['fecha_emision'].strftime('%d/%m/%Y') if fila['fecha_emision'] else ''"/>
@@ -76,25 +76,25 @@
                                     <td colspan="11" style="padding: 2px;"/>
                                     <td style="padding: 2px 2px 2px 12px;" t-esc="fila['factura']"/>
                                     <td style="padding: 2px;" t-esc="fila['nro_documento']"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['importe_aplicado'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['importe_aplicado'], fila['moneda_obj'])"/>
                                 </tr>
                                 <tr t-elif="fila['tipo'] == 'total_op'" style="border-top: 1px solid #999999; font-style: italic;">
                                     <td colspan="4" style="padding: 2px;"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_op']) if fila['total_op'] else '-'"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_op'], fila['moneda_obj']) if fila['total_op'] else '-'"/>
                                     <td colspan="2" style="padding: 2px;"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_medios']) if fila['total_medios'] else '-'"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_medios'], fila['moneda_obj']) if fila['total_medios'] else '-'"/>
                                     <td colspan="3" style="padding: 2px;"/>
                                     <td colspan="2" style="padding: 2px;"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_facturas']) if fila['total_facturas'] else '-'"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_facturas'], fila['moneda_obj']) if fila['total_facturas'] else '-'"/>
                                 </tr>
                                 <tr t-elif="fila['tipo'] == 'total_moneda'" style="font-weight: bold; background-color: #f0f0f0; border-top: 2px solid #000000;">
                                     <td colspan="4" style="padding: 2px;">Total <t t-esc="fila['moneda']"/></td>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_op'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_op'], fila['moneda_obj'])"/>
                                     <td colspan="2" style="padding: 2px;"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_medios'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_medios'], fila['moneda_obj'])"/>
                                     <td colspan="3" style="padding: 2px;"/>
                                     <td colspan="2" style="padding: 2px;"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['total_facturas'])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(fila['total_facturas'], fila['moneda_obj'])"/>
                                 </tr>
                             </t>
                         </tbody>
@@ -113,13 +113,13 @@
                             <t t-foreach="grupo_moneda[1].items()" t-as="linea_diario">
                                 <tr>
                                     <td style="padding: 2px;" t-esc="linea_diario[0]"/>
-                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(linea_diario[1])"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(linea_diario[1], grupo_moneda[0])"/>
                                 </tr>
                                 <t t-set="total_moneda_resumen" t-value="total_moneda_resumen + linea_diario[1]"/>
                             </t>
                             <tr style="background-color: #cfe2f3; font-weight: bold;">
                                 <td style="padding: 2px;">TOTAL</td>
-                                <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(total_moneda_resumen)"/>
+                                <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_moneda(total_moneda_resumen, grupo_moneda[0])"/>
                             </tr>
                         </t>
                     </table>

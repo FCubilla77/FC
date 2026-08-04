@@ -34,10 +34,10 @@
                                 <field name="fecha" readonly="state != 'borrador'"/>
                                 <field name="fecha_en_proceso" invisible="not fecha_en_proceso"/>
                                 <field name="fecha_confirmacion" invisible="not fecha_confirmacion"/>
+                                <field name="comentario" readonly="state != 'borrador'"/>
                             </group>
                             <group>
                                 <field name="currency_id" options="{'no_create': True}" readonly="state != 'borrador'"/>
-                                <field name="comentario" readonly="state != 'borrador'"/>
                                 <field name="total_facturas"/>
                                 <field name="total_medios"/>
                                 <field name="diferencia"/>
@@ -61,6 +61,7 @@
                                 <field name="factura_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
                                         <field name="move_id" readonly="1"/>
+                                        <field name="nro_documento_factura" readonly="1"/>
                                         <field name="cuota" readonly="1"/>
                                         <field name="fecha_factura" readonly="1"/>
                                         <field name="fecha_vencimiento" readonly="1"/>
@@ -90,7 +91,7 @@
                                         <field name="chequera_id" readonly="1"/>
                                         <field name="cheque_reutilizar_id" options="{'no_create': True}"/>
                                         <field name="cuenta_banco"/>
-                                        <field name="payment_ids" readonly="1" widget="many2many_tags"/>
+                                        <field name="documentos_relacionados" readonly="1" string="Doc. relacionados"/>
                                         <field name="retencion_factura_id" readonly="1" optional="show"/>
                                         <field name="es_retencion" column_invisible="1"/>
                                         <field name="currency_id" column_invisible="1"/>

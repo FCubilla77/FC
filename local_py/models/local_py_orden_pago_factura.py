@@ -8,6 +8,14 @@ class LocalPyOrdenPagoFactura(models.Model):
     _name = 'local_py.orden_pago.factura'
     _description = 'Factura/Cuota a pagar en una Orden de Pago'
 
+    def _compute_display_name(self):
+        for linea in self:
+            linea.display_name = (
+                linea.move_line_id.move_id.l10n_py_nro_documento
+                or linea.move_line_id.move_id.name
+                or ''
+            )
+
     orden_pago_id = fields.Many2one(
         'local_py.orden_pago', string='Orden de Pago', required=True, ondelete='cascade',
     )
@@ -17,6 +25,7 @@ class LocalPyOrdenPagoFactura(models.Model):
              'factura con varios vencimientos tiene una línea por cada cuota).',
     )
     move_id = fields.Many2one(related='move_line_id.move_id', string='Factura')
+    nro_documento_factura = fields.Char(related='move_id.l10n_py_nro_documento', string='Nro. Documento')
     fecha_factura = fields.Date(related='move_id.invoice_date', string='Fecha Factura')
     cuota = fields.Char(
         related='move_line_id.name', string='Cuota',

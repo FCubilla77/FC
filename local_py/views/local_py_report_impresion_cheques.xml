@@ -28,7 +28,8 @@
                                     </div>
                                     <div style="position: absolute; top: 30mm; left: 3mm; width: 94mm;
                                                  font-weight: bold; font-size: 11px;">
-                                        Gs. <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
+                                        <span t-esc="cheque.payment_id.currency_id.symbol"/>
+                                        <span t-esc="fmt_moneda(cheque.payment_id.amount, cheque.payment_id.currency_id)"/>
                                     </div>
                                 </div>
 
@@ -61,7 +62,7 @@
                                     <div style="position: absolute; top: 30mm; right: 3mm; width: 35mm; height: 10mm;
                                                 border: 1px solid #000000; text-align: right; padding: 1mm;
                                                 font-weight: bold; font-size: 11px;">
-                                        <span t-esc="fmt_pyg(cheque.payment_id.amount)"/>
+                                        <span t-esc="fmt_moneda(cheque.payment_id.amount, cheque.payment_id.currency_id)"/>
                                     </div>
                                     <div style="position: absolute; top: 46mm; left: 3mm;">
                                         <span t-esc="cheque.payment_id.company_id.city or ''"/>,

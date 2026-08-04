@@ -62,6 +62,19 @@ class LocalPyOrdenPagoMedio(models.Model):
              'ejemplo, un solo cheque que alcanza para pagar dos facturas), va a haber más '
              'de un pago, cada uno por el importe exacto que le corresponde a cada factura.',
     )
+    documentos_relacionados = fields.Char(
+        string='Doc. relacionados', compute='_compute_documentos_relacionados',
+        help='Los Pagos generados por esta fila (Efectivo, Transferencia, Cheque), o el '
+             'Asiento Contable de Retención si esta fila es una Retención.',
+    )
+
+    @api.depends('payment_ids', 'retencion_move_id')
+    def _compute_documentos_relacionados(self):
+        for medio in self:
+            if medio.es_retencion:
+                medio.documentos_relacionados = medio.retencion_move_id.name or ''
+            else:
+                medio.documentos_relacionados = ', '.join(medio.payment_ids.mapped('name'))
 
     def _resolver_chequera(self):
         """Asigna/refresca la Chequera Activa de cada fila según su Diario,
