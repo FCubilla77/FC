@@ -182,13 +182,17 @@ class LocalPyOrdenPagoFactura(models.Model):
 
     def _monto_header_a_gs(self, monto_header, fecha):
         """Convierte un monto en Moneda de la Cabecera a Guaraníes (moneda
-        de la empresa), a la Cotización de la fecha indicada."""
+        de la empresa), a la Cotización de la fecha indicada — redondeado
+        con la precisión propia de esa moneda, para no dejar ruido de
+        coma flotante en el valor guardado."""
         self.ensure_one()
         company = self.orden_pago_id.company_id
         moneda_empresa = company.currency_id
         if not self.header_currency_id or self.header_currency_id == moneda_empresa:
-            return monto_header
-        return self.header_currency_id._convert(monto_header, moneda_empresa, company, fecha)
+            return moneda_empresa.round(monto_header)
+        return moneda_empresa.round(
+            self.header_currency_id._convert(monto_header, moneda_empresa, company, fecha)
+        )
 
     def _imponible_proporcional_gs(self):
         """Valor Imponible (Total factura - IVA) correspondiente a la
@@ -205,13 +209,14 @@ class LocalPyOrdenPagoFactura(models.Model):
     def _retencion_iva_calcular(self, porcentaje):
         """Devuelve (base_header, monto_header, monto_gs) del IVA a
         retener de esta factura/cuota, proporcional al pago parcial, en
-        la Moneda de la Cabecera y su equivalente en Guaraníes."""
+        la Moneda de la Cabecera y su equivalente en Guaraníes. Cada
+        monto se redondea con la precisión de su propia moneda."""
         self.ensure_one()
         move = self.move_line_id.move_id
         proporcion = self._proporcion_pago()
         iva_moneda_factura = move.amount_tax * proporcion
-        iva_header = iva_moneda_factura * (self.cotizacion or 0.0)
-        monto_header = iva_header * (porcentaje / 100.0)
+        iva_header = self.header_currency_id.round(iva_moneda_factura * (self.cotizacion or 0.0))
+        monto_header = self.header_currency_id.round(iva_header * (porcentaje / 100.0))
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
         monto_gs = self._monto_header_a_gs(monto_header, fecha)
         return iva_header, monto_header, monto_gs
