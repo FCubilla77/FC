@@ -194,6 +194,7 @@ class LocalPyOrdenPago(models.Model):
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(orden.fecha)
+            orden._calcular_retenciones_iva()
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '
@@ -202,6 +203,96 @@ class LocalPyOrdenPago(models.Model):
                 )
             orden._generar_pagos()
         self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
+
+    def _get_acumulado_mensual_iva_previo(self, partner, fecha):
+        """Suma el Valor Imponible (proporcional a lo pagado, en Gs.) de
+        todas las Facturas pagadas en Órdenes de Pago Confirmadas de este
+        Proveedor durante el mes de 'fecha' — sin incluir la Orden de
+        Pago actual (se suma aparte, en _calcular_retenciones_iva)."""
+        primer_dia = fecha.replace(day=1)
+        if fecha.month == 12:
+            ultimo_dia = fecha.replace(year=fecha.year + 1, month=1, day=1)
+        else:
+            ultimo_dia = fecha.replace(month=fecha.month + 1, day=1)
+        ordenes = self.search([
+            ('partner_id', '=', partner.id),
+            ('state', '=', 'confirmado'),
+            ('fecha', '>=', primer_dia),
+            ('fecha', '<', ultimo_dia),
+            ('id', '!=', self.id),
+        ])
+        return sum(
+            factura._imponible_proporcional_gs()
+            for orden in ordenes for factura in orden.factura_ids
+        )
+
+    def _calcular_retenciones_iva(self):
+        """Calcula la Retención IVA de esta Orden de Pago (si corresponde)
+        y agrega sola una fila en Medios con el total a retener. Se
+        ejecuta al Confirmar. Si ya existía una fila de Retención de un
+        intento anterior (por ejemplo, si la Confirmación anterior falló
+        por descuadre), se limpia primero para recalcular de cero."""
+        self.ensure_one()
+        # Limpieza de un intento anterior, por las dudas.
+        self.medio_ids.filtered('es_retencion').unlink()
+        self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
+        ]).unlink()
+
+        partner = self.partner_id
+        if not partner.l10n_py_retencion_iva:
+            return
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.company_id.id)], limit=1,
+        )
+        if not config or not config.l10n_py_retencion_iva or not config.l10n_py_diario_retencion_iva_id:
+            return
+
+        no_retencion = self.env['local_py.no_retencion'].search([
+            ('partner_id', '=', partner.id),
+            ('tipo_retencion', '=', 'iva'),
+            ('fecha_desde', '<=', self.fecha),
+            ('fecha_hasta', '>=', self.fecha),
+        ], limit=1)
+        if no_retencion:
+            return
+
+        acumulado_previo = self._get_acumulado_mensual_iva_previo(partner, self.fecha)
+        contribucion_esta_op = sum(f._imponible_proporcional_gs() for f in self.factura_ids)
+        if self.company_id.currency_id.compare_amounts(
+            acumulado_previo + contribucion_esta_op, config.l10n_py_retencion_iva_minimo
+        ) < 0:
+            return
+
+        porcentaje = partner.l10n_py_retencion_iva_porcentaje
+        if not porcentaje:
+            return
+
+        Retencion = self.env['local_py.retencion_emitida']
+        total_retencion_header = 0.0
+        for factura in self.factura_ids:
+            base_header, monto_header, monto_gs = factura._retencion_iva_calcular(porcentaje)
+            if self.currency_id.is_zero(monto_header):
+                continue
+            Retencion.create({
+                'orden_pago_id': self.id,
+                'orden_pago_factura_id': factura.id,
+                'fecha': self.fecha,
+                'tipo_retencion': 'iva',
+                'base_imponible': base_header,
+                'porcentaje': porcentaje,
+                'monto': monto_header,
+                'monto_gs': monto_gs,
+            })
+            total_retencion_header += monto_header
+
+        if self.currency_id.compare_amounts(total_retencion_header, 0) > 0:
+            self.env['local_py.orden_pago.medio'].create({
+                'orden_pago_id': self.id,
+                'journal_id': config.l10n_py_diario_retencion_iva_id.id,
+                'importe': total_retencion_header,
+                'es_retencion': True,
+            })
 
     def action_deshacer_confirmacion(self):
         """Vuelve una Orden de Pago Confirmada a "En Proceso": deshace la
@@ -215,6 +306,16 @@ class LocalPyOrdenPago(models.Model):
         self.ensure_one()
         if self.state != 'confirmado':
             raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
+        retenciones_levantadas = self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('estado', '=', 'levantada'),
+        ])
+        if retenciones_levantadas:
+            raise UserError(
+                'Esta Orden de Pago tiene Retenciones ya Levantadas ante la DNIT — no se '
+                'puede deshacer la Confirmación directamente. Primero hay que Anularlas en '
+                'Localización Paraguay > Retenciones Emitidas (una vez resuelta la anulación '
+                'ante la DNIT), y recién ahí se puede continuar.'
+            )
         pagos = self.medio_ids.mapped('payment_ids')
         lineas_pago = pagos.mapped('move_id.line_ids')
         if any(lineas_pago.mapped('statement_line_id')):
@@ -246,6 +347,10 @@ class LocalPyOrdenPago(models.Model):
             pago.move_id.line_ids.remove_move_reconcile()
             pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
             pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+        self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
+        ]).unlink()
+        self.medio_ids.filtered('es_retencion').unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 
     # ------------------------------------------------------------------

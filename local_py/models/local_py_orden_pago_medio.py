@@ -37,6 +37,11 @@ class LocalPyOrdenPagoMedio(models.Model):
              'pasar por Impresión Masiva, ya que el papel físico ya se imprimió antes.',
     )
     cuenta_banco = fields.Char(string='Cuenta Banco')
+    es_retencion = fields.Boolean(
+        string='Es Retención', default=False, copy=False,
+        help='Marca las filas que el sistema agregó solo por el cálculo automático de '
+             'Retención IVA — no se generan a mano.',
+    )
 
     payment_ids = fields.One2many(
         'account.payment', 'l10n_py_orden_pago_medio_id', string='Pago(s)',

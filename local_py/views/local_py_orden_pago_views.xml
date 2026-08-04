@@ -73,7 +73,7 @@
                             </page>
                             <page string="Medios" name="medios">
                                 <field name="medio_ids" readonly="state != 'borrador'">
-                                    <list editable="bottom">
+                                    <list editable="bottom" decoration-info="es_retencion">
                                         <field name="journal_id"/>
                                         <field name="importe"/>
                                         <field name="fecha_emision"/>
@@ -84,6 +84,7 @@
                                         <field name="cheque_reutilizar_id" options="{'no_create': True}"/>
                                         <field name="cuenta_banco"/>
                                         <field name="payment_ids" readonly="1" widget="many2many_tags"/>
+                                        <field name="es_retencion" column_invisible="1"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="company_id" column_invisible="1"/>
                                     </list>

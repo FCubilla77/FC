@@ -73,12 +73,12 @@
                 <xpath expr="//notebook" position="inside">
                     <page string="Localización" name="l10n_py_localizacion">
                         <group>
-                            <group string="IVA">
+                            <group string="Retención IVA">
                                 <field name="l10n_py_retencion_iva"/>
                                 <field name="l10n_py_retencion_iva_porcentaje"
                                        invisible="not l10n_py_retencion_iva"/>
                             </group>
-                            <group string="Renta">
+                            <group string="Retención Renta">
                                 <field name="l10n_py_retencion_renta"/>
                                 <field name="l10n_py_retencion_renta_porcentaje"
                                        invisible="not l10n_py_retencion_renta"/>

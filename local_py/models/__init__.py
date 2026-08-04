@@ -30,3 +30,4 @@ from . import local_py_chequera_cheque
 from . import local_py_numero_a_letras
 from . import local_py_report_impresion_cheques
 from . import local_py_no_retencion
+from . import local_py_retencion_emitida

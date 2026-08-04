@@ -30,13 +30,19 @@ class ResPartner(models.Model):
              'exigir Empresa relacionada. Se deja en 0/Falso para contactos '
              'creados normalmente desde Contactos.',
     )
-    l10n_py_retencion_iva = fields.Boolean(string='Retención IVA')
+    l10n_py_retencion_iva = fields.Boolean(
+        string='Retención IVA', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_iva'),
+    )
     l10n_py_retencion_iva_porcentaje = fields.Float(
         string='Porcentaje Retención IVA', digits=(5, 2),
+        default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_iva_porcentaje'),
     )
-    l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
+    l10n_py_retencion_renta = fields.Boolean(
+        string='Retención Renta', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta'),
+    )
     l10n_py_retencion_renta_porcentaje = fields.Float(
         string='Porcentaje Retención Renta', digits=(5, 2),
+        default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta_porcentaje'),
     )
 
     @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
@@ -136,20 +142,17 @@ class ResPartner(models.Model):
                     "contacto de tipo Empresa. Seleccione una Empresa relacionada."
                 )
 
+    def _default_l10n_py_retencion(self, campo):
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.env.company.id)], limit=1,
+        )
+        return config[campo] if config else False
+
     @api.model_create_multi
     def create(self, vals_list):
         if self.env.context.get('l10n_py_partner_from_user_or_employee'):
             for vals in vals_list:
                 vals.setdefault('l10n_py_creado_desde_usuario_empleado', True)
-        config = self.env['local_py.configuracion_localizacion'].search(
-            [('company_id', '=', self.env.company.id)], limit=1,
-        )
-        if config:
-            for vals in vals_list:
-                vals.setdefault('l10n_py_retencion_iva', config.l10n_py_retencion_iva)
-                vals.setdefault('l10n_py_retencion_iva_porcentaje', config.l10n_py_retencion_iva_porcentaje)
-                vals.setdefault('l10n_py_retencion_renta', config.l10n_py_retencion_renta)
-                vals.setdefault('l10n_py_retencion_renta_porcentaje', config.l10n_py_retencion_renta_porcentaje)
         result = super(ResPartner, self).create(vals_list)
         result.val_ruc()
         return result

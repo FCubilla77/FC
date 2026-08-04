@@ -49,14 +49,16 @@
                             </page>
                             <page string="Retenciones" name="retenciones">
                                 <group>
-                                    <group string="IVA">
+                                    <group string="Retención IVA">
                                         <field name="l10n_py_retencion_iva"/>
                                         <field name="l10n_py_retencion_iva_porcentaje"
                                                invisible="not l10n_py_retencion_iva"/>
                                         <field name="l10n_py_retencion_iva_minimo"
                                                invisible="not l10n_py_retencion_iva"/>
+                                        <field name="l10n_py_diario_retencion_iva_id"
+                                               invisible="not l10n_py_retencion_iva" options="{'no_create': True}"/>
                                     </group>
-                                    <group string="Renta">
+                                    <group string="Retención Renta">
                                         <field name="l10n_py_retencion_renta"/>
                                         <field name="l10n_py_retencion_renta_porcentaje"
                                                invisible="not l10n_py_retencion_renta"/>
