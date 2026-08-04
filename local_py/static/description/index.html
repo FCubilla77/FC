@@ -291,6 +291,7 @@
                 <li>Corregido: al editar el Importe a Pagar de una Factura, la columna de Retención IVA estimada solo se actualizaba en esa fila — ahora se recalculan todas las Facturas de la Orden de Pago juntas, tal como corresponde (la Retención aplica sobre todas una vez que se supera el mínimo, no solo sobre la que lo hizo superar)</li>
                 <li>Cambiado el criterio de "Diferencia" en Orden de Pago: ahora resta también la Retención IVA (estimada), para que el usuario vea directamente cuánto falta cargar en Medios reales (Efectivo, Transferencia, Cheque, etc.), sin tener que restar la retención a mano</li>
                 <li>Corregido de verdad: el recálculo de Retención IVA entre líneas de Facturas seguía sin funcionar (el intento anterior, disparado desde la línea editada, no llegaba a refrescar sus hermanas de forma confiable en un formulario sin guardar) — ahora se dispara desde la cabecera de la Orden de Pago, que sí tiene una visión confiable de toda la grilla</li>
+                <li>Nueva corrección (revisada con video de reproducción del error): el intento anterior desde la cabecera todavía fallaba porque, por dentro, volvía a delegar en un método de la línea de Factura que hace sus propias búsquedas en base de datos, y esas búsquedas no ven los cambios sin guardar del mismo formulario. Ahora la cabecera calcula todo y lo asigna directo a cada línea, sin ese paso intermedio; también se refresca al cambiar Moneda o Fecha</li>
             </ul>
         </div>
     </div>
