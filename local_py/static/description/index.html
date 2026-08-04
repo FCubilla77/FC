@@ -292,6 +292,7 @@
                 <li>Cambiado el criterio de "Diferencia" en Orden de Pago: ahora resta también la Retención IVA (estimada), para que el usuario vea directamente cuánto falta cargar en Medios reales (Efectivo, Transferencia, Cheque, etc.), sin tener que restar la retención a mano</li>
                 <li>Corregido de verdad: el recálculo de Retención IVA entre líneas de Facturas seguía sin funcionar (el intento anterior, disparado desde la línea editada, no llegaba a refrescar sus hermanas de forma confiable en un formulario sin guardar) — ahora se dispara desde la cabecera de la Orden de Pago, que sí tiene una visión confiable de toda la grilla</li>
                 <li>Nueva corrección (revisada con video de reproducción del error): el intento anterior desde la cabecera todavía fallaba porque, por dentro, volvía a delegar en un método de la línea de Factura que hace sus propias búsquedas en base de datos, y esas búsquedas no ven los cambios sin guardar del mismo formulario. Ahora la cabecera calcula todo y lo asigna directo a cada línea, sin ese paso intermedio; también se refresca al cambiar Moneda o Fecha</li>
+                <li>Tercera corrección (revisada con un segundo video): el disparo desde la cabecera no siempre alcanza cuando se edita un campo de una fila ya existente en la grilla — se agregó un camino redundante, declarado directamente sobre el campo "Importe a Pagar" de cada Factura, para asegurar que el recálculo se dispare de una forma u otra</li>
             </ul>
         </div>
     </div>

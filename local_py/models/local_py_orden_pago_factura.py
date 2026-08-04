@@ -90,6 +90,18 @@ class LocalPyOrdenPagoFactura(models.Model):
             datos = evaluaciones.get(linea.orden_pago_id, {}).get(linea)
             linea.retencion_iva_estimada = datos[1] if datos else 0.0
 
+    @api.onchange('importe_a_pagar')
+    def _onchange_importe_a_pagar_retencion(self):
+        """Camino redundante, además del que ya dispara desde la cabecera
+        de la Orden de Pago (@api.onchange('factura_ids') en
+        local_py.orden_pago) — Odoo no siempre dispara de forma
+        confiable el onchange del padre por un cambio en un campo de una
+        fila ya existente de la grilla; declararlo también acá, en el
+        propio campo editado, es la forma más directa de asegurar que se
+        dispare de alguna de las dos formas."""
+        if self.orden_pago_id:
+            self.orden_pago_id._onchange_factura_ids_retencion()
+
     @api.depends('currency_id', 'header_currency_id')
     def _compute_misma_moneda(self):
         for linea in self:
