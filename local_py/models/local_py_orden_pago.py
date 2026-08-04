@@ -50,41 +50,40 @@ class LocalPyOrdenPago(models.Model):
     )
     diferencia = fields.Monetary(
         string='Diferencia', compute='_compute_totales', currency_field='currency_id',
-        help='Total a Pagar (Facturas) menos Total Medios de Pago. Tiene que quedar en '
-             'cero antes de poder pasar a "En Proceso".',
+        help='Total a Pagar (Facturas) menos Total Medios de Pago menos Retención IVA '
+             '(estimada) — es lo que falta cargar en Medios reales (Efectivo, '
+             'Transferencia, Cheque, etc.). Tiene que quedar en cero antes de poder '
+             'pasar a "En Proceso".',
     )
     hay_monedas_distintas = fields.Boolean(compute='_compute_totales')
     total_retencion_iva_estimada = fields.Monetary(
-        string='Retención IVA (estimada)', compute='_compute_retencion_iva_estimada_total',
+        string='Retención IVA (estimada)', compute='_compute_totales',
         currency_field='currency_id',
         help='Lo que el sistema va a agregar solo en Medios al Confirmar, según la '
-             'situación actual del Proveedor — cárguelo ya descontado en sus otros '
-             'Medios de Pago (Efectivo, Transferencia, Cheque, etc.) para que el cuadre '
-             'no se rompa al Confirmar. Es una estimación: puede cambiar si edita las '
-             'Facturas o Medios antes de Confirmar.',
+             'situación actual del Proveedor — ya está descontado de "Diferencia", así '
+             'que no hace falta restarlo a mano al cargar sus otros Medios de Pago '
+             '(Efectivo, Transferencia, Cheque, etc.). Es una estimación: puede cambiar '
+             'si edita las Facturas o Medios antes de Confirmar.',
     )
 
-    @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
+    @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id',
+                 'factura_ids.importe_a_pagar', 'factura_ids.cotizacion', 'partner_id', 'fecha', 'state')
     def _compute_totales(self):
         for orden in self:
             orden.total_facturas = sum(orden.factura_ids.mapped('valor_convertido'))
             orden.total_medios = sum(orden.medio_ids.mapped('importe'))
-            orden.diferencia = orden.total_facturas - orden.total_medios
             orden.hay_monedas_distintas = bool(
                 orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
             )
-
-    @api.depends('factura_ids.importe_a_pagar', 'factura_ids.cotizacion', 'partner_id', 'fecha')
-    def _compute_retencion_iva_estimada_total(self):
-        for orden in self:
             if orden.state == 'confirmado':
                 # Ya está generada de verdad — se muestra la real, no una estimación.
                 orden.total_retencion_iva_estimada = sum(
                     orden.medio_ids.filtered('es_retencion').mapped('importe')
                 )
-                continue
-            evaluacion = orden._evaluar_retencion_iva()
-            orden.total_retencion_iva_estimada = sum(m[1] for m in evaluacion.values())
+            else:
+                evaluacion = orden._evaluar_retencion_iva()
+                orden.total_retencion_iva_estimada = sum(m[1] for m in evaluacion.values())
+            orden.diferencia = orden.total_facturas - orden.total_medios - orden.total_retencion_iva_estimada
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -193,11 +192,11 @@ class LocalPyOrdenPago(models.Model):
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             if a_refrescar:
                 a_refrescar._set_cotizacion_default(orden.fecha)
-            if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
+            if orden.currency_id.round(orden.diferencia) != 0:
                 raise UserError(
-                    'El total de Medios de Pago (%s) debe coincidir exactamente con el total a '
-                    'pagar de las Facturas seleccionadas (%s).'
-                    % (orden.total_medios, orden.total_facturas)
+                    'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) debe '
+                    'coincidir exactamente con el total a pagar de las Facturas seleccionadas '
+                    '(%s).' % (orden.total_medios, orden.total_retencion_iva_estimada, orden.total_facturas)
                 )
         self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
 
