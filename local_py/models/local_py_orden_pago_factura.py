@@ -90,16 +90,6 @@ class LocalPyOrdenPagoFactura(models.Model):
             datos = evaluaciones.get(linea.orden_pago_id, {}).get(linea)
             linea.retencion_iva_estimada = datos[1] if datos else 0.0
 
-    @api.onchange('importe_a_pagar')
-    def _onchange_importe_a_pagar_retencion(self):
-        """El cálculo de Retención IVA aplica sobre TODAS las Facturas de
-        la Orden de Pago, no solo la que se está editando — pero Odoo, en
-        un formulario todavía sin guardar, no siempre refresca los
-        campos calculados de las demás líneas "hermanas" solo por la
-        dependencia declarada. Se fuerza acá explícitamente."""
-        if self.orden_pago_id:
-            self.orden_pago_id.factura_ids._compute_retencion_iva_estimada()
-
     @api.depends('currency_id', 'header_currency_id')
     def _compute_misma_moneda(self):
         for linea in self:

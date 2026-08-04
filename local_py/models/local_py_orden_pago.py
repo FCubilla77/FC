@@ -90,6 +90,17 @@ class LocalPyOrdenPago(models.Model):
         if self.factura_ids:
             self.factura_ids = [(5, 0, 0)]
 
+    @api.onchange('factura_ids')
+    def _onchange_factura_ids_retencion(self):
+        """La Retención IVA aplica sobre TODAS las Facturas de la Orden de
+        Pago a la vez (no solo la que se está editando) — se dispara
+        desde acá, la cabecera, porque en un formulario todavía sin
+        guardar es la que tiene una visión confiable de la grilla
+        completa; intentarlo desde una fila individual hacia sus
+        "hermanas" no refresca de forma confiable."""
+        if self.factura_ids:
+            self.factura_ids._compute_retencion_iva_estimada()
+
     @api.onchange('currency_id', 'fecha')
     def _onchange_currency_id_cotizacion(self):
         a_refrescar = self.factura_ids.filtered(lambda f: not f.cotizacion_manual)
