@@ -54,6 +54,15 @@ class LocalPyOrdenPago(models.Model):
              'cero antes de poder pasar a "En Proceso".',
     )
     hay_monedas_distintas = fields.Boolean(compute='_compute_totales')
+    total_retencion_iva_estimada = fields.Monetary(
+        string='Retención IVA (estimada)', compute='_compute_retencion_iva_estimada_total',
+        currency_field='currency_id',
+        help='Lo que el sistema va a agregar solo en Medios al Confirmar, según la '
+             'situación actual del Proveedor — cárguelo ya descontado en sus otros '
+             'Medios de Pago (Efectivo, Transferencia, Cheque, etc.) para que el cuadre '
+             'no se rompa al Confirmar. Es una estimación: puede cambiar si edita las '
+             'Facturas o Medios antes de Confirmar.',
+    )
 
     @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
     def _compute_totales(self):
@@ -64,6 +73,18 @@ class LocalPyOrdenPago(models.Model):
             orden.hay_monedas_distintas = bool(
                 orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
             )
+
+    @api.depends('factura_ids.importe_a_pagar', 'factura_ids.cotizacion', 'partner_id', 'fecha')
+    def _compute_retencion_iva_estimada_total(self):
+        for orden in self:
+            if orden.state == 'confirmado':
+                # Ya está generada de verdad — se muestra la real, no una estimación.
+                orden.total_retencion_iva_estimada = sum(
+                    orden.medio_ids.filtered('es_retencion').mapped('importe')
+                )
+                continue
+            evaluacion = orden._evaluar_retencion_iva()
+            orden.total_retencion_iva_estimada = sum(m[1] for m in evaluacion.values())
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -226,27 +247,23 @@ class LocalPyOrdenPago(models.Model):
             for orden in ordenes for factura in orden.factura_ids
         )
 
-    def _calcular_retenciones_iva(self):
-        """Calcula la Retención IVA de esta Orden de Pago (si corresponde)
-        y agrega sola una fila en Medios con el total a retener. Se
-        ejecuta al Confirmar. Si ya existía una fila de Retención de un
-        intento anterior (por ejemplo, si la Confirmación anterior falló
-        por descuadre), se limpia primero para recalcular de cero."""
+    def _evaluar_retencion_iva(self):
+        """Evalúa si corresponde Retención IVA para esta Orden de Pago,
+        SIN generar ningún registro — se puede llamar en cualquier
+        momento (Borrador, En Proceso) para mostrar una vista previa.
+        Devuelve un diccionario {factura: (base_header, monto_header,
+        monto_gs)} con lo que correspondería retener por cada Factura si
+        se Confirmara ahora mismo."""
         self.ensure_one()
-        # Limpieza de un intento anterior, por las dudas.
-        self.medio_ids.filtered('es_retencion').unlink()
-        self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
-        ]).unlink()
-
+        resultado = {}
         partner = self.partner_id
-        if not partner.l10n_py_retencion_iva:
-            return
+        if not partner or not partner.l10n_py_retencion_iva or not self.fecha:
+            return resultado
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
         )
         if not config or not config.l10n_py_retencion_iva or not config.l10n_py_diario_retencion_iva_id:
-            return
+            return resultado
 
         no_retencion = self.env['local_py.no_retencion'].search([
             ('partner_id', '=', partner.id),
@@ -255,32 +272,54 @@ class LocalPyOrdenPago(models.Model):
             ('fecha_hasta', '>=', self.fecha),
         ], limit=1)
         if no_retencion:
-            return
+            return resultado
 
         acumulado_previo = self._get_acumulado_mensual_iva_previo(partner, self.fecha)
         contribucion_esta_op = sum(f._imponible_proporcional_gs() for f in self.factura_ids)
         if self.company_id.currency_id.compare_amounts(
             acumulado_previo + contribucion_esta_op, config.l10n_py_retencion_iva_minimo
         ) < 0:
-            return
+            return resultado
 
         porcentaje = partner.l10n_py_retencion_iva_porcentaje
         if not porcentaje:
-            return
+            return resultado
 
-        Retencion = self.env['local_py.retencion_emitida']
-        total_retencion_header = 0.0
         for factura in self.factura_ids:
             base_header, monto_header, monto_gs = factura._retencion_iva_calcular(porcentaje)
-            if self.currency_id.is_zero(monto_header):
-                continue
+            if not self.currency_id.is_zero(monto_header):
+                resultado[factura] = (base_header, monto_header, monto_gs)
+        return resultado
+
+    def _calcular_retenciones_iva(self):
+        """Genera de verdad los registros de Retención IVA (y la fila en
+        Medios) a partir de _evaluar_retencion_iva(). Se ejecuta al
+        Confirmar. Si ya existía una fila de un intento anterior (por
+        ejemplo, si la Confirmación anterior falló por descuadre), se
+        limpia primero para recalcular de cero."""
+        self.ensure_one()
+        self.medio_ids.filtered('es_retencion').unlink()
+        self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
+        ]).unlink()
+
+        evaluacion = self._evaluar_retencion_iva()
+        if not evaluacion:
+            return
+
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.company_id.id)], limit=1,
+        )
+        Retencion = self.env['local_py.retencion_emitida']
+        total_retencion_header = 0.0
+        for factura, (base_header, monto_header, monto_gs) in evaluacion.items():
             Retencion.create({
                 'orden_pago_id': self.id,
                 'orden_pago_factura_id': factura.id,
                 'fecha': self.fecha,
                 'tipo_retencion': 'iva',
                 'base_imponible': base_header,
-                'porcentaje': porcentaje,
+                'porcentaje': factura.orden_pago_id.partner_id.l10n_py_retencion_iva_porcentaje,
                 'monto': monto_header,
                 'monto_gs': monto_gs,
             })

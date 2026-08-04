@@ -67,6 +67,28 @@ class LocalPyOrdenPagoFactura(models.Model):
              'forma nativa al Confirmar (puede no coincidir centavo a centavo con esta '
              'vista previa).',
     )
+    retencion_iva_estimada = fields.Monetary(
+        string='Retención IVA (estimada)', compute='_compute_retencion_iva_estimada',
+        currency_field='header_currency_id',
+        help='Lo que el sistema va a retener de esta Factura al Confirmar, según la '
+             'situación actual del Proveedor. Descuéntelo de sus otros Medios de Pago '
+             'para que el cuadre no se rompa al Confirmar.',
+    )
+
+    @api.depends('importe_a_pagar', 'cotizacion', 'orden_pago_id.factura_ids.importe_a_pagar',
+                 'orden_pago_id.partner_id', 'orden_pago_id.fecha', 'orden_pago_id.state')
+    def _compute_retencion_iva_estimada(self):
+        ordenes_abiertas = self.mapped('orden_pago_id').filtered(lambda o: o.state != 'confirmado')
+        evaluaciones = {orden: orden._evaluar_retencion_iva() for orden in ordenes_abiertas}
+        for linea in self:
+            if linea.orden_pago_id.state == 'confirmado':
+                retencion = self.env['local_py.retencion_emitida'].search([
+                    ('orden_pago_factura_id', '=', linea.id), ('tipo_retencion', '=', 'iva'),
+                ], limit=1)
+                linea.retencion_iva_estimada = retencion.monto if retencion else 0.0
+                continue
+            datos = evaluaciones.get(linea.orden_pago_id, {}).get(linea)
+            linea.retencion_iva_estimada = datos[1] if datos else 0.0
 
     @api.depends('currency_id', 'header_currency_id')
     def _compute_misma_moneda(self):

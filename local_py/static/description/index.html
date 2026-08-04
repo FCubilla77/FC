@@ -287,6 +287,7 @@
                 <li>Nuevo modelo y menú "Localización Paraguay &gt; Retenciones Emitidas": un registro por cada Retención practicada (Pendiente / Levantada / Anulada), con carga manual del Número de Comprobante por ahora (la integración automática con Tesaka de la DNIT queda para una próxima versión)</li>
                 <li>Deshacer Confirmación de una Orden de Pago con Retenciones: si todas están Pendientes, se eliminan solas al revertir; si alguna ya está Levantada ante la DNIT, se bloquea hasta anularla manualmente primero en Retenciones Emitidas</li>
                 <li>Corregido: el Diario de Retención IVA pasa a ser de tipo Misceláneo (no Banco) — Odoo no permite generar Pagos sobre Diarios Misceláneos, así que la Retención ahora genera su propio asiento contable (débito a la cuenta por pagar del Proveedor, crédito a la cuenta del Diario de Retención), conciliado igual contra la factura, sin usar el mecanismo de Pagos</li>
+                <li>Orden de Pago: nueva columna "Retención IVA (estimada)" en Facturas (fondo rojo), y total "Retención IVA (estimada)" en la cabecera — muestra, ya desde Borrador, lo que el sistema va a retener al Confirmar, para que se pueda cargar Medios ya descontando ese valor y no romper el cuadre al Confirmar. Reutiliza exactamente el mismo cálculo que se usa al Confirmar (no es una fórmula aparte que se pueda desincronizar)</li>
             </ul>
         </div>
     </div>
