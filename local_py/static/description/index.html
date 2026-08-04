@@ -306,6 +306,7 @@
                 <li>Informe de Orden de Pago: nuevo filtro "Incluir Órdenes Archivadas" (Sí/No)</li>
                 <li>Corregido un bug real en Informe de Orden de Pago: la columna "Importe Aplicado" sumaba los importes de facturas en distintas monedas sin convertir cuando una misma Orden de Pago tenía facturas en más de una moneda — ahora usa siempre el valor ya convertido a la Moneda de la Cabecera, consistente en toda la columna</li>
                 <li>Informe de Orden de Pago, Informe de Cheques e Impresión de Cheques: los valores en monedas distintas a Guaraníes ahora se imprimen con la cantidad de decimales configurada en cada Moneda (Ajustes &gt; Contabilidad &gt; Monedas), en vez de asumir siempre el formato sin decimales de Guaraníes</li>
+                <li>Corregido: Informe de Orden de Pago daba error al generarse ("KeyError: fmt_moneda") — faltaba incluir esa función en los datos que recibe la plantilla, aunque sí estaba correctamente aplicada en el diseño del reporte</li>
             </ul>
             <h5 style="margin-top: 20px;">Retenciones</h5>
             <ul>

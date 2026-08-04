@@ -2,7 +2,7 @@
 
 from odoo import api, fields, models
 
-from ..models.local_py_libro_report import fmt_pyg
+from ..models.local_py_libro_report import fmt_pyg, fmt_moneda
 
 
 class LocalPyReporteOrdenPagoWizard(models.TransientModel):
@@ -44,6 +44,7 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
             'rows': rows,
             'resumen': resumen,
             'fmt_pyg': fmt_pyg,
+            'fmt_moneda': fmt_moneda,
         }
 
     def action_ver_reporte(self):
