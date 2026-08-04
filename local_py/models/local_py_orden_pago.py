@@ -547,8 +547,8 @@ class LocalPyOrdenPago(models.Model):
                     'partner_id': self.partner_id.id,
                     'debit': monto_company,
                     'credit': 0.0,
-                    'currency_id': factura_currency.id if es_moneda_extranjera else False,
-                    'amount_currency': monto_moneda_factura if es_moneda_extranjera else 0.0,
+                    'currency_id': factura_currency.id,
+                    'amount_currency': monto_moneda_factura if es_moneda_extranjera else monto_company,
                 }),
                 (0, 0, {
                     'name': concepto,
@@ -556,6 +556,8 @@ class LocalPyOrdenPago(models.Model):
                     'partner_id': self.partner_id.id,
                     'debit': 0.0,
                     'credit': monto_company,
+                    'currency_id': company.currency_id.id,
+                    'amount_currency': -monto_company,
                 }),
             ],
         })
