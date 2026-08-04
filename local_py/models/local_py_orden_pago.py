@@ -62,8 +62,9 @@ class LocalPyOrdenPago(models.Model):
         help='Lo que el sistema va a agregar solo en Medios al Confirmar, según la '
              'situación actual del Proveedor — ya está descontado de "Diferencia", así '
              'que no hace falta restarlo a mano al cargar sus otros Medios de Pago '
-             '(Efectivo, Transferencia, Cheque, etc.). Es una estimación: puede cambiar '
-             'si edita las Facturas o Medios antes de Confirmar.',
+             '(Efectivo, Transferencia, Cheque, etc.). Es una estimación: después de '
+             'editar las Facturas, presione "Actualizar Retención Estimada" para '
+             'refrescarla.',
     )
 
     @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id',
@@ -90,26 +91,26 @@ class LocalPyOrdenPago(models.Model):
         if self.factura_ids:
             self.factura_ids = [(5, 0, 0)]
 
-    @api.onchange('factura_ids')
-    def _onchange_factura_ids_retencion(self):
-        """La Retención IVA aplica sobre TODAS las Facturas de la Orden de
-        Pago a la vez (no solo la que se está editando). Se calcula acá,
-        en la cabecera, y se asigna directo a cada línea — evaluar desde
-        una Factura individual (con su propio método de cómputo, que
-        vuelve a buscar 'self.orden_pago_id.factura_ids' en base) no ve
-        de forma confiable los cambios todavía sin guardar del mismo
-        formulario."""
+    def action_actualizar_retencion_estimada(self):
+        """Recalcula la vista previa de Retención IVA de todas las
+        Facturas de la Orden de Pago. Al ser un botón (no un onchange),
+        Odoo guarda el formulario automáticamente antes de ejecutarlo —
+        así el cálculo trabaja siempre sobre datos ya guardados, sin la
+        ambigüedad de registros todavía "virtuales" que hacía fallar el
+        cálculo en vivo mientras se escribía (confirmado con varias
+        pruebas en video)."""
+        self.ensure_one()
         evaluacion = self._evaluar_retencion_iva()
         for factura in self.factura_ids:
             datos = evaluacion.get(factura)
             factura.retencion_iva_estimada = datos[1] if datos else 0.0
+        return True
 
     @api.onchange('currency_id', 'fecha')
     def _onchange_currency_id_cotizacion(self):
         a_refrescar = self.factura_ids.filtered(lambda f: not f.cotizacion_manual)
         if a_refrescar:
             a_refrescar._set_cotizacion_default(self.fecha)
-        self._onchange_factura_ids_retencion()
 
     @api.model_create_multi
     def create(self, vals_list):

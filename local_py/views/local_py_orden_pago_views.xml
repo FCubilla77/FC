@@ -50,6 +50,9 @@
                                 <button name="action_cargar_facturas_pendientes" type="object"
                                         string="Cargar Facturas Pendientes" class="btn-secondary"
                                         invisible="state != 'borrador'"/>
+                                <button name="action_actualizar_retencion_estimada" type="object"
+                                        string="Actualizar Retención Estimada" class="btn-secondary"
+                                        invisible="state not in ('borrador', 'en_proceso')"/>
                                 <div class="alert alert-info" role="alert" invisible="not hay_monedas_distintas">
                                     Hay facturas en una moneda distinta a la de la cabecera. Al Confirmar,
                                     el sistema va a actualizar la Cotización y los valores convertidos con
