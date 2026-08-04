@@ -1,0 +1,24 @@
+<odoo>
+    <data noupdate="1">
+        <record id="concepto_iva_1" model="local_py.concepto_iva">
+            <field name="name">Pago a cuenta para Contribuyentes obligados por el impuesto</field>
+            <field name="codigo">IVA.1</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="concepto_iva_2" model="local_py.concepto_iva">
+            <field name="name">Pago Único y Definitivo — acreditamiento a personas/entidades del exterior sin sucursal en el país</field>
+            <field name="codigo">IVA.2</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="concepto_iva_3" model="local_py.concepto_iva">
+            <field name="name">Pago Único y Definitivo — enajenación de bienes inmuebles</field>
+            <field name="codigo">IVA.3</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="concepto_iva_4" model="local_py.concepto_iva">
+            <field name="name">Pago Único y Definitivo — otros acreditamientos no incluidos en los anteriores</field>
+            <field name="codigo">IVA.4</field>
+            <field name="sequence">40</field>
+        </record>
+    </data>
+</odoo>

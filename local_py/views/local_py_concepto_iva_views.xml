@@ -1,0 +1,42 @@
+<odoo>
+    <data>
+        <record id="view_local_py_concepto_iva_list" model="ir.ui.view">
+            <field name="name">local_py.concepto_iva.list</field>
+            <field name="model">local_py.concepto_iva</field>
+            <field name="arch" type="xml">
+                <list string="Concepto IVA">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_concepto_iva_form" model="ir.ui.view">
+            <field name="name">local_py.concepto_iva.form</field>
+            <field name="model">local_py.concepto_iva</field>
+            <field name="arch" type="xml">
+                <form string="Concepto IVA">
+                    <sheet>
+                        <group>
+                            <field name="codigo"/>
+                            <field name="name"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_concepto_iva" model="ir.actions.act_window">
+            <field name="name">Concepto IVA</field>
+            <field name="res_model">local_py.concepto_iva</field>
+            <field name="view_mode">list,form</field>
+        </record>
+        <!-- Sin menú propio: se gestiona desde la pestaña "Retenciones" de
+             Configuraciones Localización Py. Se mantiene la acción por si se
+             necesita acceder técnicamente. -->
+    </data>
+</odoo>

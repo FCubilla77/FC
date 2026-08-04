@@ -10,10 +10,14 @@
                     <field name="factura_id"/>
                     <field name="orden_pago_id"/>
                     <field name="tipo_retencion"/>
-                    <field name="base_imponible"/>
+                    <field name="base_5"/>
+                    <field name="monto_5"/>
+                    <field name="base_10"/>
+                    <field name="monto_10"/>
                     <field name="porcentaje"/>
                     <field name="monto"/>
                     <field name="monto_gs"/>
+                    <field name="concepto_iva_id"/>
                     <field name="numero_comprobante"/>
                     <field name="estado" widget="badge"
                            decoration-warning="estado == 'pendiente'"
@@ -47,10 +51,14 @@
                             <group>
                                 <field name="currency_id" invisible="1"/>
                                 <field name="company_currency_id" invisible="1"/>
-                                <field name="base_imponible" readonly="1"/>
+                                <field name="base_5" readonly="1"/>
+                                <field name="monto_5" readonly="1"/>
+                                <field name="base_10" readonly="1"/>
+                                <field name="monto_10" readonly="1"/>
                                 <field name="porcentaje" readonly="1"/>
                                 <field name="monto" readonly="1"/>
                                 <field name="monto_gs" readonly="1"/>
+                                <field name="concepto_iva_id" readonly="1"/>
                                 <field name="numero_comprobante" readonly="estado != 'pendiente'"/>
                             </group>
                         </group>

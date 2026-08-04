@@ -35,14 +35,27 @@ class LocalPyRetencionEmitida(models.Model):
         [('iva', 'IVA'), ('renta', 'Renta')], string='Tipo', required=True, default='iva',
     )
     currency_id = fields.Many2one(related='orden_pago_id.currency_id', string='Moneda')
-    base_imponible = fields.Monetary(string='Base Imponible (IVA proporcional)', currency_field='currency_id')
+    base_5 = fields.Monetary(string='Base Imponible 5%', currency_field='currency_id')
+    monto_5 = fields.Monetary(string='Monto Retenido 5%', currency_field='currency_id')
+    base_10 = fields.Monetary(string='Base Imponible 10%', currency_field='currency_id')
+    monto_10 = fields.Monetary(string='Monto Retenido 10%', currency_field='currency_id')
+    monto = fields.Monetary(
+        string='Monto Retenido', currency_field='currency_id', compute='_compute_monto', store=True,
+        help='Suma de lo retenido al 5% y al 10% — es el monto real que se resta al '
+             'Proveedor (coincide con el importe de la fila de Medios).',
+    )
     porcentaje = fields.Float(string='Porcentaje', digits=(5, 2))
-    monto = fields.Monetary(string='Monto Retenido', currency_field='currency_id')
     company_currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda de la Empresa')
     monto_gs = fields.Monetary(
         string='Monto Retenido (Gs.)', currency_field='company_currency_id',
         help='Monto declarado ante la DNIT — siempre en Guaraníes, convertido a la '
              'Cotización de la Orden de Pago.',
+    )
+    concepto_iva_id = fields.Many2one(
+        'local_py.concepto_iva', string='Concepto IVA',
+        help='Código exigido por la DNIT (Tesaka) para clasificar esta Retención — se '
+             'copia del configurado en Configuraciones Localización Py al momento de '
+             'Confirmar.',
     )
     estado = fields.Selection(
         [('pendiente', 'Pendiente'), ('levantada', 'Levantada'), ('anulada', 'Anulada')],
@@ -53,6 +66,11 @@ class LocalPyRetencionEmitida(models.Model):
         help='Número asignado por la DNIT (Tesaka) al levantar la retención — se '
              'carga a mano por ahora.',
     )
+
+    @api.depends('monto_5', 'monto_10')
+    def _compute_monto(self):
+        for retencion in self:
+            retencion.monto = retencion.monto_5 + retencion.monto_10
 
     def action_marcar_levantada(self):
         for retencion in self:

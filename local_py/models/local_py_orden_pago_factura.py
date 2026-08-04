@@ -97,7 +97,7 @@ class LocalPyOrdenPagoFactura(models.Model):
                 linea.retencion_iva_estimada = retencion.monto if retencion else 0.0
                 continue
             datos = evaluaciones.get(linea.orden_pago_id, {}).get(linea)
-            linea.retencion_iva_estimada = datos[1] if datos else 0.0
+            linea.retencion_iva_estimada = datos['monto_total'] if datos else 0.0
 
     @api.depends('currency_id', 'header_currency_id')
     def _compute_misma_moneda(self):
@@ -183,6 +183,31 @@ class LocalPyOrdenPagoFactura(models.Model):
     # ------------------------------------------------------------------
     # Retención IVA
     # ------------------------------------------------------------------
+    def _bases_iva_por_tasa(self):
+        """Mira las líneas reales de la factura (no el total agregado) y
+        separa, en la moneda propia de la factura, la Base Imponible y
+        el IVA correspondientes a cada tasa (5% y 10%). Los ítems
+        Exentos quedan naturalmente afuera de ambos — no tienen una tasa
+        de IVA que los incluya."""
+        self.ensure_one()
+        move = self.move_line_id.move_id
+        base_5 = base_10 = iva_5 = iva_10 = 0.0
+        lineas_producto = move.line_ids.filtered(lambda l: l.display_type == 'product')
+        for linea in lineas_producto:
+            tasas = [round(t) for t in linea.tax_ids.mapped('amount')]
+            if 10 in tasas:
+                base_10 += linea.price_subtotal
+            elif 5 in tasas:
+                base_5 += linea.price_subtotal
+        lineas_impuesto = move.line_ids.filtered(lambda l: l.tax_line_id)
+        for linea in lineas_impuesto:
+            tasa = round(linea.tax_line_id.amount)
+            if tasa == 10:
+                iva_10 += abs(linea.amount_currency)
+            elif tasa == 5:
+                iva_5 += abs(linea.amount_currency)
+        return base_5, iva_5, base_10, iva_10
+
     def _proporcion_pago(self):
         self.ensure_one()
         if not self.total_original:
@@ -203,29 +228,36 @@ class LocalPyOrdenPagoFactura(models.Model):
             self.header_currency_id._convert(monto_header, moneda_empresa, company, fecha)
         )
 
-    def _imponible_proporcional_gs(self):
-        """Valor Imponible (Total factura - IVA) correspondiente a la
-        porción pagada en este pago parcial, convertido a Guaraníes —
-        usado para el control del acumulado mensual."""
+    def _total_gravado_proporcional_gs(self):
+        """Total Gravado (Base al 5% + Base al 10%, SIN Exentos)
+        correspondiente a la porción pagada en este pago parcial,
+        convertido a Guaraníes — usado para el control del acumulado
+        mensual contra el Valor Imponible Mínimo."""
         self.ensure_one()
-        move = self.move_line_id.move_id
+        base_5, _iva_5, base_10, _iva_10 = self._bases_iva_por_tasa()
         proporcion = self._proporcion_pago()
-        imponible_moneda_factura = move.amount_untaxed * proporcion
-        imponible_header = imponible_moneda_factura * (self.cotizacion or 0.0)
+        total_gravado_moneda_factura = (base_5 + base_10) * proporcion
+        header = total_gravado_moneda_factura * (self.cotizacion or 0.0)
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
-        return self._monto_header_a_gs(imponible_header, fecha)
+        return self._monto_header_a_gs(header, fecha)
 
     def _retencion_iva_calcular(self, porcentaje):
-        """Devuelve (base_header, monto_header, monto_gs) del IVA a
-        retener de esta factura/cuota, proporcional al pago parcial, en
-        la Moneda de la Cabecera y su equivalente en Guaraníes. Cada
-        monto se redondea con la precisión de su propia moneda."""
+        """Devuelve un diccionario con la Retención IVA de esta
+        factura/cuota, proporcional al pago parcial, separada por tasa
+        (5 y 10), en la Moneda de la Cabecera y su equivalente en
+        Guaraníes. El mismo Porcentaje se aplica sobre ambos tramos."""
         self.ensure_one()
-        move = self.move_line_id.move_id
+        base_5, iva_5, base_10, iva_10 = self._bases_iva_por_tasa()
         proporcion = self._proporcion_pago()
-        iva_moneda_factura = move.amount_tax * proporcion
-        iva_header = self.header_currency_id.round(iva_moneda_factura * (self.cotizacion or 0.0))
-        monto_header = self.header_currency_id.round(iva_header * (porcentaje / 100.0))
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
-        monto_gs = self._monto_header_a_gs(monto_header, fecha)
-        return iva_header, monto_header, monto_gs
+        cotizacion = self.cotizacion or 0.0
+
+        resultado = {}
+        for tasa, iva_tasa in (('5', iva_5), ('10', iva_10)):
+            iva_prop = iva_tasa * proporcion
+            iva_header = self.header_currency_id.round(iva_prop * cotizacion)
+            monto_header = self.header_currency_id.round(iva_header * (porcentaje / 100.0))
+            monto_gs = self._monto_header_a_gs(monto_header, fecha)
+            resultado[tasa] = {'base': iva_header, 'monto': monto_header, 'monto_gs': monto_gs}
+        return resultado
+

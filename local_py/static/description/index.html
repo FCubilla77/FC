@@ -317,6 +317,9 @@
                 <li>Orden de Pago: nueva columna "Retención IVA (estimada)" en Facturas (fondo rojo), y total "Retención IVA (estimada)" en la cabecera — muestra, ya desde Borrador, lo que el sistema va a retener al Confirmar, para que se pueda cargar Medios ya descontando ese valor y no romper el cuadre al Confirmar. Reutiliza exactamente el mismo cálculo que se usa al Confirmar (no es una fórmula aparte que se pueda desincronizar)</li>
                 <li>Corregido: la columna "Factura de la Retención" en Medios mostraba el dato técnico interno en vez de algo legible — ahora muestra el Nro. Documento de la factura</li>
                 <li>Al Confirmar, la Fecha Emisión de las filas de Retención se completa con la Fecha de Confirmación; el Nro. Documento se sincroniza automáticamente con el Nro. Comprobante cada vez que se actualiza en Localización Paraguay &gt; Retenciones Emitidas</li>
+                <li>Retenciones (Parte 3 — archivo para Tesaka de la DNIT): Diarios de Venta y el Diario de Retención IVA ahora tienen "Inicio Vigencia Timbrado" y "Punto de Expedición"; nuevo catálogo "Concepto IVA" (mismo criterio que Imputación Tributaria) con los 4 códigos oficiales, IVA.1 predeterminado; el cálculo de Retención IVA ahora separa Base y Monto por tasa (5% y 10%), mirando las líneas reales de cada factura, en vez de un total combinado</li>
+                <li>Corregido: el control del Valor Imponible Mínimo usaba el Total sin IVA de la factura completa, incluyendo por error los ítems Exentos — ahora usa el Total Gravado real (Base al 5% + Base al 10%), que excluye los Exentos correctamente</li>
+                <li>Nueva pantalla "Generar Archivo Tesaka" (Localización Paraguay): arma el archivo JSON con las Retenciones IVA Pendientes de un rango de fechas (y Proveedor opcional), en el formato exacto que exige la plataforma de la DNIT para levantar comprobantes de retención</li>
             </ul>
         </div>
     </div>

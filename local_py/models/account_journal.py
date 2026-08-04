@@ -34,6 +34,18 @@ class AccountJournal(models.Model):
         help='Fecha de vencimiento del timbrado. Las facturas de venta con fecha posterior '
              'a esta no podrán guardarse. Aplica únicamente a diarios de venta.',
     )
+    l10n_py_inicio_vigencia_timbrado = fields.Date(
+        string='Inicio Vigencia Timbrado',
+        help='Fecha desde la cual rige este Timbrado — dato exigido por la DNIT (Tesaka) '
+             'para declarar comprobantes electrónicos. Aplica a diarios de venta y al '
+             'Diario de Retención.',
+    )
+    l10n_py_punto_expedicion = fields.Char(
+        string='Punto de Expedición', size=3,
+        help='Punto de expedición del comprobante — dato exigido por la DNIT (Tesaka) '
+             'para declarar comprobantes electrónicos. Aplica a diarios de venta y al '
+             'Diario de Retención.',
+    )
     local_py_tipo_fiscal_id = fields.Many2one(
         'local_py.tipo_fiscal',
         string='Tipo Fiscal',
@@ -63,13 +75,14 @@ class AccountJournal(models.Model):
     @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_venc_timbrado', 'type')
     def _check_l10n_py_only_sale_journal(self):
         for journal in self:
-            if journal.type != 'sale' and (
+            if journal.type not in ('sale', 'general') and (
                 journal.l10n_py_timbrado
                 or journal.l10n_py_nro_documento
                 or journal.l10n_py_venc_timbrado
             ):
                 raise exceptions.ValidationError(
-                    'Los campos Timbrado, Nro. Documento y Venc. Timbrado solo aplican a diarios de venta.'
+                    'Los campos Timbrado, Nro. Documento y Venc. Timbrado solo aplican a '
+                    'diarios de venta (o al Diario de Retención, de tipo Misceláneo).'
                 )
 
     @api.constrains('local_py_tipo_fiscal_id', 'type')

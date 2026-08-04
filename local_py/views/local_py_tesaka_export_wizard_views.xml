@@ -1,0 +1,49 @@
+<odoo>
+    <data>
+        <record id="view_local_py_tesaka_export_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.tesaka_export.wizard.form</field>
+            <field name="model">local_py.tesaka_export.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Generar Archivo Tesaka (Retenciones)">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
+                    <field name="retencion_ids" readonly="1">
+                        <list>
+                            <field name="fecha"/>
+                            <field name="partner_id"/>
+                            <field name="factura_id"/>
+                            <field name="orden_pago_id"/>
+                            <field name="base_5"/>
+                            <field name="monto_5"/>
+                            <field name="base_10"/>
+                            <field name="monto_10"/>
+                            <field name="monto"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_generar_json" type="object" string="Generar Archivo JSON" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_tesaka_export_wizard" model="ir.actions.act_window">
+            <field name="name">Generar Archivo Tesaka</field>
+            <field name="res_model">local_py.tesaka_export.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_tesaka_export"
+                  name="Generar Archivo Tesaka"
+                  parent="local_py.menu_l10n_py_localizacion"
+                  action="action_local_py_tesaka_export_wizard"
+                  groups="account.group_account_manager"
+                  sequence="16"/>
+    </data>
+</odoo>

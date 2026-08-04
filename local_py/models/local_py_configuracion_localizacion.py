@@ -51,6 +51,15 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'permite sobre Diarios Misceláneos) — genera un asiento contable propio, '
              'conciliado directamente contra la factura.',
     )
+    l10n_py_concepto_iva_id = fields.Many2one(
+        'local_py.concepto_iva', string='Concepto IVA',
+        default=lambda self: self.env.ref('local_py.concepto_iva_1', raise_if_not_found=False),
+        help='Código exigido por la DNIT (Tesaka) para clasificar la Retención IVA. '
+             '"IVA.1 — Pago a cuenta para Contribuyentes obligados" es el que corresponde '
+             'al régimen habitual de retención sobre proveedores (el que ya calculamos '
+             'en Orden de Pago) — los demás códigos son para situaciones puntuales '
+             'distintas (inmuebles, exterior, casos excepcionales).',
+    )
     l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
     l10n_py_retencion_renta_porcentaje = fields.Float(
         string='Porcentaje Retención Predeterminado (Renta)', digits=(5, 2),

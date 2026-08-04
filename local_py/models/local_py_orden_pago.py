@@ -86,7 +86,7 @@ class LocalPyOrdenPago(models.Model):
                 orden.diferencia = orden.total_facturas - orden.total_medios
             else:
                 evaluacion = orden._evaluar_retencion_iva()
-                orden.total_retencion_iva_estimada = sum(m[1] for m in evaluacion.values())
+                orden.total_retencion_iva_estimada = sum(m['monto_total'] for m in evaluacion.values())
                 orden.diferencia = orden.total_facturas - orden.total_medios - orden.total_retencion_iva_estimada
 
     @api.onchange('partner_id')
@@ -106,7 +106,7 @@ class LocalPyOrdenPago(models.Model):
         evaluacion = self._evaluar_retencion_iva()
         for factura in self.factura_ids:
             datos = evaluacion.get(factura)
-            factura.retencion_iva_estimada = datos[1] if datos else 0.0
+            factura.retencion_iva_estimada = datos['monto_total'] if datos else 0.0
         return True
 
     @api.onchange('currency_id', 'fecha')
@@ -265,7 +265,7 @@ class LocalPyOrdenPago(models.Model):
             ('id', '!=', self.id),
         ])
         return sum(
-            factura._imponible_proporcional_gs()
+            factura._total_gravado_proporcional_gs()
             for orden in ordenes for factura in orden.factura_ids
         )
 
@@ -273,9 +273,10 @@ class LocalPyOrdenPago(models.Model):
         """Evalúa si corresponde Retención IVA para esta Orden de Pago,
         SIN generar ningún registro — se puede llamar en cualquier
         momento (Borrador, En Proceso) para mostrar una vista previa.
-        Devuelve un diccionario {factura: (base_header, monto_header,
-        monto_gs)} con lo que correspondería retener por cada Factura si
-        se Confirmara ahora mismo."""
+        Devuelve un diccionario {factura: datos}, donde 'datos' trae el
+        desglose por tasa (5% y 10%, cada una con su Base y Monto) más
+        el total combinado — lo que correspondería retener por cada
+        Factura si se Confirmara ahora mismo."""
         self.ensure_one()
         resultado = {}
         partner = self.partner_id
@@ -297,7 +298,7 @@ class LocalPyOrdenPago(models.Model):
             return resultado
 
         acumulado_previo = self._get_acumulado_mensual_iva_previo(partner, self.fecha)
-        contribucion_esta_op = sum(f._imponible_proporcional_gs() for f in self.factura_ids)
+        contribucion_esta_op = sum(f._total_gravado_proporcional_gs() for f in self.factura_ids)
         if self.company_id.currency_id.compare_amounts(
             acumulado_previo + contribucion_esta_op, config.l10n_py_retencion_iva_minimo
         ) < 0:
@@ -308,9 +309,14 @@ class LocalPyOrdenPago(models.Model):
             return resultado
 
         for factura in self.factura_ids:
-            base_header, monto_header, monto_gs = factura._retencion_iva_calcular(porcentaje)
-            if not self.currency_id.is_zero(monto_header):
-                resultado[factura] = (base_header, monto_header, monto_gs)
+            por_tasa = factura._retencion_iva_calcular(porcentaje)
+            monto_total = por_tasa['5']['monto'] + por_tasa['10']['monto']
+            if not self.currency_id.is_zero(monto_total):
+                resultado[factura] = {
+                    'por_tasa': por_tasa,
+                    'monto_total': monto_total,
+                    'monto_gs_total': por_tasa['5']['monto_gs'] + por_tasa['10']['monto_gs'],
+                }
         return resultado
 
     def _calcular_retenciones_iva(self):
@@ -333,18 +339,22 @@ class LocalPyOrdenPago(models.Model):
             [('company_id', '=', self.company_id.id)], limit=1,
         )
         Retencion = self.env['local_py.retencion_emitida']
-        for factura, (base_header, monto_header, monto_gs) in evaluacion.items():
+        for factura, datos in evaluacion.items():
+            por_tasa = datos['por_tasa']
             Retencion.create({
                 'orden_pago_id': self.id,
                 'orden_pago_factura_id': factura.id,
                 'fecha': self.fecha,
                 'tipo_retencion': 'iva',
-                'base_imponible': base_header,
+                'base_5': por_tasa['5']['base'],
+                'monto_5': por_tasa['5']['monto'],
+                'base_10': por_tasa['10']['base'],
+                'monto_10': por_tasa['10']['monto'],
                 'porcentaje': factura.orden_pago_id.partner_id.l10n_py_retencion_iva_porcentaje,
-                'monto': monto_header,
-                'monto_gs': monto_gs,
+                'monto_gs': datos['monto_gs_total'],
+                'concepto_iva_id': config.l10n_py_concepto_iva_id.id,
             })
-            if self.currency_id.compare_amounts(monto_header, 0) > 0:
+            if self.currency_id.compare_amounts(datos['monto_total'], 0) > 0:
                 # Un Medio de Retención POR FACTURA, no uno combinado — así la
                 # conciliación va siempre directo a la factura que corresponde,
                 # sin pasar por el reparto genérico entre Facturas y Medios (que
@@ -352,7 +362,7 @@ class LocalPyOrdenPago(models.Model):
                 self.env['local_py.orden_pago.medio'].create({
                     'orden_pago_id': self.id,
                     'journal_id': config.l10n_py_diario_retencion_iva_id.id,
-                    'importe': monto_header,
+                    'importe': datos['monto_total'],
                     'es_retencion': True,
                     'retencion_factura_id': factura.id,
                 })
