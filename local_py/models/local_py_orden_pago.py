@@ -326,7 +326,6 @@ class LocalPyOrdenPago(models.Model):
             [('company_id', '=', self.company_id.id)], limit=1,
         )
         Retencion = self.env['local_py.retencion_emitida']
-        total_retencion_header = 0.0
         for factura, (base_header, monto_header, monto_gs) in evaluacion.items():
             Retencion.create({
                 'orden_pago_id': self.id,
@@ -338,15 +337,18 @@ class LocalPyOrdenPago(models.Model):
                 'monto': monto_header,
                 'monto_gs': monto_gs,
             })
-            total_retencion_header += monto_header
-
-        if self.currency_id.compare_amounts(total_retencion_header, 0) > 0:
-            self.env['local_py.orden_pago.medio'].create({
-                'orden_pago_id': self.id,
-                'journal_id': config.l10n_py_diario_retencion_iva_id.id,
-                'importe': total_retencion_header,
-                'es_retencion': True,
-            })
+            if self.currency_id.compare_amounts(monto_header, 0) > 0:
+                # Un Medio de Retención POR FACTURA, no uno combinado — así la
+                # conciliación va siempre directo a la factura que corresponde,
+                # sin pasar por el reparto genérico entre Facturas y Medios (que
+                # no distingue "de dónde viene" cada porción de la Retención).
+                self.env['local_py.orden_pago.medio'].create({
+                    'orden_pago_id': self.id,
+                    'journal_id': config.l10n_py_diario_retencion_iva_id.id,
+                    'importe': monto_header,
+                    'es_retencion': True,
+                    'retencion_factura_id': factura.id,
+                })
 
     def action_deshacer_confirmacion(self):
         """Vuelve una Orden de Pago Confirmada a "En Proceso": deshace la
@@ -429,13 +431,37 @@ class LocalPyOrdenPago(models.Model):
         conciliado siempre 1 a 1 contra su factura específica — así el
         importe que Odoo aplica en cada conciliación es exactamente el
         que corresponde, sin ambigüedad, y el mecanismo nativo de
-        diferencia de cambio se dispara igual de bien caso por caso."""
+        diferencia de cambio se dispara igual de bien caso por caso.
+
+        Los Medios de Retención se procesan APARTE, antes que nada:
+        cada uno ya tiene una Factura específica asignada
+        (retencion_factura_id, un Medio por Factura) — no son
+        intercambiables como el Efectivo, así que se concilian siempre
+        1 a 1 contra esa Factura exacta, nunca a través del reparto
+        genérico (que no distingue "de dónde viene" cada porción).
+        Recién con el resto (Facturas ya descontada su propia Retención,
+        y los Medios que no son de Retención) se arma el reparto
+        genérico, como siempre."""
         self.ensure_one()
         AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
         currency = self.currency_id
 
-        facturas_pend = [[f, f.valor_convertido] for f in self.factura_ids]
-        medios_pend = [[m, m.importe] for m in self.medio_ids]
+        medios_retencion = self.medio_ids.filtered('es_retencion')
+        medios_normales = self.medio_ids - medios_retencion
+
+        for medio in medios_retencion:
+            factura = medio.retencion_factura_id
+            move = self._crear_movimiento_retencion(medio, factura, medio.importe)
+            linea_payable = move.line_ids.filtered(
+                lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
+            )
+            (factura.move_line_id + linea_payable).reconcile()
+
+        facturas_pend = []
+        for f in self.factura_ids:
+            retenido = sum(medios_retencion.filtered(lambda m: m.retencion_factura_id == f).mapped('importe'))
+            facturas_pend.append([f, f.valor_convertido - retenido])
+        medios_pend = [[m, m.importe] for m in medios_normales]
         asignaciones = []
 
         i = j = 0
@@ -459,14 +485,6 @@ class LocalPyOrdenPago(models.Model):
             )
 
         for factura, medio, monto in asignaciones:
-            if medio.es_retencion:
-                move = self._crear_movimiento_retencion(medio, factura, monto)
-                linea_payable = move.line_ids.filtered(
-                    lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
-                )
-                (factura.move_line_id + linea_payable).reconcile()
-                continue
-
             comentario = 'Pago Orden de Pago %s' % self.name
             payment = AccountPayment.create({
                 'payment_type': 'outbound',

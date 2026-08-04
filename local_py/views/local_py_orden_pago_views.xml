@@ -91,6 +91,7 @@
                                         <field name="cheque_reutilizar_id" options="{'no_create': True}"/>
                                         <field name="cuenta_banco"/>
                                         <field name="payment_ids" readonly="1" widget="many2many_tags"/>
+                                        <field name="retencion_factura_id" readonly="1" optional="show"/>
                                         <field name="es_retencion" column_invisible="1"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="company_id" column_invisible="1"/>

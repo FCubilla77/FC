@@ -47,6 +47,13 @@ class LocalPyOrdenPagoMedio(models.Model):
         help='La Retención no genera un Pago (Odoo no lo permite sobre Diarios '
              'Misceláneos) — genera este asiento contable propio.',
     )
+    retencion_factura_id = fields.Many2one(
+        'local_py.orden_pago.factura', string='Factura de la Retención', readonly=True, copy=False,
+        help='A qué Factura le corresponde exactamente esta porción de Retención — se '
+             'concilia siempre directo contra ella, nunca a través del reparto genérico '
+             'entre Facturas y Medios (la Retención no es intercambiable como el '
+             'Efectivo: cada porción tiene un destino fijo).',
+    )
 
     payment_ids = fields.One2many(
         'account.payment', 'l10n_py_orden_pago_medio_id', string='Pago(s)',
