@@ -330,6 +330,7 @@
                 <li>Nuevos campos "Fecha de Anulación" y "Control" en Retenciones Emitidas (se completan solos al procesar el Excel, o a mano)</li>
                 <li>Nuevo flujo para resolver una Retención Anulada (a mano o desde el Excel): wizard con 2 opciones — "Reprocesar" (vuelve a Pendiente, se incluye sola en el próximo archivo JSON, sin tocar la Orden de Pago) o "Anular la Orden de Pago completa" (revierte toda la Orden — Efectivo, Cheque, Transferencia y Retención incluidos — con aviso previo de todo lo que se va a deshacer)</li>
                 <li>Corregido un hueco real: al reintentar Confirmar una Orden de Pago (por ejemplo, tras un descuadre), la limpieza de Retenciones de un intento anterior ahora solo toca las que están Pendientes — antes podía chocar contra el bloqueo de eliminar Retenciones ya Levantadas o Anuladas</li>
+                <li>Corregido un error de instalación en Importaciones Tesaka: los campos de totales (Total Líneas, Procesadas OK, Con Error) no estaban guardados en la base de datos, y el filtro "Con Errores" los necesitaba así para poder buscar — ya están guardados correctamente</li>
             </ul>
         </div>
     </div>

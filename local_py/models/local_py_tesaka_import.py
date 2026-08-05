@@ -24,9 +24,9 @@ class LocalPyTesakaImport(models.Model):
     archivo_nombre = fields.Char(string='Nombre del Archivo')
     procesado = fields.Boolean(string='Procesado', default=False, readonly=True)
     linea_ids = fields.One2many('local_py.tesaka_import.linea', 'import_id', string='Líneas')
-    total_lineas = fields.Integer(string='Total Líneas', compute='_compute_totales')
-    total_exito = fields.Integer(string='Procesadas OK', compute='_compute_totales')
-    total_error = fields.Integer(string='Con Error', compute='_compute_totales')
+    total_lineas = fields.Integer(string='Total Líneas', compute='_compute_totales', store=True)
+    total_exito = fields.Integer(string='Procesadas OK', compute='_compute_totales', store=True)
+    total_error = fields.Integer(string='Con Error', compute='_compute_totales', store=True)
 
     @api.depends('linea_ids.resultado')
     def _compute_totales(self):
