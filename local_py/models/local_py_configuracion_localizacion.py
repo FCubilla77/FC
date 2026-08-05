@@ -102,6 +102,21 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                     'Ya existe una Configuración de Localización para esta compañía.'
                 )
 
+    @api.constrains('l10n_py_retencion_iva', 'l10n_py_diario_retencion_iva_id', 'l10n_py_concepto_iva_id')
+    def _check_retencion_iva_configuracion_completa(self):
+        """No se puede activar Retención IVA sin elegir, al mismo tiempo,
+        el Diario de Retención y el Concepto IVA — activarlo a medias
+        dejaría Órdenes de Pago bloqueadas al Confirmar sin ninguna
+        pista de qué falta hasta ese momento."""
+        for config in self:
+            if config.l10n_py_retencion_iva and (
+                not config.l10n_py_diario_retencion_iva_id or not config.l10n_py_concepto_iva_id
+            ):
+                raise exceptions.ValidationError(
+                    'Para activar "Retención IVA" hay que elegir, al mismo tiempo, el Diario de '
+                    'Retención IVA y el Concepto IVA.'
+                )
+
     @api.onchange('l10n_py_imputacion_tributaria_ids')
     def _onchange_l10n_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)

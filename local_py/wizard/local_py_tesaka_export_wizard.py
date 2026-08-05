@@ -17,9 +17,14 @@ class LocalPyTesakaExportWizard(models.TransientModel):
     fecha_desde = fields.Date(string='Fecha desde', required=True)
     fecha_hasta = fields.Date(string='Fecha hasta', required=True)
     partner_ids = fields.Many2many('res.partner', string='Proveedor', help='Vacío = todos.')
-    retencion_ids = fields.Many2many(
-        'local_py.retencion_emitida', string='Retenciones a incluir', compute='_compute_retencion_ids',
+    incluir_ya_generadas = fields.Boolean(
+        string='Incluir ya generadas', default=False,
+        help='Por defecto, "Cargar Retenciones Pendientes" solo trae las que todavía no se '
+             'incluyeron en ningún archivo — así no se duplican sin querer. Tildar esta '
+             'opción solo si hace falta rehacer un archivo que se perdió o no se llegó a '
+             'subir a Tesaka.',
     )
+    retencion_ids = fields.Many2many('local_py.retencion_emitida', string='Retenciones a incluir')
 
     @api.model
     def default_get(self, fields_list):
@@ -29,21 +34,27 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         res.setdefault('fecha_hasta', today)
         return res
 
-    @api.depends('fecha_desde', 'fecha_hasta', 'partner_ids', 'company_id')
-    def _compute_retencion_ids(self):
-        for wiz in self:
-            domain = [
-                ('company_id', '=', wiz.company_id.id),
-                ('estado', '=', 'pendiente'),
-                ('tipo_retencion', '=', 'iva'),
-            ]
-            if wiz.fecha_desde:
-                domain.append(('fecha', '>=', wiz.fecha_desde))
-            if wiz.fecha_hasta:
-                domain.append(('fecha', '<=', wiz.fecha_hasta))
-            if wiz.partner_ids:
-                domain.append(('partner_id', 'in', wiz.partner_ids.ids))
-            wiz.retencion_ids = self.env['local_py.retencion_emitida'].search(domain)
+    def action_cargar_retenciones_pendientes(self):
+        """Trae las Retenciones que coinciden con los filtros (Pendientes,
+        y también con JSON Generado si se tildó "Incluir ya generadas"),
+        sumándolas a lo que ya haya en la lista — sin pisar filas que el
+        usuario haya sacado a mano, igual que "Cargar Facturas
+        Pendientes" en Orden de Pago."""
+        self.ensure_one()
+        estados = ['pendiente', 'json_generado'] if self.incluir_ya_generadas else ['pendiente']
+        domain = [
+            ('company_id', '=', self.company_id.id),
+            ('estado', 'in', estados),
+            ('tipo_retencion', '=', 'iva'),
+        ]
+        if self.fecha_desde:
+            domain.append(('fecha', '>=', self.fecha_desde))
+        if self.fecha_hasta:
+            domain.append(('fecha', '<=', self.fecha_hasta))
+        if self.partner_ids:
+            domain.append(('partner_id', 'in', self.partner_ids.ids))
+        encontradas = self.env['local_py.retencion_emitida'].search(domain)
+        self.retencion_ids = [(4, r.id) for r in encontradas]
 
     def _condicion_compra(self, retencion):
         return 'CREDITO' if retencion.orden_pago_factura_id.move_id.invoice_payment_term_id else 'CONTADO'
@@ -91,7 +102,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
             'numeroTimbrado': str(move.journal_id.l10n_py_timbrado or 0).zfill(8),
         }
 
-    def _retencion_json(self, retencion, concepto_iva):
+    def _retencion_json(self, retencion):
         porcentaje = retencion.porcentaje or 0.0
         return {
             'moneda': retencion.currency_id.name,
@@ -104,7 +115,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
             'rentaToneladasBase': 0,
             'rentaToneladasCantidad': 0,
             'retencionIva': True,
-            'conceptoIva': concepto_iva,
+            'conceptoIva': retencion.concepto_iva_id.codigo or '',
             'ivaPorcentaje5': porcentaje if retencion.base_5 else 0,
             'ivaPorcentaje10': porcentaje if retencion.base_10 else 0,
         }
@@ -113,24 +124,21 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         self.ensure_one()
         retenciones = self.retencion_ids
         if not retenciones:
-            raise UserError('No hay Retenciones Pendientes que coincidan con los filtros elegidos.')
+            raise UserError('No hay Retenciones cargadas para generar el archivo.')
 
-        config = self.env['local_py.configuracion_localizacion'].search(
-            [('company_id', '=', self.company_id.id)], limit=1,
-        )
-        if not config or not config.l10n_py_concepto_iva_id:
+        sin_concepto = retenciones.filtered(lambda r: not r.concepto_iva_id)
+        if sin_concepto:
             raise UserError(
-                'Falta configurar el "Concepto IVA" en Configuraciones Localización Py antes '
-                'de generar el archivo.'
+                'Las siguientes Retenciones no tienen Concepto IVA asignado y no se puede '
+                'generar el archivo: %s' % ', '.join(sin_concepto.mapped('factura_id.name'))
             )
-        concepto_iva = config.l10n_py_concepto_iva_id.codigo
 
         ahora = fields.Datetime.now()
         registros = []
         for retencion in retenciones:
             registros.append({
                 'detalle': self._detalle_json(retencion),
-                'retencion': self._retencion_json(retencion, concepto_iva),
+                'retencion': self._retencion_json(retencion),
                 'informado': self._informado_json(retencion),
                 'transaccion': self._transaccion_json(retencion),
                 'atributos': {
@@ -151,6 +159,12 @@ class LocalPyTesakaExportWizard(models.TransientModel):
             'res_model': self._name,
             'res_id': self.id,
         })
+        # Las Retenciones incluidas pasan a "JSON Generado" — así, si se
+        # vuelve a abrir esta pantalla sin querer, "Cargar Retenciones
+        # Pendientes" no las trae de nuevo (evita duplicarlas en dos
+        # archivos distintos). Si hace falta rehacer el archivo, se
+        # tildan con "Incluir ya generadas".
+        retenciones.filtered(lambda r: r.estado == 'pendiente').write({'estado': 'json_generado'})
         return {
             'type': 'ir.actions.act_url',
             'url': '/web/content/%s?download=true' % attachment.id,

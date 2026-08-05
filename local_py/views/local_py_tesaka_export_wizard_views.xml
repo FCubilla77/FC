@@ -10,8 +10,11 @@
                         <field name="fecha_desde"/>
                         <field name="fecha_hasta"/>
                         <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="incluir_ya_generadas"/>
                     </group>
-                    <field name="retencion_ids" readonly="1">
+                    <button name="action_cargar_retenciones_pendientes" type="object"
+                            string="Cargar Retenciones Pendientes" class="btn-secondary"/>
+                    <field name="retencion_ids">
                         <list>
                             <field name="fecha"/>
                             <field name="partner_id"/>
@@ -22,6 +25,7 @@
                             <field name="base_10"/>
                             <field name="monto_10"/>
                             <field name="monto"/>
+                            <field name="estado"/>
                         </list>
                     </field>
                     <footer>

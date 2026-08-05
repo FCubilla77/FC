@@ -237,6 +237,7 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
+            orden._validar_configuracion_retencion()
             orden.medio_ids._resolver_chequera()
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
@@ -277,6 +278,52 @@ class LocalPyOrdenPago(models.Model):
             factura._total_gravado_proporcional_gs()
             for orden in ordenes for factura in orden.factura_ids
         )
+
+    def _validar_configuracion_retencion(self):
+        """Si el Proveedor de esta Orden de Pago tiene Retención IVA
+        activada, exige que toda la configuración necesaria esté
+        completa antes de Confirmar — si algo falta, bloquea con un
+        mensaje claro en vez de omitir la Retención en silencio (eso
+        dejaría la Orden de Pago Confirmada sin ese asiento, sin una
+        forma simple de completarlo después)."""
+        self.ensure_one()
+        partner = self.partner_id
+        if not partner or not partner.l10n_py_retencion_iva:
+            return
+
+        faltantes = []
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.company_id.id)], limit=1,
+        )
+        if not config or not config.l10n_py_retencion_iva:
+            faltantes.append('Activar "Retención IVA" en Configuraciones Localización Py')
+        if config:
+            if not config.l10n_py_diario_retencion_iva_id:
+                faltantes.append('Elegir el "Diario de Retención IVA" en Configuraciones Localización Py')
+            elif not config.l10n_py_diario_retencion_iva_id.default_account_id:
+                faltantes.append(
+                    'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
+                    % config.l10n_py_diario_retencion_iva_id.name
+                )
+            if not config.l10n_py_concepto_iva_id:
+                faltantes.append('Elegir el "Concepto IVA" en Configuraciones Localización Py')
+
+        es_absorcion = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo != 'IVA.1')
+        if es_absorcion:
+            if config and not config.l10n_py_cuenta_gasto_absorcion_id:
+                faltantes.append('Elegir la "Cuenta de Gasto por Absorción" en Configuraciones Localización Py')
+        else:
+            if not partner.l10n_py_retencion_iva_porcentaje:
+                faltantes.append(
+                    'Cargar el "Porcentaje Retención IVA" en la ficha del Proveedor "%s"' % partner.display_name
+                )
+
+        if faltantes:
+            raise UserError(
+                'El Proveedor "%s" tiene la Retención IVA activada, pero falta completar esta '
+                'configuración antes de Confirmar (para no dejar la Orden de Pago a medio generar '
+                'sin ese asiento):\n\n- %s' % (partner.display_name, '\n- '.join(faltantes))
+            )
 
     def _evaluar_retencion_iva(self):
         """Evalúa si corresponde Retención IVA para esta Orden de Pago,
@@ -361,7 +408,7 @@ class LocalPyOrdenPago(models.Model):
                 'monto_10': por_tasa['10']['monto'],
                 'porcentaje': factura.orden_pago_id.partner_id.l10n_py_retencion_iva_porcentaje,
                 'monto_gs': datos['monto_gs_total'],
-                'concepto_iva_id': config.l10n_py_concepto_iva_id.id,
+                'concepto_iva_id': (self.partner_id.l10n_py_concepto_iva_id or config.l10n_py_concepto_iva_id).id,
             })
             if self.currency_id.compare_amounts(datos['monto_total'], 0) > 0:
                 # Un Medio de Retención POR FACTURA, no uno combinado — así la
@@ -509,15 +556,15 @@ class LocalPyOrdenPago(models.Model):
         if self.state != 'confirmado':
             raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
         if not self.env.context.get('l10n_py_forzar_anulacion_retenciones'):
-            retenciones_levantadas = self.env['local_py.retencion_emitida'].search([
-                ('orden_pago_id', '=', self.id), ('estado', '=', 'levantada'),
+            retenciones_comprometidas = self.env['local_py.retencion_emitida'].search([
+                ('orden_pago_id', '=', self.id), ('estado', 'in', ('levantada', 'json_generado')),
             ])
-            if retenciones_levantadas:
+            if retenciones_comprometidas:
                 raise UserError(
-                    'Esta Orden de Pago tiene Retenciones ya Levantadas ante la DNIT — no se '
-                    'puede deshacer la Confirmación directamente. Primero hay que Anularlas en '
-                    'Localización Paraguay > Retenciones Emitidas (una vez resuelta la anulación '
-                    'ante la DNIT), y recién ahí se puede continuar.'
+                    'Esta Orden de Pago tiene Retenciones ya incluidas en un archivo para la DNIT '
+                    '(JSON Generado o Levantada) — no se puede deshacer la Confirmación '
+                    'directamente. Primero hay que Anularlas en Localización Paraguay > '
+                    'Retenciones Emitidas, y recién ahí se puede continuar.'
                 )
         pagos = self.medio_ids.mapped('payment_ids')
         lineas_pago = pagos.mapped('move_id.line_ids')

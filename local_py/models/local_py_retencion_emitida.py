@@ -70,8 +70,17 @@ class LocalPyRetencionEmitida(models.Model):
              'generado por esta Retención con Absorción.',
     )
     estado = fields.Selection(
-        [('pendiente', 'Pendiente'), ('levantada', 'Levantada'), ('anulada', 'Anulada')],
+        [
+            ('pendiente', 'Pendiente'),
+            ('json_generado', 'JSON Generado'),
+            ('levantada', 'Levantada'),
+            ('anulada', 'Anulada'),
+        ],
         string='Estado', default='pendiente', required=True, copy=False,
+        help='Pendiente: todavía no se incluyó en ningún archivo para la DNIT. JSON '
+             'Generado: ya se incluyó en un archivo (evita duplicarla en otro archivo sin '
+             'querer) — todavía no confirmado por la DNIT. Levantada: la DNIT ya la '
+             'aceptó. Anulada: la DNIT la anuló.',
     )
     numero_comprobante = fields.Char(
         string='Nro. Comprobante', copy=False,
@@ -97,21 +106,21 @@ class LocalPyRetencionEmitida(models.Model):
 
     def action_marcar_levantada(self):
         for retencion in self:
-            if retencion.estado != 'pendiente':
-                raise UserError('Solo se puede marcar como Levantada una Retención Pendiente.')
+            if retencion.estado not in ('pendiente', 'json_generado'):
+                raise UserError('Solo se puede marcar como Levantada una Retención Pendiente o con JSON Generado.')
             if not retencion.numero_comprobante:
                 raise UserError('Cargue el Nro. Comprobante antes de marcarla como Levantada.')
             retencion.estado = 'levantada'
 
     def action_marcar_anulada(self):
-        """Al anular una Retención Levantada (a mano o al procesar el
-        Excel de Tesaka), hay que decidir qué pasa después: volver a
-        incluirla en el próximo archivo JSON (Reprocesar), o deshacer
-        toda la Orden de Pago. Se abre el wizard que ofrece esas 2
-        opciones en vez de decidir solo."""
+        """Al anular una Retención Levantada o con JSON Generado (a mano
+        o al procesar el Excel de Tesaka), hay que decidir qué pasa
+        después: volver a incluirla en el próximo archivo JSON
+        (Reprocesar), o deshacer toda la Orden de Pago. Se abre el
+        wizard que ofrece esas 2 opciones en vez de decidir solo."""
         for retencion in self:
-            if retencion.estado != 'levantada':
-                raise UserError('Solo se puede anular una Retención que esté Levantada.')
+            if retencion.estado not in ('levantada', 'json_generado'):
+                raise UserError('Solo se puede anular una Retención Levantada o con JSON Generado.')
         return {
             'type': 'ir.actions.act_window',
             'name': 'Retención Anulada — ¿Qué hacemos?',

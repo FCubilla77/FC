@@ -32,9 +32,10 @@ class LocalPyRetencionAnularWizard(models.TransientModel):
 
         if self.accion == 'reprocesar':
             for retencion in self.retencion_ids:
-                if retencion.estado not in ('levantada', 'anulada'):
+                if retencion.estado not in ('levantada', 'json_generado', 'anulada'):
                     raise UserError(
-                        'Solo se puede Reprocesar una Retención que esté Levantada o Anulada.'
+                        'Solo se puede Reprocesar una Retención que esté Levantada, con JSON '
+                        'Generado, o Anulada.'
                     )
                 retencion.write({
                     'estado': 'pendiente',
@@ -47,7 +48,7 @@ class LocalPyRetencionAnularWizard(models.TransientModel):
                 retenciones_op = self.env['local_py.retencion_emitida'].search([
                     ('orden_pago_id', '=', orden.id), ('tipo_retencion', '=', 'iva'),
                 ])
-                retenciones_op.filtered(lambda r: r.estado == 'levantada').write({
+                retenciones_op.filtered(lambda r: r.estado in ('levantada', 'json_generado')).write({
                     'estado': 'anulada',
                     'fecha_anulacion': fields.Date.context_today(self),
                 })

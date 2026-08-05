@@ -22,6 +22,7 @@
                     <field name="es_absorcion" string="Absorción"/>
                     <field name="estado" widget="badge"
                            decoration-warning="estado == 'pendiente'"
+                           decoration-info="estado == 'json_generado'"
                            decoration-success="estado == 'levantada'"
                            decoration-danger="estado == 'anulada'"/>
                 </list>
@@ -35,12 +36,13 @@
                 <form string="Retención Emitida">
                     <header>
                         <button name="action_marcar_levantada" type="object" string="Marcar Levantada"
-                                class="btn-primary" invisible="estado != 'pendiente'"/>
+                                class="btn-primary" invisible="estado not in ('pendiente', 'json_generado')"/>
                         <button name="action_marcar_anulada" type="object" string="Anular"
-                                class="btn-secondary" invisible="estado != 'levantada'"/>
+                                class="btn-secondary" invisible="estado not in ('levantada', 'json_generado')"/>
                         <button name="action_resolver_anulacion" type="object" string="Resolver Anulación"
                                 class="btn-secondary" invisible="estado != 'anulada'"/>
-                        <field name="estado" widget="statusbar" statusbar_visible="pendiente,levantada,anulada"/>
+                        <field name="estado" widget="statusbar"
+                               statusbar_visible="pendiente,json_generado,levantada,anulada"/>
                     </header>
                     <sheet>
                         <group>
@@ -62,7 +64,7 @@
                                 <field name="monto" readonly="1"/>
                                 <field name="monto_gs" readonly="1"/>
                                 <field name="concepto_iva_id" readonly="1"/>
-                                <field name="numero_comprobante" readonly="estado != 'pendiente'"/>
+                                <field name="numero_comprobante" readonly="estado not in ('pendiente', 'json_generado')"/>
                                 <field name="es_absorcion" readonly="1"/>
                                 <field name="absorcion_move_id" readonly="1" invisible="not es_absorcion"/>
                             </group>

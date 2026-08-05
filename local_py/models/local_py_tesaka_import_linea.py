@@ -68,13 +68,14 @@ class LocalPyTesakaImportLinea(models.Model):
         if not self.comprobante_venta:
             self.write({'resultado': 'error', 'observacion': 'Falta el dato "Comprobante Venta" en el Excel.'})
             return
-        candidatos = self._buscar_retencion(['pendiente'])
+        candidatos = self._buscar_retencion(['pendiente', 'json_generado'])
         if not candidatos:
             self.write({
                 'resultado': 'error',
                 'observacion': (
-                    'No se encontró ninguna Retención Pendiente que coincida con la Factura "%s", '
-                    'Monto %s Gs. y Fecha %s.' % (self.comprobante_venta, self.retenido_iva, self.fecha_emision_dnit)
+                    'No se encontró ninguna Retención Pendiente ni con JSON Generado que coincida '
+                    'con la Factura "%s", Monto %s Gs. y Fecha %s.'
+                    % (self.comprobante_venta, self.retenido_iva, self.fecha_emision_dnit)
                 ),
             })
             return
