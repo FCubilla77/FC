@@ -40,12 +40,17 @@ class AccountJournal(models.Model):
              'para declarar comprobantes electrónicos. Aplica a diarios de venta y al '
              'Diario de Retención.',
     )
-    l10n_py_punto_expedicion = fields.Char(
-        string='Punto de Expedición', size=3,
-        help='Punto de expedición del comprobante — dato exigido por la DNIT (Tesaka) '
-             'para declarar comprobantes electrónicos. Aplica a diarios de venta y al '
-             'Diario de Retención.',
-    )
+    def l10n_py_get_punto_expedicion(self):
+        """El Punto de Expedición no se guarda aparte — el formato oficial
+        de la DNIT (999-999-9999999) ya lo trae incluido en Nro.
+        Documento: dígitos 1-3 = Establecimiento, dígitos 5-7 = Punto de
+        Expedición, dígitos 9-15 = Número correlativo. Se extrae de ahí,
+        tanto para Facturas/Notas de Crédito/Débito/Remisión como para
+        el Diario de Retención."""
+        self.ensure_one()
+        nro = (self.l10n_py_nro_documento or '')
+        partes = nro.split('-')
+        return partes[1] if len(partes) >= 2 else ''
     local_py_tipo_fiscal_id = fields.Many2one(
         'local_py.tipo_fiscal',
         string='Tipo Fiscal',

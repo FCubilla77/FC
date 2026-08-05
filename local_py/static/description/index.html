@@ -320,6 +320,7 @@
                 <li>Retenciones (Parte 3 — archivo para Tesaka de la DNIT): Diarios de Venta y el Diario de Retención IVA ahora tienen "Inicio Vigencia Timbrado" y "Punto de Expedición"; nuevo catálogo "Concepto IVA" (mismo criterio que Imputación Tributaria) con los 4 códigos oficiales, IVA.1 predeterminado; el cálculo de Retención IVA ahora separa Base y Monto por tasa (5% y 10%), mirando las líneas reales de cada factura, en vez de un total combinado</li>
                 <li>Corregido: el control del Valor Imponible Mínimo usaba el Total sin IVA de la factura completa, incluyendo por error los ítems Exentos — ahora usa el Total Gravado real (Base al 5% + Base al 10%), que excluye los Exentos correctamente</li>
                 <li>Nueva pantalla "Generar Archivo Tesaka" (Localización Paraguay): arma el archivo JSON con las Retenciones IVA Pendientes de un rango de fechas (y Proveedor opcional), en el formato exacto que exige la plataforma de la DNIT para levantar comprobantes de retención</li>
+                <li>Diarios de Venta y de Retención: reordenados "Inicio Vigencia Timbrado" y "Venc. Timbrado" (uno al lado del otro, en ese orden); quitado el campo "Punto de Expedición" — ese dato ya está incluido en el formato oficial de Nro. Documento (999-999-9999999: Establecimiento-Punto de Expedición-Número correlativo), así que se obtiene de ahí en vez de guardarse aparte</li>
             </ul>
         </div>
     </div>
