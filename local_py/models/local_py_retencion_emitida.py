@@ -57,6 +57,18 @@ class LocalPyRetencionEmitida(models.Model):
              'copia del configurado en Configuraciones Localización Py al momento de '
              'Confirmar.',
     )
+    es_absorcion = fields.Boolean(
+        string='Es Retención con Absorción', default=False,
+        help='Proveedores del exterior (Concepto IVA distinto de IVA.1): no se le '
+             'descuenta nada al Proveedor — el monto retenido pasa a ser un Gasto '
+             'aparte para la Compañía. No participa del cuadre de Medios de la Orden '
+             'de Pago.',
+    )
+    absorcion_move_id = fields.Many2one(
+        'account.move', string='Asiento de Absorción', readonly=True, copy=False,
+        help='Asiento contable paralelo (Débito Gasto, Crédito Retenciones a Pagar) '
+             'generado por esta Retención con Absorción.',
+    )
     estado = fields.Selection(
         [('pendiente', 'Pendiente'), ('levantada', 'Levantada'), ('anulada', 'Anulada')],
         string='Estado', default='pendiente', required=True, copy=False,

@@ -60,6 +60,14 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'en Orden de Pago) — los demás códigos son para situaciones puntuales '
              'distintas (inmuebles, exterior, casos excepcionales).',
     )
+    l10n_py_cuenta_gasto_absorcion_id = fields.Many2one(
+        'account.account', string='Cuenta de Gasto por Absorción',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta contable de Gasto donde se absorbe la Retención IVA a proveedores '
+             'del exterior (Concepto IVA distinto de IVA.1) — a diferencia de la '
+             'Retención local, no se le descuenta nada al Proveedor: la retención pasa '
+             'a ser un costo aparte para la Compañía.',
+    )
     l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
     l10n_py_retencion_renta_porcentaje = fields.Float(
         string='Porcentaje Retención Predeterminado (Renta)', digits=(5, 2),

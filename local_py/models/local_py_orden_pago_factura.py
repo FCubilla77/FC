@@ -241,6 +241,21 @@ class LocalPyOrdenPagoFactura(models.Model):
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
         return self._monto_header_a_gs(header, fecha)
 
+    def _retencion_absorcion_calcular(self):
+        """Retención con Absorción para proveedores del exterior
+        (Concepto IVA distinto de IVA.1): la factura real nunca tiene
+        IVA (llega Exenta) — se calcula un IVA "nocional" al 10% sobre
+        el importe que se está pagando ahora, solo para determinar
+        cuánto retener, y se retiene el 100% de ese IVA nocional. La
+        factura en sí no se toca en ningún momento."""
+        self.ensure_one()
+        fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
+        iva_nocional_factura = self.importe_a_pagar * 0.10
+        iva_nocional_header = self.header_currency_id.round(iva_nocional_factura * (self.cotizacion or 0.0))
+        monto_header = iva_nocional_header  # Retención del 100% del IVA nocional.
+        monto_gs = self._monto_header_a_gs(monto_header, fecha)
+        return iva_nocional_header, monto_header, monto_gs
+
     def _retencion_iva_calcular(self, porcentaje):
         """Devuelve un diccionario con la Retención IVA de esta
         factura/cuota, proporcional al pago parcial, separada por tasa

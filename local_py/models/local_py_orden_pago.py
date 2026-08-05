@@ -41,6 +41,14 @@ class LocalPyOrdenPago(models.Model):
     medio_ids = fields.One2many(
         'local_py.orden_pago.medio', 'orden_pago_id', string='Medios de Pago',
     )
+    retencion_absorcion_ids = fields.One2many(
+        'local_py.retencion_emitida', 'orden_pago_id', string='Retenciones por Absorción al Exterior',
+        domain=[('es_absorcion', '=', True)],
+        help='Retenciones con Absorción generadas para Proveedores del exterior '
+             '(Concepto IVA distinto de IVA.1) — de solo lectura: no participan del '
+             'cuadre de Medios, ya que no se le descuenta nada al Proveedor. Puede '
+             'haber más de una si la Orden de Pago incluye varias Facturas del exterior.',
+    )
 
     total_facturas = fields.Monetary(
         string='Total a Pagar (Facturas)', compute='_compute_totales', currency_field='currency_id',
@@ -234,6 +242,7 @@ class LocalPyOrdenPago(models.Model):
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(orden.fecha)
             orden._calcular_retenciones_iva()
+            orden._calcular_retenciones_absorcion()
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '
@@ -367,6 +376,125 @@ class LocalPyOrdenPago(models.Model):
                     'retencion_factura_id': factura.id,
                 })
 
+    def _evaluar_retencion_absorcion(self):
+        """Evalúa la Retención con Absorción (proveedores del exterior,
+        Concepto IVA distinto de IVA.1) — SIN generar nada, para vista
+        previa. A diferencia de la Retención local, siempre retiene el
+        100%, sin acumulado mensual ni Mínimo Imponible (es "Pago Único
+        y Definitivo", no un "pago a cuenta")."""
+        self.ensure_one()
+        resultado = {}
+        partner = self.partner_id
+        if not partner or not partner.l10n_py_retencion_iva or not self.fecha:
+            return resultado
+        if not partner.l10n_py_concepto_iva_id or partner.l10n_py_concepto_iva_id.codigo == 'IVA.1':
+            return resultado
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.company_id.id)], limit=1,
+        )
+        if not config or not config.l10n_py_retencion_iva or not config.l10n_py_cuenta_gasto_absorcion_id:
+            return resultado
+
+        for factura in self.factura_ids:
+            iva_nocional, monto_header, monto_gs = factura._retencion_absorcion_calcular()
+            if not self.currency_id.is_zero(monto_header):
+                resultado[factura] = {
+                    'iva_nocional': iva_nocional, 'monto': monto_header, 'monto_gs': monto_gs,
+                }
+        return resultado
+
+    def _calcular_retenciones_absorcion(self):
+        """Genera de verdad los registros de Retención con Absorción y su
+        asiento contable paralelo (Débito Gasto, Crédito Retenciones a
+        Pagar) — no participa del cuadre de Medios ni se concilia contra
+        la factura, ya que al Proveedor del exterior se le sigue pagando
+        el 100% de lo facturado."""
+        self.ensure_one()
+        viejas = self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'), ('es_absorcion', '=', True),
+        ])
+        for vieja in viejas:
+            if vieja.absorcion_move_id:
+                vieja.absorcion_move_id.button_draft()
+                vieja.absorcion_move_id.unlink()
+        viejas.unlink()
+
+        evaluacion = self._evaluar_retencion_absorcion()
+        if not evaluacion:
+            return
+
+        partner = self.partner_id
+        Retencion = self.env['local_py.retencion_emitida']
+        for factura, datos in evaluacion.items():
+            move = self._crear_movimiento_absorcion(factura, datos['monto'])
+            Retencion.create({
+                'orden_pago_id': self.id,
+                'orden_pago_factura_id': factura.id,
+                'fecha': self.fecha,
+                'tipo_retencion': 'iva',
+                'es_absorcion': True,
+                'base_10': datos['iva_nocional'],
+                'monto_10': datos['monto'],
+                'porcentaje': 100.0,
+                'monto_gs': datos['monto_gs'],
+                'concepto_iva_id': partner.l10n_py_concepto_iva_id.id,
+                'absorcion_move_id': move.id,
+            })
+
+    def _crear_movimiento_absorcion(self, factura, monto_header):
+        """Asiento paralelo de la Retención con Absorción: Débito a la
+        Cuenta de Gasto por Absorción, Crédito a la cuenta del Diario de
+        Retención — no se concilia contra nada, es un costo aparte para
+        la Compañía."""
+        self.ensure_one()
+        company = self.company_id
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', company.id)], limit=1,
+        )
+        journal = config.l10n_py_diario_retencion_iva_id
+        cuenta_gasto = config.l10n_py_cuenta_gasto_absorcion_id
+        cuenta_retencion = journal.default_account_id
+        if not cuenta_retencion:
+            raise UserError(
+                'El Diario de Retención "%s" no tiene una Cuenta configurada '
+                '(Contabilidad > Diarios > esa Cuenta contable).' % journal.name
+            )
+
+        es_moneda_extranjera = self.currency_id != company.currency_id
+        if es_moneda_extranjera:
+            monto_company = self.currency_id._convert(monto_header, company.currency_id, company, self.fecha)
+        else:
+            monto_company = monto_header
+
+        concepto = 'Retención IVA con Absorción - %s - %s' % (self.name, factura.move_id.name)
+        move = self.env['account.move'].create({
+            'journal_id': journal.id,
+            'date': self.fecha,
+            'ref': concepto,
+            'line_ids': [
+                (0, 0, {
+                    'name': concepto,
+                    'account_id': cuenta_gasto.id,
+                    'partner_id': self.partner_id.id,
+                    'debit': monto_company,
+                    'credit': 0.0,
+                    'currency_id': self.currency_id.id,
+                    'amount_currency': monto_header if es_moneda_extranjera else monto_company,
+                }),
+                (0, 0, {
+                    'name': concepto,
+                    'account_id': cuenta_retencion.id,
+                    'partner_id': self.partner_id.id,
+                    'debit': 0.0,
+                    'credit': monto_company,
+                    'currency_id': company.currency_id.id,
+                    'amount_currency': -monto_company,
+                }),
+            ],
+        })
+        move.action_post()
+        return move
+
     def action_deshacer_confirmacion(self):
         """Vuelve una Orden de Pago Confirmada a "En Proceso": deshace la
         conciliación contra las facturas y cancela/elimina los pagos
@@ -425,9 +553,13 @@ class LocalPyOrdenPago(models.Model):
             asiento.line_ids.remove_move_reconcile()
             asiento.button_draft()
             asiento.unlink()
-        self.env['local_py.retencion_emitida'].search([
+        retenciones_pendientes = self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
-        ]).unlink()
+        ])
+        for asiento in retenciones_pendientes.filtered('absorcion_move_id').mapped('absorcion_move_id'):
+            asiento.button_draft()
+            asiento.unlink()
+        retenciones_pendientes.unlink()
         medios_retencion.unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 

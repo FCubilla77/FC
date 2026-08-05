@@ -44,6 +44,17 @@ class ResPartner(models.Model):
         string='Porcentaje Retención Renta', digits=(5, 2),
         default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta_porcentaje'),
     )
+    l10n_py_concepto_iva_id = fields.Many2one(
+        'local_py.concepto_iva', string='Concepto IVA',
+        default=lambda self: self._default_l10n_py_retencion('l10n_py_concepto_iva_id'),
+        help='Determina cómo se calcula la Retención IVA para este Proveedor: '
+             '"IVA.1" (el predeterminado, proveedores locales) sigue el régimen habitual '
+             '(acumulado mensual, Mínimo Imponible, Porcentaje configurado). Cualquier '
+             'otro Concepto (por ejemplo, "IVA.2" — proveedores del exterior) dispara la '
+             'Retención con Absorción: siempre se retiene el 100% de un IVA calculado '
+             'temporalmente al 10%, sin acumulado ni mínimo, como un Gasto aparte para '
+             'la Compañía (no se le descuenta nada al Proveedor).',
+    )
 
     @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
     def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):

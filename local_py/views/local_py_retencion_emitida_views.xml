@@ -4,7 +4,7 @@
             <field name="name">local_py.retencion_emitida.list</field>
             <field name="model">local_py.retencion_emitida</field>
             <field name="arch" type="xml">
-                <list string="Retenciones Emitidas" decoration-muted="estado == 'anulada'">
+                <list string="Retenciones Emitidas" decoration-muted="estado == 'anulada'" decoration-info="es_absorcion">
                     <field name="fecha"/>
                     <field name="partner_id"/>
                     <field name="factura_id"/>
@@ -19,6 +19,7 @@
                     <field name="monto_gs"/>
                     <field name="concepto_iva_id"/>
                     <field name="numero_comprobante"/>
+                    <field name="es_absorcion" string="Absorción"/>
                     <field name="estado" widget="badge"
                            decoration-warning="estado == 'pendiente'"
                            decoration-success="estado == 'levantada'"
@@ -60,6 +61,8 @@
                                 <field name="monto_gs" readonly="1"/>
                                 <field name="concepto_iva_id" readonly="1"/>
                                 <field name="numero_comprobante" readonly="estado != 'pendiente'"/>
+                                <field name="es_absorcion" readonly="1"/>
+                                <field name="absorcion_move_id" readonly="1" invisible="not es_absorcion"/>
                             </group>
                         </group>
                     </sheet>
