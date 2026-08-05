@@ -91,10 +91,9 @@
                     <field name="comprobante_venta"/>
                     <field name="informado"/>
                     <filter string="Solo con Error" name="solo_error" domain="[('resultado', '=', 'error')]"/>
-                    <group expand="0" string="Agrupar por">
-                        <filter string="Resultado" name="group_resultado" context="{'group_by': 'resultado'}"/>
-                        <filter string="Importación" name="group_import" context="{'group_by': 'import_id'}"/>
-                    </group>
+                    <separator/>
+                    <filter string="Resultado" name="group_resultado" context="{'group_by': 'resultado'}"/>
+                    <filter string="Importación" name="group_import" context="{'group_by': 'import_id'}"/>
                 </search>
             </field>
         </record>
