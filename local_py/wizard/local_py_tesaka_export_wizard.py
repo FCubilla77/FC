@@ -55,6 +55,13 @@ class LocalPyTesakaExportWizard(models.TransientModel):
             domain.append(('partner_id', 'in', self.partner_ids.ids))
         encontradas = self.env['local_py.retencion_emitida'].search(domain)
         self.retencion_ids = [(4, r.id) for r in encontradas]
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
 
     def _condicion_compra(self, retencion):
         return 'CREDITO' if retencion.orden_pago_factura_id.move_id.invoice_payment_term_id else 'CONTADO'

@@ -337,6 +337,7 @@
                 <li>Nuevo estado "JSON Generado" en Retenciones Emitidas (entre Pendiente y Levantada): evita que una misma Retención se incluya sin querer en dos archivos JSON distintos y termine duplicada en Tesaka. "Deshacer Confirmación" y el wizard de Anular (Reprocesar / Anular Orden de Pago) contemplan este estado igual que a las Levantadas; la lectura del Excel de Tesaka ahora busca tanto en Pendiente como en JSON Generado</li>
                 <li>Wizard "Generar Archivo Tesaka" rediseñado: la lista de Retenciones a incluir pasa a ser editable — botón "Cargar Retenciones Pendientes" (con checkbox "Incluir ya generadas", para rehacer un archivo perdido) y se pueden sacar filas puntuales antes de generar, igual que "Cargar Facturas Pendientes" en Orden de Pago. Al generar, las Retenciones incluidas pasan solas a "JSON Generado"</li>
                 <li>Corregida una inconsistencia: la Retención local (IVA.1) tomaba el Concepto IVA de la configuración global de la Compañía en vez de la ficha del Proveedor — ahora usa el mismo criterio que la Retención con Absorción en ambos casos</li>
+                <li>Corregido: el botón "Cargar Retenciones Pendientes" del wizard "Generar Archivo Tesaka" cerraba la ventana sin cargar nada — al ser una ventana modal, no alcanza con actualizar los datos, hay que indicarle explícitamente que se vuelva a mostrar a sí misma</li>
             </ul>
         </div>
     </div>
