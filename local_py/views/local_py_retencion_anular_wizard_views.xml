@@ -1,0 +1,36 @@
+<odoo>
+    <data>
+        <record id="view_local_py_retencion_anular_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.retencion_anular.wizard.form</field>
+            <field name="model">local_py.retencion_anular.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Retención Anulada — ¿Qué hacemos?">
+                    <field name="retencion_ids" invisible="1"/>
+                    <group>
+                        <field name="orden_pago_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="accion" widget="radio"/>
+                    </group>
+                    <div class="alert alert-warning" role="alert" invisible="accion != 'anular_op'">
+                        <strong>Esto va a hacer lo siguiente:</strong> anula todas las Retenciones ya
+                        Levantadas de la(s) Orden(es) de Pago de arriba, y deshace por completo su
+                        Confirmación — vuelven a "En Proceso", se cancelan TODOS los pagos generados
+                        (Efectivo, Transferencia, Cheque, Retención), y las Facturas quedan con saldo
+                        pendiente de nuevo. No se puede deshacer solo la parte de la Retención sin
+                        tocar el resto de la Orden.
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="accion != 'reprocesar'">
+                        La Retención vuelve a quedar Pendiente (se limpia su Nro. Comprobante) — se va a
+                        incluir sola en el próximo archivo JSON que generes para Tesaka. La Orden de
+                        Pago y sus demás pagos quedan intactos.
+                    </div>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -337,7 +337,7 @@ class LocalPyOrdenPago(models.Model):
         self.ensure_one()
         self.medio_ids.filtered('es_retencion').unlink()
         self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'), ('estado', '=', 'pendiente'),
         ]).unlink()
 
         evaluacion = self._evaluar_retencion_iva()
@@ -411,7 +411,8 @@ class LocalPyOrdenPago(models.Model):
         el 100% de lo facturado."""
         self.ensure_one()
         viejas = self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'), ('es_absorcion', '=', True),
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
+            ('es_absorcion', '=', True), ('estado', '=', 'pendiente'),
         ])
         for vieja in viejas:
             if vieja.absorcion_move_id:
@@ -507,16 +508,17 @@ class LocalPyOrdenPago(models.Model):
         self.ensure_one()
         if self.state != 'confirmado':
             raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
-        retenciones_levantadas = self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('estado', '=', 'levantada'),
-        ])
-        if retenciones_levantadas:
-            raise UserError(
-                'Esta Orden de Pago tiene Retenciones ya Levantadas ante la DNIT — no se '
-                'puede deshacer la Confirmación directamente. Primero hay que Anularlas en '
-                'Localización Paraguay > Retenciones Emitidas (una vez resuelta la anulación '
-                'ante la DNIT), y recién ahí se puede continuar.'
-            )
+        if not self.env.context.get('l10n_py_forzar_anulacion_retenciones'):
+            retenciones_levantadas = self.env['local_py.retencion_emitida'].search([
+                ('orden_pago_id', '=', self.id), ('estado', '=', 'levantada'),
+            ])
+            if retenciones_levantadas:
+                raise UserError(
+                    'Esta Orden de Pago tiene Retenciones ya Levantadas ante la DNIT — no se '
+                    'puede deshacer la Confirmación directamente. Primero hay que Anularlas en '
+                    'Localización Paraguay > Retenciones Emitidas (una vez resuelta la anulación '
+                    'ante la DNIT), y recién ahí se puede continuar.'
+                )
         pagos = self.medio_ids.mapped('payment_ids')
         lineas_pago = pagos.mapped('move_id.line_ids')
         if any(lineas_pago.mapped('statement_line_id')):
@@ -553,13 +555,13 @@ class LocalPyOrdenPago(models.Model):
             asiento.line_ids.remove_move_reconcile()
             asiento.button_draft()
             asiento.unlink()
-        retenciones_pendientes = self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
+        retenciones_op = self.env['local_py.retencion_emitida'].search([
+            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
         ])
-        for asiento in retenciones_pendientes.filtered('absorcion_move_id').mapped('absorcion_move_id'):
+        for asiento in retenciones_op.filtered('absorcion_move_id').mapped('absorcion_move_id'):
             asiento.button_draft()
             asiento.unlink()
-        retenciones_pendientes.unlink()
+        retenciones_op.filtered(lambda r: r.estado == 'pendiente').unlink()
         medios_retencion.unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 

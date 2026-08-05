@@ -76,7 +76,18 @@ class LocalPyRetencionEmitida(models.Model):
     numero_comprobante = fields.Char(
         string='Nro. Comprobante', copy=False,
         help='Número asignado por la DNIT (Tesaka) al levantar la retención — se '
-             'carga a mano por ahora.',
+             'carga a mano por ahora, o automáticamente al procesar el archivo Excel '
+             'de retenciones de Tesaka.',
+    )
+    fecha_anulacion = fields.Date(
+        string='Fecha de Anulación', copy=False,
+        help='Fecha en que la DNIT anuló este comprobante de retención (columna "Fecha '
+             'de Anulación" del Excel de Tesaka).',
+    )
+    control = fields.Char(
+        string='Control', copy=False,
+        help='Código de control que asigna la DNIT a cada comprobante (columna '
+             '"Control" del Excel de Tesaka).',
     )
 
     @api.depends('monto_5', 'monto_10')
@@ -93,10 +104,38 @@ class LocalPyRetencionEmitida(models.Model):
             retencion.estado = 'levantada'
 
     def action_marcar_anulada(self):
+        """Al anular una Retención Levantada (a mano o al procesar el
+        Excel de Tesaka), hay que decidir qué pasa después: volver a
+        incluirla en el próximo archivo JSON (Reprocesar), o deshacer
+        toda la Orden de Pago. Se abre el wizard que ofrece esas 2
+        opciones en vez de decidir solo."""
         for retencion in self:
             if retencion.estado != 'levantada':
                 raise UserError('Solo se puede anular una Retención que esté Levantada.')
-            retencion.estado = 'anulada'
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Retención Anulada — ¿Qué hacemos?',
+            'res_model': 'local_py.retencion_anular.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_retencion_ids': self.ids},
+        }
+
+    def action_resolver_anulacion(self):
+        """Para Retenciones que llegaron marcadas como Anuladas directo
+        desde el Excel de Tesaka (sin pasar por el botón "Anular") — abre
+        el mismo wizard de 2 opciones para decidir qué hacer."""
+        for retencion in self:
+            if retencion.estado != 'anulada':
+                raise UserError('Esta acción es solo para Retenciones que ya están Anuladas.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Retención Anulada — ¿Qué hacemos?',
+            'res_model': 'local_py.retencion_anular.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_retencion_ids': self.ids},
+        }
 
     def unlink(self):
         for retencion in self:

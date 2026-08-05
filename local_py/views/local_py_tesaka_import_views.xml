@@ -1,0 +1,141 @@
+<odoo>
+    <data>
+        <record id="view_local_py_tesaka_import_form" model="ir.ui.view">
+            <field name="name">local_py.tesaka_import.form</field>
+            <field name="model">local_py.tesaka_import</field>
+            <field name="arch" type="xml">
+                <form string="Importación Tesaka">
+                    <header>
+                        <button name="action_procesar" type="object" string="Procesar Archivo"
+                                class="btn-primary" invisible="procesado or not archivo"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="archivo" filename="archivo_nombre" readonly="procesado"/>
+                                <field name="archivo_nombre" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="fecha_importacion" readonly="1"/>
+                                <field name="usuario_id" readonly="1"/>
+                                <field name="procesado" readonly="1"/>
+                            </group>
+                        </group>
+                        <group invisible="not procesado">
+                            <field name="total_lineas"/>
+                            <field name="total_exito"/>
+                            <field name="total_error"/>
+                        </group>
+                        <notebook invisible="not procesado">
+                            <page string="Líneas">
+                                <field name="linea_ids" readonly="1">
+                                    <list decoration-danger="resultado == 'error'" decoration-success="resultado == 'exito'">
+                                        <field name="estado_dnit"/>
+                                        <field name="comprobante"/>
+                                        <field name="comprobante_venta"/>
+                                        <field name="informado"/>
+                                        <field name="retenido_iva"/>
+                                        <field name="fecha_emision_dnit"/>
+                                        <field name="control"/>
+                                        <field name="retencion_emitida_id"/>
+                                        <field name="resultado" widget="badge"/>
+                                        <field name="observacion"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_tesaka_import_list" model="ir.ui.view">
+            <field name="name">local_py.tesaka_import.list</field>
+            <field name="model">local_py.tesaka_import</field>
+            <field name="arch" type="xml">
+                <list string="Importaciones Tesaka">
+                    <field name="name"/>
+                    <field name="fecha_importacion"/>
+                    <field name="usuario_id"/>
+                    <field name="archivo_nombre"/>
+                    <field name="total_lineas"/>
+                    <field name="total_exito"/>
+                    <field name="total_error" decoration-danger="total_error > 0"/>
+                    <field name="procesado" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_tesaka_import_search" model="ir.ui.view">
+            <field name="name">local_py.tesaka_import.search</field>
+            <field name="model">local_py.tesaka_import</field>
+            <field name="arch" type="xml">
+                <search string="Importaciones Tesaka">
+                    <field name="name"/>
+                    <filter string="Con Errores" name="con_errores" domain="[('total_error', '>', 0)]"/>
+                    <filter string="Sin Procesar" name="sin_procesar" domain="[('procesado', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_local_py_tesaka_import_linea_search" model="ir.ui.view">
+            <field name="name">local_py.tesaka_import.linea.search</field>
+            <field name="model">local_py.tesaka_import.linea</field>
+            <field name="arch" type="xml">
+                <search string="Líneas de Importación Tesaka">
+                    <field name="comprobante"/>
+                    <field name="comprobante_venta"/>
+                    <field name="informado"/>
+                    <filter string="Solo con Error" name="solo_error" domain="[('resultado', '=', 'error')]"/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Resultado" name="group_resultado" context="{'group_by': 'resultado'}"/>
+                        <filter string="Importación" name="group_import" context="{'group_by': 'import_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_local_py_tesaka_import_linea_list" model="ir.ui.view">
+            <field name="name">local_py.tesaka_import.linea.list</field>
+            <field name="model">local_py.tesaka_import.linea</field>
+            <field name="arch" type="xml">
+                <list decoration-danger="resultado == 'error'" decoration-success="resultado == 'exito'">
+                    <field name="import_id"/>
+                    <field name="estado_dnit"/>
+                    <field name="comprobante"/>
+                    <field name="comprobante_venta"/>
+                    <field name="informado"/>
+                    <field name="retenido_iva"/>
+                    <field name="retencion_emitida_id"/>
+                    <field name="resultado" widget="badge"/>
+                    <field name="observacion"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_local_py_tesaka_import" model="ir.actions.act_window">
+            <field name="name">Importaciones Tesaka</field>
+            <field name="res_model">local_py.tesaka_import</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_con_errores': 0}</field>
+        </record>
+
+        <record id="action_local_py_tesaka_import_linea_errores" model="ir.actions.act_window">
+            <field name="name">Líneas con Error (Importaciones Tesaka)</field>
+            <field name="res_model">local_py.tesaka_import.linea</field>
+            <field name="view_mode">list</field>
+            <field name="context">{'search_default_solo_error': 1}</field>
+        </record>
+
+        <menuitem id="menu_local_py_tesaka_import"
+                  name="Importaciones Tesaka"
+                  parent="local_py.menu_l10n_py_localizacion"
+                  action="action_local_py_tesaka_import"
+                  groups="account.group_account_manager"
+                  sequence="17"/>
+    </data>
+</odoo>

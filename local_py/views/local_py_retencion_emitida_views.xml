@@ -38,6 +38,8 @@
                                 class="btn-primary" invisible="estado != 'pendiente'"/>
                         <button name="action_marcar_anulada" type="object" string="Anular"
                                 class="btn-secondary" invisible="estado != 'levantada'"/>
+                        <button name="action_resolver_anulacion" type="object" string="Resolver Anulación"
+                                class="btn-secondary" invisible="estado != 'anulada'"/>
                         <field name="estado" widget="statusbar" statusbar_visible="pendiente,levantada,anulada"/>
                     </header>
                     <sheet>
