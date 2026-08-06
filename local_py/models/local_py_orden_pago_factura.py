@@ -243,7 +243,7 @@ class LocalPyOrdenPagoFactura(models.Model):
 
     def _retencion_absorcion_calcular(self):
         """Retención con Absorción para proveedores del exterior
-        (Concepto IVA distinto de IVA.1): la factura real nunca tiene
+        (Concepto IVA = IVA.2): la factura real nunca tiene
         IVA (llega Exenta) — se calcula un IVA "nocional" al 10% sobre
         el importe que se está pagando ahora, solo para determinar
         cuánto retener, y se retiene el 100% de ese IVA nocional. La

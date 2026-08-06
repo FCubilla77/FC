@@ -168,6 +168,77 @@ class ResPartner(models.Model):
         result.val_ruc()
         return result
 
+    @api.constrains(
+        'is_company', 'name', 'street', 'country_id', 'state_id', 'city_id',
+        'l10n_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
+        'property_supplier_payment_term_id',
+    )
+    def _check_datos_obligatorios_empresa(self):
+        """Un contacto de tipo Empresa necesita, como mínimo, estos datos
+        completos — de lo contrario, después faltan justo en el momento
+        de facturar, pagar, o declarar ante la DNIT."""
+        for partner in self:
+            if not partner.is_company:
+                continue
+            faltantes = []
+            if not partner.name:
+                faltantes.append('Nombre')
+            if not partner.street:
+                faltantes.append('Calle')
+            if not partner.country_id:
+                faltantes.append('País')
+            if not partner.state_id:
+                faltantes.append('Departamento')
+            if not partner.city_id:
+                faltantes.append('Ciudad')
+            if not partner.l10n_py_tipo_identificacion_fiscal_id:
+                faltantes.append('Tipo de Identificación Fiscal')
+            if not partner.property_payment_term_id:
+                faltantes.append('Términos de Pago Venta')
+            if not partner.property_supplier_payment_term_id:
+                faltantes.append('Términos de Pago Compra')
+            if faltantes:
+                raise exceptions.ValidationError(
+                    'Para guardar un Contacto de tipo Empresa, hace falta completar: %s.'
+                    % ', '.join(faltantes)
+                )
+
+    @api.constrains('is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id', 'l10n_py_concepto_iva_id')
+    def _check_consistencia_proveedor_exterior(self):
+        """Un Proveedor del Exterior se define por 3 datos juntos: Tipo de
+        Identificación Fiscal = "Identificación Tributaria", País
+        distinto de Paraguay, y Concepto IVA = "IVA.2". Si alguno de los
+        3 indica "exterior", los otros 2 tienen que coincidir también —
+        no alcanza con uno solo suelto (por ejemplo, cambiar el País sin
+        actualizar también el Concepto IVA)."""
+        tipo_tributaria = self.env.ref('local_py.tipo_identificacion_tributaria', raise_if_not_found=False)
+        paraguay = self.env.ref('base.py', raise_if_not_found=False)
+        concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
+        if not (tipo_tributaria and paraguay and concepto_iva_2):
+            return
+        for partner in self:
+            if not partner.is_company:
+                continue
+            if not (
+                partner.l10n_py_tipo_identificacion_fiscal_id
+                or partner.country_id
+                or partner.l10n_py_concepto_iva_id
+            ):
+                continue
+            es_tipo_exterior = partner.l10n_py_tipo_identificacion_fiscal_id == tipo_tributaria
+            es_pais_exterior = bool(partner.country_id) and partner.country_id != paraguay
+            es_concepto_exterior = partner.l10n_py_concepto_iva_id == concepto_iva_2
+            señales = (es_tipo_exterior, es_pais_exterior, es_concepto_exterior)
+            if any(señales) and not all(señales):
+                raise exceptions.ValidationError(
+                    'Los datos de este Proveedor no son consistentes para determinar si es '
+                    'del Exterior o local — un Proveedor del Exterior debe cumplir los 3 '
+                    'datos juntos: Tipo de Identificación Fiscal = "Identificación '
+                    'Tributaria", País distinto de Paraguay, y Concepto IVA = "IVA.2 — Pago '
+                    'Único y Definitivo por acreditamiento...". Revise estos 3 campos en la '
+                    'ficha del Proveedor.'
+                )
+
     def write(self, vals):
         result = super(ResPartner, self).write(vals)
         if vals.get('vat'):

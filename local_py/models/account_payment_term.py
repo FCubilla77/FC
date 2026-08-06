@@ -8,7 +8,7 @@ class AccountPaymentTerm(models.Model):
 
     l10n_py_condicion = fields.Selection(
         [('contado', 'Contado'), ('credito', 'Crédito')],
-        string='Condición (Paraguay)',
+        string='Condición (Paraguay)', required=True,
         help='Clasifica este término de pago como Contado o Crédito, según '
              'la Tabla 2 de la Especificación Técnica de Marangatu (DNIT, '
              'RG 90/2021). Se usa para informar el "Código Condición de '

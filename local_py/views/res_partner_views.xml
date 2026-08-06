@@ -45,7 +45,8 @@
                     <field name="vat" string="RUT" readonly="parent_id != False" invisible="not is_company"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="after">
-                    <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal" invisible="not is_company"/>
+                    <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal"
+                           invisible="not is_company" required="is_company"/>
                 </xpath>
                 <!-- Reordenar a País > Departamento > Ciudad, y usar el
                      desplegable de Ciudad en lugar del texto libre nativo.
@@ -55,20 +56,28 @@
                 <xpath expr="//field[@name='country_id'][hasclass('o_address_country')]" position="replace"/>
                 <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="before">
                     <field name="country_id" placeholder="País" class="o_address_country"
-                           options="{'no_open': True, 'no_create': True}"/>
+                           options="{'no_open': True, 'no_create': True}" required="is_company"/>
                 </xpath>
                 <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="after">
                     <field name="city_id" placeholder="Ciudad" class="o_address_city"
-                           domain="[('state_id', '=', state_id)]"/>
+                           domain="[('state_id', '=', state_id)]" required="is_company"/>
                 </xpath>
                 <xpath expr="//field[@name='street']" position="attributes">
                     <attribute name="placeholder">Calle 1</attribute>
+                    <attribute name="required">is_company</attribute>
                 </xpath>
                 <xpath expr="//field[@name='street2']" position="attributes">
                     <attribute name="placeholder">Calle 2</attribute>
                 </xpath>
                 <xpath expr="//field[@name='state_id']" position="attributes">
                     <attribute name="placeholder">Departamento</attribute>
+                    <attribute name="required">is_company</attribute>
+                </xpath>
+                <xpath expr="//field[@name='property_payment_term_id']" position="attributes">
+                    <attribute name="required">is_company</attribute>
+                </xpath>
+                <xpath expr="//field[@name='property_supplier_payment_term_id']" position="attributes">
+                    <attribute name="required">is_company</attribute>
                 </xpath>
                 <xpath expr="//notebook" position="inside">
                     <page string="Localización" name="l10n_py_localizacion">

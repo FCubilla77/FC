@@ -59,7 +59,7 @@ class LocalPyRetencionEmitida(models.Model):
     )
     es_absorcion = fields.Boolean(
         string='Es Retención con Absorción', default=False,
-        help='Proveedores del exterior (Concepto IVA distinto de IVA.1): no se le '
+        help='Proveedores del exterior (Concepto IVA = IVA.2): no se le '
              'descuenta nada al Proveedor — el monto retenido pasa a ser un Gasto '
              'aparte para la Compañía. No participa del cuadre de Medios de la Orden '
              'de Pago.',

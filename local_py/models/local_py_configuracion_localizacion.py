@@ -64,7 +64,7 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         'account.account', string='Cuenta de Gasto por Absorción',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta contable de Gasto donde se absorbe la Retención IVA a proveedores '
-             'del exterior (Concepto IVA distinto de IVA.1) — a diferencia de la '
+             'del exterior (Concepto IVA = IVA.2) — a diferencia de la '
              'Retención local, no se le descuenta nada al Proveedor: la retención pasa '
              'a ser un costo aparte para la Compañía.',
     )

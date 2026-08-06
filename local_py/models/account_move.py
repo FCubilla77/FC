@@ -519,6 +519,18 @@ class AccountMove(models.Model):
                         % ', '.join(missing)
                     )
 
+    @api.constrains('invoice_payment_term_id', 'move_type', 'state')
+    def _check_l10n_py_terminos_pago_proveedor(self):
+        """Factura, Nota de Crédito/Reembolso y Autofactura de Proveedor
+        necesitan Términos de Pago cargado — lo usamos, entre otras
+        cosas, para saber si la operación es Contado o Crédito al
+        generar el archivo JSON de Retenciones para Tesaka."""
+        for move in self:
+            if move.move_type in PURCHASE_MOVE_TYPES and move.state == 'posted' and not move.invoice_payment_term_id:
+                raise exceptions.ValidationError(
+                    'No se puede confirmar el comprobante sin completar: Términos de Pago.'
+                )
+
     # ------------------------------------------------------------------
     # Validaciones de formato (aplican a venta y a proveedor)
     # ------------------------------------------------------------------

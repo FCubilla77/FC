@@ -45,7 +45,7 @@ class LocalPyOrdenPago(models.Model):
         'local_py.retencion_emitida', 'orden_pago_id', string='Retenciones por Absorción al Exterior',
         domain=[('es_absorcion', '=', True)],
         help='Retenciones con Absorción generadas para Proveedores del exterior '
-             '(Concepto IVA distinto de IVA.1) — de solo lectura: no participan del '
+             '(Concepto IVA = IVA.2) — de solo lectura: no participan del '
              'cuadre de Medios, ya que no se le descuenta nada al Proveedor. Puede '
              'haber más de una si la Orden de Pago incluye varias Facturas del exterior.',
     )
@@ -308,7 +308,7 @@ class LocalPyOrdenPago(models.Model):
             if not config.l10n_py_concepto_iva_id:
                 faltantes.append('Elegir el "Concepto IVA" en Configuraciones Localización Py')
 
-        es_absorcion = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo != 'IVA.1')
+        es_absorcion = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
         if es_absorcion:
             if config and not config.l10n_py_cuenta_gasto_absorcion_id:
                 faltantes.append('Elegir la "Cuenta de Gasto por Absorción" en Configuraciones Localización Py')
@@ -425,16 +425,16 @@ class LocalPyOrdenPago(models.Model):
 
     def _evaluar_retencion_absorcion(self):
         """Evalúa la Retención con Absorción (proveedores del exterior,
-        Concepto IVA distinto de IVA.1) — SIN generar nada, para vista
-        previa. A diferencia de la Retención local, siempre retiene el
-        100%, sin acumulado mensual ni Mínimo Imponible (es "Pago Único
-        y Definitivo", no un "pago a cuenta")."""
+        Concepto IVA = IVA.2) — SIN generar nada, para vista previa. A
+        diferencia de la Retención local, siempre retiene el 100%, sin
+        acumulado mensual ni Mínimo Imponible (es "Pago Único y
+        Definitivo", no un "pago a cuenta")."""
         self.ensure_one()
         resultado = {}
         partner = self.partner_id
         if not partner or not partner.l10n_py_retencion_iva or not self.fecha:
             return resultado
-        if not partner.l10n_py_concepto_iva_id or partner.l10n_py_concepto_iva_id.codigo == 'IVA.1':
+        if not partner.l10n_py_concepto_iva_id or partner.l10n_py_concepto_iva_id.codigo != 'IVA.2':
             return resultado
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
