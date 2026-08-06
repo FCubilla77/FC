@@ -45,7 +45,7 @@
 
         <menuitem id="menu_local_py_tesaka_export"
                   name="Generar Archivo Tesaka"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_retenciones"
                   action="action_local_py_tesaka_export_wizard"
                   groups="account.group_account_manager"
                   sequence="16"/>

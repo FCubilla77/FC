@@ -30,7 +30,7 @@ class LocalPyOrdenPagoMedio(models.Model):
     cheque_reutilizar_id = fields.Many2one(
         'local_py.chequera.cheque', string='Reutilizar Cheque N°',
         domain="[('chequera_id', '=', chequera_id), ('estado', '=', 'reutilizable'),"
-               " ('payment_id.partner_id', '=', orden_pago_partner_id)]",
+               " ('proveedor_id', '=', orden_pago_partner_id)]",
         help='Solo se pueden reutilizar cheques que hayan sido emitidos originalmente '
              'para el mismo Proveedor de esta Orden de Pago. Al Confirmar, este número '
              'se reactiva directamente (pasa de Reutilizable a Emitido) — no vuelve a '

@@ -578,17 +578,27 @@ class LocalPyOrdenPago(models.Model):
             ('payment_id', 'in', pagos.ids), ('estado', '=', 'emitido'),
         ])
         if cheques_emitidos:
-            return {
-                'name': 'Cheques ya impresos',
-                'type': 'ir.actions.act_window',
-                'res_model': 'local_py.orden_pago.deshacer_wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {
-                    'default_orden_pago_id': self.id,
-                    'default_cheque_ids': [(6, 0, cheques_emitidos.ids)],
-                },
-            }
+            if self.env.context.get('l10n_py_forzar_anulacion_retenciones'):
+                # Esta llamada viene del flujo "Anular la Orden de Pago
+                # completa" (wizard de Retenciones) — no hay nadie del otro
+                # lado para responder la pregunta de "reutilizar o anular"
+                # interactivamente, así que se resuelve sola como
+                # Reutilizable (la opción más segura: el número de cheque
+                # queda disponible, sin declararlo anulado sin que el
+                # usuario lo haya decidido a propósito).
+                cheques_emitidos.write({'estado': 'reutilizable'})
+            else:
+                return {
+                    'name': 'Cheques ya impresos',
+                    'type': 'ir.actions.act_window',
+                    'res_model': 'local_py.orden_pago.deshacer_wizard',
+                    'view_mode': 'form',
+                    'target': 'new',
+                    'context': {
+                        'default_orden_pago_id': self.id,
+                        'default_cheque_ids': [(6, 0, cheques_emitidos.ids)],
+                    },
+                }
         self._deshacer_confirmacion_efectivo()
 
     def _deshacer_confirmacion_efectivo(self):
@@ -716,6 +726,9 @@ class LocalPyOrdenPago(models.Model):
                     'payment_id': payment.id,
                     'orden_pago_medio_id': medio.id,
                     'motivo_anulacion': False,
+                    'proveedor_id': self.partner_id.id,
+                    'moneda_id': self.currency_id.id,
+                    'importe_registrado': medio.importe,
                 })
                 medio.write({'cheque_reutilizar_id': False, 'nro_documento': str(cheque.numero)})
 

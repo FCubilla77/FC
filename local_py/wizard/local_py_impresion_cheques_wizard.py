@@ -83,6 +83,9 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
                 'fecha_emision': pago.date,
                 'payment_id': pago.id,
                 'orden_pago_medio_id': medio.id,
+                'proveedor_id': pago.partner_id.id,
+                'moneda_id': pago.currency_id.id,
+                'importe_registrado': medio.importe,
             })
             cheques |= cheque
             medio.nro_documento = str(numero)

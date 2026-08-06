@@ -58,6 +58,11 @@
                   parent="menu_l10n_py_localizacion"
                   sequence="30"/>
 
+        <menuitem id="menu_local_py_retenciones"
+                  name="Retenciones"
+                  parent="menu_l10n_py_localizacion"
+                  sequence="25"/>
+
         <menuitem id="menu_local_py_tipo_fiscal"
                   name="Tipos de Documentos Fiscales"
                   parent="menu_local_py_datos_maestros"

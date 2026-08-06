@@ -132,7 +132,7 @@
 
         <menuitem id="menu_local_py_tesaka_import"
                   name="Importaciones Tesaka"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_retenciones"
                   action="action_local_py_tesaka_import"
                   groups="account.group_account_manager"
                   sequence="17"/>

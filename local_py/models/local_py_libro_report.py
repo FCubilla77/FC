@@ -1116,7 +1116,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha_emision': cheque.fecha_emision,
                 'fecha_vencimiento': cheque.fecha_vencimiento,
                 'importe': importe,
-                'proveedor': cheque.payment_id.partner_id.display_name if cheque.payment_id else '',
+                'proveedor': cheque.proveedor.display_name if cheque.proveedor else '',
                 'moneda_obj': chequera_actual.currency_id,
             })
             if cheque.estado != 'anulado':

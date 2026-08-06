@@ -24,11 +24,11 @@
                                         <span t-esc="cheque.orden_pago_medio_id.fecha_vencimiento.strftime('%d/%m/%Y')"/>
                                     </div>
                                     <div style="position: absolute; top: 20mm; left: 3mm; width: 94mm;">
-                                        A: <span t-esc="cheque.payment_id.partner_id.display_name"/>
+                                        A: <span t-esc="cheque.proveedor.display_name"/>
                                     </div>
                                     <div style="position: absolute; top: 30mm; left: 3mm; width: 94mm;
                                                  font-weight: bold; font-size: 11px;">
-                                        <span t-esc="cheque.payment_id.currency_id.symbol"/>
+                                        <span t-esc="cheque.moneda_pago_id.symbol"/>
                                         <span t-esc="fmt_moneda(cheque.importe, cheque.moneda_pago_id)"/>
                                     </div>
                                 </div>
@@ -37,7 +37,7 @@
                                 <div style="width: 175mm; height: 76mm; box-sizing: border-box; padding: 3mm;
                                             position: relative;">
                                     <div style="position: absolute; top: 3mm; left: 3mm; width: 90mm;">
-                                        <strong t-esc="cheque.payment_id.company_id.name"/><br/>
+                                        <strong t-esc="cheque.orden_pago_id.company_id.name"/><br/>
                                         <span t-esc="cheque.chequera_id.bank_id.name"/>
                                     </div>
                                     <div style="position: absolute; top: 3mm; right: 3mm; text-align: right;">
@@ -51,12 +51,12 @@
                                     </div>
                                     <div style="position: absolute; top: 22mm; left: 3mm; width: 169mm;">
                                         Páguese a la orden de:
-                                        <strong t-esc="cheque.payment_id.partner_id.display_name"/>
+                                        <strong t-esc="cheque.proveedor.display_name"/>
                                         <div style="border-bottom: 1px solid #000000; width: 169mm;"/>
                                     </div>
                                     <div style="position: absolute; top: 32mm; left: 3mm; width: 130mm;">
                                         <span t-esc="numero_a_letras(cheque.importe)"/>
-                                        <span t-esc="cheque.payment_id.currency_id.name"/>
+                                        <span t-esc="cheque.moneda_pago_id.name"/>
                                         <div style="border-bottom: 1px solid #000000; width: 130mm;"/>
                                     </div>
                                     <div style="position: absolute; top: 30mm; right: 3mm; width: 35mm; height: 10mm;
@@ -65,7 +65,7 @@
                                         <span t-esc="fmt_moneda(cheque.importe, cheque.moneda_pago_id)"/>
                                     </div>
                                     <div style="position: absolute; top: 46mm; left: 3mm;">
-                                        <span t-esc="cheque.payment_id.company_id.city or ''"/>,
+                                        <span t-esc="cheque.orden_pago_id.company_id.city or ''"/>,
                                         <span t-esc="cheque.fecha_emision.strftime('%d de %m de %Y') if cheque.fecha_emision else ''"/>
                                     </div>
                                     <div style="position: absolute; bottom: 5mm; right: 20mm; width: 60mm; text-align: center;">

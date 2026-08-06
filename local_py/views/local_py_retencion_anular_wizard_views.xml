@@ -18,7 +18,8 @@
                         Confirmación — vuelven a "En Proceso", se cancelan TODOS los pagos generados
                         (Efectivo, Transferencia, Cheque, Retención), y las Facturas quedan con saldo
                         pendiente de nuevo. No se puede deshacer solo la parte de la Retención sin
-                        tocar el resto de la Orden.
+                        tocar el resto de la Orden. Si había cheques ya impresos, quedan como
+                        "Reutilizables" automáticamente (no se anulan solos).
                     </div>
                     <div class="alert alert-info" role="alert" invisible="accion != 'reprocesar'">
                         La Retención vuelve a quedar Pendiente (se limpia su Nro. Comprobante) — se va a
