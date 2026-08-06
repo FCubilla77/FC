@@ -90,9 +90,12 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
             # Si el cheque se repartió en más de un Pago, ya están agrupados
             # en un Lote de Pago — se le pone el número real del cheque como
             # nombre, para reconocerlo de un vistazo al conciliar el banco.
-            lote = medio.payment_ids.mapped('batch_payment_id')
-            if lote:
-                lote[:1].name = 'Cheque %s' % numero
+            # (Si "Lotes de Pago" no está habilitado en Ajustes, el campo ni
+            # siquiera existe — se omite este paso sin afectar la impresión.)
+            if 'batch_payment_id' in self.env['account.payment']._fields:
+                lote = medio.payment_ids.mapped('batch_payment_id')
+                if lote:
+                    lote[:1].name = 'Cheque %s' % numero
 
         report_action = self.env.ref('local_py.action_report_impresion_cheques')
         return report_action.report_action(cheques, config=False)
