@@ -14,5 +14,11 @@ class L10nPyTipoFiscal(models.Model):
         help='Código oficial del Tipo de Comprobante según la Tabla 4 de la '
              'Especificación Técnica de Marangatu (DNIT, RG 90/2021).',
     )
+    tipo_comprobante_retencion = fields.Char(
+        string='Tipo Comprobante Retención',
+        help='Código de Tipo de Comprobante que exige Tesaka para el archivo de '
+             'Retenciones (tabla distinta a la de Marangatu, no confundir con el campo '
+             '"Código" de arriba) — se usa al generar el archivo JSON para la DNIT.',
+    )
     sequence = fields.Integer(string='Secuencia', default=10)
     active = fields.Boolean(string='Activo', default=True)

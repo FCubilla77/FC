@@ -8,6 +8,7 @@
                     <field name="sequence" widget="handle"/>
                     <field name="code"/>
                     <field name="name"/>
+                    <field name="tipo_comprobante_retencion"/>
                     <field name="active"/>
                 </list>
             </field>
@@ -22,6 +23,7 @@
                         <group>
                             <field name="code"/>
                             <field name="name"/>
+                            <field name="tipo_comprobante_retencion"/>
                             <field name="sequence"/>
                             <field name="active"/>
                         </group>

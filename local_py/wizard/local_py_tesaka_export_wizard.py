@@ -64,23 +64,40 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         }
 
     def _condicion_compra(self, retencion):
-        return 'CREDITO' if retencion.orden_pago_factura_id.move_id.invoice_payment_term_id else 'CONTADO'
+        term = retencion.factura_id.invoice_payment_term_id
+        condicion = term.l10n_py_condicion if term else False
+        if condicion == 'contado':
+            return 'CONTADO'
+        if condicion == 'credito':
+            return 'CREDITO'
+        return False
 
     def _detalle_json(self, retencion):
+        """Arma el detalle con las líneas REALES de la factura (tal como
+        fue emitida) — Cantidad, Precio Unitario (con IVA incluido para
+        líneas gravadas al 5%/10%, sin IVA para líneas Exentas) y Tasa —
+        en vez de un resumen agrupado por tasa. El precio se calcula
+        siempre a partir del Subtotal de la línea (nunca del "Precio
+        Unitario" nativo de Odoo), para no depender de si el producto
+        está configurado con precios IVA incluido o no."""
         detalle = []
-        if retencion.base_5 or retencion.monto_5:
+        move = retencion.factura_id
+        for linea in move.line_ids.filtered(lambda l: l.display_type == 'product'):
+            if not linea.quantity:
+                continue
+            precio_neto_unitario = linea.price_subtotal / linea.quantity
+            tasas = [round(t) for t in linea.tax_ids.mapped('amount')]
+            if 10 in tasas:
+                tasa_aplica, precio_unitario = '10', round(precio_neto_unitario * 1.10, 2)
+            elif 5 in tasas:
+                tasa_aplica, precio_unitario = '5', round(precio_neto_unitario * 1.05, 2)
+            else:
+                tasa_aplica, precio_unitario = '0', round(precio_neto_unitario, 2)
             detalle.append({
-                'cantidad': 1,
-                'tasaAplica': '5',
-                'precioUnitario': round(retencion.base_5 * 1.05, 2),
-                'descripcion': 'Retención IVA 5%% - %s' % retencion.factura_id.name,
-            })
-        if retencion.base_10 or retencion.monto_10:
-            detalle.append({
-                'cantidad': 1,
-                'tasaAplica': '10',
-                'precioUnitario': round(retencion.base_10 * 1.10, 2),
-                'descripcion': 'Retención IVA 10%% - %s' % retencion.factura_id.name,
+                'cantidad': linea.quantity,
+                'tasaAplica': tasa_aplica,
+                'precioUnitario': precio_unitario,
+                'descripcion': (linea.name or move.name or '')[:300],
             })
         return detalle
 
@@ -92,7 +109,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         else:
             ruc, dv = vat, ''
         return {
-            'situacion': 'CONTRIBUYENTE',
+            'situacion': partner.l10n_py_tipo_identificacion_fiscal_id.name or False,
             'ruc': ruc or None,
             'dv': dv or None,
             'nombre': partner.name,
@@ -103,7 +120,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         move = retencion.factura_id
         return {
             'condicionCompra': self._condicion_compra(retencion),
-            'tipoComprobante': 1,
+            'tipoComprobante': move.local_py_tipo_fiscal_id.tipo_comprobante_retencion or False,
             'numeroComprobanteVenta': move.l10n_py_nro_documento or '',
             'fecha': move.invoice_date.strftime('%Y-%m-%d') if move.invoice_date else '',
             'numeroTimbrado': str(move.journal_id.l10n_py_timbrado or 0).zfill(8),
@@ -133,11 +150,37 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         if not retenciones:
             raise UserError('No hay Retenciones cargadas para generar el archivo.')
 
+        errores = []
         sin_concepto = retenciones.filtered(lambda r: not r.concepto_iva_id)
         if sin_concepto:
+            errores.append(
+                'Falta el Concepto IVA (Configuraciones Localización Py o ficha del '
+                'Proveedor) en: %s' % ', '.join(sin_concepto.mapped('factura_id.name'))
+            )
+        sin_situacion = retenciones.filtered(lambda r: not r.partner_id.l10n_py_tipo_identificacion_fiscal_id)
+        if sin_situacion:
+            errores.append(
+                'Falta el Tipo de Identificación Fiscal en la ficha del Proveedor de: %s'
+                % ', '.join(sin_situacion.mapped('factura_id.name'))
+            )
+        sin_condicion = retenciones.filtered(lambda r: not self._condicion_compra(r))
+        if sin_condicion:
+            errores.append(
+                'Falta la Condición (Contado/Crédito) en el Término de Pago de la Factura de: %s'
+                % ', '.join(sin_condicion.mapped('factura_id.name'))
+            )
+        sin_tipo_comprobante = retenciones.filtered(
+            lambda r: not r.factura_id.local_py_tipo_fiscal_id.tipo_comprobante_retencion
+        )
+        if sin_tipo_comprobante:
+            errores.append(
+                'Falta el "Tipo Comprobante Retención" en el Tipo Fiscal de la Factura de: %s'
+                % ', '.join(sin_tipo_comprobante.mapped('factura_id.name'))
+            )
+        if errores:
             raise UserError(
-                'Las siguientes Retenciones no tienen Concepto IVA asignado y no se puede '
-                'generar el archivo: %s' % ', '.join(sin_concepto.mapped('factura_id.name'))
+                'No se puede generar el archivo — falta completar esta configuración:\n\n- %s'
+                % '\n- '.join(errores)
             )
 
         ahora = fields.Datetime.now()
