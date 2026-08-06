@@ -171,7 +171,8 @@ class ResPartner(models.Model):
     @api.constrains(
         'is_company', 'name', 'street', 'country_id', 'state_id', 'city_id',
         'l10n_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
-        'property_supplier_payment_term_id',
+        'property_supplier_payment_term_id', 'l10n_py_retencion_iva',
+        'l10n_py_retencion_iva_porcentaje', 'l10n_py_concepto_iva_id',
     )
     def _check_datos_obligatorios_empresa(self):
         """Un contacto de tipo Empresa necesita, como mínimo, estos datos
@@ -197,6 +198,11 @@ class ResPartner(models.Model):
                 faltantes.append('Términos de Pago Venta')
             if not partner.property_supplier_payment_term_id:
                 faltantes.append('Términos de Pago Compra')
+            if partner.l10n_py_retencion_iva:
+                if not partner.l10n_py_retencion_iva_porcentaje:
+                    faltantes.append('Porcentaje Retención IVA')
+                if not partner.l10n_py_concepto_iva_id:
+                    faltantes.append('Concepto IVA')
             if faltantes:
                 raise exceptions.ValidationError(
                     'Para guardar un Contacto de tipo Empresa, hace falta completar: %s.'

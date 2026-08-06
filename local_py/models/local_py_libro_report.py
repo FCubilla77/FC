@@ -1107,7 +1107,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'tipo_chequera': dict(chequera_actual._fields['tipo'].selection).get(chequera_actual.tipo),
                 })
 
-            importe = cheque.payment_id.amount if cheque.payment_id else 0.0
+            importe = cheque.importe
             rows.append({
                 'tipo': 'cheque',
                 'numero': cheque.numero,

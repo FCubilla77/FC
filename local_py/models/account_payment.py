@@ -19,6 +19,13 @@ class AccountPayment(models.Model):
              'repartirse entre varias facturas, puede generar más de un pago (todos '
              'con el importe exacto que le corresponde a cada factura).',
     )
+    l10n_py_medio_importe = fields.Monetary(
+        related='l10n_py_orden_pago_medio_id.importe', string='Importe del Medio',
+        currency_field='currency_id',
+        help='Importe real de la fila de Medios de origen (por ejemplo, el valor real '
+             'del cheque) — puede ser mayor al de este Pago puntual si esa fila tuvo que '
+             'repartirse entre varias facturas.',
+    )
 
     def _l10n_py_check_orden_pago_lock(self):
         if self.env.context.get('l10n_py_allow_orden_pago_write'):

@@ -682,6 +682,7 @@ class LocalPyOrdenPago(models.Model):
                 'las Facturas/Cuotas seleccionadas. Revise los importes antes de continuar.'
             )
 
+        pagos_por_medio = {}
         for factura, medio, monto in asignaciones:
             comentario = 'Pago Orden de Pago %s' % self.name
             payment = AccountPayment.create({
@@ -700,6 +701,7 @@ class LocalPyOrdenPago(models.Model):
             payment.action_post()
             if payment.move_id:
                 payment.move_id.l10n_py_comentario = comentario
+            pagos_por_medio.setdefault(medio.id, []).append(payment.id)
 
             if medio.cheque_reutilizar_id:
                 cheque = medio.cheque_reutilizar_id
@@ -721,6 +723,29 @@ class LocalPyOrdenPago(models.Model):
                 lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
             )
             (factura.move_line_id + linea_pago_payable).reconcile()
+
+        # Si un mismo Medio (por ejemplo, un cheque) tuvo que repartirse en
+        # más de un Pago para cubrir varias Facturas, se agrupan en un Lote
+        # de Pago — así, al conciliar el extracto bancario, se hacen
+        # coincidir todos juntos contra el único movimiento real del banco,
+        # en vez de tener que buscarlos y emparejarlos sueltos uno por uno.
+        for medio_id, payment_ids in pagos_por_medio.items():
+            if len(payment_ids) <= 1:
+                continue
+            if 'account.batch.payment' not in self.env:
+                # La función "Lotes de Pago" no está habilitada en Ajustes >
+                # Contabilidad — se omite el agrupamiento (no es un dato
+                # obligatorio para conciliar, solo una ayuda) en vez de
+                # interrumpir la generación normal de los Pagos.
+                continue
+            pagos = self.env['account.payment'].browse(payment_ids)
+            self.env['account.batch.payment'].create({
+                'journal_id': pagos[0].journal_id.id,
+                'payment_ids': [(6, 0, pagos.ids)],
+                'batch_type': 'outbound',
+                'payment_method_id': pagos[0].payment_method_id.id,
+                'date': self.fecha,
+            })
 
     def _crear_movimiento_retencion(self, medio, factura, monto_header):
         """Genera el asiento contable de la Retención IVA (débito a la

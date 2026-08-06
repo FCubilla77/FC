@@ -85,9 +85,10 @@
                             <group string="Retención IVA">
                                 <field name="l10n_py_retencion_iva"/>
                                 <field name="l10n_py_retencion_iva_porcentaje"
-                                       invisible="not l10n_py_retencion_iva"/>
+                                       invisible="not l10n_py_retencion_iva" required="l10n_py_retencion_iva"/>
                                 <field name="l10n_py_concepto_iva_id"
-                                       invisible="not l10n_py_retencion_iva" options="{'no_create': True}"/>
+                                       invisible="not l10n_py_retencion_iva" required="l10n_py_retencion_iva"
+                                       options="{'no_create': True}"/>
                             </group>
                             <group string="Retención Renta">
                                 <field name="l10n_py_retencion_renta"/>

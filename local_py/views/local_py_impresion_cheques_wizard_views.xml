@@ -15,7 +15,7 @@
                         <list>
                             <field name="date"/>
                             <field name="partner_id"/>
-                            <field name="amount"/>
+                            <field name="l10n_py_medio_importe" string="Importe"/>
                             <field name="l10n_py_orden_pago_id"/>
                         </list>
                     </field>

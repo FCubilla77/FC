@@ -29,9 +29,11 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
     @api.depends('journal_id')
     def _compute_pago_ids(self):
         for wiz in self:
-            wiz.pago_ids = wiz._get_medios_pendientes().mapped('payment_ids').filtered(
-                lambda p: p.state in ('in_process', 'paid')
-            )
+            representantes = self.env['account.payment']
+            for medio in wiz._get_medios_pendientes():
+                pago = medio.payment_ids.filtered(lambda p: p.state in ('in_process', 'paid'))[:1]
+                representantes |= pago
+            wiz.pago_ids = representantes
 
     def _get_medios_pendientes(self):
         """Filas de Medios de este Diario que todavía necesitan que se les
@@ -84,6 +86,13 @@ class LocalPyImpresionChequesWizard(models.TransientModel):
             })
             cheques |= cheque
             medio.nro_documento = str(numero)
+
+            # Si el cheque se repartió en más de un Pago, ya están agrupados
+            # en un Lote de Pago — se le pone el número real del cheque como
+            # nombre, para reconocerlo de un vistazo al conciliar el banco.
+            lote = medio.payment_ids.mapped('batch_payment_id')
+            if lote:
+                lote[:1].name = 'Cheque %s' % numero
 
         report_action = self.env.ref('local_py.action_report_impresion_cheques')
         return report_action.report_action(cheques, config=False)

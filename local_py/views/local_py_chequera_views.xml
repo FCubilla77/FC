@@ -45,6 +45,7 @@
                                         <field name="moneda_pago_id" column_invisible="1"/>
                                         <field name="orden_pago_id" readonly="1" string="Orden de Pago"/>
                                         <field name="payment_id" readonly="1" options="{'no_create': True}"/>
+                                        <field name="payment_ids" readonly="1" widget="many2many_tags" optional="show" string="Pagos"/>
                                         <field name="orden_pago_medio_id" column_invisible="1"/>
                                         <button name="action_anular" type="object" string="Anular" icon="fa-ban"
                                                 invisible="estado == 'anulado'"/>

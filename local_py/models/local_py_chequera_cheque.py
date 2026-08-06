@@ -18,14 +18,25 @@ class LocalPyChequeraCheque(models.Model):
     fecha_emision = fields.Date(string='Fecha Emisión')
     fecha_vencimiento = fields.Date(related='orden_pago_medio_id.fecha_vencimiento', string='Fecha Venc.')
     motivo_anulacion = fields.Char(string='Motivo')
+    payment_ids = fields.Many2many(
+        'account.payment', string='Pagos', compute='_compute_payment_ids',
+        help='Todos los Pagos generados por la misma fila de Medios de este cheque — '
+             'normalmente es uno solo, pero puede ser más de uno si el cheque tuvo que '
+             'repartirse entre varias facturas (mismo cheque físico, varios Pagos internos '
+             'para que la conciliación quede exacta contra cada factura).',
+    )
     importe = fields.Monetary(
-        related='payment_id.amount', string='Importe', currency_field='moneda_pago_id',
+        string='Importe', compute='_compute_importe', currency_field='moneda_pago_id',
+        help='Suma de todos los Pagos de este cheque — coincide con el valor real del '
+             'cheque físico, incluso cuando tuvo que repartirse en más de un Pago interno.',
     )
     moneda_pago_id = fields.Many2one(related='payment_id.currency_id', string='Moneda (para importe)')
     proveedor = fields.Many2one(related='payment_id.partner_id', string='Proveedor')
     payment_id = fields.Many2one(
         'account.payment', string='Pago', readonly=True, copy=False,
-        help='Pago para el cual se emitió originalmente este número de cheque.',
+        help='Pago principal para el cual se emitió originalmente este número de cheque '
+             '(si el cheque se repartió en más de un Pago, ver el campo "Pagos" para '
+             'verlos todos).',
     )
     orden_pago_medio_id = fields.Many2one(
         'local_py.orden_pago.medio', string='Medio de Pago origen', readonly=True, copy=False,
@@ -33,6 +44,16 @@ class LocalPyChequeraCheque(models.Model):
     orden_pago_id = fields.Many2one(
         related='orden_pago_medio_id.orden_pago_id', string='Orden de Pago',
     )
+
+    @api.depends('orden_pago_medio_id.payment_ids')
+    def _compute_payment_ids(self):
+        for cheque in self:
+            cheque.payment_ids = cheque.orden_pago_medio_id.payment_ids
+
+    @api.depends('payment_ids.amount')
+    def _compute_importe(self):
+        for cheque in self:
+            cheque.importe = sum(cheque.payment_ids.mapped('amount'))
 
     _numero_chequera_uniq = models.Constraint(
         'unique(chequera_id, numero)',
@@ -46,7 +67,7 @@ class LocalPyChequeraCheque(models.Model):
                 'N° %s' % str(cheque.numero).zfill(8),
             ]
             if cheque.payment_id:
-                partes.append(cheque.payment_id.currency_id.symbol + ' ' + str(cheque.payment_id.amount))
+                partes.append(cheque.payment_id.currency_id.symbol + ' ' + str(cheque.importe))
             if cheque.fecha_emision:
                 partes.append(cheque.fecha_emision.strftime('%d/%m/%Y'))
             cheque.display_name = ' - '.join(p for p in partes if p)
