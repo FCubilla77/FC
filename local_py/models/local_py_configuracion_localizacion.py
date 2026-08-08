@@ -61,26 +61,64 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'distintas (inmuebles, exterior, casos excepcionales).',
     )
     l10n_py_cuenta_gasto_absorcion_id = fields.Many2one(
-        'account.account', string='Cuenta de Gasto por Absorción',
+        'account.account', string='Cuenta de Gasto por Absorción (IVA)',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta contable de Gasto donde se absorbe la Retención IVA a proveedores '
-             'del exterior (Concepto IVA = IVA.2) — a diferencia de la '
-             'Retención local, no se le descuenta nada al Proveedor: la retención pasa '
-             'a ser un costo aparte para la Compañía.',
+             'del exterior, cuando ese Proveedor la tenga configurada como "Se Absorbe '
+             'IVA" — a diferencia de la Retención local, no se le descuenta nada al '
+             'Proveedor: la retención pasa a ser un costo aparte para la Compañía.',
     )
     l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
-    l10n_py_retencion_renta_porcentaje = fields.Float(
-        string='Porcentaje Retención Predeterminado (Renta)', digits=(5, 2),
+    l10n_py_diario_retencion_renta_id = fields.Many2one(
+        'account.journal', string='Diario de Retención Renta',
+        domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
+        help='Diario de tipo Misceláneo — se usa tanto para la fila de Medios cuando la '
+             'Retención Renta se descuenta del Proveedor, como para el asiento paralelo '
+             'cuando se absorbe. Tiene que ser distinto al Diario de Retención IVA, '
+             'para poder diferenciar una de otra en la grilla de Medios.',
     )
-    l10n_py_retencion_renta_minimo = fields.Monetary(
-        string='Valor Imponible Mínimo (Renta)', currency_field='company_currency_id',
-        help='Monto mínimo de la operación (en la moneda de la empresa) a partir del '
-             'cual corresponde retener. Por debajo de este valor, no se retiene.',
+    l10n_py_cuenta_gasto_absorcion_renta_id = fields.Many2one(
+        'account.account', string='Cuenta de Gasto por Absorción (Renta)',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta contable de Gasto donde se absorbe la Retención Renta a '
+             'proveedores del exterior, cuando ese Proveedor la tenga configurada como '
+             '"Se Absorbe Renta".',
     )
     company_currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda de la Empresa')
     no_retencion_ids = fields.One2many(
         'local_py.no_retencion', 'config_id', string='Resoluciones de No Retención',
     )
+    concepto_renta_no_residente_ids = fields.One2many(
+        'local_py.concepto_renta_no_residente', string='Conceptos Renta No Residente',
+        compute='_compute_concepto_renta_no_residente_ids', inverse='_inverse_concepto_renta_no_residente_ids',
+    )
+
+    def _compute_concepto_renta_no_residente_ids(self):
+        conceptos = self.env['local_py.concepto_renta_no_residente'].search([])
+        for config in self:
+            config.concepto_renta_no_residente_ids = conceptos
+
+    def _inverse_concepto_renta_no_residente_ids(self):
+        # No hace falta ninguna acción — es un catálogo global (no por
+        # Compañía), la grilla editable ya escribe directo sobre esos
+        # registros; este método solo evita que el campo quede de solo
+        # lectura por no tener "inverse" definido.
+        pass
+
+    @api.constrains('l10n_py_diario_retencion_iva_id', 'l10n_py_diario_retencion_renta_id')
+    def _check_diarios_retencion_distintos(self):
+        for config in self:
+            if (
+                config.l10n_py_diario_retencion_iva_id
+                and config.l10n_py_diario_retencion_renta_id
+                and config.l10n_py_diario_retencion_iva_id == config.l10n_py_diario_retencion_renta_id
+            ):
+                raise exceptions.ValidationError(
+                    'El Diario de Retención IVA y el Diario de Retención Renta tienen que '
+                    'ser distintos entre sí (aunque apunten a la misma Cuenta contable) — '
+                    'sirve para diferenciar una Retención de la otra en la grilla de Medios '
+                    'de la Orden de Pago.'
+                )
 
     _company_uniq = models.Constraint(
         'unique(company_id)',

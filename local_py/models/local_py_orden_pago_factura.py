@@ -241,6 +241,30 @@ class LocalPyOrdenPagoFactura(models.Model):
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
         return self._monto_header_a_gs(header, fecha)
 
+    def _retencion_renta_no_residente_calcular(self, concepto):
+        """Retención Renta No Residente (INR) para proveedores del
+        exterior: se calcula sobre el importe que se está pagando ahora
+        (bruto, sin restarle nada por la Retención IVA — cada Retención
+        se calcula de forma independiente sobre el total del pago).
+        Devuelve la Base Imponible y el Monto para AMBOS casos (con y
+        sin Absorción) — la orquestación en Orden de Pago decide cuál
+        usar según la ficha del Proveedor."""
+        self.ensure_one()
+        fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
+        importe_header = self.header_currency_id.round(self.importe_a_pagar * (self.cotizacion or 0.0))
+        base_header = self.header_currency_id.round(importe_header * (concepto.porcentaje_imputacion / 100.0))
+        monto_header = self.header_currency_id.round(base_header * (concepto.porcentaje / 100.0))
+        monto_absorcion_header = self.header_currency_id.round(
+            base_header * (concepto.porcentaje_absorcion / 100.0)
+        )
+        monto_gs = self._monto_header_a_gs(monto_header, fecha)
+        monto_absorcion_gs = self._monto_header_a_gs(monto_absorcion_header, fecha)
+        return {
+            'base': base_header,
+            'monto': monto_header, 'monto_gs': monto_gs,
+            'monto_absorcion': monto_absorcion_header, 'monto_absorcion_gs': monto_absorcion_gs,
+        }
+
     def _retencion_absorcion_calcular(self):
         """Retención con Absorción para proveedores del exterior
         (Concepto IVA = IVA.2): la factura real nunca tiene

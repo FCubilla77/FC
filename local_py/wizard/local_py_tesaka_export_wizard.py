@@ -128,18 +128,26 @@ class LocalPyTesakaExportWizard(models.TransientModel):
 
     def _retencion_json(self, retencion):
         porcentaje = retencion.porcentaje or 0.0
+        tiene_iva = bool(retencion.concepto_iva_id)
+        tiene_renta = bool(retencion.concepto_renta_id)
+        renta_porcentaje = 0.0
+        if tiene_renta:
+            renta_porcentaje = (
+                retencion.concepto_renta_id.porcentaje_absorcion
+                if retencion.es_absorcion_renta else retencion.concepto_renta_id.porcentaje
+            )
         return {
             'moneda': retencion.currency_id.name,
             'fecha': retencion.fecha.strftime('%Y-%m-%d'),
-            'retencionRenta': False,
-            'conceptoRenta': '',
-            'rentaPorcentaje': 0,
+            'retencionRenta': tiene_renta,
+            'conceptoRenta': retencion.concepto_renta_id.codigo or '' if tiene_renta else '',
+            'rentaPorcentaje': renta_porcentaje,
             'rentaCabezasBase': 0,
             'rentaCabezasCantidad': 0,
             'rentaToneladasBase': 0,
             'rentaToneladasCantidad': 0,
-            'retencionIva': True,
-            'conceptoIva': retencion.concepto_iva_id.codigo or '',
+            'retencionIva': tiene_iva,
+            'conceptoIva': retencion.concepto_iva_id.codigo or '' if tiene_iva else '',
             'ivaPorcentaje5': porcentaje if retencion.base_5 else 0,
             'ivaPorcentaje10': porcentaje if retencion.base_10 else 0,
         }
@@ -151,11 +159,19 @@ class LocalPyTesakaExportWizard(models.TransientModel):
             raise UserError('No hay Retenciones cargadas para generar el archivo.')
 
         errores = []
-        sin_concepto = retenciones.filtered(lambda r: not r.concepto_iva_id)
+        sin_concepto = retenciones.filtered(
+            lambda r: (r.monto or r.monto_5 or r.monto_10) and not r.concepto_iva_id
+        )
         if sin_concepto:
             errores.append(
                 'Falta el Concepto IVA (Configuraciones Localización Py o ficha del '
                 'Proveedor) en: %s' % ', '.join(sin_concepto.mapped('factura_id.name'))
+            )
+        sin_concepto_renta = retenciones.filtered(lambda r: r.monto_renta and not r.concepto_renta_id)
+        if sin_concepto_renta:
+            errores.append(
+                'Falta el Concepto Renta No Residente (ficha del Proveedor o de la Factura) en: %s'
+                % ', '.join(sin_concepto_renta.mapped('factura_id.name'))
             )
         sin_situacion = retenciones.filtered(lambda r: not r.partner_id.l10n_py_tipo_identificacion_fiscal_id)
         if sin_situacion:
@@ -174,7 +190,9 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         )
         if sin_tipo_comprobante:
             errores.append(
-                'Falta el "Tipo Comprobante Retención" en el Tipo Fiscal de la Factura de: %s'
+                'Falta el "Tipo Comprobante Retención" en el Tipo Fiscal de la Factura de: %s\n'
+                '  Actualice este dato en: Menú Localización Paraguay > Tipos de Documentos '
+                'Fiscales, columna "Tipo Comprobante Retención".'
                 % ', '.join(sin_tipo_comprobante.mapped('factura_id.name'))
             )
         if errores:

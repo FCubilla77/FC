@@ -1,0 +1,36 @@
+<odoo>
+    <data noupdate="1">
+        <record id="concepto_renta_nr_servicios_personales" model="local_py.concepto_renta_no_residente">
+            <field name="name">Servicios personales, profesionales o no</field>
+            <field name="codigo">RENTA_NO_RESIDENTE.10</field>
+            <field name="porcentaje_imputacion">100</field>
+            <field name="porcentaje">30</field>
+            <field name="porcentaje_absorcion">30</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="concepto_renta_nr_remesas_sucursales" model="local_py.concepto_renta_no_residente">
+            <field name="name">Remesas de sucursales, agencias o subsidiarias del exterior</field>
+            <field name="codigo">RENTA_NO_RESIDENTE.12</field>
+            <field name="porcentaje_imputacion">100</field>
+            <field name="porcentaje">30</field>
+            <field name="porcentaje_absorcion">30</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="concepto_renta_nr_servicios_digitales" model="local_py.concepto_renta_no_residente">
+            <field name="name">Servicios digitales</field>
+            <field name="codigo">RENTA_NO_RESIDENTE.15</field>
+            <field name="porcentaje_imputacion">100</field>
+            <field name="porcentaje">4.5</field>
+            <field name="porcentaje_absorcion">4.5</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="concepto_renta_nr_otros" model="local_py.concepto_renta_no_residente">
+            <field name="name">Otros conceptos no incluidos en los anteriores</field>
+            <field name="codigo">RENTA_NO_RESIDENTE.13</field>
+            <field name="porcentaje_imputacion">100</field>
+            <field name="porcentaje">70</field>
+            <field name="porcentaje_absorcion">70</field>
+            <field name="sequence">40</field>
+        </record>
+    </data>
+</odoo>

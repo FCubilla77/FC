@@ -4,7 +4,8 @@
             <field name="name">local_py.retencion_emitida.list</field>
             <field name="model">local_py.retencion_emitida</field>
             <field name="arch" type="xml">
-                <list string="Retenciones Emitidas" decoration-muted="estado == 'anulada'" decoration-info="es_absorcion">
+                <list string="Retenciones Emitidas" decoration-muted="estado == 'anulada'"
+                      decoration-info="es_absorcion_iva or es_absorcion_renta">
                     <field name="fecha"/>
                     <field name="partner_id"/>
                     <field name="factura_id"/>
@@ -14,12 +15,15 @@
                     <field name="monto_5"/>
                     <field name="base_10"/>
                     <field name="monto_10"/>
-                    <field name="porcentaje"/>
                     <field name="monto"/>
-                    <field name="monto_gs"/>
+                    <field name="concepto_renta_id"/>
+                    <field name="base_renta"/>
+                    <field name="monto_renta"/>
+                    <field name="monto_total_gs"/>
                     <field name="concepto_iva_id"/>
                     <field name="numero_comprobante"/>
-                    <field name="es_absorcion" string="Absorción"/>
+                    <field name="es_absorcion_iva" string="IVA Absorbido"/>
+                    <field name="es_absorcion_renta" string="Renta Absorbida"/>
                     <field name="estado" widget="badge"
                            decoration-warning="estado == 'pendiente'"
                            decoration-info="estado == 'json_generado'"
@@ -64,9 +68,19 @@
                                 <field name="monto" readonly="1"/>
                                 <field name="monto_gs" readonly="1"/>
                                 <field name="concepto_iva_id" readonly="1"/>
+                                <field name="es_absorcion_iva" readonly="1"/>
+                                <field name="absorcion_move_id_iva" readonly="1" invisible="not es_absorcion_iva"/>
+                            </group>
+                            <group string="Renta No Residente" invisible="not concepto_renta_id">
+                                <field name="concepto_renta_id" readonly="1"/>
+                                <field name="base_renta" readonly="1"/>
+                                <field name="monto_renta" readonly="1"/>
+                                <field name="monto_renta_gs" readonly="1"/>
+                                <field name="es_absorcion_renta" readonly="1"/>
+                                <field name="absorcion_move_id_renta" readonly="1" invisible="not es_absorcion_renta"/>
+                            </group>
+                            <group>
                                 <field name="numero_comprobante" readonly="estado not in ('pendiente', 'json_generado')"/>
-                                <field name="es_absorcion" readonly="1"/>
-                                <field name="absorcion_move_id" readonly="1" invisible="not es_absorcion"/>
                             </group>
                         </group>
                     </sheet>

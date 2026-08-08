@@ -43,10 +43,10 @@ class LocalPyOrdenPago(models.Model):
     )
     retencion_absorcion_ids = fields.One2many(
         'local_py.retencion_emitida', 'orden_pago_id', string='Retenciones por Absorción al Exterior',
-        domain=[('es_absorcion', '=', True)],
-        help='Retenciones con Absorción generadas para Proveedores del exterior '
-             '(Concepto IVA = IVA.2) — de solo lectura: no participan del '
-             'cuadre de Medios, ya que no se le descuenta nada al Proveedor. Puede '
+        domain=['|', ('es_absorcion_iva', '=', True), ('es_absorcion_renta', '=', True)],
+        help='Retenciones (IVA y/o Renta) con Absorción generadas para Proveedores del '
+             'exterior — de solo lectura: la porción absorbida no participa del cuadre '
+             'de Medios, ya que no se le descuenta nada al Proveedor por ella. Puede '
              'haber más de una si la Orden de Pago incluye varias Facturas del exterior.',
     )
 
@@ -74,6 +74,14 @@ class LocalPyOrdenPago(models.Model):
              'editar las Facturas, presione "Actualizar Retención Estimada" para '
              'refrescarla.',
     )
+    total_retencion_renta_estimada = fields.Monetary(
+        string='Retención Renta (estimada)', compute='_compute_totales',
+        currency_field='currency_id',
+        help='Igual que "Retención IVA (estimada)", pero para la Retención Renta No '
+             'Residente — solo suma la porción que se descuenta del Proveedor; la '
+             'porción que se absorbe (si corresponde) no afecta este total ni la '
+             'Diferencia, ya que no sale de los Medios de Pago.',
+    )
 
     @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id',
                  'factura_ids.importe_a_pagar', 'factura_ids.cotizacion', 'partner_id', 'fecha', 'state')
@@ -85,17 +93,40 @@ class LocalPyOrdenPago(models.Model):
                 orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
             )
             if orden.state == 'confirmado':
-                # Ya está generada de verdad — la fila de Retención ya es un Medio
-                # real más, incluido en total_medios. No hay que restarla aparte
-                # (si no, se descontaría dos veces).
+                # Ya está generada de verdad — las filas de Retención ya son Medios
+                # reales, incluidos en total_medios. No hay que restarlas aparte (si
+                # no, se descontarían dos veces). Se separan por Diario para que cada
+                # total (IVA / Renta) muestre lo que realmente le corresponde.
+                config = orden._get_config_retencion()
+                diario_iva = config.l10n_py_diario_retencion_iva_id if config else False
+                diario_renta = config.l10n_py_diario_retencion_renta_id if config else False
+                medios_retencion = orden.medio_ids.filtered('es_retencion')
                 orden.total_retencion_iva_estimada = sum(
-                    orden.medio_ids.filtered('es_retencion').mapped('importe')
+                    medios_retencion.filtered(lambda m: m.journal_id == diario_iva).mapped('importe')
+                )
+                orden.total_retencion_renta_estimada = sum(
+                    medios_retencion.filtered(lambda m: m.journal_id == diario_renta).mapped('importe')
                 )
                 orden.diferencia = orden.total_facturas - orden.total_medios
             else:
-                evaluacion = orden._evaluar_retencion_iva()
-                orden.total_retencion_iva_estimada = sum(m['monto_total'] for m in evaluacion.values())
-                orden.diferencia = orden.total_facturas - orden.total_medios - orden.total_retencion_iva_estimada
+                evaluacion_iva = orden._evaluar_retencion_iva()
+                total_iva = sum(m['monto_total'] for m in evaluacion_iva.values())
+                evaluacion_exterior = orden._evaluar_retencion_exterior()
+                for datos in evaluacion_exterior.values():
+                    iva_datos = datos.get('iva')
+                    if iva_datos and not iva_datos['se_absorbe']:
+                        total_iva += iva_datos['monto']
+                total_renta = sum(
+                    datos['renta']['monto']
+                    for datos in evaluacion_exterior.values()
+                    if datos.get('renta') and not datos['renta']['se_absorbe']
+                )
+                orden.total_retencion_iva_estimada = total_iva
+                orden.total_retencion_renta_estimada = total_renta
+                orden.diferencia = (
+                    orden.total_facturas - orden.total_medios
+                    - orden.total_retencion_iva_estimada - orden.total_retencion_renta_estimada
+                )
 
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
@@ -221,9 +252,13 @@ class LocalPyOrdenPago(models.Model):
                 a_refrescar._set_cotizacion_default(orden.fecha)
             if orden.currency_id.round(orden.diferencia) != 0:
                 raise UserError(
-                    'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) debe '
-                    'coincidir exactamente con el total a pagar de las Facturas seleccionadas '
-                    '(%s).' % (orden.total_medios, orden.total_retencion_iva_estimada, orden.total_facturas)
+                    'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) y la '
+                    'Retención Renta estimada (%s) debe coincidir exactamente con el total a '
+                    'pagar de las Facturas seleccionadas (%s).'
+                    % (
+                        orden.total_medios, orden.total_retencion_iva_estimada,
+                        orden.total_retencion_renta_estimada, orden.total_facturas,
+                    )
                 )
         self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
 
@@ -243,7 +278,7 @@ class LocalPyOrdenPago(models.Model):
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(orden.fecha)
             orden._calcular_retenciones_iva()
-            orden._calcular_retenciones_absorcion()
+            orden._calcular_retenciones_exterior()
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
                 raise UserError(
                     'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '
@@ -279,48 +314,77 @@ class LocalPyOrdenPago(models.Model):
             for orden in ordenes for factura in orden.factura_ids
         )
 
+    def _get_config_retencion(self):
+        self.ensure_one()
+        return self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.company_id.id)], limit=1,
+        )
+
     def _validar_configuracion_retencion(self):
-        """Si el Proveedor de esta Orden de Pago tiene Retención IVA
-        activada, exige que toda la configuración necesaria esté
-        completa antes de Confirmar — si algo falta, bloquea con un
-        mensaje claro en vez de omitir la Retención en silencio (eso
-        dejaría la Orden de Pago Confirmada sin ese asiento, sin una
-        forma simple de completarlo después)."""
+        """Si el Proveedor de esta Orden de Pago tiene Retención IVA y/o
+        Retención Renta activadas, exige que toda la configuración
+        necesaria esté completa antes de Confirmar — si algo falta,
+        bloquea con un mensaje claro en vez de omitir la Retención en
+        silencio (eso dejaría la Orden de Pago Confirmada sin ese
+        asiento, sin una forma simple de completarlo después)."""
         self.ensure_one()
         partner = self.partner_id
-        if not partner or not partner.l10n_py_retencion_iva:
+        if not partner:
             return
-
-        faltantes = []
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
         )
-        if not config or not config.l10n_py_retencion_iva:
-            faltantes.append('Activar "Retención IVA" en Configuraciones Localización Py')
-        if config:
-            if not config.l10n_py_diario_retencion_iva_id:
-                faltantes.append('Elegir el "Diario de Retención IVA" en Configuraciones Localización Py')
-            elif not config.l10n_py_diario_retencion_iva_id.default_account_id:
-                faltantes.append(
-                    'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
-                    % config.l10n_py_diario_retencion_iva_id.name
-                )
-            if not config.l10n_py_concepto_iva_id:
-                faltantes.append('Elegir el "Concepto IVA" en Configuraciones Localización Py')
+        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
+        faltantes = []
 
-        es_absorcion = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
-        if es_absorcion:
-            if config and not config.l10n_py_cuenta_gasto_absorcion_id:
-                faltantes.append('Elegir la "Cuenta de Gasto por Absorción" en Configuraciones Localización Py')
-        else:
-            if not partner.l10n_py_retencion_iva_porcentaje:
-                faltantes.append(
-                    'Cargar el "Porcentaje Retención IVA" en la ficha del Proveedor "%s"' % partner.display_name
-                )
+        if partner.l10n_py_retencion_iva:
+            if not config or not config.l10n_py_retencion_iva:
+                faltantes.append('Activar "Retención IVA" en Configuraciones Localización Py')
+            if config:
+                if not config.l10n_py_diario_retencion_iva_id:
+                    faltantes.append('Elegir el "Diario de Retención IVA" en Configuraciones Localización Py')
+                elif not config.l10n_py_diario_retencion_iva_id.default_account_id:
+                    faltantes.append(
+                        'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
+                        % config.l10n_py_diario_retencion_iva_id.name
+                    )
+                if not config.l10n_py_concepto_iva_id:
+                    faltantes.append('Elegir el "Concepto IVA" en Configuraciones Localización Py')
+
+            if es_exterior and partner.l10n_py_se_absorbe_iva:
+                if config and not config.l10n_py_cuenta_gasto_absorcion_id:
+                    faltantes.append(
+                        'Elegir la "Cuenta de Gasto por Absorción (IVA)" en Configuraciones Localización Py'
+                    )
+            elif not es_exterior:
+                if not partner.l10n_py_retencion_iva_porcentaje:
+                    faltantes.append(
+                        'Cargar el "Porcentaje Retención IVA" en la ficha del Proveedor "%s"' % partner.display_name
+                    )
+
+        necesita_renta = bool(
+            es_exterior and partner.l10n_py_retencion_renta
+            and any(f.move_id.l10n_py_concepto_renta_no_residente_id for f in self.factura_ids)
+        )
+        if necesita_renta:
+            if not config or not config.l10n_py_retencion_renta:
+                faltantes.append('Activar "Retención Renta" en Configuraciones Localización Py')
+            if config:
+                if not config.l10n_py_diario_retencion_renta_id:
+                    faltantes.append('Elegir el "Diario de Retención Renta" en Configuraciones Localización Py')
+                elif not config.l10n_py_diario_retencion_renta_id.default_account_id:
+                    faltantes.append(
+                        'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
+                        % config.l10n_py_diario_retencion_renta_id.name
+                    )
+                if partner.l10n_py_se_absorbe_renta and not config.l10n_py_cuenta_gasto_absorcion_renta_id:
+                    faltantes.append(
+                        'Elegir la "Cuenta de Gasto por Absorción (Renta)" en Configuraciones Localización Py'
+                    )
 
         if faltantes:
             raise UserError(
-                'El Proveedor "%s" tiene la Retención IVA activada, pero falta completar esta '
+                'El Proveedor "%s" tiene Retenciones activadas, pero falta completar esta '
                 'configuración antes de Confirmar (para no dejar la Orden de Pago a medio generar '
                 'sin ese asiento):\n\n- %s' % (partner.display_name, '\n- '.join(faltantes))
             )
@@ -385,7 +449,9 @@ class LocalPyOrdenPago(models.Model):
         self.medio_ids.filtered('es_retencion').unlink()
         self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'), ('estado', '=', 'pendiente'),
-        ]).unlink()
+        ]).filtered(
+            lambda r: not r.es_absorcion_iva and not r.es_absorcion_renta and not r.concepto_renta_id
+        ).unlink()
 
         evaluacion = self._evaluar_retencion_iva()
         if not evaluacion:
@@ -423,84 +489,154 @@ class LocalPyOrdenPago(models.Model):
                     'retencion_factura_id': factura.id,
                 })
 
-    def _evaluar_retencion_absorcion(self):
-        """Evalúa la Retención con Absorción (proveedores del exterior,
-        Concepto IVA = IVA.2) — SIN generar nada, para vista previa. A
-        diferencia de la Retención local, siempre retiene el 100%, sin
-        acumulado mensual ni Mínimo Imponible (es "Pago Único y
-        Definitivo", no un "pago a cuenta")."""
+    def _evaluar_retencion_exterior(self):
+        """Evalúa la Retención IVA (a Proveedores del exterior, Concepto
+        IVA = IVA.2) y la Retención Renta No Residente (INR) — SIN
+        generar nada, para vista previa. Cada una se calcula de forma
+        independiente sobre el importe bruto que se está pagando, sin
+        acumulado mensual ni Mínimo Imponible (son "Pago Único y
+        Definitivo", no un "pago a cuenta"). Devuelve {factura: {'iva':
+        {...}|None, 'renta': {...}|None}} — cada bloque ya indica si
+        corresponde Absorción o Descuento, según la ficha del
+        Proveedor."""
         self.ensure_one()
         resultado = {}
         partner = self.partner_id
-        if not partner or not partner.l10n_py_retencion_iva or not self.fecha:
+        if not partner or not self.fecha:
             return resultado
-        if not partner.l10n_py_concepto_iva_id or partner.l10n_py_concepto_iva_id.codigo != 'IVA.2':
+        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
+        if not es_exterior:
             return resultado
-        config = self.env['local_py.configuracion_localizacion'].search(
-            [('company_id', '=', self.company_id.id)], limit=1,
+        config = self._get_config_retencion()
+        if not config:
+            return resultado
+
+        calcular_iva = bool(
+            partner.l10n_py_retencion_iva and config.l10n_py_retencion_iva
+            and config.l10n_py_cuenta_gasto_absorcion_id
         )
-        if not config or not config.l10n_py_retencion_iva or not config.l10n_py_cuenta_gasto_absorcion_id:
-            return resultado
+        calcular_renta = bool(partner.l10n_py_retencion_renta and config.l10n_py_retencion_renta)
 
         for factura in self.factura_ids:
-            iva_nocional, monto_header, monto_gs = factura._retencion_absorcion_calcular()
-            if not self.currency_id.is_zero(monto_header):
-                resultado[factura] = {
-                    'iva_nocional': iva_nocional, 'monto': monto_header, 'monto_gs': monto_gs,
-                }
+            datos_factura = {}
+            if calcular_iva:
+                iva_nocional, monto_header, monto_gs = factura._retencion_absorcion_calcular()
+                if not self.currency_id.is_zero(monto_header):
+                    datos_factura['iva'] = {
+                        'base': iva_nocional, 'monto': monto_header, 'monto_gs': monto_gs,
+                        'se_absorbe': partner.l10n_py_se_absorbe_iva,
+                    }
+            if calcular_renta:
+                concepto = factura.move_id.l10n_py_concepto_renta_no_residente_id
+                if concepto:
+                    calc = factura._retencion_renta_no_residente_calcular(concepto)
+                    se_absorbe_renta = partner.l10n_py_se_absorbe_renta
+                    monto_usar = calc['monto_absorcion'] if se_absorbe_renta else calc['monto']
+                    monto_gs_usar = calc['monto_absorcion_gs'] if se_absorbe_renta else calc['monto_gs']
+                    if not self.currency_id.is_zero(monto_usar):
+                        datos_factura['renta'] = {
+                            'concepto_id': concepto.id, 'base': calc['base'],
+                            'monto': monto_usar, 'monto_gs': monto_gs_usar,
+                            'se_absorbe': se_absorbe_renta,
+                        }
+            if datos_factura:
+                resultado[factura] = datos_factura
         return resultado
 
-    def _calcular_retenciones_absorcion(self):
-        """Genera de verdad los registros de Retención con Absorción y su
-        asiento contable paralelo (Débito Gasto, Crédito Retenciones a
-        Pagar) — no participa del cuadre de Medios ni se concilia contra
-        la factura, ya que al Proveedor del exterior se le sigue pagando
-        el 100% de lo facturado."""
+    def _calcular_retenciones_exterior(self):
+        """Genera de verdad los registros combinados (IVA + Renta en un
+        mismo comprobante de Retención por Factura) y, para cada
+        impuesto por separado, el asiento de Absorción (Gasto aparte) o
+        la fila de Medios que corresponda (según la ficha del
+        Proveedor)."""
         self.ensure_one()
         viejas = self.env['local_py.retencion_emitida'].search([
-            ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
-            ('es_absorcion', '=', True), ('estado', '=', 'pendiente'),
+            ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
+            '|', ('es_absorcion_iva', '=', True), ('es_absorcion_renta', '=', True),
         ])
         for vieja in viejas:
-            if vieja.absorcion_move_id:
-                vieja.absorcion_move_id.button_draft()
-                vieja.absorcion_move_id.unlink()
+            if vieja.absorcion_move_id_iva:
+                vieja.absorcion_move_id_iva.button_draft()
+                vieja.absorcion_move_id_iva.unlink()
+            if vieja.absorcion_move_id_renta:
+                vieja.absorcion_move_id_renta.button_draft()
+                vieja.absorcion_move_id_renta.unlink()
         viejas.unlink()
 
-        evaluacion = self._evaluar_retencion_absorcion()
+        evaluacion = self._evaluar_retencion_exterior()
         if not evaluacion:
             return
 
         partner = self.partner_id
+        config = self._get_config_retencion()
         Retencion = self.env['local_py.retencion_emitida']
         for factura, datos in evaluacion.items():
-            move = self._crear_movimiento_absorcion(factura, datos['monto'])
-            Retencion.create({
+            vals = {
                 'orden_pago_id': self.id,
                 'orden_pago_factura_id': factura.id,
                 'fecha': self.fecha,
                 'tipo_retencion': 'iva',
-                'es_absorcion': True,
-                'base_10': datos['iva_nocional'],
-                'monto_10': datos['monto'],
-                'porcentaje': 100.0,
-                'monto_gs': datos['monto_gs'],
-                'concepto_iva_id': partner.l10n_py_concepto_iva_id.id,
-                'absorcion_move_id': move.id,
-            })
+                'monto_gs': 0.0,
+            }
 
-    def _crear_movimiento_absorcion(self, factura, monto_header):
-        """Asiento paralelo de la Retención con Absorción: Débito a la
-        Cuenta de Gasto por Absorción, Crédito a la cuenta del Diario de
-        Retención — no se concilia contra nada, es un costo aparte para
-        la Compañía."""
+            iva_datos = datos.get('iva')
+            if iva_datos:
+                vals.update({
+                    'base_10': iva_datos['base'],
+                    'monto_10': iva_datos['monto'],
+                    'porcentaje': 100.0,
+                    'concepto_iva_id': partner.l10n_py_concepto_iva_id.id,
+                    'es_absorcion_iva': iva_datos['se_absorbe'],
+                    'monto_gs': iva_datos['monto_gs'],
+                })
+                if iva_datos['se_absorbe']:
+                    move = self._crear_movimiento_absorcion(
+                        factura, iva_datos['monto'], 'IVA',
+                        config.l10n_py_diario_retencion_iva_id, config.l10n_py_cuenta_gasto_absorcion_id,
+                    )
+                    vals['absorcion_move_id_iva'] = move.id
+                else:
+                    self.env['local_py.orden_pago.medio'].create({
+                        'orden_pago_id': self.id,
+                        'journal_id': config.l10n_py_diario_retencion_iva_id.id,
+                        'importe': iva_datos['monto'],
+                        'es_retencion': True,
+                        'retencion_factura_id': factura.id,
+                    })
+
+            renta_datos = datos.get('renta')
+            if renta_datos:
+                vals.update({
+                    'concepto_renta_id': renta_datos['concepto_id'],
+                    'base_renta': renta_datos['base'],
+                    'monto_renta': renta_datos['monto'],
+                    'monto_renta_gs': renta_datos['monto_gs'],
+                    'es_absorcion_renta': renta_datos['se_absorbe'],
+                })
+                if renta_datos['se_absorbe']:
+                    move = self._crear_movimiento_absorcion(
+                        factura, renta_datos['monto'], 'Renta',
+                        config.l10n_py_diario_retencion_renta_id, config.l10n_py_cuenta_gasto_absorcion_renta_id,
+                    )
+                    vals['absorcion_move_id_renta'] = move.id
+                else:
+                    self.env['local_py.orden_pago.medio'].create({
+                        'orden_pago_id': self.id,
+                        'journal_id': config.l10n_py_diario_retencion_renta_id.id,
+                        'importe': renta_datos['monto'],
+                        'es_retencion': True,
+                        'retencion_factura_id': factura.id,
+                    })
+
+            Retencion.create(vals)
+
+    def _crear_movimiento_absorcion(self, factura, monto_header, tipo_label, journal, cuenta_gasto):
+        """Asiento paralelo de una Retención con Absorción (IVA o Renta):
+        Débito a la Cuenta de Gasto correspondiente, Crédito a la cuenta
+        del Diario de Retención — no se concilia contra nada, es un
+        costo aparte para la Compañía."""
         self.ensure_one()
         company = self.company_id
-        config = self.env['local_py.configuracion_localizacion'].search(
-            [('company_id', '=', company.id)], limit=1,
-        )
-        journal = config.l10n_py_diario_retencion_iva_id
-        cuenta_gasto = config.l10n_py_cuenta_gasto_absorcion_id
         cuenta_retencion = journal.default_account_id
         if not cuenta_retencion:
             raise UserError(
@@ -514,7 +650,7 @@ class LocalPyOrdenPago(models.Model):
         else:
             monto_company = monto_header
 
-        concepto = 'Retención IVA con Absorción - %s - %s' % (self.name, factura.move_id.name)
+        concepto = 'Retención %s con Absorción - %s - %s' % (tipo_label, self.name, factura.move_id.name)
         move = self.env['account.move'].create({
             'journal_id': journal.id,
             'date': self.fecha,
@@ -542,6 +678,7 @@ class LocalPyOrdenPago(models.Model):
         })
         move.action_post()
         return move
+
 
     def action_deshacer_confirmacion(self):
         """Vuelve una Orden de Pago Confirmada a "En Proceso": deshace la
@@ -615,7 +752,10 @@ class LocalPyOrdenPago(models.Model):
         retenciones_op = self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'),
         ])
-        for asiento in retenciones_op.filtered('absorcion_move_id').mapped('absorcion_move_id'):
+        for asiento in retenciones_op.filtered('absorcion_move_id_iva').mapped('absorcion_move_id_iva'):
+            asiento.button_draft()
+            asiento.unlink()
+        for asiento in retenciones_op.filtered('absorcion_move_id_renta').mapped('absorcion_move_id_renta'):
             asiento.button_draft()
             asiento.unlink()
         retenciones_op.filtered(lambda r: r.estado == 'pendiente').unlink()
@@ -789,7 +929,8 @@ class LocalPyOrdenPago(models.Model):
         else:
             monto_moneda_factura = monto_company
 
-        concepto = 'Retención IVA - %s' % self.name
+        tipo_label = 'Renta' if journal == self._get_config_retencion().l10n_py_diario_retencion_renta_id else 'IVA'
+        concepto = 'Retención %s - %s' % (tipo_label, self.name)
         move = self.env['account.move'].create({
             'journal_id': journal.id,
             'date': self.fecha,

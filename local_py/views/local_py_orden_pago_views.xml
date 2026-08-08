@@ -43,6 +43,8 @@
                                 <field name="diferencia"/>
                                 <field name="total_retencion_iva_estimada"
                                        invisible="total_retencion_iva_estimada == 0"/>
+                                <field name="total_retencion_renta_estimada"
+                                       invisible="total_retencion_renta_estimada == 0"/>
                             </group>
                         </group>
                         <notebook>
@@ -105,10 +107,12 @@
                                     <list>
                                         <field name="factura_id"/>
                                         <field name="concepto_iva_id"/>
-                                        <field name="base_10" string="IVA Nocional (10%)"/>
-                                        <field name="monto" string="Monto Retenido (100%)"/>
-                                        <field name="monto_gs"/>
-                                        <field name="absorcion_move_id" string="Asiento de Absorción"/>
+                                        <field name="monto" string="IVA Retenido"/>
+                                        <field name="absorcion_move_id_iva" string="Asiento Absorción IVA"/>
+                                        <field name="concepto_renta_id"/>
+                                        <field name="monto_renta" string="Renta Retenida"/>
+                                        <field name="absorcion_move_id_renta" string="Asiento Absorción Renta"/>
+                                        <field name="monto_total_gs" string="Total (Gs.)"/>
                                         <field name="estado" widget="badge"
                                                decoration-warning="estado == 'pendiente'"
                                                decoration-success="estado == 'levantada'"

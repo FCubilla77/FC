@@ -57,17 +57,40 @@ class LocalPyRetencionEmitida(models.Model):
              'copia del configurado en Configuraciones Localización Py al momento de '
              'Confirmar.',
     )
-    es_absorcion = fields.Boolean(
-        string='Es Retención con Absorción', default=False,
-        help='Proveedores del exterior (Concepto IVA = IVA.2): no se le '
-             'descuenta nada al Proveedor — el monto retenido pasa a ser un Gasto '
-             'aparte para la Compañía. No participa del cuadre de Medios de la Orden '
-             'de Pago.',
+    es_absorcion_iva = fields.Boolean(
+        string='IVA con Absorción', default=False,
+        help='Proveedores del exterior que tienen "Se Absorbe IVA" tildado en su ficha: '
+             'no se le descuenta nada al Proveedor por el IVA — el monto retenido pasa '
+             'a ser un Gasto aparte para la Compañía. No participa del cuadre de Medios '
+             'de la Orden de Pago.',
     )
-    absorcion_move_id = fields.Many2one(
-        'account.move', string='Asiento de Absorción', readonly=True, copy=False,
+    absorcion_move_id_iva = fields.Many2one(
+        'account.move', string='Asiento de Absorción (IVA)', readonly=True, copy=False,
         help='Asiento contable paralelo (Débito Gasto, Crédito Retenciones a Pagar) '
-             'generado por esta Retención con Absorción.',
+             'generado por la Retención IVA con Absorción.',
+    )
+    concepto_renta_id = fields.Many2one(
+        'local_py.concepto_renta_no_residente', string='Concepto Renta No Residente',
+        help='Código exigido por la DNIT (Tesaka) para clasificar la Retención Renta — '
+             'se copia del Concepto cargado en la Factura al momento de Confirmar.',
+    )
+    base_renta = fields.Monetary(string='Base Imponible Renta', currency_field='currency_id')
+    monto_renta = fields.Monetary(string='Monto Retenido Renta', currency_field='currency_id')
+    monto_renta_gs = fields.Monetary(
+        string='Monto Retenido Renta (Gs.)', currency_field='company_currency_id',
+        help='Monto de Renta declarado ante la DNIT — siempre en Guaraníes, convertido '
+             'a la Cotización de la Orden de Pago.',
+    )
+    es_absorcion_renta = fields.Boolean(
+        string='Renta con Absorción', default=False,
+        help='Proveedores del exterior que tienen "Se Absorbe Renta" tildado en su '
+             'ficha: no se le descuenta nada al Proveedor por la Renta — el monto '
+             'retenido pasa a ser un Gasto aparte para la Compañía.',
+    )
+    absorcion_move_id_renta = fields.Many2one(
+        'account.move', string='Asiento de Absorción (Renta)', readonly=True, copy=False,
+        help='Asiento contable paralelo (Débito Gasto, Crédito Retenciones a Pagar) '
+             'generado por la Retención Renta con Absorción.',
     )
     estado = fields.Selection(
         [
@@ -103,6 +126,23 @@ class LocalPyRetencionEmitida(models.Model):
     def _compute_monto(self):
         for retencion in self:
             retencion.monto = retencion.monto_5 + retencion.monto_10
+
+    monto_total = fields.Monetary(
+        string='Monto Retenido Total', currency_field='currency_id', compute='_compute_monto_total',
+        help='Suma de la Retención IVA y la Retención Renta de este mismo comprobante '
+             '(cuando incluye ambas) — a título informativo, ya que cada una puede '
+             'terminar en un asiento contable distinto según se absorba o se descuente.',
+    )
+    monto_total_gs = fields.Monetary(
+        string='Monto Retenido Total (Gs.)', currency_field='company_currency_id',
+        compute='_compute_monto_total',
+    )
+
+    @api.depends('monto', 'monto_gs', 'monto_renta', 'monto_renta_gs')
+    def _compute_monto_total(self):
+        for retencion in self:
+            retencion.monto_total = retencion.monto + retencion.monto_renta
+            retencion.monto_total_gs = retencion.monto_gs + retencion.monto_renta_gs
 
     def action_marcar_levantada(self):
         for retencion in self:

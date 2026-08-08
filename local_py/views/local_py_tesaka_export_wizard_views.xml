@@ -25,6 +25,8 @@
                             <field name="base_10"/>
                             <field name="monto_10"/>
                             <field name="monto"/>
+                            <field name="concepto_renta_id"/>
+                            <field name="monto_renta"/>
                             <field name="estado"/>
                         </list>
                     </field>

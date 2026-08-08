@@ -1,0 +1,48 @@
+<odoo>
+    <data>
+        <record id="view_local_py_concepto_renta_nr_list" model="ir.ui.view">
+            <field name="name">local_py.concepto_renta_no_residente.list</field>
+            <field name="model">local_py.concepto_renta_no_residente</field>
+            <field name="arch" type="xml">
+                <list string="Concepto Renta No Residente" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="porcentaje_imputacion"/>
+                    <field name="porcentaje"/>
+                    <field name="porcentaje_absorcion"/>
+                    <field name="active" column_invisible="True"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_concepto_renta_nr_form" model="ir.ui.view">
+            <field name="name">local_py.concepto_renta_no_residente.form</field>
+            <field name="model">local_py.concepto_renta_no_residente</field>
+            <field name="arch" type="xml">
+                <form string="Concepto Renta No Residente">
+                    <sheet>
+                        <group>
+                            <field name="codigo"/>
+                            <field name="name"/>
+                            <field name="porcentaje_imputacion"/>
+                            <field name="porcentaje"/>
+                            <field name="porcentaje_absorcion"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_concepto_renta_nr" model="ir.actions.act_window">
+            <field name="name">Concepto Renta No Residente</field>
+            <field name="res_model">local_py.concepto_renta_no_residente</field>
+            <field name="view_mode">list,form</field>
+        </record>
+        <!-- Sin menú propio: se gestiona desde la pestaña "Retenciones" de
+             Configuraciones Localización Py, con una grilla editable ahí
+             mismo (mismo patrón que Imputación Tributaria y Concepto IVA). -->
+    </data>
+</odoo>

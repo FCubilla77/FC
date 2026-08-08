@@ -64,10 +64,10 @@
                                     </group>
                                     <group string="Retención Renta">
                                         <field name="l10n_py_retencion_renta"/>
-                                        <field name="l10n_py_retencion_renta_porcentaje"
-                                               invisible="not l10n_py_retencion_renta"/>
-                                        <field name="l10n_py_retencion_renta_minimo"
-                                               invisible="not l10n_py_retencion_renta"/>
+                                        <field name="l10n_py_diario_retencion_renta_id"
+                                               invisible="not l10n_py_retencion_renta" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_gasto_absorcion_renta_id"
+                                               invisible="not l10n_py_retencion_renta" options="{'no_create': True}"/>
                                     </group>
                                 </group>
                                 <field name="company_currency_id" invisible="1"/>
@@ -79,6 +79,18 @@
                                         <field name="fecha_desde"/>
                                         <field name="fecha_hasta"/>
                                         <field name="nro_resolucion"/>
+                                    </list>
+                                </field>
+                                <separator string="Conceptos Renta No Residente"
+                                           invisible="not l10n_py_retencion_renta"/>
+                                <field name="concepto_renta_no_residente_ids"
+                                       invisible="not l10n_py_retencion_renta">
+                                    <list editable="bottom">
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="porcentaje_imputacion"/>
+                                        <field name="porcentaje"/>
+                                        <field name="porcentaje_absorcion"/>
                                     </list>
                                 </field>
                             </page>

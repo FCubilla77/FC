@@ -34,3 +34,4 @@ from . import local_py_retencion_emitida
 from . import local_py_concepto_iva
 from . import local_py_tesaka_import
 from . import local_py_tesaka_import_linea
+from . import local_py_concepto_renta_no_residente

@@ -62,6 +62,15 @@ class AccountMove(models.Model):
              '(IVA, IRE, IRP-RSP). "No Imputa" no puede combinarse con las '
              'otras opciones.',
     )
+    l10n_py_concepto_renta_no_residente_id = fields.Many2one(
+        'local_py.concepto_renta_no_residente', string='Concepto Renta No Residente',
+        help='Determina cómo se calcula la Retención Renta (INR) de esta Factura, si el '
+             'Proveedor es del exterior. Se copia solo del Concepto Predeterminado '
+             'configurado en la ficha del Proveedor — queda editable acá, ya que un '
+             'mismo Proveedor puede facturar por más de un tipo de operación (por '
+             'ejemplo, servicios profesionales en una factura y servicios digitales '
+             'en otra).',
+    )
 
     # El campo nativo reversed_entry_id es readonly=True a nivel de modelo
     # (Odoo lo llena automáticamente solo desde el asistente "Añadir Nota de
@@ -267,6 +276,21 @@ class AccountMove(models.Model):
                 raise exceptions.ValidationError(
                     'Ya existe otro asiento con el mismo "Nro. Fiscal" (%s) en el año %s '
                     'para esta compañía.' % (move.l10n_py_nro_fiscal, year)
+                )
+
+    @api.onchange('partner_id')
+    def _onchange_l10n_py_concepto_renta_no_residente_default(self):
+        """Autocompleta el Concepto Renta No Residente con el Predeterminado
+        configurado en la ficha del Proveedor — sin pisar una selección
+        manual ya hecha por el usuario en esta misma Factura."""
+        for move in self:
+            if (
+                move.move_type in PURCHASE_MOVE_TYPES
+                and not move.l10n_py_concepto_renta_no_residente_id
+                and move.partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id
+            ):
+                move.l10n_py_concepto_renta_no_residente_id = (
+                    move.partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id
                 )
 
     @api.onchange('move_type', 'company_id')

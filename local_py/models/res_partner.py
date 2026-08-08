@@ -55,6 +55,32 @@ class ResPartner(models.Model):
              'temporalmente al 10%, sin acumulado ni mínimo, como un Gasto aparte para '
              'la Compañía (no se le descuenta nada al Proveedor).',
     )
+    l10n_py_se_absorbe_iva = fields.Boolean(
+        string='Se Absorbe IVA',
+        help='Solo aplica a Proveedores del exterior (Concepto IVA = IVA.2). Si está '
+             'tildado, la Retención IVA queda como un Gasto aparte para la Compañía, '
+             'sin descontarle nada al Proveedor. Si no está tildado, se descuenta '
+             'directo del pago (como una Retención local más).',
+    )
+    l10n_py_se_absorbe_renta = fields.Boolean(
+        string='Se Absorbe Renta',
+        help='Solo aplica a Proveedores del exterior con Concepto Renta No Residente '
+             'configurado. Si está tildado, la Retención Renta queda como un Gasto '
+             'aparte para la Compañía, sin descontarle nada al Proveedor. Si no está '
+             'tildado, se descuenta directo del pago (como una Retención local más).',
+    )
+    l10n_py_concepto_renta_no_residente_ids = fields.Many2many(
+        'local_py.concepto_renta_no_residente', string='Conceptos Renta No Residente',
+        help='Los distintos tipos de operación por los que este Proveedor del exterior '
+             'puede facturar (por ejemplo, servicios profesionales y también servicios '
+             'digitales) — cada Factura puede elegir cuál de estos le corresponde.',
+    )
+    l10n_py_concepto_renta_no_residente_predeterminado_id = fields.Many2one(
+        'local_py.concepto_renta_no_residente', string='Concepto Renta No Residente Predeterminado',
+        help='Se copia solo en cada Factura nueva de este Proveedor — queda editable '
+             'por Factura, para cuando una factura puntual corresponda a otro Concepto '
+             'de los configurados arriba.',
+    )
 
     @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
     def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):
@@ -243,6 +269,19 @@ class ResPartner(models.Model):
                     'Tributaria", País distinto de Paraguay, y Concepto IVA = "IVA.2 — Pago '
                     'Único y Definitivo por acreditamiento...". Revise estos 3 campos en la '
                     'ficha del Proveedor.'
+                )
+
+    @api.constrains(
+        'l10n_py_concepto_renta_no_residente_predeterminado_id', 'l10n_py_concepto_renta_no_residente_ids',
+    )
+    def _check_concepto_renta_predeterminado(self):
+        for partner in self:
+            predeterminado = partner.l10n_py_concepto_renta_no_residente_predeterminado_id
+            if predeterminado and predeterminado not in partner.l10n_py_concepto_renta_no_residente_ids:
+                raise exceptions.ValidationError(
+                    'El Concepto Renta No Residente Predeterminado tiene que ser uno de los '
+                    'que están cargados en "Conceptos Renta No Residente", en la misma ficha '
+                    'del Proveedor.'
                 )
 
     def write(self, vals):

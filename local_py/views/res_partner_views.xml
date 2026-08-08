@@ -89,11 +89,20 @@
                                 <field name="l10n_py_concepto_iva_id"
                                        invisible="not l10n_py_retencion_iva" required="l10n_py_retencion_iva"
                                        options="{'no_create': True}"/>
+                                <field name="l10n_py_se_absorbe_iva" invisible="not l10n_py_retencion_iva"/>
                             </group>
                             <group string="Retención Renta">
                                 <field name="l10n_py_retencion_renta"/>
                                 <field name="l10n_py_retencion_renta_porcentaje"
                                        invisible="not l10n_py_retencion_renta"/>
+                            </group>
+                            <group string="Retención Renta No Residente (Exterior)"
+                                   invisible="not l10n_py_retencion_renta">
+                                <field name="l10n_py_concepto_renta_no_residente_ids"
+                                       widget="many2many_tags" options="{'no_create': True}"/>
+                                <field name="l10n_py_concepto_renta_no_residente_predeterminado_id"
+                                       options="{'no_create': True}"/>
+                                <field name="l10n_py_se_absorbe_renta"/>
                             </group>
                         </group>
                     </page>
