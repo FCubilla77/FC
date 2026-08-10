@@ -43,12 +43,11 @@ class LocalPyOrdenPago(models.Model):
     )
     cuenta_pago_id = fields.Many2one(
         'account.account', string='Cuenta',
-        domain="[('company_ids', 'in', company_id)]",
-        help='PRUEBA: filtro por tipo de Cuenta (Por Pagar/Por Cobrar) quitado a '
-             'pedido, para confirmar en la práctica si Odoo exige ese tipo puntual o '
-             'acepta cualquier Cuenta al generar el Pago sin Proveedor. Si tira error '
-             'al Confirmar, es la confirmación de que el filtro por tipo hace falta — '
-             'avisar para volver a ponerlo.',
+        domain="[('l10n_py_pagos_a_cuenta', '=', True), ('company_ids', 'in', company_id)]",
+        help='Solo aparecen las Cuentas marcadas con "Pagos a Cuenta" tildado (en su '
+             'propia ficha, Contabilidad > Plan de Cuentas) — así se evita elegir por '
+             'error una Cuenta de Ingresos, Gastos, Activo Fijo, o cualquier otra que '
+             'no debería verse afectada por este circuito.',
     )
     importe_pago_cuenta = fields.Monetary(
         string='Importe', currency_field='currency_id',

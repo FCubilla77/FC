@@ -1,0 +1,16 @@
+<odoo>
+    <data>
+        <record id="view_account_form_l10n_py_pagos_a_cuenta" model="ir.ui.view">
+            <field name="name">account.account.form.l10n_py.pagos_a_cuenta</field>
+            <field name="model">account.account</field>
+            <field name="inherit_id" ref="account.view_account_form"/>
+            <field name="arch" type="xml">
+                <sheet position="inside">
+                    <group string="Localización Paraguay">
+                        <field name="l10n_py_pagos_a_cuenta"/>
+                    </group>
+                </sheet>
+            </field>
+        </record>
+    </data>
+</odoo>

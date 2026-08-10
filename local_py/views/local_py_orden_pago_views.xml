@@ -143,6 +143,7 @@
                     <field name="name"/>
                     <field name="fecha"/>
                     <field name="partner_id"/>
+                    <field name="cuenta_pago_id" optional="hide"/>
                     <field name="total_medios"/>
                     <field name="currency_id"/>
                     <field name="state" widget="badge"
@@ -150,6 +151,27 @@
                            decoration-warning="state == 'en_proceso'"
                            decoration-success="state == 'confirmado'"/>
                 </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_orden_pago_search" model="ir.ui.view">
+            <field name="name">local_py.orden_pago.search</field>
+            <field name="model">local_py.orden_pago</field>
+            <field name="arch" type="xml">
+                <search string="Órdenes de Pago">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="cuenta_pago_id"/>
+                    <field name="referencia_pago_cuenta"/>
+                    <filter string="Borrador" name="borrador" domain="[('state', '=', 'borrador')]"/>
+                    <filter string="En Proceso" name="en_proceso" domain="[('state', '=', 'en_proceso')]"/>
+                    <filter string="Confirmado" name="confirmado" domain="[('state', '=', 'confirmado')]"/>
+                    <separator/>
+                    <filter string="Pago a Cuenta" name="es_pago_a_cuenta" domain="[('es_pago_a_cuenta', '=', True)]"/>
+                    <separator/>
+                    <filter string="Agrupar por Proveedor" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Agrupar por Estado" name="group_state" context="{'group_by': 'state'}"/>
+                </search>
             </field>
         </record>
 
