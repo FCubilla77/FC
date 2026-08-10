@@ -35,6 +35,19 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'gastos configuradas en la Categoría del producto). Ese asiento queda '
              'protegido: no se puede eliminar ni restablecer a borrador.',
     )
+    l10n_py_pagos_proveedores_activo = fields.Boolean(
+        string='Activar Pagos - Proveedores', default=True,
+        help='Si está desactivado, no se puede crear un Pago a Proveedor por fuera de '
+             'Orden de Pago (ni desde el menú de Pagos, ni desde el botón "Registrar '
+             'Pago" de una Factura, ni desde la Conciliación Bancaria automática) — '
+             'evita que una Retención se omita por error, al forzar que todos los '
+             'pagos a Proveedores pasen por Orden de Pago.',
+    )
+    l10n_py_pagos_clientes_activo = fields.Boolean(
+        string='Activar Pagos - Clientes', default=True,
+        help='Mismo criterio que "Activar Pagos - Proveedores", para Clientes — cuando '
+             'se desactive, va a exigir usar "Recibo Cliente" en su lugar.',
+    )
     l10n_py_retencion_iva = fields.Boolean(string='Retención IVA')
     l10n_py_retencion_iva_porcentaje = fields.Float(
         string='Porcentaje Retención Predeterminado (IVA)', digits=(5, 2),

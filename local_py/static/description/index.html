@@ -360,6 +360,7 @@
                 <li>Al Confirmar, IVA y Renta al exterior se calculan de forma completamente independiente por Factura, cada uno sobre el importe bruto completo — según "Se Absorbe" del Proveedor, genera un asiento de Gasto aparte (con su propia Cuenta) o una fila de Medios que descuenta del pago (con su propio Diario, distinto entre IVA y Renta para poder diferenciarlos)</li>
                 <li>Retenciones Emitidas: un mismo comprobante puede combinar IVA y Renta a la vez para una misma Factura (tal como lo espera el archivo JSON de Tesaka) — cada uno con su propio estado de Absorción y su propio asiento, aunque el registro de Retención sea uno solo</li>
                 <li>Archivo JSON de Tesaka: completa "retencionRenta"/"conceptoRenta"/"rentaPorcentaje" con los datos reales cuando corresponde, en el mismo comprobante junto a los datos de IVA</li>
+                <li>Configuraciones Localización Py: pestaña "Retenciones" renombrada a "Orden de Pago / Recibos", con una nueva sección al inicio — "Activar Pagos - Proveedores" y "Activar Pagos - Clientes" (activadas por defecto). Cuando se desactiva alguna, el sistema bloquea la creación de Pagos sueltos de ese tipo (desde el menú de Pagos, desde el botón "Registrar Pago" de una Factura, o desde la Conciliación Bancaria automática), avisando que hay que usar Orden de Pago (o Recibo Cliente, para Clientes) — así ninguna operación puede saltarse el cálculo de Retenciones por error</li>
             </ul>
         </div>
     </div>

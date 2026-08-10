@@ -47,7 +47,11 @@
                                     <field name="l10n_py_asiento_ajuste_inventario"/>
                                 </group>
                             </page>
-                            <page string="Retenciones" name="retenciones">
+                            <page string="Orden de Pago / Recibos" name="retenciones">
+                                <group string="Activación de Pagos">
+                                    <field name="l10n_py_pagos_proveedores_activo"/>
+                                    <field name="l10n_py_pagos_clientes_activo"/>
+                                </group>
                                 <group>
                                     <group string="Retención IVA">
                                         <field name="l10n_py_retencion_iva"/>

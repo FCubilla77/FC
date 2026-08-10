@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -37,6 +37,33 @@ class AccountPayment(models.Model):
                 'directamente: proviene de la Orden de Pago %s. Hágalo desde esa Orden '
                 'de Pago.' % ', '.join(bloqueados.mapped('l10n_py_orden_pago_id.name'))
             )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not self.env.context.get('l10n_py_allow_orden_pago_write'):
+            config = self.env['local_py.configuracion_localizacion'].search(
+                [('company_id', '=', self.env.company.id)], limit=1,
+            )
+            if config:
+                for vals in vals_list:
+                    if vals.get('l10n_py_orden_pago_id'):
+                        # Viene de nuestra propia Orden de Pago — nunca se bloquea.
+                        continue
+                    partner_type = vals.get('partner_type')
+                    if partner_type == 'supplier' and not config.l10n_py_pagos_proveedores_activo:
+                        raise UserError(
+                            'Los Pagos a Proveedores están desactivados (Configuraciones '
+                            'Localización Py > Orden de Pago / Recibos) — hay que usar '
+                            '"Orden de Pago" (Localización Paraguay) para que las Retenciones '
+                            'no se omitan por error.'
+                        )
+                    if partner_type == 'customer' and not config.l10n_py_pagos_clientes_activo:
+                        raise UserError(
+                            'Los Pagos de Clientes están desactivados (Configuraciones '
+                            'Localización Py > Orden de Pago / Recibos) — hay que usar '
+                            '"Recibo Cliente" para que las Retenciones no se omitan por error.'
+                        )
+        return super().create(vals_list)
 
     def action_draft(self):
         self._l10n_py_check_orden_pago_lock()
