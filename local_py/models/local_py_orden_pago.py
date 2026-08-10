@@ -26,7 +26,43 @@ class LocalPyOrdenPago(models.Model):
         string='Comentario',
     )
     partner_id = fields.Many2one(
-        'res.partner', string='Proveedor', required=True, tracking=True,
+        'res.partner', string='Proveedor', tracking=True,
+        help='Obligatorio, salvo que la Orden sea de tipo "Pago a Cuenta" — ese tipo de '
+             'pago no necesita ir a nombre de ningún Contacto (ej. pago de impuestos, '
+             'retiro de fondos para caja).',
+    )
+    es_pago_a_cuenta = fields.Boolean(
+        string='Pago a Cuenta', tracking=True,
+        help='Para pagos que no corresponden a Facturas de un Proveedor puntual — por '
+             'ejemplo, pago de impuestos al fisco, o fondos para una Caja. Oculta la '
+             'pestaña Facturas y no calcula Retenciones; el Proveedor deja de ser '
+             'obligatorio, y en su lugar se carga una Cuenta contable, un Importe y una '
+             'Referencia (a mano, no hay Factura externa contra la cual cuadrar).\n\n'
+             'AVISO: esta es una función nueva y menos probada que el resto del módulo '
+             '— revisar con atención los primeros asientos que genere.',
+    )
+    cuenta_pago_id = fields.Many2one(
+        'account.account', string='Cuenta',
+        domain="[('account_type', 'in', ('liability_payable', 'asset_receivable')),"
+               " ('company_ids', 'in', company_id)]",
+        help='Solo se pueden elegir Cuentas de tipo "Por Pagar" o "Por Cobrar" — es una '
+             'exigencia técnica de Odoo para que el Pago se pueda generar sin un '
+             'Proveedor asociado. Si necesita imputar a otra Cuenta (Gastos, Impuestos, '
+             'etc.), cree una Cuenta nueva de alguno de esos 2 tipos, dedicada a este '
+             'circuito — así no mezcla los reportes estándar de Proveedores/Clientes de '
+             'Odoo con Cuentas que en los hechos no lo son.',
+    )
+    importe_pago_cuenta = fields.Monetary(
+        string='Importe', currency_field='currency_id',
+        help='Carga manual — no hay ninguna Factura externa contra la cual cuadrar '
+             'automáticamente, así que este es el valor contra el que se compara el '
+             'total de Medios de Pago.',
+    )
+    referencia_pago_cuenta = fields.Char(
+        string='Referencia',
+        help='Nombre del beneficiario del cheque, o una referencia corta del motivo del '
+             'pago para los demás Medios — reemplaza al dato de "Proveedor" para poder '
+             'identificar de qué se trata este Pago a Cuenta.',
     )
     fecha_en_proceso = fields.Datetime(string='Fecha En Proceso', readonly=True, copy=False)
     fecha_confirmacion = fields.Datetime(string='Fecha Confirmación', readonly=True, copy=False)
@@ -83,6 +119,25 @@ class LocalPyOrdenPago(models.Model):
              'Diferencia, ya que no sale de los Medios de Pago.',
     )
 
+    @api.constrains('es_pago_a_cuenta', 'partner_id', 'cuenta_pago_id', 'importe_pago_cuenta', 'referencia_pago_cuenta')
+    def _check_pago_a_cuenta_datos(self):
+        for orden in self:
+            if orden.es_pago_a_cuenta:
+                faltantes = []
+                if not orden.cuenta_pago_id:
+                    faltantes.append('Cuenta')
+                if not orden.importe_pago_cuenta:
+                    faltantes.append('Importe')
+                if not orden.referencia_pago_cuenta:
+                    faltantes.append('Referencia')
+                if faltantes:
+                    raise UserError(
+                        'Para una Orden de Pago "Pago a Cuenta", hace falta completar: %s.'
+                        % ', '.join(faltantes)
+                    )
+            elif not orden.partner_id:
+                raise UserError('Elija un Proveedor, o tilde "Pago a Cuenta" si esta Orden no corresponde a uno.')
+
     @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id',
                  'factura_ids.importe_a_pagar', 'factura_ids.cotizacion', 'partner_id', 'fecha', 'state')
     def _compute_totales(self):
@@ -92,7 +147,14 @@ class LocalPyOrdenPago(models.Model):
             orden.hay_monedas_distintas = bool(
                 orden.factura_ids.filtered(lambda f: f.currency_id != orden.currency_id)
             )
-            if orden.state == 'confirmado':
+            if orden.es_pago_a_cuenta:
+                # No hay Facturas externas contra las cuales cuadrar — el Importe
+                # cargado a mano es el valor de referencia, y no corresponden
+                # Retenciones (no hay una operación gravada específica detrás).
+                orden.total_retencion_iva_estimada = 0.0
+                orden.total_retencion_renta_estimada = 0.0
+                orden.diferencia = orden.importe_pago_cuenta - orden.total_medios
+            elif orden.state == 'confirmado':
                 # Ya está generada de verdad — las filas de Retención ya son Medios
                 # reales, incluidos en total_medios. No hay que restarlas aparte (si
                 # no, se descontarían dos veces). Se separan por Diario para que cada
@@ -242,6 +304,16 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'borrador':
                 raise UserError('Solo se puede marcar "En Proceso" una Orden de Pago en Borrador.')
+            if orden.es_pago_a_cuenta:
+                if not orden.medio_ids:
+                    raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
+                orden.medio_ids._resolver_chequera()
+                if orden.currency_id.round(orden.diferencia) != 0:
+                    raise UserError(
+                        'El total de Medios de Pago (%s) debe coincidir exactamente con el '
+                        'Importe cargado (%s).' % (orden.total_medios, orden.importe_pago_cuenta)
+                    )
+                continue
             if not orden.factura_ids:
                 raise UserError('Agregue al menos una factura/cuota a pagar antes de continuar.')
             if not orden.medio_ids:
@@ -272,6 +344,16 @@ class LocalPyOrdenPago(models.Model):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede Confirmar una Orden de Pago que esté "En Proceso".')
+            if orden.es_pago_a_cuenta:
+                orden.medio_ids._resolver_chequera()
+                if orden.currency_id.round(orden.importe_pago_cuenta - orden.total_medios) != 0:
+                    raise UserError(
+                        'El cuadre entre el Importe (%s) y los Medios de Pago (%s) ya no '
+                        'coincide. Revise los importes antes de volver a Confirmar.'
+                        % (orden.importe_pago_cuenta, orden.total_medios)
+                    )
+                orden._generar_pagos_a_cuenta()
+                continue
             orden._validar_configuracion_retencion()
             orden.medio_ids._resolver_chequera()
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
@@ -899,6 +981,58 @@ class LocalPyOrdenPago(models.Model):
                 'payment_method_id': pagos[0].payment_method_id.id,
                 'date': self.fecha,
             })
+
+    def _generar_pagos_a_cuenta(self):
+        """Genera los Pagos de una Orden de tipo "Pago a Cuenta" — sin
+        Proveedor, sin Facturas, y sin conciliación contra nada externo:
+        cada Pago va directo contra la Cuenta elegida en la cabecera
+        (posible porque esa Cuenta tiene que ser de tipo "Por Pagar" o
+        "Por Cobrar" — el único tipo que Odoo acepta como contraparte de
+        un Pago sin Contacto asociado).
+
+        AVISO: mecanismo nuevo y menos probado que el resto del módulo
+        — revisar con atención los primeros asientos que genere en la
+        práctica."""
+        self.ensure_one()
+        AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
+
+        for medio in self.medio_ids:
+            comentario = '%s - Orden de Pago %s' % (self.referencia_pago_cuenta, self.name)
+            payment = AccountPayment.create({
+                'payment_type': 'outbound',
+                'partner_id': False,
+                'destination_account_id': self.cuenta_pago_id.id,
+                'journal_id': medio.journal_id.id,
+                'amount': medio.importe,
+                'currency_id': self.currency_id.id,
+                'date': self.fecha,
+                'company_id': self.company_id.id,
+                'memo': comentario,
+                'l10n_py_orden_pago_id': self.id,
+                'l10n_py_orden_pago_medio_id': medio.id,
+            })
+            payment.action_post()
+            if payment.move_id:
+                payment.move_id.l10n_py_comentario = comentario
+
+            if medio.cheque_reutilizar_id:
+                cheque = medio.cheque_reutilizar_id
+                if cheque.estado != 'reutilizable':
+                    raise UserError(
+                        'El cheque N° %s ya no está en estado "Reutilizable" — revise la '
+                        'fila de Medios.' % cheque.numero
+                    )
+                cheque.write({
+                    'estado': 'emitido',
+                    'fecha_emision': payment.date,
+                    'payment_id': payment.id,
+                    'orden_pago_medio_id': medio.id,
+                    'motivo_anulacion': False,
+                    'proveedor_id': False,
+                    'moneda_id': self.currency_id.id,
+                    'importe_registrado': medio.importe,
+                })
+                medio.write({'cheque_reutilizar_id': False, 'nro_documento': str(cheque.numero)})
 
     def _crear_movimiento_retencion(self, medio, factura, monto_header):
         """Genera el asiento contable de la Retención IVA (débito a la

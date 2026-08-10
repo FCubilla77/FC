@@ -29,8 +29,14 @@
                             <group>
                                 <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"
                                        readonly="state != 'borrador'"/>
+                                <field name="es_pago_a_cuenta" readonly="state != 'borrador'"/>
                                 <field name="partner_id" options="{'no_create': True}"
-                                       domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"/>
+                                       domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"
+                                       invisible="es_pago_a_cuenta" required="not es_pago_a_cuenta"/>
+                                <field name="cuenta_pago_id" readonly="state != 'borrador'"
+                                       invisible="not es_pago_a_cuenta" required="es_pago_a_cuenta"/>
+                                <field name="referencia_pago_cuenta" readonly="state != 'borrador'"
+                                       invisible="not es_pago_a_cuenta" required="es_pago_a_cuenta"/>
                                 <field name="fecha" readonly="state != 'borrador'"/>
                                 <field name="fecha_en_proceso" invisible="not fecha_en_proceso"/>
                                 <field name="fecha_confirmacion" invisible="not fecha_confirmacion"/>
@@ -38,17 +44,19 @@
                             </group>
                             <group>
                                 <field name="currency_id" options="{'no_create': True}" readonly="state != 'borrador'"/>
-                                <field name="total_facturas"/>
+                                <field name="importe_pago_cuenta" readonly="state != 'borrador'"
+                                       invisible="not es_pago_a_cuenta"/>
+                                <field name="total_facturas" invisible="es_pago_a_cuenta"/>
                                 <field name="total_medios"/>
                                 <field name="diferencia"/>
                                 <field name="total_retencion_iva_estimada"
-                                       invisible="total_retencion_iva_estimada == 0"/>
+                                       invisible="es_pago_a_cuenta or total_retencion_iva_estimada == 0"/>
                                 <field name="total_retencion_renta_estimada"
-                                       invisible="total_retencion_renta_estimada == 0"/>
+                                       invisible="es_pago_a_cuenta or total_retencion_renta_estimada == 0"/>
                             </group>
                         </group>
                         <notebook>
-                            <page string="Facturas" name="facturas">
+                            <page string="Facturas" name="facturas" invisible="es_pago_a_cuenta">
                                 <button name="action_cargar_facturas_pendientes" type="object"
                                         string="Cargar Facturas Pendientes" class="btn-secondary"
                                         invisible="state != 'borrador'"/>

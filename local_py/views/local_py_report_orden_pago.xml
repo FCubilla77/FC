@@ -9,7 +9,13 @@
                             <table style="width: 100%; margin-bottom: 12px;">
                                 <tr>
                                     <td style="width: 50%;">
-                                        <strong>Proveedor:</strong> <t t-esc="o.partner_id.display_name"/><br/>
+                                        <t t-if="o.es_pago_a_cuenta">
+                                            <strong>Cuenta:</strong> <t t-esc="o.cuenta_pago_id.display_name"/><br/>
+                                            <strong>Referencia:</strong> <t t-esc="o.referencia_pago_cuenta or ''"/><br/>
+                                        </t>
+                                        <t t-else="">
+                                            <strong>Proveedor:</strong> <t t-esc="o.partner_id.display_name"/><br/>
+                                        </t>
                                         <strong>Comentario:</strong> <t t-esc="o.comentario or ''"/>
                                     </td>
                                     <td style="width: 50%;">

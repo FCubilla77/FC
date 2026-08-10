@@ -1011,7 +1011,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'name': orden.name,
                 'estado': 'Archivado' if es_archivada else dict(orden._fields['state'].selection).get(orden.state),
                 'fecha': orden.fecha,
-                'proveedor': orden.partner_id.display_name,
+                'proveedor': orden.cuenta_pago_id.display_name if orden.es_pago_a_cuenta else orden.partner_id.display_name,
                 'total': total_op,
                 'moneda_obj': moneda_actual,
             })
@@ -1116,7 +1116,11 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha_emision': cheque.fecha_emision,
                 'fecha_vencimiento': cheque.fecha_vencimiento,
                 'importe': importe,
-                'proveedor': cheque.proveedor.display_name if cheque.proveedor else '',
+                'proveedor': (
+                    cheque.orden_pago_id.cuenta_pago_id.display_name
+                    if cheque.orden_pago_id and cheque.orden_pago_id.es_pago_a_cuenta
+                    else (cheque.proveedor.display_name if cheque.proveedor else '')
+                ),
                 'moneda_obj': chequera_actual.currency_id,
             })
             if cheque.estado != 'anulado':

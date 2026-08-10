@@ -24,7 +24,7 @@
                                         <span t-esc="cheque.orden_pago_medio_id.fecha_vencimiento.strftime('%d/%m/%Y')"/>
                                     </div>
                                     <div style="position: absolute; top: 20mm; left: 3mm; width: 94mm;">
-                                        A: <span t-esc="cheque.proveedor.display_name"/>
+                                        A: <span t-esc="cheque.orden_pago_id.referencia_pago_cuenta if cheque.orden_pago_id and cheque.orden_pago_id.es_pago_a_cuenta else cheque.proveedor.display_name"/>
                                     </div>
                                     <div style="position: absolute; top: 30mm; left: 3mm; width: 94mm;
                                                  font-weight: bold; font-size: 11px;">
@@ -51,7 +51,7 @@
                                     </div>
                                     <div style="position: absolute; top: 22mm; left: 3mm; width: 169mm;">
                                         Páguese a la orden de:
-                                        <strong t-esc="cheque.proveedor.display_name"/>
+                                        <strong t-esc="cheque.orden_pago_id.referencia_pago_cuenta if cheque.orden_pago_id and cheque.orden_pago_id.es_pago_a_cuenta else cheque.proveedor.display_name"/>
                                         <div style="border-bottom: 1px solid #000000; width: 169mm;"/>
                                     </div>
                                     <div style="position: absolute; top: 32mm; left: 3mm; width: 130mm;">
