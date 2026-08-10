@@ -60,6 +60,24 @@
                                 </tbody>
                             </table>
 
+                            <h4 style="margin-top: 12px;">Detalle Pago a Cuenta</h4>
+                            <table style="width: 100%; border-collapse: collapse;" border="1">
+                                <thead>
+                                    <tr style="background-color: #eeeeee;">
+                                        <th style="padding: 3px;">Cuenta</th>
+                                        <th style="padding: 3px;">Referencia</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Importe</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-if="o.es_pago_a_cuenta">
+                                        <td style="padding: 2px;" t-esc="o.cuenta_pago_id.display_name"/>
+                                        <td style="padding: 2px;" t-esc="o.referencia_pago_cuenta or ''"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.importe_pago_cuenta)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+
                             <h4 style="margin-top: 12px;">Medios de Pago</h4>
                             <table style="width: 100%; border-collapse: collapse;" border="1">
                                 <thead>
