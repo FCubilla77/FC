@@ -243,15 +243,22 @@ class LocalPyOrdenPagoFactura(models.Model):
 
     def _retencion_renta_no_residente_calcular(self, concepto):
         """Retención Renta No Residente (INR) para proveedores del
-        exterior: se calcula sobre el importe que se está pagando ahora
-        (bruto, sin restarle nada por la Retención IVA — cada Retención
-        se calcula de forma independiente sobre el total del pago).
-        Devuelve la Base Imponible y el Monto para AMBOS casos (con y
-        sin Absorción) — la orquestación en Orden de Pago decide cuál
-        usar según la ficha del Proveedor."""
+        exterior. En una Orden de Pago normal, es proporcional al pago
+        parcial (Importe a Pagar). En una "Orden de Pago Retención", se
+        calcula como si se pagara el 100% de la Factura/Cuota (Total
+        Original) — pero en los dos casos se descuenta primero lo que ya
+        haya quedado cubierto por un cálculo anterior (columna
+        "renta_importe_cubierto" de la cuota), para nunca retener dos
+        veces sobre lo mismo. Devuelve la Base Imponible y el Monto para
+        AMBOS casos (con y sin Absorción) — la orquestación en Orden de
+        Pago decide cuál usar según la ficha del Proveedor."""
         self.ensure_one()
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
-        importe_header = self.header_currency_id.round(self.importe_a_pagar * (self.cotizacion or 0.0))
+        es_orden_retencion = self.orden_pago_id.es_orden_retencion
+        importe_factura = self.total_original if es_orden_retencion else self.importe_a_pagar
+        linea = self.move_line_id
+        importe_pendiente_factura = max(0.0, importe_factura - linea.l10n_py_renta_importe_cubierto)
+        importe_header = self.header_currency_id.round(importe_pendiente_factura * (self.cotizacion or 0.0))
         base_header = self.header_currency_id.round(importe_header * (concepto.porcentaje_imputacion / 100.0))
         monto_header = self.header_currency_id.round(base_header * (concepto.porcentaje / 100.0))
         monto_absorcion_header = self.header_currency_id.round(
@@ -263,6 +270,7 @@ class LocalPyOrdenPagoFactura(models.Model):
             'base': base_header,
             'monto': monto_header, 'monto_gs': monto_gs,
             'monto_absorcion': monto_absorcion_header, 'monto_absorcion_gs': monto_absorcion_gs,
+            'importe_pendiente_factura': importe_pendiente_factura,
         }
 
     def _retencion_absorcion_calcular(self):
@@ -271,10 +279,17 @@ class LocalPyOrdenPagoFactura(models.Model):
         IVA (llega Exenta) — se calcula un IVA "nocional" al 10% sobre
         el importe que se está pagando ahora, solo para determinar
         cuánto retener, y se retiene el 100% de ese IVA nocional. La
-        factura en sí no se toca en ningún momento."""
+        factura en sí no se toca en ningún momento.
+
+        En "Orden de Pago Retención" se usa el Total Original completo
+        en vez del Importe a Pagar (como si se pagara el 100% ahora) —
+        a diferencia de IVA local y Renta, este cálculo puntual todavía
+        no lleva acumulador propio, así que no está pensado para usarse
+        más de una vez sobre la misma cuota en este modo."""
         self.ensure_one()
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
-        iva_nocional_factura = self.importe_a_pagar * 0.10
+        importe_factura = self.total_original if self.orden_pago_id.es_orden_retencion else self.importe_a_pagar
+        iva_nocional_factura = importe_factura * 0.10
         iva_nocional_header = self.header_currency_id.round(iva_nocional_factura * (self.cotizacion or 0.0))
         monto_header = iva_nocional_header  # Retención del 100% del IVA nocional.
         monto_gs = self._monto_header_a_gs(monto_header, fecha)
@@ -282,21 +297,38 @@ class LocalPyOrdenPagoFactura(models.Model):
 
     def _retencion_iva_calcular(self, porcentaje):
         """Devuelve un diccionario con la Retención IVA de esta
-        factura/cuota, proporcional al pago parcial, separada por tasa
-        (5 y 10), en la Moneda de la Cabecera y su equivalente en
-        Guaraníes. El mismo Porcentaje se aplica sobre ambos tramos."""
+        factura/cuota, separada por tasa (5 y 10), en la Moneda de la
+        Cabecera y su equivalente en Guaraníes. El mismo Porcentaje se
+        aplica sobre ambos tramos.
+
+        En una Orden de Pago normal, es proporcional al pago parcial. En
+        una "Orden de Pago Retención", se calcula como si se pagara el
+        100% de la Factura/Cuota — pero en los dos casos se descuenta
+        primero lo que ya haya quedado cubierto por un cálculo anterior
+        (columna "iva_5_cubierto"/"iva_10_cubierto" de la cuota), para
+        nunca retener dos veces sobre lo mismo."""
         self.ensure_one()
         base_5, iva_5, base_10, iva_10 = self._bases_iva_por_tasa()
-        proporcion = self._proporcion_pago()
+        es_orden_retencion = self.orden_pago_id.es_orden_retencion
+        proporcion = 1.0 if es_orden_retencion else self._proporcion_pago()
         fecha = self.orden_pago_id.fecha or fields.Date.context_today(self)
         cotizacion = self.cotizacion or 0.0
+        linea = self.move_line_id
 
         resultado = {}
-        for tasa, iva_tasa in (('5', iva_5), ('10', iva_10)):
+        for tasa, iva_tasa, cubierto in (
+            ('5', iva_5, linea.l10n_py_iva_5_cubierto),
+            ('10', iva_10, linea.l10n_py_iva_10_cubierto),
+        ):
             iva_prop = iva_tasa * proporcion
-            iva_header = self.header_currency_id.round(iva_prop * cotizacion)
+            iva_pendiente_factura = max(0.0, iva_prop - cubierto)
+            iva_header = self.header_currency_id.round(iva_pendiente_factura * cotizacion)
             monto_header = self.header_currency_id.round(iva_header * (porcentaje / 100.0))
             monto_gs = self._monto_header_a_gs(monto_header, fecha)
-            resultado[tasa] = {'base': iva_header, 'monto': monto_header, 'monto_gs': monto_gs}
+            resultado[tasa] = {
+                'base': iva_header, 'monto': monto_header, 'monto_gs': monto_gs,
+                'iva_pendiente_factura': iva_pendiente_factura,
+            }
         return resultado
+
 

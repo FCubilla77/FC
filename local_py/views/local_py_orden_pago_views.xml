@@ -30,6 +30,8 @@
                                 <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"
                                        readonly="state != 'borrador'"/>
                                 <field name="es_pago_a_cuenta" readonly="state != 'borrador'"/>
+                                <field name="es_orden_retencion" readonly="state != 'borrador'"
+                                       invisible="es_pago_a_cuenta"/>
                                 <field name="partner_id" options="{'no_create': True}"
                                        domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"
                                        invisible="es_pago_a_cuenta" required="not es_pago_a_cuenta"/>
@@ -89,7 +91,7 @@
                                     </list>
                                 </field>
                             </page>
-                            <page string="Medios" name="medios">
+                            <page string="Medios" name="medios" invisible="es_orden_retencion">
                                 <field name="medio_ids" readonly="state != 'borrador'">
                                     <list editable="bottom" decoration-info="es_retencion">
                                         <field name="journal_id"/>

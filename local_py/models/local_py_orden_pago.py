@@ -41,6 +41,17 @@ class LocalPyOrdenPago(models.Model):
              'AVISO: esta es una función nueva y menos probada que el resto del módulo '
              '— revisar con atención los primeros asientos que genere.',
     )
+    es_orden_retencion = fields.Boolean(
+        string='Orden de Pago Retención', tracking=True,
+        help='Para declarar la Retención de una Factura/Cuota antes de pagarla de '
+             'verdad (por ejemplo, cuando la cuota vence sin haberse pagado, pero la '
+             'obligación fiscal de retener igual corresponde). Calcula la Retención '
+             'IVA/Renta como si se estuviera pagando el 100% de cada Factura/Cuota '
+             'elegida, sin control de Mínimo Imponible, y sin exigir ningún otro Medio '
+             'de Pago — cuando la Factura se termine pagando de verdad más adelante, el '
+             'sistema recuerda lo ya retenido y no vuelve a retener sobre lo mismo. No '
+             'compatible con "Pago a Cuenta".',
+    )
     cuenta_pago_id = fields.Many2one(
         'account.account', string='Cuenta',
         domain="[('l10n_py_pagos_a_cuenta', '=', True), ('company_ids', 'in', company_id)]",
@@ -115,6 +126,15 @@ class LocalPyOrdenPago(models.Model):
              'porción que se absorbe (si corresponde) no afecta este total ni la '
              'Diferencia, ya que no sale de los Medios de Pago.',
     )
+
+    @api.constrains('es_pago_a_cuenta', 'es_orden_retencion')
+    def _check_pago_a_cuenta_vs_orden_retencion(self):
+        for orden in self:
+            if orden.es_pago_a_cuenta and orden.es_orden_retencion:
+                raise UserError(
+                    '"Pago a Cuenta" y "Orden de Pago Retención" no se pueden usar juntas '
+                    'en la misma Orden — elija una de las dos.'
+                )
 
     @api.constrains('es_pago_a_cuenta', 'partner_id', 'cuenta_pago_id', 'importe_pago_cuenta', 'referencia_pago_cuenta')
     def _check_pago_a_cuenta_datos(self):
@@ -313,6 +333,11 @@ class LocalPyOrdenPago(models.Model):
                 continue
             if not orden.factura_ids:
                 raise UserError('Agregue al menos una factura/cuota a pagar antes de continuar.')
+            if orden.es_orden_retencion:
+                # No hay Medios de Efectivo/Cheque/Transferencia en este modo — no
+                # corresponde exigirlos, ni que el cuadre dé exacto (nunca se está
+                # pagando el 100%, solo declarando la Retención).
+                continue
             if not orden.medio_ids:
                 raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
             orden.medio_ids._resolver_chequera()
@@ -356,6 +381,18 @@ class LocalPyOrdenPago(models.Model):
             a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             orden._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(orden.fecha)
+            if orden.es_orden_retencion:
+                antes = orden.env['local_py.retencion_emitida'].search_count([('orden_pago_id', '=', orden.id)])
+                orden._calcular_retenciones_iva()
+                orden._calcular_retenciones_exterior()
+                despues = orden.env['local_py.retencion_emitida'].search_count([('orden_pago_id', '=', orden.id)])
+                if despues == antes:
+                    raise UserError(
+                        'Las Facturas / Cuotas seleccionadas ya fueron retenidas al 100% de '
+                        'lo que corresponde.'
+                    )
+                orden._generar_pagos()
+                continue
             orden._calcular_retenciones_iva()
             orden._calcular_retenciones_exterior()
             if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
@@ -498,7 +535,7 @@ class LocalPyOrdenPago(models.Model):
 
         acumulado_previo = self._get_acumulado_mensual_iva_previo(partner, self.fecha)
         contribucion_esta_op = sum(f._total_gravado_proporcional_gs() for f in self.factura_ids)
-        if self.company_id.currency_id.compare_amounts(
+        if not self.es_orden_retencion and self.company_id.currency_id.compare_amounts(
             acumulado_previo + contribucion_esta_op, config.l10n_py_retencion_iva_minimo
         ) < 0:
             return resultado
@@ -526,11 +563,17 @@ class LocalPyOrdenPago(models.Model):
         limpia primero para recalcular de cero."""
         self.ensure_one()
         self.medio_ids.filtered('es_retencion').unlink()
-        self.env['local_py.retencion_emitida'].search([
+        retenciones_a_limpiar = self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('tipo_retencion', '=', 'iva'), ('estado', '=', 'pendiente'),
         ]).filtered(
             lambda r: not r.es_absorcion_iva and not r.es_absorcion_renta and not r.concepto_renta_id
-        ).unlink()
+        )
+        for retencion in retenciones_a_limpiar:
+            linea = retencion.factura_id.move_line_id
+            if linea:
+                linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
+                linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
+        retenciones_a_limpiar.unlink()
 
         evaluacion = self._evaluar_retencion_iva()
         if not evaluacion:
@@ -554,6 +597,8 @@ class LocalPyOrdenPago(models.Model):
                 'porcentaje': factura.orden_pago_id.partner_id.l10n_py_retencion_iva_porcentaje,
                 'monto_gs': datos['monto_gs_total'],
                 'concepto_iva_id': (self.partner_id.l10n_py_concepto_iva_id or config.l10n_py_concepto_iva_id).id,
+                'iva_5_cubierto_aporte': por_tasa['5']['iva_pendiente_factura'],
+                'iva_10_cubierto_aporte': por_tasa['10']['iva_pendiente_factura'],
             })
             if self.currency_id.compare_amounts(datos['monto_total'], 0) > 0:
                 # Un Medio de Retención POR FACTURA, no uno combinado — así la
@@ -567,6 +612,9 @@ class LocalPyOrdenPago(models.Model):
                     'es_retencion': True,
                     'retencion_factura_id': factura.id,
                 })
+            linea = factura.move_line_id
+            linea.l10n_py_iva_5_cubierto += por_tasa['5']['iva_pendiente_factura']
+            linea.l10n_py_iva_10_cubierto += por_tasa['10']['iva_pendiente_factura']
 
     def _evaluar_retencion_exterior(self):
         """Evalúa la Retención IVA (a Proveedores del exterior, Concepto
@@ -617,6 +665,7 @@ class LocalPyOrdenPago(models.Model):
                             'concepto_id': concepto.id, 'base': calc['base'],
                             'monto': monto_usar, 'monto_gs': monto_gs_usar,
                             'se_absorbe': se_absorbe_renta,
+                            'importe_pendiente_factura': calc['importe_pendiente_factura'],
                         }
             if datos_factura:
                 resultado[factura] = datos_factura
@@ -629,10 +678,11 @@ class LocalPyOrdenPago(models.Model):
         la fila de Medios que corresponda (según la ficha del
         Proveedor)."""
         self.ensure_one()
+        partner = self.partner_id
+        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
         viejas = self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
-            '|', ('es_absorcion_iva', '=', True), ('es_absorcion_renta', '=', True),
-        ])
+        ]) if es_exterior else self.env['local_py.retencion_emitida']
         for vieja in viejas:
             if vieja.absorcion_move_id_iva:
                 vieja.absorcion_move_id_iva.button_draft()
@@ -640,6 +690,9 @@ class LocalPyOrdenPago(models.Model):
             if vieja.absorcion_move_id_renta:
                 vieja.absorcion_move_id_renta.button_draft()
                 vieja.absorcion_move_id_renta.unlink()
+            linea = vieja.factura_id.move_line_id
+            if linea:
+                linea.l10n_py_renta_importe_cubierto -= vieja.renta_importe_cubierto_aporte
         viejas.unlink()
 
         evaluacion = self._evaluar_retencion_exterior()
@@ -691,6 +744,7 @@ class LocalPyOrdenPago(models.Model):
                     'monto_renta': renta_datos['monto'],
                     'monto_renta_gs': renta_datos['monto_gs'],
                     'es_absorcion_renta': renta_datos['se_absorbe'],
+                    'renta_importe_cubierto_aporte': renta_datos['importe_pendiente_factura'],
                 })
                 if renta_datos['se_absorbe']:
                     move = self._crear_movimiento_absorcion(
@@ -706,6 +760,7 @@ class LocalPyOrdenPago(models.Model):
                         'es_retencion': True,
                         'retencion_factura_id': factura.id,
                     })
+                factura.move_line_id.l10n_py_renta_importe_cubierto += renta_datos['importe_pendiente_factura']
 
             Retencion.create(vals)
 
@@ -837,7 +892,14 @@ class LocalPyOrdenPago(models.Model):
         for asiento in retenciones_op.filtered('absorcion_move_id_renta').mapped('absorcion_move_id_renta'):
             asiento.button_draft()
             asiento.unlink()
-        retenciones_op.filtered(lambda r: r.estado == 'pendiente').unlink()
+        retenciones_pendientes = retenciones_op.filtered(lambda r: r.estado == 'pendiente')
+        for retencion in retenciones_pendientes:
+            linea = retencion.factura_id.move_line_id
+            if linea:
+                linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
+                linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
+                linea.l10n_py_renta_importe_cubierto -= retencion.renta_importe_cubierto_aporte
+        retenciones_pendientes.unlink()
         medios_retencion.unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
 

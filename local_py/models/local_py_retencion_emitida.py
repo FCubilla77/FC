@@ -81,6 +81,22 @@ class LocalPyRetencionEmitida(models.Model):
         help='Monto de Renta declarado ante la DNIT — siempre en Guaraníes, convertido '
              'a la Cotización de la Orden de Pago.',
     )
+    factura_currency_id = fields.Many2one(related='factura_id.currency_id', string='Moneda de la Factura')
+    iva_5_cubierto_aporte = fields.Monetary(
+        string='Aporte al acumulado IVA 5%', currency_field='factura_currency_id', copy=False,
+        help='Cuánto sumó esta Retención al acumulado "IVA 5% ya cubierto" de la cuota '
+             '(en la moneda propia de la Factura) — se usa para poder revertirlo con '
+             'precisión si esta Retención se anula o su Orden de Pago se revierte.',
+    )
+    iva_10_cubierto_aporte = fields.Monetary(
+        string='Aporte al acumulado IVA 10%', currency_field='factura_currency_id', copy=False,
+        help='Mismo criterio que "Aporte al acumulado IVA 5%", para el tramo al 10%.',
+    )
+    renta_importe_cubierto_aporte = fields.Monetary(
+        string='Aporte al acumulado Renta', currency_field='factura_currency_id', copy=False,
+        help='Cuánto sumó esta Retención al acumulado "Importe ya cubierto (Renta)" de '
+             'la cuota (en la moneda propia de la Factura).',
+    )
     es_absorcion_renta = fields.Boolean(
         string='Renta con Absorción', default=False,
         help='Proveedores del exterior que tienen "Se Absorbe Renta" tildado en su '
