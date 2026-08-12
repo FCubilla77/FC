@@ -40,10 +40,6 @@ class ResPartner(models.Model):
     l10n_py_retencion_renta = fields.Boolean(
         string='Retención Renta', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta'),
     )
-    l10n_py_retencion_renta_porcentaje = fields.Float(
-        string='Porcentaje Retención Renta', digits=(5, 2),
-        default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta_porcentaje'),
-    )
     l10n_py_concepto_iva_id = fields.Many2one(
         'local_py.concepto_iva', string='Concepto IVA',
         default=lambda self: self._default_l10n_py_retencion('l10n_py_concepto_iva_id'),
@@ -81,6 +77,47 @@ class ResPartner(models.Model):
              'por Factura, para cuando una factura puntual corresponda a otro Concepto '
              'de los configurados arriba.',
     )
+    l10n_py_localizacion_validada = fields.Boolean(
+        string='Localización Validada', default=False, copy=False,
+        help='Confirma que un humano revisó (y completó o corrigió si hacía falta) los '
+             'datos de Retención de este Proveedor — nace destildada en cualquier '
+             'Contacto nuevo, incluso si los campos de Retención se autocompletaron '
+             'solos con los valores predeterminados de la Compañía. Mientras no esté '
+             'tildada, Orden de Pago bloquea a este Proveedor si tiene alguna Retención '
+             'activa (evita pagar con datos fiscales sin revisar).',
+    )
+
+    @api.onchange('country_id')
+    def _onchange_country_id_retencion(self):
+        """Al elegir el País de un Contacto Empresa, precarga los datos
+        de Retención según sea Local o del Exterior — con los valores
+        predeterminados de la Compañía, y la bandera "Localización
+        Validada" siempre destildada: alguien tiene que revisar esto a
+        mano antes de poder usar a este Proveedor en una Orden de Pago
+        con Retención activa."""
+        if not self.is_company or not self.country_id:
+            return
+        company_country = self.env.company.country_id
+        config = self.env['local_py.configuracion_localizacion'].search(
+            [('company_id', '=', self.env.company.id)], limit=1,
+        )
+        if self.country_id == company_country:
+            self.l10n_py_retencion_renta = False
+            self.l10n_py_se_absorbe_iva = False
+            self.l10n_py_se_absorbe_renta = False
+            if config:
+                self.l10n_py_retencion_iva = config.l10n_py_retencion_iva
+                self.l10n_py_retencion_iva_porcentaje = config.l10n_py_retencion_iva_porcentaje
+                self.l10n_py_concepto_iva_id = config.l10n_py_concepto_iva_id
+        else:
+            self.l10n_py_retencion_iva = True
+            self.l10n_py_retencion_renta = True
+            concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
+            if concepto_iva_2:
+                self.l10n_py_concepto_iva_id = concepto_iva_2
+            if config and config.l10n_py_retencion_iva_porcentaje:
+                self.l10n_py_retencion_iva_porcentaje = config.l10n_py_retencion_iva_porcentaje
+        self.l10n_py_localizacion_validada = False
 
     @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
     def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):
@@ -197,8 +234,7 @@ class ResPartner(models.Model):
     @api.constrains(
         'is_company', 'name', 'street', 'country_id', 'state_id', 'city_id',
         'l10n_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
-        'property_supplier_payment_term_id', 'l10n_py_retencion_iva',
-        'l10n_py_retencion_iva_porcentaje', 'l10n_py_concepto_iva_id',
+        'property_supplier_payment_term_id',
     )
     def _check_datos_obligatorios_empresa(self):
         """Un contacto de tipo Empresa necesita, como mínimo, estos datos
@@ -224,11 +260,6 @@ class ResPartner(models.Model):
                 faltantes.append('Términos de Pago Venta')
             if not partner.property_supplier_payment_term_id:
                 faltantes.append('Términos de Pago Compra')
-            if partner.l10n_py_retencion_iva:
-                if not partner.l10n_py_retencion_iva_porcentaje:
-                    faltantes.append('Porcentaje Retención IVA')
-                if not partner.l10n_py_concepto_iva_id:
-                    faltantes.append('Concepto IVA')
             if faltantes:
                 raise exceptions.ValidationError(
                     'Para guardar un Contacto de tipo Empresa, hace falta completar: %s.'
@@ -269,6 +300,69 @@ class ResPartner(models.Model):
                     'Tributaria", País distinto de Paraguay, y Concepto IVA = "IVA.2 — Pago '
                     'Único y Definitivo por acreditamiento...". Revise estos 3 campos en la '
                     'ficha del Proveedor.'
+                )
+
+    @api.constrains(
+        'is_company', 'country_id', 'l10n_py_retencion_iva', 'l10n_py_retencion_iva_porcentaje',
+        'l10n_py_concepto_iva_id', 'l10n_py_se_absorbe_iva', 'l10n_py_retencion_renta',
+        'l10n_py_concepto_renta_no_residente_predeterminado_id', 'supplier_rank',
+    )
+    def _check_retenciones_local_o_exterior(self):
+        """Reglas de Retención según el Proveedor sea local o del
+        exterior — se define comparando su País contra el de la
+        Compañía (dato más simple y directo que el cruce de 3 señales
+        de _check_consistencia_proveedor_exterior, que sigue aplicando
+        aparte para la Absorción de IVA). Aplica solo a Proveedores
+        (supplier_rank > 0) — un Cliente puro no tiene por qué cumplir
+        ninguna de estas reglas, aunque sea de tipo Empresa.
+
+        - Local: no puede tener "Retención Renta" activada. Si tiene
+          "Retención IVA" activada, necesita Porcentaje y Concepto IVA
+          completos, y no puede tener "Se Absorbe IVA" tildado (la
+          Absorción es exclusiva de proveedores del exterior).
+        - Exterior: tiene que tener "Retención IVA" y "Retención
+          Renta" activadas, las dos. En Retención IVA necesita
+          Porcentaje y Concepto IVA puntualmente en "IVA.2" (no
+          cualquier Concepto — tiene que coincidir con el que dispara
+          la Absorción/cálculo del exterior); en Retención Renta
+          necesita el Concepto Renta No Residente Predeterminado (trae
+          el porcentaje incluido). "Se Absorbe IVA"/"Se Absorbe Renta"
+          quedan libres — pueden estar tildadas las dos, una sola, o
+          ninguna."""
+        concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
+        company_country = self.env.company.country_id
+        for partner in self:
+            if not partner.is_company or not partner.country_id or partner.supplier_rank <= 0:
+                continue
+            es_local = partner.country_id == company_country
+            faltantes = []
+            if es_local:
+                if partner.l10n_py_retencion_renta:
+                    faltantes.append('un Proveedor local no puede tener "Retención Renta" activada')
+                if partner.l10n_py_retencion_iva:
+                    if not partner.l10n_py_retencion_iva_porcentaje:
+                        faltantes.append('Porcentaje Retención IVA')
+                    if not partner.l10n_py_concepto_iva_id:
+                        faltantes.append('Concepto IVA')
+                    if partner.l10n_py_se_absorbe_iva:
+                        faltantes.append('un Proveedor local no puede tener "Se Absorbe IVA" tildado')
+            else:
+                if not partner.l10n_py_retencion_iva:
+                    faltantes.append('un Proveedor del exterior debe tener "Retención IVA" activada')
+                if not partner.l10n_py_retencion_renta:
+                    faltantes.append('un Proveedor del exterior debe tener "Retención Renta" activada')
+                if partner.l10n_py_retencion_iva:
+                    if not partner.l10n_py_retencion_iva_porcentaje:
+                        faltantes.append('Porcentaje Retención IVA')
+                    if not concepto_iva_2 or partner.l10n_py_concepto_iva_id != concepto_iva_2:
+                        faltantes.append('Concepto IVA tiene que ser puntualmente "IVA.2"')
+                if partner.l10n_py_retencion_renta:
+                    if not partner.l10n_py_concepto_renta_no_residente_predeterminado_id:
+                        faltantes.append('Concepto Renta No Residente Predeterminado')
+            if faltantes:
+                raise exceptions.ValidationError(
+                    'Revisar la configuración de Retenciones de este Proveedor (%s): %s.'
+                    % ('local' if es_local else 'del exterior', '; '.join(faltantes))
                 )
 
     @api.constrains(

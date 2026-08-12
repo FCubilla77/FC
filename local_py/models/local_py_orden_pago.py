@@ -468,6 +468,12 @@ class LocalPyOrdenPago(models.Model):
         es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
         faltantes = []
 
+        if (partner.l10n_py_retencion_iva or partner.l10n_py_retencion_renta) and not partner.l10n_py_localizacion_validada:
+            faltantes.append(
+                'Tildar "Localización Validada" en la ficha del Proveedor (pestaña Localización) — '
+                'confirma que alguien revisó sus datos de Retención antes de usarlo en un pago'
+            )
+
         if partner.l10n_py_retencion_iva:
             if not config or not config.l10n_py_retencion_iva:
                 faltantes.append('Activar "Retención IVA" en Configuraciones Localización Py')
@@ -493,11 +499,16 @@ class LocalPyOrdenPago(models.Model):
                         'Cargar el "Porcentaje Retención IVA" en la ficha del Proveedor "%s"' % partner.display_name
                     )
 
-        necesita_renta = bool(
-            es_exterior and partner.l10n_py_retencion_renta
-            and any(f.move_id.l10n_py_concepto_renta_no_residente_id for f in self.factura_ids)
-        )
+        necesita_renta = bool(es_exterior and partner.l10n_py_retencion_renta)
         if necesita_renta:
+            facturas_sin_concepto = self.factura_ids.filtered(
+                lambda f: not f.move_id.l10n_py_concepto_renta_no_residente_id
+            )
+            if facturas_sin_concepto:
+                faltantes.append(
+                    'Completar el "Concepto Renta No Residente" en la Factura de: %s'
+                    % ', '.join(facturas_sin_concepto.mapped('move_id.name'))
+                )
             if not config or not config.l10n_py_retencion_renta:
                 faltantes.append('Activar "Retención Renta" en Configuraciones Localización Py')
             if config:

@@ -578,6 +578,24 @@ class AccountMove(models.Model):
                     'No se puede confirmar el comprobante sin completar: Términos de Pago.'
                 )
 
+    @api.constrains('l10n_py_concepto_renta_no_residente_id', 'move_type', 'state', 'partner_id')
+    def _check_l10n_py_concepto_renta_no_residente_proveedor(self):
+        """Si el Proveedor de esta Factura es del exterior (corresponde
+        mostrar el campo "Concepto Renta No Residente"), ese dato pasa
+        a ser obligatorio para poder confirmar — es la red de seguridad
+        para cuando alguien lo borra a mano después de que se
+        autocompletó, o para Facturas cargadas antes de que el
+        Proveedor tuviera el dato bien configurado."""
+        for move in self:
+            if (
+                move.move_type in PURCHASE_MOVE_TYPES and move.state == 'posted'
+                and move.l10n_py_mostrar_concepto_renta_nr and not move.l10n_py_concepto_renta_no_residente_id
+            ):
+                raise exceptions.ValidationError(
+                    'No se puede confirmar el comprobante sin completar: Concepto Renta No Residente '
+                    '(el Proveedor es del exterior).'
+                )
+
     # ------------------------------------------------------------------
     # Validaciones de formato (aplican a venta y a proveedor)
     # ------------------------------------------------------------------
