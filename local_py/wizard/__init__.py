@@ -17,3 +17,4 @@ from . import local_py_reporte_orden_pago_wizard
 from . import local_py_reporte_cheques_wizard
 from . import local_py_tesaka_export_wizard
 from . import local_py_retencion_anular_wizard
+from . import local_py_orden_pago_saldo_favor_wizard

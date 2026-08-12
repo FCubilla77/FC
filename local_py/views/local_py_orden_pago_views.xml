@@ -51,6 +51,8 @@
                                 <field name="total_facturas" invisible="es_pago_a_cuenta"/>
                                 <field name="total_medios"/>
                                 <field name="diferencia"/>
+                                <field name="permite_saldo_a_favor" readonly="1"
+                                       invisible="not permite_saldo_a_favor"/>
                                 <field name="total_retencion_iva_estimada"
                                        invisible="es_pago_a_cuenta or total_retencion_iva_estimada == 0"/>
                                 <field name="total_retencion_renta_estimada"

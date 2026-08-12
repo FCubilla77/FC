@@ -102,10 +102,17 @@ class LocalPyOrdenPago(models.Model):
     )
     diferencia = fields.Monetary(
         string='Diferencia', compute='_compute_totales', currency_field='currency_id',
-        help='Total a Pagar (Facturas) menos Total Medios de Pago menos Retención IVA '
+        help='Total a Pagar (Facturas) menos Total Medios de Pago menos Retención IVA/Renta '
              '(estimada) — es lo que falta cargar en Medios reales (Efectivo, '
-             'Transferencia, Cheque, etc.). Tiene que quedar en cero antes de poder '
-             'pasar a "En Proceso".',
+             'Transferencia, Cheque, etc.). No puede quedar en negativo (faltaría plata) '
+             'para poder pasar a "En Proceso" — si queda en positivo (sobra), el sistema '
+             'pregunta si corregir los importes o dejarlo como Saldo a Favor del Proveedor.',
+    )
+    permite_saldo_a_favor = fields.Boolean(
+        string='Permite Saldo a Favor', copy=False,
+        help='Se tilda solo desde el wizard que aparece al detectar un sobrante entre '
+             'Medios de Pago y Facturas — habilita que ese excedente quede sin conciliar '
+             '(Saldo a Favor del Proveedor) en vez de bloquear la Orden de Pago.',
     )
     hay_monedas_distintas = fields.Boolean(compute='_compute_totales')
     total_retencion_iva_estimada = fields.Monetary(
@@ -333,49 +340,61 @@ class LocalPyOrdenPago(models.Model):
         nuevas._set_cotizacion_default(self.fecha)
 
     def action_marcar_en_proceso(self):
-        for orden in self:
-            if orden.state != 'borrador':
-                raise UserError('Solo se puede marcar "En Proceso" una Orden de Pago en Borrador.')
-            if orden.es_pago_a_cuenta:
-                if not orden.medio_ids:
-                    raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
-                orden.medio_ids._resolver_chequera()
-                if orden.currency_id.round(orden.diferencia) != 0:
-                    raise UserError(
-                        'El total de Medios de Pago (%s) debe coincidir exactamente con el '
-                        'Importe cargado (%s).' % (orden.total_medios, orden.importe_pago_cuenta)
-                    )
-                continue
-            if not orden.factura_ids:
-                raise UserError('Agregue al menos una factura/cuota a pagar antes de continuar.')
-            if orden.es_orden_retencion:
-                # No hay Medios de Efectivo/Cheque/Transferencia en este modo — no
-                # corresponde exigirlos, ni que el cuadre dé exacto (nunca se está
-                # pagando el 100%, solo declarando la Retención).
-                continue
-            if not orden.medio_ids:
+        self.ensure_one()
+        if self.state != 'borrador':
+            raise UserError('Solo se puede marcar "En Proceso" una Orden de Pago en Borrador.')
+        if self.es_pago_a_cuenta:
+            if not self.medio_ids:
                 raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
-            orden.medio_ids._resolver_chequera()
-            a_refrescar = orden.factura_ids.filtered(lambda f: not f.cotizacion_manual)
-            if a_refrescar:
-                a_refrescar._set_cotizacion_default(orden.fecha)
-            if orden.currency_id.round(orden.diferencia) != 0:
+            self.medio_ids._resolver_chequera()
+            if self.currency_id.round(self.diferencia) != 0:
                 raise UserError(
-                    'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) y la '
-                    'Retención Renta estimada (%s) debe coincidir exactamente con el total a '
-                    'pagar de las Facturas seleccionadas (%s).'
-                    % (
-                        orden.total_medios, orden.total_retencion_iva_estimada,
-                        orden.total_retencion_renta_estimada, orden.total_facturas,
-                    )
+                    'El total de Medios de Pago (%s) debe coincidir exactamente con el '
+                    'Importe cargado (%s).' % (self.total_medios, self.importe_pago_cuenta)
                 )
+            self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
+            return
+        if not self.factura_ids:
+            raise UserError('Agregue al menos una factura/cuota a pagar antes de continuar.')
+        if self.es_orden_retencion:
+            # No hay Medios de Efectivo/Cheque/Transferencia en este modo — no
+            # corresponde exigirlos, ni que el cuadre dé exacto (nunca se está
+            # pagando el 100%, solo declarando la Retención).
+            self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
+            return
+        if not self.medio_ids:
+            raise UserError('Agregue al menos un Medio de Pago antes de continuar.')
+        self.medio_ids._resolver_chequera()
+        a_refrescar = self.factura_ids.filtered(lambda f: not f.cotizacion_manual)
+        if a_refrescar:
+            a_refrescar._set_cotizacion_default(self.fecha)
+        diferencia = self.currency_id.round(self.diferencia)
+        if diferencia < 0:
+            raise UserError(
+                'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) y la '
+                'Retención Renta estimada (%s) no alcanza para cubrir el total a pagar de '
+                'las Facturas seleccionadas (%s) — falta %s.'
+                % (
+                    self.total_medios, self.total_retencion_iva_estimada,
+                    self.total_retencion_renta_estimada, self.total_facturas, -diferencia,
+                )
+            )
+        if diferencia > 0 and not self.permite_saldo_a_favor:
+            return {
+                'name': 'Sobra plata entre Medios y Facturas',
+                'type': 'ir.actions.act_window',
+                'res_model': 'local_py.orden_pago.saldo_favor_wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {'default_orden_pago_id': self.id},
+            }
         self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
 
     def action_volver_borrador(self):
         for orden in self:
             if orden.state != 'en_proceso':
                 raise UserError('Solo se puede volver a Borrador desde el estado "En Proceso".')
-        self.write({'state': 'borrador', 'fecha_en_proceso': False})
+        self.write({'state': 'borrador', 'fecha_en_proceso': False, 'permite_saldo_a_favor': False})
 
     def action_confirmar(self):
         for orden in self:
@@ -410,11 +429,20 @@ class LocalPyOrdenPago(models.Model):
                 continue
             orden._calcular_retenciones_iva()
             orden._calcular_retenciones_exterior()
-            if orden.currency_id.round(orden.total_facturas - orden.total_medios) != 0:
+            diferencia_final = orden.currency_id.round(orden.total_facturas - orden.total_medios)
+            if diferencia_final < 0:
                 raise UserError(
-                    'La cotización cambió y el cuadre entre Facturas y Medios de Pago ya no '
-                    'coincide (Facturas: %s, Medios: %s). Revise los importes antes de volver '
-                    'a Confirmar.' % (orden.total_facturas, orden.total_medios)
+                    'La cotización cambió y el total de Medios de Pago ya no alcanza para cubrir '
+                    'las Facturas seleccionadas (Facturas: %s, Medios: %s) — falta %s. Revise los '
+                    'importes antes de volver a Confirmar.'
+                    % (orden.total_facturas, orden.total_medios, -diferencia_final)
+                )
+            if diferencia_final > 0 and not orden.permite_saldo_a_favor:
+                raise UserError(
+                    'La cotización cambió y ahora sobran %s entre los Medios de Pago y las '
+                    'Facturas seleccionadas (Facturas: %s, Medios: %s). Vuelva a "En Proceso" '
+                    'para que el sistema le pregunte de nuevo qué hacer con el sobrante.'
+                    % (diferencia_final, orden.total_facturas, orden.total_medios)
                 )
             orden._generar_pagos()
         self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
@@ -964,6 +992,16 @@ class LocalPyOrdenPago(models.Model):
         medios_retencion = self.medio_ids.filtered('es_retencion')
         medios_normales = self.medio_ids - medios_retencion
 
+        def _prioridad_medio(medio):
+            # 0 = Cheque (Diario bancario con Chequera activa), 1 = Transferencia
+            # (Diario bancario sin Chequera), 2 = Efectivo (Diario de caja) — así el
+            # sobrante, si lo hay, siempre cae en el de menor prioridad presente.
+            if medio.journal_id.type == 'cash':
+                return 2
+            return 0 if medio.chequera_id else 1
+
+        medios_normales = medios_normales.sorted(key=_prioridad_medio)
+
         for medio in medios_retencion:
             factura = medio.retencion_factura_id
             move = self._crear_movimiento_retencion(medio, factura, medio.importe)
@@ -993,10 +1031,26 @@ class LocalPyOrdenPago(models.Model):
             if currency.is_zero(medios_pend[j][1]):
                 j += 1
 
-        if not self.es_orden_retencion and (i < len(facturas_pend) or j < len(medios_pend)):
+        sobrante_por_medio = []
+        if j < len(medios_pend):
+            medio_j, monto_restante_j = medios_pend[j]
+            if currency.compare_amounts(monto_restante_j, 0) > 0:
+                sobrante_por_medio.append((medio_j, monto_restante_j))
+            for medio_k, monto_k in medios_pend[j + 1:]:
+                if currency.compare_amounts(monto_k, 0) > 0:
+                    sobrante_por_medio.append((medio_k, monto_k))
+
+        if not self.es_orden_retencion and i < len(facturas_pend):
             raise UserError(
                 'No se pudo repartir exactamente el importe de los Medios de Pago contra '
-                'las Facturas/Cuotas seleccionadas. Revise los importes antes de continuar.'
+                'las Facturas/Cuotas seleccionadas — falta cobertura. Revise los importes '
+                'antes de continuar.'
+            )
+        if not self.es_orden_retencion and sobrante_por_medio and not self.permite_saldo_a_favor:
+            raise UserError(
+                'Sobra importe entre los Medios de Pago y las Facturas/Cuotas seleccionadas, '
+                'y esta Orden no tiene aprobado dejarlo como Saldo a Favor. Vuelva a "En '
+                'Proceso" para que el sistema le pregunte qué hacer con el sobrante.'
             )
 
         pagos_por_medio = {}
@@ -1043,6 +1097,50 @@ class LocalPyOrdenPago(models.Model):
                 lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
             )
             (factura.move_line_id + linea_pago_payable).reconcile()
+
+        for medio, monto in sobrante_por_medio:
+            comentario = 'Pago Orden de Pago %s (Saldo a Favor)' % self.name
+            payment = AccountPayment.create({
+                'payment_type': 'outbound',
+                'partner_type': 'supplier',
+                'partner_id': self.partner_id.id,
+                'journal_id': medio.journal_id.id,
+                'amount': monto,
+                'currency_id': self.currency_id.id,
+                'date': self.fecha,
+                'company_id': self.company_id.id,
+                'memo': comentario,
+                'l10n_py_orden_pago_id': self.id,
+                'l10n_py_orden_pago_medio_id': medio.id,
+            })
+            payment.action_post()
+            if payment.move_id:
+                payment.move_id.l10n_py_comentario = comentario
+            pagos_por_medio.setdefault(medio.id, []).append(payment.id)
+            # No se concilia contra ninguna Factura a propósito — es la porción
+            # que excede lo que se le debía al Proveedor, y queda disponible
+            # como Saldo a Favor en su cuenta corriente (Odoo lo maneja de forma
+            # nativa: un Pago sin conciliar queda "abierto" hasta que se aplique
+            # a mano contra una Factura futura).
+
+            if medio.cheque_reutilizar_id:
+                cheque = medio.cheque_reutilizar_id
+                if cheque.estado != 'reutilizable':
+                    raise UserError(
+                        'El cheque N° %s ya no está en estado "Reutilizable" — revise la '
+                        'fila de Medios.' % cheque.numero
+                    )
+                cheque.write({
+                    'estado': 'emitido',
+                    'fecha_emision': payment.date,
+                    'payment_id': payment.id,
+                    'orden_pago_medio_id': medio.id,
+                    'motivo_anulacion': False,
+                    'proveedor_id': self.partner_id.id,
+                    'moneda_id': self.currency_id.id,
+                    'importe_registrado': medio.importe,
+                })
+                medio.write({'cheque_reutilizar_id': False, 'nro_documento': str(cheque.numero)})
 
         # Si un mismo Medio (por ejemplo, un cheque) tuvo que repartirse en
         # más de un Pago para cubrir varias Facturas, se agrupan en un Lote

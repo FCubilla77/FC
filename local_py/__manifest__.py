@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.23.005",
+    "version": "2026.24.001",
     "license": "LGPL-3",
     "depends": ["base", "account", "base_address_extended", "mail", "stock", "stock_account"],
     "data": [
@@ -73,6 +73,7 @@
         "views/local_py_chequera_views.xml",
         "views/account_journal_chequera_views.xml",
         "views/local_py_orden_pago_deshacer_wizard_views.xml",
+        "views/local_py_orden_pago_saldo_favor_wizard_views.xml",
         "views/local_py_report_impresion_cheques.xml",
         "views/local_py_report_orden_pago_listado.xml",
         "views/local_py_reporte_orden_pago_wizard_views.xml",
