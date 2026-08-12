@@ -374,6 +374,8 @@
                 <li>"Deshacer Confirmación" revierte también el acumulador de la cuota, junto con todo lo demás que ya revertía — se mantiene la regla existente de que no se puede deshacer si la Retención ya está Levantada</li>
                 <li>Corregidos 2 huecos reales encontrados al construir esta funcionalidad: la limpieza de reintento de Confirmar (por ejemplo, tras un descuadre) ahora también revierte el acumulador correctamente, tanto para Retención IVA local como para la del exterior — antes, un reintento podía duplicar el acumulado sin que nadie lo notara</li>
                 <li><strong>LÍMITE CONOCIDO</strong>: el flujo "Anular la Orden de Pago completa" (wizard de Retenciones, para Retenciones ya Levantadas y después Anuladas por la DNIT) todavía no revierte el acumulador de la cuota — es un caso más raro (varias condiciones tienen que darse juntas) que se deja pendiente para una próxima revisión, en vez de arriesgar el resto de la entrega con menos tiempo de prueba</li>
+                <li>Corregido un bug real: "Orden de Pago Retención" no dejaba Confirmar — el control que verifica que el reparto entre Facturas y Medios cierre exacto no tenía en cuenta que, en este modo, las Facturas quedan a propósito con saldo abierto (solo se cubre la porción de la Retención) — ya se omite ese control puntual en este modo</li>
+                <li>Corregido: el campo "Concepto Renta No Residente" en la Factura de Proveedor se mostraba siempre — ahora solo aparece cuando el Proveedor es del exterior (País distinto de Paraguay, Tipo de Identificación Fiscal = "Identificación Tributaria", y con al menos un Concepto Renta No Residente configurado en su ficha)</li>
             </ul>
         </div>
     </div>

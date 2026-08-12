@@ -71,6 +71,29 @@ class AccountMove(models.Model):
              'ejemplo, servicios profesionales en una factura y servicios digitales '
              'en otra).',
     )
+    l10n_py_mostrar_concepto_renta_nr = fields.Boolean(
+        compute='_compute_l10n_py_mostrar_concepto_renta_nr',
+        help='Determina si corresponde mostrar el campo "Concepto Renta No Residente" '
+             '— solo para Proveedores del exterior: País distinto de Paraguay, Tipo de '
+             'Identificación Fiscal = "Identificación Tributaria", y con al menos un '
+             'Concepto Renta No Residente ya configurado en su ficha.',
+    )
+
+    @api.depends(
+        'partner_id', 'partner_id.country_id', 'partner_id.l10n_py_tipo_identificacion_fiscal_id',
+        'partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id',
+    )
+    def _compute_l10n_py_mostrar_concepto_renta_nr(self):
+        tipo_tributaria = self.env.ref('local_py.tipo_identificacion_tributaria', raise_if_not_found=False)
+        paraguay = self.env.ref('base.py', raise_if_not_found=False)
+        for move in self:
+            partner = move.partner_id
+            move.l10n_py_mostrar_concepto_renta_nr = bool(
+                partner and tipo_tributaria and paraguay
+                and partner.l10n_py_tipo_identificacion_fiscal_id == tipo_tributaria
+                and partner.country_id and partner.country_id != paraguay
+                and partner.l10n_py_concepto_renta_no_residente_predeterminado_id
+            )
 
     # El campo nativo reversed_entry_id es readonly=True a nivel de modelo
     # (Odoo lo llena automáticamente solo desde el asistente "Añadir Nota de

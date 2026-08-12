@@ -33,9 +33,10 @@
                         <field name="l10n_py_imputacion_tributaria_ids"
                                string="Imputación Tributaria"
                                widget="many2many_tags"/>
+                        <field name="l10n_py_mostrar_concepto_renta_nr" invisible="1"/>
                         <field name="l10n_py_concepto_renta_no_residente_id"
                                string="Concepto Renta No Residente"
-                               invisible="move_type not in ('in_invoice', 'in_refund')"
+                               invisible="not l10n_py_mostrar_concepto_renta_nr"
                                options="{'no_create': True}"/>
                         <field name="reversed_entry_id"
                                string="Comprobante Asociado"

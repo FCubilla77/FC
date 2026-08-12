@@ -967,7 +967,7 @@ class LocalPyOrdenPago(models.Model):
             if currency.is_zero(medios_pend[j][1]):
                 j += 1
 
-        if i < len(facturas_pend) or j < len(medios_pend):
+        if not self.es_orden_retencion and (i < len(facturas_pend) or j < len(medios_pend)):
             raise UserError(
                 'No se pudo repartir exactamente el importe de los Medios de Pago contra '
                 'las Facturas/Cuotas seleccionadas. Revise los importes antes de continuar.'
