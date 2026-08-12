@@ -186,6 +186,15 @@ class LocalPyOrdenPago(models.Model):
                 orden.total_retencion_renta_estimada = sum(
                     medios_retencion.filtered(lambda m: m.journal_id == diario_renta).mapped('importe')
                 )
+                if orden.es_orden_retencion:
+                    # En este modo, "Total a Pagar" no es el total de la Factura —
+                    # es lo que efectivamente se retuvo (0 si todo se absorbió, ya
+                    # que ahí no hay ningún Medio de por medio). Así no se ve una
+                    # Diferencia grande y confusa comparando contra el total real
+                    # de la Factura, que acá nunca se paga.
+                    orden.total_facturas = (
+                        orden.total_retencion_iva_estimada + orden.total_retencion_renta_estimada
+                    )
                 orden.diferencia = orden.total_facturas - orden.total_medios
             else:
                 evaluacion_iva = orden._evaluar_retencion_iva()
@@ -202,9 +211,15 @@ class LocalPyOrdenPago(models.Model):
                 )
                 orden.total_retencion_iva_estimada = total_iva
                 orden.total_retencion_renta_estimada = total_renta
+                if orden.es_orden_retencion:
+                    # Mismo criterio que en Confirmado, pero acá con los importes
+                    # todavía en estimación (los mismos que se van a generar de
+                    # verdad al Confirmar).
+                    orden.total_facturas = total_iva + total_renta
                 orden.diferencia = (
                     orden.total_facturas - orden.total_medios
                     - orden.total_retencion_iva_estimada - orden.total_retencion_renta_estimada
+                    if not orden.es_orden_retencion else orden.total_facturas - orden.total_medios
                 )
 
     @api.onchange('partner_id')

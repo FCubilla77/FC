@@ -91,7 +91,7 @@
                                     </list>
                                 </field>
                             </page>
-                            <page string="Medios" name="medios" invisible="es_orden_retencion">
+                            <page string="Medios" name="medios" invisible="es_orden_retencion and state != 'confirmado'">
                                 <field name="medio_ids" readonly="state != 'borrador'">
                                     <list editable="bottom" decoration-info="es_retencion">
                                         <field name="journal_id"/>

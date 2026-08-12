@@ -376,6 +376,8 @@
                 <li><strong>LÍMITE CONOCIDO</strong>: el flujo "Anular la Orden de Pago completa" (wizard de Retenciones, para Retenciones ya Levantadas y después Anuladas por la DNIT) todavía no revierte el acumulador de la cuota — es un caso más raro (varias condiciones tienen que darse juntas) que se deja pendiente para una próxima revisión, en vez de arriesgar el resto de la entrega con menos tiempo de prueba</li>
                 <li>Corregido un bug real: "Orden de Pago Retención" no dejaba Confirmar — el control que verifica que el reparto entre Facturas y Medios cierre exacto no tenía en cuenta que, en este modo, las Facturas quedan a propósito con saldo abierto (solo se cubre la porción de la Retención) — ya se omite ese control puntual en este modo</li>
                 <li>Corregido: el campo "Concepto Renta No Residente" en la Factura de Proveedor se mostraba siempre — ahora solo aparece cuando el Proveedor es del exterior (País distinto de Paraguay, Tipo de Identificación Fiscal = "Identificación Tributaria", y con al menos un Concepto Renta No Residente configurado en su ficha)</li>
+                <li>Corregido: en "Orden de Pago Retención", la pestaña Medios quedaba oculta también después de Confirmar — ahora se vuelve a mostrar una vez Confirmada, con las filas de Retención generadas, para poder revisarlas</li>
+                <li>Corregido: en "Orden de Pago Retención", "Total a Pagar (Facturas)" mostraba el total real de la Factura completa (que nunca se paga en este modo), dando una Diferencia grande y confusa contra el monto de la Retención — ahora "Total a Pagar" muestra el mismo valor que se va a retener, quedando la Diferencia en cero como corresponde</li>
             </ul>
         </div>
     </div>
