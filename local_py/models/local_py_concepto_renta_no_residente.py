@@ -33,3 +33,7 @@ class LocalPyConceptoRentaNoResidente(models.Model):
     )
     sequence = fields.Integer(string='Secuencia', default=10)
     active = fields.Boolean(string='Activo', default=True)
+
+    def _compute_display_name(self):
+        for concepto in self:
+            concepto.display_name = '%s - %s' % (concepto.codigo, concepto.name) if concepto.codigo else concepto.name

@@ -42,8 +42,8 @@
                                     </list>
                                 </field>
                             </page>
-                            <page string="Ajuste Inventario Físico" name="ajuste_inventario_fisico">
-                                <group>
+                            <page string="Ajustes Generales" name="ajustes_generales">
+                                <group string="Inventario">
                                     <field name="l10n_py_asiento_ajuste_inventario"/>
                                 </group>
                             </page>

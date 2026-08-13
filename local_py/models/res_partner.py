@@ -38,7 +38,7 @@ class ResPartner(models.Model):
         default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_iva_porcentaje'),
     )
     l10n_py_retencion_renta = fields.Boolean(
-        string='Retención Renta', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta'),
+        string='Retención Renta (Exterior)', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta'),
     )
     l10n_py_concepto_iva_id = fields.Many2one(
         'local_py.concepto_iva', string='Concepto IVA',
@@ -206,11 +206,24 @@ class ResPartner(models.Model):
 
         Excepción: no aplica a contactos originados al crear un Usuario
         (l10n_py_creado_desde_usuario_empleado = True), ya que ese flujo no
-        tiene por qué tener una Empresa asociada."""
+        tiene por qué tener una Empresa asociada.
+
+        Esta validación se revisa siempre antes que cualquier otra del
+        Contacto (queda definida primero en el archivo, y Odoo respeta
+        ese orden) — así, si alguna vez un registro llegara a activar
+        más de una validación a la vez, la que se muestra es siempre la
+        que corresponde a un contacto Individual, nunca la de Empresa."""
         for this in self:
-            if this.is_company or this.l10n_py_creado_desde_usuario_empleado:
+            if this.is_company:
                 continue
-            if not this.parent_id or not this.parent_id.is_company:
+            if this.l10n_py_creado_desde_usuario_empleado:
+                continue
+            if not this.parent_id:
+                raise exceptions.ValidationError(
+                    "Los contactos individuales solo pueden crearse dentro de un "
+                    "contacto de tipo Empresa. Seleccione una Empresa relacionada."
+                )
+            if not this.parent_id.is_company:
                 raise exceptions.ValidationError(
                     "Los contactos individuales solo pueden crearse dentro de un "
                     "contacto de tipo Empresa. Seleccione una Empresa relacionada."
@@ -234,14 +247,20 @@ class ResPartner(models.Model):
     @api.constrains(
         'is_company', 'name', 'street', 'country_id', 'state_id', 'city_id',
         'l10n_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
-        'property_supplier_payment_term_id',
+        'property_supplier_payment_term_id', 'vat',
     )
     def _check_datos_obligatorios_empresa(self):
         """Un contacto de tipo Empresa necesita, como mínimo, estos datos
         completos — de lo contrario, después faltan justo en el momento
-        de facturar, pagar, o declarar ante la DNIT."""
+        de facturar, pagar, o declarar ante la DNIT.
+
+        Guarda explícita y separada (no "if not is_company: continue"):
+        esta validación NUNCA debe mirar a un contacto Individual — se
+        escribe así, en 2 pasos, para que quede sin ninguna ambigüedad
+        de lectura."""
         for partner in self:
-            if not partner.is_company:
+            es_empresa = bool(partner.is_company)
+            if not es_empresa:
                 continue
             faltantes = []
             if not partner.name:
@@ -260,6 +279,8 @@ class ResPartner(models.Model):
                 faltantes.append('Términos de Pago Venta')
             if not partner.property_supplier_payment_term_id:
                 faltantes.append('Términos de Pago Compra')
+            if not partner.vat:
+                faltantes.append('RUT')
             if faltantes:
                 raise exceptions.ValidationError(
                     'Para guardar un Contacto de tipo Empresa, hace falta completar: %s.'
@@ -338,7 +359,7 @@ class ResPartner(models.Model):
             faltantes = []
             if es_local:
                 if partner.l10n_py_retencion_renta:
-                    faltantes.append('un Proveedor local no puede tener "Retención Renta" activada')
+                    faltantes.append('un Proveedor local no puede tener "Retención Renta (Exterior)" activada')
                 if partner.l10n_py_retencion_iva:
                     if not partner.l10n_py_retencion_iva_porcentaje:
                         faltantes.append('Porcentaje Retención IVA')
@@ -350,7 +371,7 @@ class ResPartner(models.Model):
                 if not partner.l10n_py_retencion_iva:
                     faltantes.append('un Proveedor del exterior debe tener "Retención IVA" activada')
                 if not partner.l10n_py_retencion_renta:
-                    faltantes.append('un Proveedor del exterior debe tener "Retención Renta" activada')
+                    faltantes.append('un Proveedor del exterior debe tener "Retención Renta (Exterior)" activada')
                 if partner.l10n_py_retencion_iva:
                     if not partner.l10n_py_retencion_iva_porcentaje:
                         faltantes.append('Porcentaje Retención IVA')

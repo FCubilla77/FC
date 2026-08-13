@@ -12,3 +12,7 @@ class LocalPyConceptoIva(models.Model):
     codigo = fields.Char(string='Código', required=True, help='Código oficial (ej. IVA.1) que exige Tesaka.')
     sequence = fields.Integer(string='Secuencia', default=10)
     active = fields.Boolean(string='Activo', default=True)
+
+    def _compute_display_name(self):
+        for concepto in self:
+            concepto.display_name = '%s - %s' % (concepto.codigo, concepto.name) if concepto.codigo else concepto.name

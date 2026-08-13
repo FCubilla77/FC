@@ -58,6 +58,17 @@ class LocalPyChequera(models.Model):
             chequera.siguiente_numero = chequera.ultimo_numero_utilizado + 1
 
     @api.constrains('numero_inicial', 'numero_final')
+    def _check_numeros_no_vacios(self):
+        """"required=True" en un campo Integer no alcanza para bloquear
+        un valor en 0 (Odoo solo lo trata como "vacío" si queda en
+        Nulo, no en cero) — se agrega esta validación explícita para
+        que de verdad no se pueda guardar una Chequera sin estos 2
+        datos."""
+        for chequera in self:
+            if not chequera.numero_inicial or not chequera.numero_final:
+                raise ValidationError('Complete el Número Inicial y el Número Final antes de guardar.')
+
+    @api.constrains('numero_inicial', 'numero_final')
     def _check_rango(self):
         for chequera in self:
             if chequera.numero_inicial > chequera.numero_final:

@@ -623,7 +623,7 @@ class LocalPyOrdenPago(models.Model):
             lambda r: not r.es_absorcion_iva and not r.es_absorcion_renta and not r.concepto_renta_id
         )
         for retencion in retenciones_a_limpiar:
-            linea = retencion.factura_id.move_line_id
+            linea = retencion.orden_pago_factura_id.move_line_id
             if linea:
                 linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
                 linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
@@ -744,7 +744,7 @@ class LocalPyOrdenPago(models.Model):
             if vieja.absorcion_move_id_renta:
                 vieja.absorcion_move_id_renta.button_draft()
                 vieja.absorcion_move_id_renta.unlink()
-            linea = vieja.factura_id.move_line_id
+            linea = vieja.orden_pago_factura_id.move_line_id
             if linea:
                 linea.l10n_py_renta_importe_cubierto -= vieja.renta_importe_cubierto_aporte
         viejas.unlink()
@@ -948,7 +948,7 @@ class LocalPyOrdenPago(models.Model):
             asiento.unlink()
         retenciones_pendientes = retenciones_op.filtered(lambda r: r.estado == 'pendiente')
         for retencion in retenciones_pendientes:
-            linea = retencion.factura_id.move_line_id
+            linea = retencion.orden_pago_factura_id.move_line_id
             if linea:
                 linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
                 linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte

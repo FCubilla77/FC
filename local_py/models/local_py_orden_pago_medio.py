@@ -127,6 +127,19 @@ class LocalPyOrdenPagoMedio(models.Model):
                 )
 
     @api.constrains('chequera_id', 'fecha_emision', 'fecha_vencimiento')
+    def _check_chequera_diferido_requiere_vencimiento(self):
+        """La validación de abajo (_check_chequera_tipo_fechas) se salta
+        por completo si Fecha de Vencimiento está vacía — hace falta
+        esta validación aparte para bloquear justamente ese caso: una
+        Chequera "Diferido" sin Fecha de Vencimiento cargada."""
+        for medio in self:
+            if medio.chequera_id and medio.chequera_id.tipo == 'diferido' and not medio.fecha_vencimiento:
+                raise ValidationError(
+                    'La Chequera "%s" es "Diferido": complete la Fecha de Vencimiento del '
+                    'cheque antes de continuar.' % medio.chequera_id.name
+                )
+
+    @api.constrains('chequera_id', 'fecha_emision', 'fecha_vencimiento')
     def _check_chequera_tipo_fechas(self):
         for medio in self:
             if not medio.chequera_id or not medio.fecha_emision or not medio.fecha_vencimiento:

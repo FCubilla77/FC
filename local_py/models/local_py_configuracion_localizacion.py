@@ -153,19 +153,38 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                     'Ya existe una Configuración de Localización para esta compañía.'
                 )
 
-    @api.constrains('l10n_py_retencion_iva', 'l10n_py_diario_retencion_iva_id', 'l10n_py_concepto_iva_id')
+    @api.constrains(
+        'l10n_py_retencion_iva', 'l10n_py_diario_retencion_iva_id', 'l10n_py_concepto_iva_id',
+        'l10n_py_cuenta_gasto_absorcion_id',
+    )
     def _check_retencion_iva_configuracion_completa(self):
         """No se puede activar Retención IVA sin elegir, al mismo tiempo,
-        el Diario de Retención y el Concepto IVA — activarlo a medias
-        dejaría Órdenes de Pago bloqueadas al Confirmar sin ninguna
-        pista de qué falta hasta ese momento."""
+        el Diario de Retención, el Concepto IVA, y la Cuenta de Gasto
+        por Absorción — activarlo a medias dejaría Órdenes de Pago
+        bloqueadas al Confirmar sin ninguna pista de qué falta hasta
+        ese momento."""
         for config in self:
             if config.l10n_py_retencion_iva and (
                 not config.l10n_py_diario_retencion_iva_id or not config.l10n_py_concepto_iva_id
+                or not config.l10n_py_cuenta_gasto_absorcion_id
             ):
                 raise exceptions.ValidationError(
                     'Para activar "Retención IVA" hay que elegir, al mismo tiempo, el Diario de '
-                    'Retención IVA y el Concepto IVA.'
+                    'Retención IVA, el Concepto IVA, y la Cuenta de Gasto por Absorción (IVA).'
+                )
+
+    @api.constrains('l10n_py_retencion_renta', 'l10n_py_diario_retencion_renta_id', 'l10n_py_cuenta_gasto_absorcion_renta_id')
+    def _check_retencion_renta_configuracion_completa(self):
+        """Mismo criterio que Retención IVA: no se puede activar
+        Retención Renta sin el Diario de Retención y la Cuenta de Gasto
+        por Absorción completos."""
+        for config in self:
+            if config.l10n_py_retencion_renta and (
+                not config.l10n_py_diario_retencion_renta_id or not config.l10n_py_cuenta_gasto_absorcion_renta_id
+            ):
+                raise exceptions.ValidationError(
+                    'Para activar "Retención Renta" hay que elegir, al mismo tiempo, el Diario de '
+                    'Retención Renta y la Cuenta de Gasto por Absorción (Renta).'
                 )
 
     @api.onchange('l10n_py_imputacion_tributaria_ids')
