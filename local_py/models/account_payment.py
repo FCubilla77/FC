@@ -26,6 +26,34 @@ class AccountPayment(models.Model):
              'del cheque) — puede ser mayor al de este Pago puntual si esa fila tuvo que '
              'repartirse entre varias facturas.',
     )
+    l10n_py_es_saldo_favor = fields.Boolean(
+        string='Es Saldo a Favor', default=False, copy=False,
+        help='Se tilda solo en la porción de un Pago que quedó sin conciliar por sobrar '
+             'entre Medios de Pago y Facturas (Orden de Pago con Saldo a Favor aprobado) '
+             '— es lo que puede reutilizarse después en una Orden de Pago futura, como '
+             'un Medio más.',
+    )
+    l10n_py_medios_saldo_favor_ids = fields.One2many(
+        'local_py.orden_pago.medio', 'saldo_favor_payment_id', string='Usado como Saldo a Favor en',
+        help='Filas de Medios (de otras Órdenes de Pago) que usaron este Pago como '
+             'Saldo a Favor — si hay alguna, esta Orden no se puede Deshacer sin antes '
+             'deshacer esas Órdenes más recientes primero.',
+    )
+    l10n_py_saldo_favor_disponible = fields.Monetary(
+        string='Saldo a Favor Disponible', compute='_compute_l10n_py_saldo_favor_disponible',
+        currency_field='currency_id',
+        help='Importe de este Pago que todavía no fue aplicado a ninguna Factura ni '
+             'usado en otra Orden de Pago — lo que realmente queda disponible para '
+             'reutilizar como Saldo a Favor.',
+    )
+
+    @api.depends('move_id.line_ids.amount_residual', 'move_id.line_ids.account_id.account_type')
+    def _compute_l10n_py_saldo_favor_disponible(self):
+        for payment in self:
+            linea = payment.move_id.line_ids.filtered(
+                lambda l: l.account_id.account_type == 'liability_payable'
+            )[:1]
+            payment.l10n_py_saldo_favor_disponible = abs(linea.amount_residual) if linea else 0.0
 
     def _l10n_py_check_orden_pago_lock(self):
         if self.env.context.get('l10n_py_allow_orden_pago_write'):

@@ -5,7 +5,8 @@
             <field name="model">local_py.tesaka_export.wizard</field>
             <field name="arch" type="xml">
                 <form string="Generar Archivo Tesaka (Retenciones)">
-                    <group>
+                    <field name="attachment_id" invisible="1"/>
+                    <group invisible="attachment_id">
                         <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
                         <field name="fecha_desde"/>
                         <field name="fecha_hasta"/>
@@ -13,8 +14,9 @@
                         <field name="incluir_ya_generadas"/>
                     </group>
                     <button name="action_cargar_retenciones_pendientes" type="object"
-                            string="Cargar Retenciones Pendientes" class="btn-secondary"/>
-                    <field name="retencion_ids">
+                            string="Cargar Retenciones Pendientes" class="btn-secondary"
+                            invisible="attachment_id"/>
+                    <field name="retencion_ids" invisible="attachment_id">
                         <list>
                             <field name="fecha"/>
                             <field name="partner_id"/>
@@ -30,9 +32,17 @@
                             <field name="estado"/>
                         </list>
                     </field>
+                    <div class="alert alert-success" role="alert" invisible="not attachment_id">
+                        Archivo generado: <field name="attachment_id" readonly="1" class="oe_inline"/>.
+                        Descárguelo y ciérrese esta ventana cuando termine.
+                    </div>
                     <footer>
-                        <button name="action_generar_json" type="object" string="Generar Archivo JSON" class="btn-primary"/>
-                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                        <button name="action_generar_json" type="object" string="Generar Archivo JSON"
+                                class="btn-primary" invisible="attachment_id"/>
+                        <button name="action_descargar" type="object" string="Descargar"
+                                class="btn-primary" invisible="not attachment_id"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel" invisible="attachment_id"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel" invisible="not attachment_id"/>
                     </footer>
                 </form>
             </field>

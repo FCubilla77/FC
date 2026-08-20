@@ -12,8 +12,23 @@ class LocalPyOrdenPagoMedio(models.Model):
         'local_py.orden_pago', string='Orden de Pago', required=True, ondelete='cascade',
     )
     journal_id = fields.Many2one(
-        'account.journal', string='Diario', required=True,
+        'account.journal', string='Diario',
         domain="[('type', 'in', ('cash', 'bank')), ('company_id', '=', company_id)]",
+        help='Vacío solo si esta fila es de tipo "Saldo a Favor" (ver ese campo) — en '
+             'cualquier otro caso es obligatorio.',
+    )
+    saldo_favor_payment_id = fields.Many2one(
+        'account.payment', string='Saldo a Favor',
+        domain="[('l10n_py_es_saldo_favor', '=', True), ('partner_id', '=', orden_pago_partner_id),"
+               " ('l10n_py_saldo_favor_disponible', '>', 0), ('currency_id', '=', currency_id)]",
+        help='Un Pago de una Orden de Pago anterior que quedó con un sobrante sin '
+             'conciliar (Saldo a Favor de este mismo Proveedor) — se puede reutilizar '
+             'acá, total o parcialmente, en vez de generar un Medio nuevo. Filtrado por '
+             'Proveedor y por Moneda: solo aparecen los que coinciden con esta Orden.',
+    )
+    saldo_favor_disponible = fields.Monetary(
+        related='saldo_favor_payment_id.l10n_py_saldo_favor_disponible', string='Disponible',
+        currency_field='currency_id',
     )
     company_id = fields.Many2one(related='orden_pago_id.company_id')
     importe = fields.Monetary(string='Importe', currency_field='currency_id')
@@ -68,11 +83,13 @@ class LocalPyOrdenPagoMedio(models.Model):
              'Asiento Contable de Retención si esta fila es una Retención.',
     )
 
-    @api.depends('payment_ids', 'retencion_move_id')
+    @api.depends('payment_ids', 'retencion_move_id', 'saldo_favor_payment_id')
     def _compute_documentos_relacionados(self):
         for medio in self:
             if medio.es_retencion:
                 medio.documentos_relacionados = medio.retencion_move_id.name or ''
+            elif medio.saldo_favor_payment_id:
+                medio.documentos_relacionados = medio.saldo_favor_payment_id.name or ''
             else:
                 medio.documentos_relacionados = ', '.join(medio.payment_ids.mapped('name'))
 
@@ -98,6 +115,8 @@ class LocalPyOrdenPagoMedio(models.Model):
     @api.onchange('journal_id')
     def _onchange_journal_id_chequera(self):
         for medio in self:
+            if medio.journal_id and medio.saldo_favor_payment_id:
+                medio.saldo_favor_payment_id = False
             chequera = self.env['local_py.chequera'].search([
                 ('diario_id', '=', medio.journal_id.id), ('state', '=', 'activo'),
             ], limit=1)
@@ -110,11 +129,44 @@ class LocalPyOrdenPagoMedio(models.Model):
                 if chequera.tipo == 'al_dia':
                     medio.fecha_vencimiento = medio.fecha_emision
 
+    @api.onchange('saldo_favor_payment_id')
+    def _onchange_saldo_favor_payment_id(self):
+        for medio in self:
+            if medio.saldo_favor_payment_id:
+                if medio.journal_id:
+                    medio.journal_id = False
+                    medio.chequera_id = False
+                    medio.banco = False
+                    medio.cuenta_banco = False
+                medio.importe = medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible
+
     @api.constrains('importe')
     def _check_importe(self):
         for medio in self:
             if medio.importe <= 0:
                 raise ValidationError('El importe de cada Medio de Pago debe ser mayor a cero.')
+
+    @api.constrains('importe', 'saldo_favor_payment_id')
+    def _check_saldo_favor_alcanza(self):
+        for medio in self:
+            if medio.saldo_favor_payment_id and medio.importe > medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible:
+                raise ValidationError(
+                    'El Importe cargado (%s) supera el Saldo a Favor disponible de ese Pago (%s).'
+                    % (medio.importe, medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible)
+                )
+
+    @api.constrains('journal_id', 'saldo_favor_payment_id', 'es_retencion')
+    def _check_journal_o_saldo_favor(self):
+        for medio in self:
+            if medio.es_retencion:
+                continue
+            if medio.journal_id and medio.saldo_favor_payment_id:
+                raise ValidationError(
+                    'Una fila de Medios no puede tener Diario y Saldo a Favor a la vez — elija uno '
+                    'de los dos.'
+                )
+            if not medio.journal_id and not medio.saldo_favor_payment_id:
+                raise ValidationError('Cada fila de Medios necesita un Diario, o un Saldo a Favor.')
 
     @api.constrains('chequera_id', 'currency_id')
     def _check_chequera_moneda(self):

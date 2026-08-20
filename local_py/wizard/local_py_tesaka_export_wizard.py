@@ -25,6 +25,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
              'subir a Tesaka.',
     )
     retencion_ids = fields.Many2many('local_py.retencion_emitida', string='Retenciones a incluir')
+    attachment_id = fields.Many2one('ir.attachment', string='Archivo Generado', readonly=True, copy=False)
 
     @api.model
     def default_get(self, fields_list):
@@ -233,14 +234,30 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         # archivos distintos). Si hace falta rehacer el archivo, se
         # tildan con "Incluir ya generadas".
         retenciones.filtered(lambda r: r.estado == 'pendiente').write({'estado': 'json_generado'})
-        # Se vacía la lista antes de cerrar — si por algún motivo la ventana
-        # no llegara a cerrarse del todo en el navegador, un clic de más en
-        # "Generar Archivo JSON" encuentra la lista vacía y avisa "No hay
-        # Retenciones cargadas" en vez de generar un archivo duplicado.
-        self.retencion_ids = [(5, 0, 0)]
+        # Se vacía la lista de Retenciones a incluir — si se vuelve a tocar
+        # "Generar Archivo JSON" sin cargar nada nuevo, avisa que no hay nada
+        # cargado, en vez de generar un archivo duplicado con lo mismo.
+        self.write({'retencion_ids': [(5, 0, 0)], 'attachment_id': attachment.id})
+        # Se refresca la propia ventana (mismo mecanismo ya probado que usa
+        # "Cargar Retenciones Pendientes") — la vista pasa a mostrar el botón
+        # de Descargar en vez de "Generar", dejando "Cerrar" como acción
+        # aparte y segura (a diferencia de intentar combinar "descargar y
+        # cerrar" en un solo paso, que no tiene un mecanismo confiable en
+        # Odoo para una descarga de archivo).
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_descargar(self):
+        self.ensure_one()
+        if not self.attachment_id:
+            raise UserError('No hay ningún archivo generado todavía en esta ventana.')
         return {
             'type': 'ir.actions.act_url',
-            'url': '/web/content/%s?download=true' % attachment.id,
+            'url': '/web/content/%s?download=true' % self.attachment_id.id,
             'target': 'self',
-            'close': True,
         }

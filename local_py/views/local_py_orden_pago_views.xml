@@ -95,8 +95,11 @@
                             </page>
                             <page string="Medios" name="medios" invisible="es_orden_retencion and state != 'confirmado'">
                                 <field name="medio_ids" readonly="state != 'borrador'">
-                                    <list editable="bottom" decoration-info="es_retencion">
+                                    <list editable="bottom" decoration-info="es_retencion"
+                                          decoration-warning="saldo_favor_payment_id">
                                         <field name="journal_id"/>
+                                        <field name="saldo_favor_payment_id" options="{'no_create': True}"/>
+                                        <field name="saldo_favor_disponible" readonly="1" optional="show"/>
                                         <field name="importe"/>
                                         <field name="fecha_emision"/>
                                         <field name="fecha_vencimiento"/>
@@ -110,6 +113,7 @@
                                         <field name="es_retencion" column_invisible="1"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="company_id" column_invisible="1"/>
+                                        <field name="orden_pago_partner_id" column_invisible="1"/>
                                     </list>
                                 </field>
                             </page>

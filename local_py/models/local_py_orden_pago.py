@@ -916,6 +916,17 @@ class LocalPyOrdenPago(models.Model):
                 'bancario. Deshaga esa conciliación manualmente en Contabilidad > Banco antes '
                 'de continuar.'
             )
+        pagos_saldo_favor = pagos.filtered('l10n_py_es_saldo_favor')
+        if pagos_saldo_favor:
+            medios_que_lo_usan = pagos_saldo_favor.mapped('l10n_py_medios_saldo_favor_ids')
+            ordenes_dependientes = medios_que_lo_usan.mapped('orden_pago_id') - self
+            if ordenes_dependientes:
+                raise UserError(
+                    'Esta Orden de Pago generó un Saldo a Favor que ya fue usado en otra(s) '
+                    'Orden(es) de Pago más reciente(s): %s. Hay que Deshacer la Confirmación '
+                    'de esa(s) Orden(es) primero, antes de poder deshacer esta.'
+                    % ', '.join(ordenes_dependientes.mapped('name'))
+                )
         cheques_emitidos = self.env['local_py.chequera.cheque'].search([
             ('payment_id', 'in', pagos.ids), ('estado', '=', 'emitido'),
         ])
@@ -949,6 +960,23 @@ class LocalPyOrdenPago(models.Model):
             pago.move_id.line_ids.remove_move_reconcile()
             pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
             pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+        medios_saldo_favor = self.medio_ids.filtered('saldo_favor_payment_id')
+        if medios_saldo_favor:
+            lineas_origen = medios_saldo_favor.mapped('saldo_favor_payment_id.move_id.line_ids').filtered(
+                lambda l: l.account_id.account_type == 'liability_payable'
+            )
+            lineas_facturas = self.factura_ids.mapped('move_line_id')
+            # El Pago original pertenece a OTRA Orden de Pago, y puede tener
+            # Saldo a Favor usado por varias Órdenes distintas a la vez — acá
+            # se deshace únicamente la conciliación puntual entre ese Pago y
+            # las Facturas de ESTA Orden, sin tocar ninguna otra conciliación
+            # que ese mismo Pago pueda tener con otras Órdenes.
+            partial_reconciles = self.env['account.partial.reconcile'].search([
+                '|',
+                '&', ('debit_move_id', 'in', lineas_origen.ids), ('credit_move_id', 'in', lineas_facturas.ids),
+                '&', ('credit_move_id', 'in', lineas_origen.ids), ('debit_move_id', 'in', lineas_facturas.ids),
+            ])
+            partial_reconciles.unlink()
         medios_retencion = self.medio_ids.filtered('es_retencion')
         for asiento in medios_retencion.mapped('retencion_move_id'):
             asiento.line_ids.remove_move_reconcile()
@@ -1010,12 +1038,15 @@ class LocalPyOrdenPago(models.Model):
         medios_normales = self.medio_ids - medios_retencion
 
         def _prioridad_medio(medio):
-            # 0 = Cheque (Diario bancario con Chequera activa), 1 = Transferencia
-            # (Diario bancario sin Chequera), 2 = Efectivo (Diario de caja) — así el
-            # sobrante, si lo hay, siempre cae en el de menor prioridad presente.
+            # 0 = Saldo a Favor, 1 = Cheque (Diario bancario con Chequera activa),
+            # 2 = Transferencia (Diario bancario sin Chequera), 3 = Efectivo (Diario
+            # de caja) — así el sobrante, si lo hay, siempre cae en el de menor
+            # prioridad presente.
+            if medio.saldo_favor_payment_id:
+                return 0
             if medio.journal_id.type == 'cash':
-                return 2
-            return 0 if medio.chequera_id else 1
+                return 3
+            return 1 if medio.chequera_id else 2
 
         medios_normales = medios_normales.sorted(key=_prioridad_medio)
 
@@ -1072,6 +1103,19 @@ class LocalPyOrdenPago(models.Model):
 
         pagos_por_medio = {}
         for factura, medio, monto in asignaciones:
+            if medio.saldo_favor_payment_id:
+                # No se crea ningún Pago nuevo acá — se reutiliza directo la
+                # porción disponible del Pago original (Saldo a Favor de una
+                # Orden de Pago anterior), conciliándola contra esta Factura.
+                # Si las monedas no coinciden exactamente, Odoo genera solo el
+                # asiento de diferencia de cambio correspondiente (mismo
+                # mecanismo nativo que usa el resto del reparto).
+                linea_pago_payable = medio.saldo_favor_payment_id.move_id.line_ids.filtered(
+                    lambda l: l.account_id.account_type == 'liability_payable' and not l.reconciled
+                )
+                (factura.move_line_id + linea_pago_payable).reconcile()
+                continue
+
             comentario = 'Pago Orden de Pago %s' % self.name
             payment = AccountPayment.create({
                 'payment_type': 'outbound',
@@ -1116,6 +1160,12 @@ class LocalPyOrdenPago(models.Model):
             (factura.move_line_id + linea_pago_payable).reconcile()
 
         for medio, monto in sobrante_por_medio:
+            if medio.saldo_favor_payment_id:
+                # No corresponde generar nada acá — simplemente no se usó esa
+                # porción del Saldo a Favor original, que sigue disponible tal
+                # cual estaba (su Pago de origen no se tocó en absoluto).
+                continue
+
             comentario = 'Pago Orden de Pago %s (Saldo a Favor)' % self.name
             payment = AccountPayment.create({
                 'payment_type': 'outbound',
@@ -1129,6 +1179,7 @@ class LocalPyOrdenPago(models.Model):
                 'memo': comentario,
                 'l10n_py_orden_pago_id': self.id,
                 'l10n_py_orden_pago_medio_id': medio.id,
+                'l10n_py_es_saldo_favor': True,
             })
             payment.action_post()
             if payment.move_id:
