@@ -402,6 +402,8 @@
                 <li>Orden de Pago: si "Pago a Cuenta" se tilda con "Orden de Pago Retención" ya tildada, esta última se destilda automáticamente (no solo se oculta visualmente)</li>
                 <li>Orden de Pago: los mensajes de error que muestran importes ahora usan separador de miles (ej. "1.000.000" en vez de "1000000.0")</li>
                 <li>PDF de Orden de Pago: nuevo cuadro "Retenciones Absorbidas" (Factura, Concepto IVA, Monto IVA, Concepto Renta, Monto Renta), mismo estilo que el cuadro de Medios de Pago</li>
+                <li>PDF de Orden de Pago: agregado el número de la Orden de Pago como primera línea del primer cuadro (no se veía en ningún lugar del cuerpo del documento)</li>
+                <li>Corregido: después de generar el archivo JSON de Tesaka, la ventana se cierra sola (antes quedaba abierta con la misma lista, y un clic de más volvía a generar otro archivo duplicado con las mismas Retenciones) — de paso, la lista se vacía por dentro como resguardo adicional</li>
             </ul>
         </div>
     </div>

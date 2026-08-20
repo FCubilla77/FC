@@ -233,8 +233,14 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         # archivos distintos). Si hace falta rehacer el archivo, se
         # tildan con "Incluir ya generadas".
         retenciones.filtered(lambda r: r.estado == 'pendiente').write({'estado': 'json_generado'})
+        # Se vacía la lista antes de cerrar — si por algún motivo la ventana
+        # no llegara a cerrarse del todo en el navegador, un clic de más en
+        # "Generar Archivo JSON" encuentra la lista vacía y avisa "No hay
+        # Retenciones cargadas" en vez de generar un archivo duplicado.
+        self.retencion_ids = [(5, 0, 0)]
         return {
             'type': 'ir.actions.act_url',
             'url': '/web/content/%s?download=true' % attachment.id,
             'target': 'self',
+            'close': True,
         }
