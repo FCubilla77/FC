@@ -410,6 +410,8 @@
                 <li>"Deshacer Confirmación" ahora revierte correctamente el uso de un Saldo a Favor, tocando solo la conciliación puntual de esa Orden — sin afectar si el mismo Pago original fue usado, en paralelo, por otra Orden distinta</li>
                 <li>Nuevo bloqueo en cascada: no se puede Deshacer la Confirmación de una Orden si el Saldo a Favor que generó ya fue usado por otra Orden más reciente — hay que deshacer esa Orden más reciente primero, señalada por nombre en el aviso</li>
                 <li>Corregido un error que impedía actualizar el módulo: el campo "Saldo a Favor Disponible" (usado para filtrar el selector de Saldo a Favor en Medios) necesitaba guardarse en la base de datos para poder buscarse por él — sin eso, Odoo no podía validar la pantalla de Orden de Pago al cargar</li>
+                <li>Corregido un hueco real: "Cargar Facturas Pendientes" traía cualquier línea contable sin conciliar de la cuenta de Proveedores, sin distinguir si era una Factura de verdad o la línea de un Pago (por ejemplo, un Pago de Saldo a Favor sin conciliar) — ahora se restringe explícitamente a Facturas y Notas de Crédito/Reembolso reales de Proveedor</li>
+                <li>Corregido: el Pago de un Saldo a Favor recién generado quedaba guardado con "Saldo Disponible" en cero, así que nunca aparecía en el selector de la siguiente Orden de Pago — el cálculo dependía del saldo pendiente real, que recién queda definitivo al contabilizar el Pago, no en el instante de crearlo; ahora se fuerza el recálculo justo después de contabilizar</li>
             </ul>
         </div>
     </div>

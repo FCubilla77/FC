@@ -328,6 +328,7 @@ class LocalPyOrdenPago(models.Model):
             ('partner_id', '=', self.partner_id.id),
             ('account_id.account_type', '=', 'liability_payable'),
             ('move_id.state', '=', 'posted'),
+            ('move_id.move_type', 'in', ('in_invoice', 'in_refund')),
             ('reconciled', '=', False),
             ('id', 'not in', ya_cargadas.ids),
         ])
@@ -1182,6 +1183,11 @@ class LocalPyOrdenPago(models.Model):
                 'l10n_py_es_saldo_favor': True,
             })
             payment.action_post()
+            # El saldo disponible depende del saldo pendiente de la línea
+            # contable del Pago, que recién queda definitivo al contabilizar
+            # (arriba) — se fuerza el recálculo acá para no dejar guardado
+            # un 0 de un instante anterior a que existiera el asiento real.
+            payment._compute_l10n_py_saldo_favor_disponible()
             if payment.move_id:
                 payment.move_id.l10n_py_comentario = comentario
             pagos_por_medio.setdefault(medio.id, []).append(payment.id)
