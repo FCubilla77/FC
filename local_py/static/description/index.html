@@ -397,6 +397,11 @@
                 <li>Configuraciones Localización Py: activar "Retención IVA" ahora también exige la Cuenta de Gasto por Absorción (IVA); nueva validación equivalente para "Retención Renta", exigiendo su Diario y su Cuenta de Gasto por Absorción</li>
                 <li>Corregido: Chequera dejaba guardar sin Número Inicial ni Número Final — al ser campos numéricos, "obligatorio" en Odoo no bloquea si quedan en cero (el valor por defecto), hacía falta una validación aparte</li>
                 <li>Corregido: un cheque "Diferido" sin Fecha de Vencimiento cargada pasaba sin ningún aviso — la validación existente se salteaba por completo cuando ese campo estaba vacío; ahora bloquea explícitamente</li>
+                <li><strong>Corregido un bug real en Saldo a Favor: el control de "falta" vs. "sobra" plata estaba con el signo invertido</strong> — el caso de faltante disparaba el wizard de Saldo a Favor (en vez de bloquear), y el caso de sobrante bloqueaba con "no alcanza" (en vez de preguntar) — al revés de lo esperado. Corregido en los 2 puntos de control (En Proceso y Confirmar)</li>
+                <li>Contactos: el Porcentaje del Concepto Renta No Residente Predeterminado ahora se muestra al lado del selector, en la ficha del Proveedor</li>
+                <li>Orden de Pago: si "Pago a Cuenta" se tilda con "Orden de Pago Retención" ya tildada, esta última se destilda automáticamente (no solo se oculta visualmente)</li>
+                <li>Orden de Pago: los mensajes de error que muestran importes ahora usan separador de miles (ej. "1.000.000" en vez de "1000000.0")</li>
+                <li>PDF de Orden de Pago: nuevo cuadro "Retenciones Absorbidas" (Factura, Concepto IVA, Monto IVA, Concepto Renta, Monto Renta), mismo estilo que el cuadro de Medios de Pago</li>
             </ul>
         </div>
     </div>

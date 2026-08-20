@@ -77,6 +77,10 @@ class ResPartner(models.Model):
              'por Factura, para cuando una factura puntual corresponda a otro Concepto '
              'de los configurados arriba.',
     )
+    l10n_py_concepto_renta_no_residente_porcentaje = fields.Float(
+        related='l10n_py_concepto_renta_no_residente_predeterminado_id.porcentaje',
+        string='Porcentaje (%)', readonly=True,
+    )
     l10n_py_localizacion_validada = fields.Boolean(
         string='Localización Validada', default=False, copy=False,
         help='Confirma que un humano revisó (y completó o corrigió si hacía falta) los '

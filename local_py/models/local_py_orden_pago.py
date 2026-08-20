@@ -234,6 +234,11 @@ class LocalPyOrdenPago(models.Model):
         if self.factura_ids:
             self.factura_ids = [(5, 0, 0)]
 
+    @api.onchange('es_pago_a_cuenta')
+    def _onchange_es_pago_a_cuenta(self):
+        if self.es_pago_a_cuenta and self.es_orden_retencion:
+            self.es_orden_retencion = False
+
     def action_actualizar_retencion_estimada(self):
         """Recalcula la vista previa de Retención IVA de todas las
         Facturas de la Orden de Pago. Al ser un botón (no un onchange),
@@ -350,7 +355,7 @@ class LocalPyOrdenPago(models.Model):
             if self.currency_id.round(self.diferencia) != 0:
                 raise UserError(
                     'El total de Medios de Pago (%s) debe coincidir exactamente con el '
-                    'Importe cargado (%s).' % (self.total_medios, self.importe_pago_cuenta)
+                    'Importe cargado (%s).' % (self._fmt(self.total_medios), self._fmt(self.importe_pago_cuenta))
                 )
             self.write({'state': 'en_proceso', 'fecha_en_proceso': fields.Datetime.now()})
             return
@@ -369,17 +374,18 @@ class LocalPyOrdenPago(models.Model):
         if a_refrescar:
             a_refrescar._set_cotizacion_default(self.fecha)
         diferencia = self.currency_id.round(self.diferencia)
-        if diferencia < 0:
+        if diferencia > 0:
             raise UserError(
                 'El total de Medios de Pago (%s) más la Retención IVA estimada (%s) y la '
                 'Retención Renta estimada (%s) no alcanza para cubrir el total a pagar de '
                 'las Facturas seleccionadas (%s) — falta %s.'
                 % (
-                    self.total_medios, self.total_retencion_iva_estimada,
-                    self.total_retencion_renta_estimada, self.total_facturas, -diferencia,
+                    self._fmt(self.total_medios), self._fmt(self.total_retencion_iva_estimada),
+                    self._fmt(self.total_retencion_renta_estimada), self._fmt(self.total_facturas),
+                    self._fmt(diferencia),
                 )
             )
-        if diferencia > 0 and not self.permite_saldo_a_favor:
+        if diferencia < 0 and not self.permite_saldo_a_favor:
             return {
                 'name': 'Sobra plata entre Medios y Facturas',
                 'type': 'ir.actions.act_window',
@@ -406,7 +412,7 @@ class LocalPyOrdenPago(models.Model):
                     raise UserError(
                         'El cuadre entre el Importe (%s) y los Medios de Pago (%s) ya no '
                         'coincide. Revise los importes antes de volver a Confirmar.'
-                        % (orden.importe_pago_cuenta, orden.total_medios)
+                        % (orden._fmt(orden.importe_pago_cuenta), orden._fmt(orden.total_medios))
                     )
                 orden._generar_pagos_a_cuenta()
                 continue
@@ -430,19 +436,19 @@ class LocalPyOrdenPago(models.Model):
             orden._calcular_retenciones_iva()
             orden._calcular_retenciones_exterior()
             diferencia_final = orden.currency_id.round(orden.total_facturas - orden.total_medios)
-            if diferencia_final < 0:
+            if diferencia_final > 0:
                 raise UserError(
                     'La cotización cambió y el total de Medios de Pago ya no alcanza para cubrir '
                     'las Facturas seleccionadas (Facturas: %s, Medios: %s) — falta %s. Revise los '
                     'importes antes de volver a Confirmar.'
-                    % (orden.total_facturas, orden.total_medios, -diferencia_final)
+                    % (orden._fmt(orden.total_facturas), orden._fmt(orden.total_medios), orden._fmt(diferencia_final))
                 )
-            if diferencia_final > 0 and not orden.permite_saldo_a_favor:
+            if diferencia_final < 0 and not orden.permite_saldo_a_favor:
                 raise UserError(
                     'La cotización cambió y ahora sobran %s entre los Medios de Pago y las '
                     'Facturas seleccionadas (Facturas: %s, Medios: %s). Vuelva a "En Proceso" '
                     'para que el sistema le pregunte de nuevo qué hacer con el sobrante.'
-                    % (diferencia_final, orden.total_facturas, orden.total_medios)
+                    % (orden._fmt(-diferencia_final), orden._fmt(orden.total_facturas), orden._fmt(orden.total_medios))
                 )
             orden._generar_pagos()
         self.write({'state': 'confirmado', 'fecha_confirmacion': fields.Datetime.now()})
@@ -472,6 +478,17 @@ class LocalPyOrdenPago(models.Model):
             factura._total_gravado_proporcional_gs()
             for orden in ordenes for factura in orden.factura_ids
         )
+
+    def _fmt(self, valor):
+        """Formatea un número con separador de miles (punto) — y decimal
+        con coma, si la Moneda usa decimales — para que los mensajes de
+        error muestren importes legibles, en vez de un float crudo."""
+        self.ensure_one()
+        decimales = self.currency_id.decimal_places if self.currency_id else 0
+        texto = '{:,.{prec}f}'.format(valor or 0.0, prec=decimales)
+        entero, sep, decimal = texto.partition('.')
+        entero = entero.replace(',', '.')
+        return entero + (',' + decimal if sep else '')
 
     def _get_config_retencion(self):
         self.ensure_one()

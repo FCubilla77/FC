@@ -105,6 +105,32 @@
                                     </tr>
                                 </tbody>
                             </table>
+
+                            <t t-if="o.retencion_absorcion_ids">
+                                <h4 style="margin-top: 12px;">Retenciones Absorbidas</h4>
+                                <table style="width: 100%; border-collapse: collapse;" border="1">
+                                    <thead>
+                                        <tr style="background-color: #eeeeee;">
+                                            <th style="padding: 3px;">Factura</th>
+                                            <th style="padding: 3px;">Concepto IVA</th>
+                                            <th align="right" style="padding: 3px; text-align: right;">Monto IVA</th>
+                                            <th style="padding: 3px;">Concepto Renta</th>
+                                            <th align="right" style="padding: 3px; text-align: right;">Monto Renta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="o.retencion_absorcion_ids" t-as="r">
+                                            <td style="padding: 2px;" t-esc="r.factura_id.name"/>
+                                            <td style="padding: 2px;" t-esc="r.concepto_iva_id.name or ''"/>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="fmt_pyg(r.monto) if r.es_absorcion_iva else ''"/>
+                                            <td style="padding: 2px;" t-esc="r.concepto_renta_id.name or ''"/>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="fmt_pyg(r.monto_renta) if r.es_absorcion_renta else ''"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
                         </div>
                     </t>
                 </t>

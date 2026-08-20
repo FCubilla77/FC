@@ -103,6 +103,9 @@
                                        widget="many2many_tags" options="{'no_create': True}"/>
                                 <field name="l10n_py_concepto_renta_no_residente_predeterminado_id"
                                        options="{'no_create': True}"/>
+                                <field name="l10n_py_concepto_renta_no_residente_porcentaje"
+                                       invisible="not l10n_py_concepto_renta_no_residente_predeterminado_id"
+                                       readonly="1"/>
                                 <field name="l10n_py_se_absorbe_renta"/>
                             </group>
                         </group>
