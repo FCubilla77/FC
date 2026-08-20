@@ -40,7 +40,7 @@ class AccountPayment(models.Model):
              'deshacer esas Órdenes más recientes primero.',
     )
     l10n_py_saldo_favor_disponible = fields.Monetary(
-        string='Saldo a Favor Disponible', compute='_compute_l10n_py_saldo_favor_disponible',
+        string='Saldo a Favor Disponible', compute='_compute_l10n_py_saldo_favor_disponible', store=True,
         currency_field='currency_id',
         help='Importe de este Pago que todavía no fue aplicado a ninguna Factura ni '
              'usado en otra Orden de Pago — lo que realmente queda disponible para '

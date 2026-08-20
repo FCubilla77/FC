@@ -409,6 +409,7 @@
                 <li>Al usarse, el Saldo a Favor no genera ningún Pago nuevo — concilia directo la porción elegida del Pago original contra la Factura nueva (mismo mecanismo nativo de Odoo, incluida la diferencia de cambio si las monedas no coinciden). La Retención se sigue calculando igual, sin ningún cambio, ya que nunca dependió de qué Medio cubre el resto del pago</li>
                 <li>"Deshacer Confirmación" ahora revierte correctamente el uso de un Saldo a Favor, tocando solo la conciliación puntual de esa Orden — sin afectar si el mismo Pago original fue usado, en paralelo, por otra Orden distinta</li>
                 <li>Nuevo bloqueo en cascada: no se puede Deshacer la Confirmación de una Orden si el Saldo a Favor que generó ya fue usado por otra Orden más reciente — hay que deshacer esa Orden más reciente primero, señalada por nombre en el aviso</li>
+                <li>Corregido un error que impedía actualizar el módulo: el campo "Saldo a Favor Disponible" (usado para filtrar el selector de Saldo a Favor en Medios) necesitaba guardarse en la base de datos para poder buscarse por él — sin eso, Odoo no podía validar la pantalla de Orden de Pago al cargar</li>
             </ul>
         </div>
     </div>
