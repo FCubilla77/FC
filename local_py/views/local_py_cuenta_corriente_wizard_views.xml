@@ -1,0 +1,26 @@
+<odoo>
+    <data>
+        <record id="view_local_py_cuenta_corriente_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.cuenta_corriente_wizard.form</field>
+            <field name="model">local_py.cuenta_corriente_wizard</field>
+            <field name="arch" type="xml">
+                <form string="Imprimir Estado de Cuenta Corriente">
+                    <group>
+                        <field name="partner_id" options="{'no_create': True}" readonly="1"/>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                    </group>
+                    <p class="text-muted">
+                        Si no completa las Fechas, incluye todo el historial disponible, sin Saldo
+                        Inicial (arranca en cero desde el primer movimiento).
+                    </p>
+                    <footer>
+                        <button name="action_generar_pdf" type="object" string="Generar PDF" class="btn-primary"/>
+                        <button name="action_generar_excel" type="object" string="Generar Excel" class="btn-primary"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

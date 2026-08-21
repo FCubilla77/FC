@@ -1,0 +1,80 @@
+<odoo>
+    <data>
+        <record id="action_report_cuenta_corriente" model="ir.actions.report">
+            <field name="name">Estado de Cuenta Corriente</field>
+            <field name="model">local_py.cuenta_corriente_wizard</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_cuenta_corriente_document</field>
+            <field name="print_report_name">'Estado de Cuenta - %s' % (object.partner_id.display_name)</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+
+        <template id="report_cuenta_corriente_document">
+            <t t-call="web.html_container">
+                <t t-set="data_list" t-value="docs[0]._obtener_datos()"/>
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <h2>
+                                Estado de Cuenta Corriente
+                            </h2>
+                            <p>
+                                <strong>RUT:</strong> <t t-esc="o.partner_id.vat or ''"/><br/>
+                                <strong>Nombre:</strong> <t t-esc="o.partner_id.display_name"/><br/>
+                                <t t-if="o.fecha_desde">
+                                    <strong>Desde:</strong> <t t-esc="o.fecha_desde"/>
+                                </t>
+                                <t t-if="o.fecha_hasta">
+                                    <strong> Hasta:</strong> <t t-esc="o.fecha_hasta"/>
+                                </t>
+                            </p>
+
+                            <t t-foreach="data_list" t-as="grupo">
+                                <h4 style="margin-top: 14px; background-color: #eeeeee; padding: 4px;">
+                                    <t t-esc="grupo['company'].name"/> — <t t-esc="grupo['currency'].name"/>
+                                </h4>
+                                <table style="width: 100%; border-collapse: collapse;" border="1">
+                                    <thead>
+                                        <tr style="background-color: #f5f5f5;">
+                                            <th style="padding: 3px;">Fecha</th>
+                                            <th style="padding: 3px;">Fecha de Creación</th>
+                                            <th style="padding: 3px;">Diario</th>
+                                            <th style="padding: 3px;">Comentario</th>
+                                            <th align="right" style="padding: 3px; text-align: right;">Débito</th>
+                                            <th align="right" style="padding: 3px; text-align: right;">Crédito</th>
+                                            <th align="right" style="padding: 3px; text-align: right;">Saldo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr style="font-style: italic;">
+                                            <td colspan="6" style="padding: 2px;">Saldo Inicial</td>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="o._fmt(grupo['saldo_inicial'], grupo['currency'])"/>
+                                        </tr>
+                                        <tr t-foreach="grupo['detalle']" t-as="linea">
+                                            <td style="padding: 2px;" t-esc="linea['fecha']"/>
+                                            <td style="padding: 2px;" t-esc="linea['fecha_creacion'].strftime('%d/%m/%Y %H:%M')"/>
+                                            <td style="padding: 2px;" t-esc="linea['diario']"/>
+                                            <td style="padding: 2px;" t-esc="linea['comentario']"/>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="o._fmt(linea['debito'], grupo['currency'])"/>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="o._fmt(linea['credito'], grupo['currency'])"/>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="o._fmt(linea['saldo'], grupo['currency'])"/>
+                                        </tr>
+                                        <tr style="font-weight: bold; border-top: 1px solid #000000;">
+                                            <td colspan="6" style="padding: 2px;">Saldo Final</td>
+                                            <td align="right" style="padding: 2px; text-align: right;"
+                                                t-esc="o._fmt(grupo['saldo_final'], grupo['currency'])"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

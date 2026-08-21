@@ -44,6 +44,14 @@
                             invisible="not is_company">
                         <field name="l10n_py_move_line_count" widget="statinfo" string="Cuenta Corriente"/>
                     </button>
+                    <button name="action_abrir_wizard_cuenta_corriente" type="object"
+                            class="oe_stat_button" icon="fa-print"
+                            invisible="not is_company">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Estado de</span>
+                            <span class="o_stat_text">Cuenta (PDF)</span>
+                        </div>
+                    </button>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="before">
                     <field name="omitir_validacion" string="Omitir control RUT" readonly="parent_id != False" invisible="not is_company"/>

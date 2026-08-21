@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.25.006",
+    "version": "2026.25.007",
     "license": "LGPL-3",
     "depends": ["base", "account", "base_address_extended", "mail", "stock", "stock_account"],
     "data": [
@@ -37,6 +37,8 @@
         "data/local_py_orden_pago_sequence.xml",
         "data/local_py_tesaka_import_sequence.xml",
         "views/res_partner_views.xml",
+        "views/local_py_cuenta_corriente_wizard_views.xml",
+        "views/local_py_report_cuenta_corriente.xml",
         "views/res_country_views.xml",
         "views/local_py_tipo_fiscal_views.xml",
         "views/local_py_district_views.xml",

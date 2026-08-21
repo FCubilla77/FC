@@ -103,10 +103,13 @@ class ResPartner(models.Model):
             ])
 
     def action_ver_cuenta_corriente(self):
-        """Muestra todo el débito y crédito del Proveedor/Cliente, sin
-        importar la Cuenta contable — un primer acercamiento simple a
-        su Cuenta Corriente completa; más adelante se le pueden sumar
-        filtros de Fecha y Cuenta."""
+        """Muestra el débito y crédito del Proveedor/Cliente, restringido
+        a las Cuentas de tipo "Por Pagar"/"Por Cobrar" — quedan afuera
+        Gastos, Existencia, Ingresos, Cajas/Bancos, y Retenciones (la
+        porción de una Retención que sí toca la Cuenta de Proveedores
+        se ve igual, solo que sin el detalle de a qué Cuenta de
+        Retenciones fue). Sin Fechas ni Saldo Acumulado — para eso está
+        el reporte impreso ("Imprimir Estado de Cuenta")."""
         self.ensure_one()
         return {
             'name': 'Cuenta Corriente — %s' % self.display_name,
@@ -115,9 +118,21 @@ class ResPartner(models.Model):
             'view_mode': 'list,pivot',
             'domain': [
                 ('partner_id', '=', self.id),
+                ('account_id.account_type', 'in', ('liability_payable', 'asset_receivable')),
                 ('move_id.state', '=', 'posted'),
                 ('display_type', 'not in', ('line_section', 'line_note')),
             ],
+        }
+
+    def action_abrir_wizard_cuenta_corriente(self):
+        self.ensure_one()
+        return {
+            'name': 'Imprimir Estado de Cuenta Corriente',
+            'type': 'ir.actions.act_window',
+            'res_model': 'local_py.cuenta_corriente_wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_partner_id': self.id},
         }
 
     @api.onchange('country_id')
