@@ -120,7 +120,7 @@ class ResPartner(models.Model):
             'res_model': 'account.move.line',
             'view_mode': 'list,pivot',
             'views': [(list_view.id, 'list'), (False, 'pivot')],
-            'search_view_id': [search_view.id, search_view.name],
+            'search_view_id': search_view.id,
             'domain': [
                 ('partner_id', '=', self.id),
                 ('account_id.account_type', 'in', ('liability_payable', 'asset_receivable')),
