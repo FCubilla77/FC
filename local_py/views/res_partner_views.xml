@@ -38,6 +38,13 @@
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
+                <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                    <button name="action_ver_cuenta_corriente" type="object"
+                            class="oe_stat_button" icon="fa-balance-scale"
+                            invisible="not is_company">
+                        <field name="l10n_py_move_line_count" widget="statinfo" string="Cuenta Corriente"/>
+                    </button>
+                </xpath>
                 <xpath expr="//field[@name='vat']" position="before">
                     <field name="omitir_validacion" string="Omitir control RUT" readonly="parent_id != False" invisible="not is_company"/>
                 </xpath>

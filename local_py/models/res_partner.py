@@ -90,6 +90,35 @@ class ResPartner(models.Model):
              'tildada, Orden de Pago bloquea a este Proveedor si tiene alguna Retención '
              'activa (evita pagar con datos fiscales sin revisar).',
     )
+    l10n_py_move_line_count = fields.Integer(
+        string='Movimientos Contables', compute='_compute_l10n_py_move_line_count',
+    )
+
+    def _compute_l10n_py_move_line_count(self):
+        for partner in self:
+            partner.l10n_py_move_line_count = self.env['account.move.line'].search_count([
+                ('partner_id', '=', partner.id),
+                ('move_id.state', '=', 'posted'),
+                ('display_type', 'not in', ('line_section', 'line_note')),
+            ])
+
+    def action_ver_cuenta_corriente(self):
+        """Muestra todo el débito y crédito del Proveedor/Cliente, sin
+        importar la Cuenta contable — un primer acercamiento simple a
+        su Cuenta Corriente completa; más adelante se le pueden sumar
+        filtros de Fecha y Cuenta."""
+        self.ensure_one()
+        return {
+            'name': 'Cuenta Corriente — %s' % self.display_name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move.line',
+            'view_mode': 'list,pivot',
+            'domain': [
+                ('partner_id', '=', self.id),
+                ('move_id.state', '=', 'posted'),
+                ('display_type', 'not in', ('line_section', 'line_note')),
+            ],
+        }
 
     @api.onchange('country_id')
     def _onchange_country_id_retencion(self):
