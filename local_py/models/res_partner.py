@@ -108,14 +108,19 @@ class ResPartner(models.Model):
         Gastos, Existencia, Ingresos, Cajas/Bancos, y Retenciones (la
         porción de una Retención que sí toca la Cuenta de Proveedores
         se ve igual, solo que sin el detalle de a qué Cuenta de
-        Retenciones fue). Sin Fechas ni Saldo Acumulado — para eso está
-        el reporte impreso ("Imprimir Estado de Cuenta")."""
+        Retenciones fue). Con un filtro de rango de Fechas disponible
+        en el buscador, pero sin Saldo Acumulado — para eso está el
+        reporte impreso ("Imprimir Estado de Cuenta")."""
         self.ensure_one()
+        list_view = self.env.ref('local_py.view_local_py_cuenta_corriente_move_line_list')
+        search_view = self.env.ref('local_py.view_local_py_cuenta_corriente_move_line_search')
         return {
             'name': 'Cuenta Corriente — %s' % self.display_name,
             'type': 'ir.actions.act_window',
             'res_model': 'account.move.line',
             'view_mode': 'list,pivot',
+            'views': [(list_view.id, 'list'), (False, 'pivot')],
+            'search_view_id': [search_view.id, search_view.name],
             'domain': [
                 ('partner_id', '=', self.id),
                 ('account_id.account_type', 'in', ('liability_payable', 'asset_receivable')),

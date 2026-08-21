@@ -1,0 +1,34 @@
+<odoo>
+    <data>
+        <record id="view_local_py_cuenta_corriente_move_line_list" model="ir.ui.view">
+            <field name="name">local_py.cuenta_corriente.move.line.list</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <list string="Cuenta Corriente" default_order="date, create_date">
+                    <field name="date" string="Fecha"/>
+                    <field name="create_date" string="Fecha de Creación"/>
+                    <field name="journal_id" string="Diario"/>
+                    <field name="move_id" string="Comprobante"/>
+                    <field name="name" string="Comentario"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="debit" string="Débito" sum="Total Débito"/>
+                    <field name="credit" string="Crédito" sum="Total Crédito"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_cuenta_corriente_move_line_search" model="ir.ui.view">
+            <field name="name">local_py.cuenta_corriente.move.line.search</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <search string="Cuenta Corriente">
+                    <field name="move_id"/>
+                    <field name="journal_id"/>
+                    <filter string="Fecha" name="filtro_fecha" date="date"/>
+                    <separator/>
+                    <filter string="Agrupar por Diario" name="group_journal" context="{'group_by': 'journal_id'}"/>
+                </search>
+            </field>
+        </record>
+    </data>
+</odoo>

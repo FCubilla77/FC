@@ -30,10 +30,20 @@
                             </p>
 
                             <t t-foreach="data_list" t-as="grupo">
-                                <h4 style="margin-top: 14px; background-color: #eeeeee; padding: 4px;">
-                                    <t t-esc="grupo['company'].name"/> — <t t-esc="grupo['currency'].name"/>
-                                </h4>
-                                <table style="width: 100%; border-collapse: collapse;" border="1">
+                                <div style="background-color: #eeeeee; padding: 6px; margin-top: 14px;">
+                                    <div t-esc="grupo['company'].name"/>
+                                    <div t-esc="grupo['currency'].name"/>
+                                </div>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 11px;" border="1">
+                                    <colgroup>
+                                        <col style="width: 9%;"/>
+                                        <col style="width: 11%;"/>
+                                        <col style="width: 9%;"/>
+                                        <col style="width: 43%;"/>
+                                        <col style="width: 9%;"/>
+                                        <col style="width: 9%;"/>
+                                        <col style="width: 10%;"/>
+                                    </colgroup>
                                     <thead>
                                         <tr style="background-color: #f5f5f5;">
                                             <th style="padding: 3px;">Fecha</th>
