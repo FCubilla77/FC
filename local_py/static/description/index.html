@@ -412,6 +412,8 @@
                 <li>Corregido un error que impedía actualizar el módulo: el campo "Saldo a Favor Disponible" (usado para filtrar el selector de Saldo a Favor en Medios) necesitaba guardarse en la base de datos para poder buscarse por él — sin eso, Odoo no podía validar la pantalla de Orden de Pago al cargar</li>
                 <li>Corregido un hueco real: "Cargar Facturas Pendientes" traía cualquier línea contable sin conciliar de la cuenta de Proveedores, sin distinguir si era una Factura de verdad o la línea de un Pago (por ejemplo, un Pago de Saldo a Favor sin conciliar) — ahora se restringe explícitamente a Facturas y Notas de Crédito/Reembolso reales de Proveedor</li>
                 <li>Corregido: el Pago de un Saldo a Favor recién generado quedaba guardado con "Saldo Disponible" en cero, así que nunca aparecía en el selector de la siguiente Orden de Pago — el cálculo dependía del saldo pendiente real, que recién queda definitivo al contabilizar el Pago, no en el instante de crearlo; ahora se fuerza el recálculo justo después de contabilizar</li>
+                <li>Orden de Pago: nuevo campo "Saldo a Favor del Proveedor" en la cabecera — se completa solo al elegir el Proveedor, mostrando el total disponible en la Moneda de la Orden</li>
+                <li>PDF de Orden de Pago: el cuadro "Medios de Pago" ahora identifica las filas de Saldo a Favor con "Saldo a Favor (Pago Nro. XXX)" en vez de dejar el Diario en blanco</li>
             </ul>
         </div>
     </div>

@@ -93,7 +93,8 @@
                                 </thead>
                                 <tbody>
                                     <tr t-foreach="o.medio_ids" t-as="m">
-                                        <td style="padding: 2px;" t-esc="m.journal_id.name"/>
+                                        <td style="padding: 2px;"
+                                            t-esc="'Saldo a Favor (%s)' % m.saldo_favor_payment_id.name if m.saldo_favor_payment_id else m.journal_id.name"/>
                                         <td style="padding: 2px;" t-esc="m.nro_documento or ''"/>
                                         <td style="padding: 2px;" t-esc="m.banco or ''"/>
                                         <td style="padding: 2px;" t-esc="m.fecha_emision.strftime('%d/%m/%Y') if m.fecha_emision else ''"/>

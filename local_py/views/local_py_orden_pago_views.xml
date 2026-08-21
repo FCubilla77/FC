@@ -35,6 +35,8 @@
                                 <field name="partner_id" options="{'no_create': True}"
                                        domain="[('supplier_rank', '>', 0)]" readonly="state != 'borrador'"
                                        invisible="es_pago_a_cuenta" required="not es_pago_a_cuenta"/>
+                                <field name="total_saldo_favor_proveedor" readonly="1"
+                                       invisible="es_pago_a_cuenta or total_saldo_favor_proveedor == 0"/>
                                 <field name="cuenta_pago_id" readonly="state != 'borrador'"
                                        invisible="not es_pago_a_cuenta" required="es_pago_a_cuenta"/>
                                 <field name="referencia_pago_cuenta" readonly="state != 'borrador'"

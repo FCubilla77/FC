@@ -133,6 +133,28 @@ class LocalPyOrdenPago(models.Model):
              'porción que se absorbe (si corresponde) no afecta este total ni la '
              'Diferencia, ya que no sale de los Medios de Pago.',
     )
+    total_saldo_favor_proveedor = fields.Monetary(
+        string='Saldo a Favor del Proveedor', compute='_compute_total_saldo_favor_proveedor',
+        currency_field='currency_id',
+        help='Total disponible del Proveedor, en la misma Moneda de esta Orden — es lo '
+             'que se puede elegir como Medio "Saldo a Favor" acá. Si el Proveedor '
+             'también tiene saldo en alguna otra Moneda, no se incluye acá (no se puede '
+             'usar en esta Orden, al no coincidir la Moneda).',
+    )
+
+    @api.depends('partner_id', 'currency_id')
+    def _compute_total_saldo_favor_proveedor(self):
+        for orden in self:
+            if not orden.partner_id:
+                orden.total_saldo_favor_proveedor = 0.0
+                continue
+            pagos = self.env['account.payment'].search([
+                ('partner_id', '=', orden.partner_id.id),
+                ('l10n_py_es_saldo_favor', '=', True),
+                ('currency_id', '=', orden.currency_id.id),
+                ('l10n_py_saldo_favor_disponible', '>', 0),
+            ])
+            orden.total_saldo_favor_proveedor = sum(pagos.mapped('l10n_py_saldo_favor_disponible'))
 
     @api.constrains('es_pago_a_cuenta', 'es_orden_retencion')
     def _check_pago_a_cuenta_vs_orden_retencion(self):
