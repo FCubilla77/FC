@@ -98,6 +98,7 @@ class ResPartner(models.Model):
         for partner in self:
             partner.l10n_py_move_line_count = self.env['account.move.line'].search_count([
                 ('partner_id', '=', partner.id),
+                ('account_id.account_type', 'in', ('liability_payable', 'asset_receivable')),
                 ('move_id.state', '=', 'posted'),
                 ('display_type', 'not in', ('line_section', 'line_note')),
             ])

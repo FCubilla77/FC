@@ -15,10 +15,13 @@
                 <t t-foreach="docs" t-as="o">
                     <t t-call="web.external_layout">
                         <div class="page">
-                            <h2 style="margin-bottom: 6px; margin-top: 0;">
+                            <style>
+                                .o_company_logo, .o_company_logo_small, [name="company_address"] { display: none !important; }
+                            </style>
+                            <h2 style="margin-bottom: 6px; margin-top: 0; font-size: 10px;">
                                 Estado de Cuenta Corriente
                             </h2>
-                            <p style="margin-bottom: 6px; line-height: 1.3;">
+                            <p style="margin-bottom: 6px; line-height: 1.3; font-size: 10px;">
                                 <strong>RUT:</strong> <t t-esc="o.partner_id.vat or ''"/><br/>
                                 <strong>Nombre:</strong> <t t-esc="o.partner_id.display_name"/><br/>
                                 <t t-if="o.fecha_desde">
@@ -27,6 +30,9 @@
                                 <t t-if="o.fecha_hasta">
                                     <strong> Hasta:</strong> <t t-esc="o.fecha_hasta"/>
                                 </t>
+                                <br/>
+                                <strong>Fecha de Emisión:</strong>
+                                <t t-esc="o._fecha_emision_texto()"/>
                             </p>
 
                             <t t-foreach="data_list" t-as="grupo">

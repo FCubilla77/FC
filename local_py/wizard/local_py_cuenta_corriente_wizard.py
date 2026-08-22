@@ -15,6 +15,14 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
     fecha_desde = fields.Date(string='Fecha Desde')
     fecha_hasta = fields.Date(string='Fecha Hasta')
 
+    def _fecha_emision_texto(self):
+        """Momento real en que se generó el PDF, convertido al huso
+        horario de quien lo está imprimiendo (igual criterio que ya
+        usamos para la Fecha de Creación de cada línea)."""
+        self.ensure_one()
+        ahora = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        return ahora.strftime('%d/%m/%Y %H:%M')
+
     def _fmt(self, valor, currency=None):
         """Mismo criterio de formato que ya usa Orden de Pago: separador de
         miles con punto (estilo Paraguay), y decimal con coma si hiciera falta."""
