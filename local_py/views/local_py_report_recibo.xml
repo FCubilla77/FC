@@ -7,6 +7,7 @@
             <field name="report_name">local_py.report_recibo_document</field>
             <field name="report_file">local_py.report_recibo_document</field>
             <field name="print_report_name">'Recibo - %s' % (object.name)</field>
+            <field name="paperformat_id" ref="paperformat_libro_diario_mayor"/>
             <field name="binding_model_id" ref="model_local_py_recibo"/>
             <field name="binding_type">report</field>
         </record>
@@ -16,6 +17,7 @@
                 <t t-foreach="docs" t-as="o">
                     <div style="font-size: 11px; font-family: Arial, sans-serif;">
                         <strong t-esc="o.company_id.name"/><br/>
+                        RUT: <t t-esc="o.company_id.vat or ''"/><br/>
                         <h2 style="margin: 6px 0;">Recibo <t t-esc="o.name"/></h2>
                         <table style="width: 100%; margin-bottom: 12px;">
                             <tr>

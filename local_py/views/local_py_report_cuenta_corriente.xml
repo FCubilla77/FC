@@ -6,6 +6,7 @@
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">local_py.report_cuenta_corriente_document</field>
             <field name="print_report_name">'Estado de Cuenta - %s' % (object.partner_id.display_name)</field>
+            <field name="paperformat_id" ref="paperformat_libro_diario_mayor"/>
             <field name="binding_model_id" eval="False"/>
         </record>
 
@@ -14,6 +15,7 @@
                 <t t-set="data_list" t-value="docs[0]._obtener_datos()"/>
                 <t t-foreach="docs" t-as="o">
                     <div style="font-size: 10px; font-family: Arial, sans-serif;">
+                        <strong t-esc="o.env.company.name"/> — RUT: <t t-esc="o.env.company.vat or ''"/><br/>
                         RUT: <t t-esc="o.partner_id.vat or ''"/> — Nombre: <t t-esc="o.partner_id.display_name"/><br/>
                         <t t-if="o.fecha_desde">Desde: <t t-esc="o.fecha_desde"/></t>
                         <t t-if="o.fecha_hasta"> Hasta: <t t-esc="o.fecha_hasta"/></t>

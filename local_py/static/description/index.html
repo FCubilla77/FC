@@ -442,6 +442,7 @@
                 <li>Recibo: rediseñado Medios de Cobro — se quitó el campo "Tipo" (quedaba de más); ahora se elige directamente el Diario, y el sistema reconoce solo si es Efectivo, Transferencia, Cheque, o Retención según cuál sea (mismo criterio que ya usa Orden de Pago)</li>
                 <li>Corregido un bug real, presente también en Orden de Pago (se copió sin darse cuenta al construir Recibo): el control de "cotización cargada" no pedía la cotización del día cuando la Moneda de la Factura coincidía con la Moneda de la Cabecera (ej. Recibo y Factura los dos en USD) — aunque esa combinación igual necesita convertir a Guaraníes para el asiento contable. Corregido en los 2 lugares</li>
                 <li>PDF de Orden de Pago y de Recibo: se quitó el logo y la dirección/país de la Compañía en el encabezado (mismo ajuste ya aplicado en el Estado de Cuenta Corriente) — quedó un encabezado propio, compacto, con numeración de página nativa ("Pag. n/n")</li>
+                <li>Corregidos 2 problemas reales en los 3 PDF con encabezado propio (Orden de Pago, Recibo, Estado de Cuenta Corriente): el RUT de la Compañía se había ido junto con el logo/dirección por error — vuelve a mostrarse; y ninguno de los 3 estaba usando el formato de papel ya definido para el módulo (A4, márgenes 1,5/1,5/2/1,5 cm), por eso quedaba un espacio en blanco grande arriba — ahora los 3 usan ese mismo formato</li>
             </ul>
         </div>
     </div>
