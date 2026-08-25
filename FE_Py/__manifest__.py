@@ -25,7 +25,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.01.013",
+    "version": "2026.01.014",
     "license": "LGPL-3",
     "depends": ["local_py"],
     "external_dependencies": {
@@ -40,6 +40,7 @@
         "views/res_company_views.xml",
         "views/account_journal_views.xml",
         "views/account_move_views.xml",
+        "views/local_py_tipo_fiscal_views.xml",
         "views/fe_py_documento_electronico_views.xml",
         "views/fe_py_documento_electronico_log_views.xml",
         "views/fe_py_evento_views.xml",

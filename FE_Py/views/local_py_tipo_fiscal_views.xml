@@ -1,0 +1,25 @@
+<odoo>
+    <data>
+        <record id="view_local_py_tipo_fiscal_form_fe_py" model="ir.ui.view">
+            <field name="name">local_py.tipo_fiscal.form.fe.py</field>
+            <field name="model">local_py.tipo_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_fiscal_form"/>
+            <field name="arch" type="xml">
+                <field name="sequence" position="after">
+                    <field name="fe_py_es_electronico"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_local_py_tipo_fiscal_list_fe_py" model="ir.ui.view">
+            <field name="name">local_py.tipo_fiscal.list.fe.py</field>
+            <field name="model">local_py.tipo_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_fiscal_list"/>
+            <field name="arch" type="xml">
+                <field name="active" position="before">
+                    <field name="fe_py_es_electronico" optional="show"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>
