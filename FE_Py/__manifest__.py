@@ -25,10 +25,14 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.01.002",
+    "version": "2026.01.003",
     "license": "LGPL-3",
     "depends": ["local_py"],
     "data": [
         "security/ir.model.access.csv",
+        "data/local_py_tipo_fiscal_data.xml",
+        "views/res_company_views.xml",
+        "views/account_journal_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
 }

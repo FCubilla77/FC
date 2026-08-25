@@ -1,0 +1,27 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Se marca fe_py_es_electronico sobre el registro que YA existe en
+             local_py, sin tocar su archivo XML original (external id con
+             prefijo de módulo = actualización del registro existente, no
+             creación de uno nuevo). -->
+        <record id="local_py.tipo_fiscal_factura_electronica" model="local_py.tipo_fiscal">
+            <field name="fe_py_es_electronico">1</field>
+        </record>
+
+        <!-- Nuevas variantes electrónicas, mismo código Marangatu (Tabla 4)
+             que su par física — mismo criterio que ya usa local_py para
+             Factura / Factura Electronica (ambas código 109). -->
+        <record id="tipo_fiscal_nota_credito_electronica" model="local_py.tipo_fiscal">
+            <field name="name">Nota de Credito Electronica</field>
+            <field name="code">110</field>
+            <field name="sequence">115</field>
+            <field name="fe_py_es_electronico">1</field>
+        </record>
+        <record id="tipo_fiscal_nota_debito_electronica" model="local_py.tipo_fiscal">
+            <field name="name">Nota de Debito Electronica</field>
+            <field name="code">111</field>
+            <field name="sequence">125</field>
+            <field name="fe_py_es_electronico">1</field>
+        </record>
+    </data>
+</odoo>

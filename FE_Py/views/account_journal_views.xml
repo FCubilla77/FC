@@ -1,0 +1,17 @@
+<odoo>
+    <data>
+        <record id="view_account_journal_form_fe_py" model="ir.ui.view">
+            <field name="name">account.journal.form.fe.py</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <group string="Facturación Electrónica (SIFEN)" invisible="type != 'sale'">
+                        <field name="fe_py_idcsc" placeholder="Vacío = usa el de la Compañía"/>
+                        <field name="fe_py_csc" placeholder="Vacío = usa el de la Compañía"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

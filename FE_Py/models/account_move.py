@@ -1,0 +1,29 @@
+# -*- coding: utf-8 -*-
+
+from odoo import api, models
+
+
+class AccountMove(models.Model):
+    _inherit = 'account.move'
+
+    @api.model
+    def _get_suitable_journal_ids(self, move_type, company=False):
+        """local_py solo reconoce el Tipo Fiscal 'Factura Electronica' en su
+        filtro de Diarios ofrecidos (era el único electrónico que existía al
+        momento de escribirse ese método). Acá se agregan, sin modificar
+        ningún archivo de local_py, los Diarios configurados con los nuevos
+        Tipos Fiscales electrónicos de Nota de Crédito/Débito de Cliente."""
+        journals = super()._get_suitable_journal_ids(move_type, company)
+        if move_type in ('out_invoice', 'out_refund'):
+            target_name = (
+                'Nota de Debito Electronica' if move_type == 'out_invoice'
+                else 'Nota de Credito Electronica'
+            )
+            company_id = (company or self.env.company).id
+            extra = self.env['account.journal'].search([
+                ('company_id', '=', company_id),
+                ('type', '=', 'sale'),
+                ('local_py_tipo_fiscal_id.name', '=', target_name),
+            ])
+            journals |= extra
+        return journals
