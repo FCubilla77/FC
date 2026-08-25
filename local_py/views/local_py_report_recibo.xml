@@ -1,0 +1,103 @@
+<odoo>
+    <data>
+        <template id="report_recibo_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.external_layout">
+                        <div class="page" style="font-size: 11px; margin-top: -12mm;">
+                            <h2 style="margin-top: 0;">Recibo <t t-esc="o.name"/></h2>
+                            <table style="width: 100%; margin-bottom: 12px;">
+                                <tr>
+                                    <td style="width: 50%;">
+                                        <strong>Recibo:</strong> <t t-esc="o.name"/><br/>
+                                        <strong>Cliente:</strong> <t t-esc="o.partner_id.display_name"/><br/>
+                                        <strong>Comentario:</strong> <t t-esc="o.comentario or ''"/>
+                                    </td>
+                                    <td style="width: 50%;">
+                                        <strong>Fecha:</strong> <t t-esc="o.fecha.strftime('%d/%m/%Y')"/><br/>
+                                        <strong>Moneda:</strong> <t t-esc="o.currency_id.name"/><br/>
+                                        <strong>Estado:</strong> <t t-esc="dict(o._fields['state'].selection).get(o.state)"/>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h4>Detalle Facturas</h4>
+                            <table style="width: 100%; border-collapse: collapse;" border="1">
+                                <thead>
+                                    <tr style="background-color: #eeeeee;">
+                                        <th style="padding: 3px;">Factura</th>
+                                        <th style="padding: 3px;">Cuota</th>
+                                        <th style="padding: 3px;">Vencimiento</th>
+                                        <th style="padding: 3px;">Moneda</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Total Original</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Saldo Pendiente</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Importe a Cobrar</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Cotización</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Valor Convertido</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.factura_ids" t-as="f">
+                                        <td style="padding: 2px;" t-esc="f.move_id.name"/>
+                                        <td style="padding: 2px;" t-esc="f.move_line_id.name or ''"/>
+                                        <td style="padding: 2px;" t-esc="f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else ''"/>
+                                        <td style="padding: 2px;" t-esc="f.currency_id.name"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.total_original)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.saldo_pendiente)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.importe_a_cobrar)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.cotizacion, 4)"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.valor_convertido)"/>
+                                    </tr>
+                                    <tr style="font-weight: bold; border-top: 1px solid #000000;">
+                                        <td colspan="8" style="padding: 2px;">Total</td>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_facturas)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h4 style="margin-top: 12px;">Medios de Cobro</h4>
+                            <table style="width: 100%; border-collapse: collapse;" border="1">
+                                <thead>
+                                    <tr style="background-color: #eeeeee;">
+                                        <th style="padding: 3px;">Tipo / Diario</th>
+                                        <th style="padding: 3px;">Nro. Documento</th>
+                                        <th style="padding: 3px;">Banco</th>
+                                        <th style="padding: 3px;">Fecha Emisión</th>
+                                        <th style="padding: 3px;">Fecha Venc.</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Importe</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.medio_ids" t-as="m">
+                                        <td style="padding: 2px;"
+                                            t-esc="'Saldo a Favor (%s)' % m.saldo_favor_payment_id.name if m.tipo == 'saldo_favor' else (m.journal_id.name if m.journal_id else dict(m._fields['tipo'].selection).get(m.tipo))"/>
+                                        <td style="padding: 2px;" t-esc="m.cheque_numero or ''"/>
+                                        <td style="padding: 2px;" t-esc="m.cheque_banco_id.name or ''"/>
+                                        <td style="padding: 2px;" t-esc="m.cheque_fecha_emision.strftime('%d/%m/%Y') if m.cheque_fecha_emision else ''"/>
+                                        <td style="padding: 2px;" t-esc="m.cheque_fecha_vencimiento.strftime('%d/%m/%Y') if m.cheque_fecha_vencimiento else ''"/>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(m.importe)"/>
+                                    </tr>
+                                    <tr style="font-weight: bold; border-top: 1px solid #000000;">
+                                        <td colspan="5" style="padding: 2px;">Total</td>
+                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_medios)"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_recibo" model="ir.actions.report">
+            <field name="name">Recibo</field>
+            <field name="model">local_py.recibo</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">local_py.report_recibo_document</field>
+            <field name="report_file">local_py.report_recibo_document</field>
+            <field name="print_report_name">'Recibo - %s' % (object.name)</field>
+            <field name="binding_model_id" ref="model_local_py_recibo"/>
+            <field name="binding_type">report</field>
+        </record>
+    </data>
+</odoo>

@@ -436,6 +436,9 @@
                 </li>
                 <li>Corregidos 2 errores que impedían instalar la versión anterior: el wizard de Rechazo de Cheque de Cliente nunca quedó registrado (faltaba una línea en el archivo de carga de módulos), y el campo Estado de Recibo usaba seguimiento de cambios sin que el modelo tuviera esa función habilitada</li>
                 <li>Corregido: en Recibo, los campos Serie, Cliente, Fecha y Moneda quedaban bloqueados siempre, incluso en Borrador — una condición de "solo editable en Borrador" se había escrito en el lugar equivocado (en la definición del campo, en vez de en la pantalla), donde esa sintaxis no es válida y termina bloqueando el campo en cualquier estado</li>
+                <li>Recibo: la Serie se precarga sola cuando el Usuario tiene una sola asignada para la Compañía activa</li>
+                <li>Recibo: columnas de las grillas de Facturas y Medios de Cobro reordenadas para coincidir exactamente con Orden de Pago, con "Importe a Cobrar" e "Importe" resaltados en verde</li>
+                <li>Nuevo layout de impresión (PDF) para Recibo, mismo diseño que Orden de Pago — cabecera con datos del Cliente, cuadro de Facturas, y cuadro de Medios de Cobro</li>
             </ul>
         </div>
     </div>

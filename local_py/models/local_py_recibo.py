@@ -3,6 +3,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+from .local_py_libro_report import fmt_pyg
+
 
 class LocalPyRecibo(models.Model):
     _name = 'local_py.recibo'
@@ -10,11 +12,19 @@ class LocalPyRecibo(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
 
+    def _default_serie_id(self):
+        series = self.env['local_py.recibo.serie'].search([
+            ('user_id', '=', self.env.user.id),
+            ('company_id', '=', self.env.company.id),
+        ])
+        return series.id if len(series) == 1 else False
+
     name = fields.Char(string='Recibo', default='Nuevo', copy=False, readonly=True)
     serie_id = fields.Many2one(
-        'local_py.recibo.serie', string='Serie', required=True,
+        'local_py.recibo.serie', string='Serie', required=True, default=_default_serie_id,
         domain="[('user_id', '=', uid), ('company_id', '=', company_id)]",
-        help='Solo aparecen las Series asignadas a su Usuario, para la Compañía activa.',
+        help='Solo aparecen las Series asignadas a su Usuario, para la Compañía activa. '
+             'Se precarga sola si el Usuario tiene una sola Serie asignada.',
     )
     numero = fields.Integer(string='Número', readonly=True, copy=False)
     company_id = fields.Many2one(
@@ -464,3 +474,17 @@ class LocalPyRecibo(models.Model):
             cheques.filtered(lambda c: c.estado == 'en_cartera').write({'estado': 'anulado'})
 
         self.write({'state': 'anulado', 'fecha_anulacion': fields.Datetime.now()})
+
+
+class ReportRecibo(models.AbstractModel):
+    _name = 'report.local_py.report_recibo_document'
+    _description = 'Reporte Recibo'
+
+    def _get_report_values(self, docids, data=None):
+        docs = self.env['local_py.recibo'].browse(docids)
+        return {
+            'doc_ids': docids,
+            'doc_model': 'local_py.recibo',
+            'docs': docs,
+            'fmt_pyg': fmt_pyg,
+        }

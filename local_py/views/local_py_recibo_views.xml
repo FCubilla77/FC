@@ -50,17 +50,19 @@
                                         invisible="state != 'borrador'"/>
                                 <field name="factura_ids" readonly="state != 'borrador'">
                                     <list editable="bottom">
-                                        <field name="nro_documento_factura"/>
-                                        <field name="fecha_factura"/>
-                                        <field name="cuota"/>
-                                        <field name="fecha_vencimiento"/>
-                                        <field name="currency_id"/>
-                                        <field name="total_original"/>
-                                        <field name="saldo_pendiente"/>
-                                        <field name="importe_a_cobrar"/>
-                                        <field name="cotizacion" invisible="misma_moneda"/>
-                                        <field name="valor_convertido" invisible="misma_moneda"/>
+                                        <field name="move_id" readonly="1"/>
+                                        <field name="nro_documento_factura" readonly="1"/>
+                                        <field name="cuota" readonly="1"/>
+                                        <field name="fecha_factura" readonly="1"/>
+                                        <field name="fecha_vencimiento" readonly="1"/>
+                                        <field name="currency_id" readonly="1"/>
+                                        <field name="total_original" readonly="1"/>
+                                        <field name="saldo_pendiente" readonly="1"/>
+                                        <field name="importe_a_cobrar" class="bg-success-subtle"/>
+                                        <field name="cotizacion"/>
+                                        <field name="valor_convertido" readonly="1"/>
                                         <field name="misma_moneda" column_invisible="1"/>
+                                        <field name="cotizacion_manual" column_invisible="1"/>
                                         <field name="header_currency_id" column_invisible="1"/>
                                         <field name="move_line_id" column_invisible="1"/>
                                     </list>
@@ -68,21 +70,22 @@
                             </page>
                             <page string="Medios de Cobro" name="medios">
                                 <field name="medio_ids" readonly="state != 'borrador'">
-                                    <list editable="bottom">
+                                    <list editable="bottom" decoration-info="tipo == 'retencion'"
+                                          decoration-warning="saldo_favor_payment_id">
                                         <field name="tipo"/>
                                         <field name="journal_id"/>
+                                        <field name="saldo_favor_payment_id" options="{'no_create': True}"/>
+                                        <field name="saldo_favor_disponible" readonly="1" optional="show"/>
+                                        <field name="importe" class="bg-success-subtle"/>
+                                        <field name="cheque_fecha_emision"/>
+                                        <field name="cheque_fecha_vencimiento"/>
                                         <field name="cheque_numero"/>
                                         <field name="cheque_banco_id" options="{'no_create': True}"/>
                                         <field name="cheque_tipo"/>
-                                        <field name="cheque_fecha_emision"/>
-                                        <field name="cheque_fecha_vencimiento"/>
-                                        <field name="recibo_factura_id" options="{'no_create': True}"/>
-                                        <field name="saldo_favor_payment_id" options="{'no_create': True}"/>
-                                        <field name="saldo_favor_disponible" readonly="1"/>
-                                        <field name="importe"/>
-                                        <field name="retencion_estado" invisible="tipo != 'retencion'"/>
-                                        <field name="retencion_numero_dni" invisible="tipo != 'retencion'"/>
-                                        <field name="documentos_relacionados" readonly="1"/>
+                                        <field name="documentos_relacionados" readonly="1" string="Doc. relacionados"/>
+                                        <field name="recibo_factura_id" options="{'no_create': True}" optional="show"/>
+                                        <field name="retencion_estado" invisible="tipo != 'retencion'" optional="show"/>
+                                        <field name="retencion_numero_dni" invisible="tipo != 'retencion'" optional="show"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="company_id" column_invisible="1"/>
                                         <field name="recibo_partner_id" column_invisible="1"/>
