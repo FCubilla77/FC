@@ -423,6 +423,17 @@
                 <li>PDF del Estado de Cuenta: reducidos los espacios de la cabecera (título y bloque de RUT/Nombre/Fechas), para un formato más compacto</li>
                 <li>PDF del Estado de Cuenta: se oculta el logo y la dirección/país de la Compañía en el encabezado (quedan RUT, Nombre y Fechas únicamente), bloque de cabecera a tamaño de fuente 10, y se agregó la Fecha de Emisión del informe — la numeración de página ("Pag. n/n") sigue viniendo del mismo mecanismo probado de siempre, sin tocarlo</li>
                 <li>Corregido: el número mostrado en el smartbutton "Cuenta Corriente" contaba todas las líneas contables del Contacto, sin el filtro de Cuenta Por Pagar/Por Cobrar que sí tiene la grilla que se abre al hacer clic — ahora ambos números coinciden</li>
+                <li>PDF del Estado de Cuenta — rediseño final: se cambió a la misma plantilla simple que ya usan Libro Diario/Libro Mayor/Libro Inventario/Estado de Resultado (en vez de intentar ocultar el logo/dirección de la plantilla completa de Odoo con estilos, que no daba resultado consistente) — encabezado propio, sin logo ni dirección/país, con numeración de página nativa ("Pag. n/n")</li>
+                <li><strong>Nueva funcionalidad completa: Recibo (Facturación &gt; Clientes)</strong> — equivalente a Orden de Pago, pero para cobrar a Clientes, con modelos propios y separados (sin compartir código con Orden de Pago):
+                    <ul>
+                        <li>Estados Borrador → En Proceso → Confirmado → Anulado (a diferencia de Orden de Pago, Anular es definitivo — no vuelve a Borrador, para no dejar una ventana abierta a reconfirmar con otros valores)</li>
+                        <li>Series de Recibo por Usuario y Compañía (Datos Maestros &gt; Series de Recibo) — un Usuario puede tener más de una asignada, eligiendo cuál usar; el número real se asigna recién al Confirmar</li>
+                        <li>Medios de Cobro: Efectivo, Transferencia, Cheque, Retención, y Saldo a Favor — mismo motor de reparto y prioridad que Orden de Pago (Saldo a Favor → Cheque → Transferencia → Efectivo)</li>
+                        <li>Retención como Medio directo (sin cálculo — el Cliente ya informa el monto), contra la Cuenta "Retenido a Confirmar"; el emparejamiento automático contra el archivo de Marangatu de la DNIT queda pendiente para una próxima entrega</li>
+                        <li>Cheque de Cliente (Contabilidad &gt; Cheques de Clientes): ciclo En Cartera → Rechazado (con asiento de reclasificación, Fecha y Motivo, reversible con "Deshacer Rechazo") → Anulado; control de unicidad por Número+Banco+Tipo entre Recibos no anulados; Depositado/Negociado/Canjeado quedan previstos para módulos futuros (Depósito Bancario, Negociación, Canje)</li>
+                        <li>Saldo a Favor de Cliente, mismo mecanismo que en Orden de Pago (reutilización de un Cobro sin conciliar), con su propio bloqueo en cascada al Anular</li>
+                    </ul>
+                </li>
             </ul>
         </div>
     </div>

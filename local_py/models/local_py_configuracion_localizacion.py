@@ -97,6 +97,38 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'proveedores del exterior, cuando ese Proveedor la tenga configurada como '
              '"Se Absorbe Renta".',
     )
+    l10n_py_diario_retencion_recibida_id = fields.Many2one(
+        'account.journal', string='Diario de Retención Recibida',
+        domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
+        help='Diario de tipo Misceláneo — se usa para la fila de Medios "Retención" en '
+             'Recibo, cuando un Cliente informa que retuvo parte del pago.',
+    )
+    l10n_py_cuenta_retencion_a_confirmar_id = fields.Many2one(
+        'account.account', string='Cuenta "Retenido a Confirmar"',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta de Activo donde queda el monto de una Retención Recibida hasta '
+             'que se confirme contra el archivo de Marangatu de la DNIT (o se mapee a '
+             'mano) — recién ahí se reclasifica a "Retenciones Recibidas".',
+    )
+    l10n_py_cuenta_retenciones_recibidas_id = fields.Many2one(
+        'account.account', string='Cuenta "Retenciones Recibidas"',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta de Activo (crédito fiscal) donde se reclasifica una Retención '
+             'Recibida una vez confirmada contra la DNIT.',
+    )
+    l10n_py_diario_cheque_cliente_id = fields.Many2one(
+        'account.journal', string='Diario de Cheques de Clientes',
+        domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]",
+        help='Diario que se usa para la fila de Medios "Cheque" en Recibo — su Cuenta '
+             'contable configurada en el Diario es la que se usa como "Cheques en '
+             'Cartera".',
+    )
+    l10n_py_cuenta_cheques_rechazados_id = fields.Many2one(
+        'account.account', string='Cuenta "Cheques Rechazados"',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta de Activo donde se reclasifica un Cheque de Cliente cuando se '
+             'marca como "Rechazado" (desde "En Cartera").',
+    )
     company_currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda de la Empresa')
     no_retencion_ids = fields.One2many(
         'local_py.no_retencion', 'config_id', string='Resoluciones de No Retención',

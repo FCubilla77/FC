@@ -36,3 +36,8 @@ from . import local_py_concepto_iva
 from . import local_py_tesaka_import
 from . import local_py_tesaka_import_linea
 from . import local_py_concepto_renta_no_residente
+from . import local_py_recibo_serie
+from . import local_py_cheque_cliente
+from . import local_py_recibo_factura
+from . import local_py_recibo_medio
+from . import local_py_recibo

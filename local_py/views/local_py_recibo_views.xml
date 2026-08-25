@@ -1,0 +1,172 @@
+<odoo>
+    <data>
+        <record id="view_local_py_recibo_form" model="ir.ui.view">
+            <field name="name">local_py.recibo.form</field>
+            <field name="model">local_py.recibo</field>
+            <field name="arch" type="xml">
+                <form string="Recibo">
+                    <header>
+                        <button name="action_marcar_en_proceso" type="object" string="Marcar En Proceso"
+                                class="btn-primary" invisible="state != 'borrador'"/>
+                        <button name="action_confirmar" type="object" string="Confirmar"
+                                class="btn-primary" invisible="state != 'en_proceso'"
+                                confirm="Esto genera un Cobro por cada Medio (o el asiento correspondiente) y concilia contra las Facturas seleccionadas. ¿Confirma?"/>
+                        <button name="action_volver_borrador" type="object" string="Volver a Borrador"
+                                invisible="state != 'en_proceso'"/>
+                        <button name="action_anular" type="object" string="Anular"
+                                invisible="state != 'confirmado'"
+                                confirm="Esto revierte todo lo generado y deja este Recibo bloqueado para siempre — no se puede volver a Confirmar. Si fue un error, habrá que cargar un Recibo nuevo. ¿Confirma?"/>
+                        <field name="state" widget="statusbar" statusbar_visible="borrador,en_proceso,confirmado,anulado"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"
+                                       readonly="state != 'borrador'"/>
+                                <field name="serie_id" options="{'no_create': True}"/>
+                                <field name="numero" readonly="1" invisible="not numero"/>
+                                <field name="partner_id" options="{'no_create': True}"
+                                       domain="[('customer_rank', '>', 0)]"/>
+                                <field name="comentario"/>
+                            </group>
+                            <group>
+                                <field name="fecha"/>
+                                <field name="currency_id" options="{'no_create': True}"/>
+                                <field name="total_facturas"/>
+                                <field name="total_medios"/>
+                                <field name="diferencia"/>
+                                <field name="permite_saldo_a_favor" readonly="1"
+                                       invisible="not permite_saldo_a_favor"/>
+                                <field name="hay_monedas_distintas" invisible="1"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Facturas" name="facturas">
+                                <button name="action_cargar_facturas_pendientes" type="object"
+                                        string="Cargar Facturas Pendientes" class="btn-secondary"
+                                        invisible="state != 'borrador'"/>
+                                <field name="factura_ids" readonly="state != 'borrador'">
+                                    <list editable="bottom">
+                                        <field name="nro_documento_factura"/>
+                                        <field name="fecha_factura"/>
+                                        <field name="cuota"/>
+                                        <field name="fecha_vencimiento"/>
+                                        <field name="currency_id"/>
+                                        <field name="total_original"/>
+                                        <field name="saldo_pendiente"/>
+                                        <field name="importe_a_cobrar"/>
+                                        <field name="cotizacion" invisible="misma_moneda"/>
+                                        <field name="valor_convertido" invisible="misma_moneda"/>
+                                        <field name="misma_moneda" column_invisible="1"/>
+                                        <field name="header_currency_id" column_invisible="1"/>
+                                        <field name="move_line_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Medios de Cobro" name="medios">
+                                <field name="medio_ids" readonly="state != 'borrador'">
+                                    <list editable="bottom">
+                                        <field name="tipo"/>
+                                        <field name="journal_id"/>
+                                        <field name="cheque_numero"/>
+                                        <field name="cheque_banco_id" options="{'no_create': True}"/>
+                                        <field name="cheque_tipo"/>
+                                        <field name="cheque_fecha_emision"/>
+                                        <field name="cheque_fecha_vencimiento"/>
+                                        <field name="recibo_factura_id" options="{'no_create': True}"/>
+                                        <field name="saldo_favor_payment_id" options="{'no_create': True}"/>
+                                        <field name="saldo_favor_disponible" readonly="1"/>
+                                        <field name="importe"/>
+                                        <field name="retencion_estado" invisible="tipo != 'retencion'"/>
+                                        <field name="retencion_numero_dni" invisible="tipo != 'retencion'"/>
+                                        <field name="documentos_relacionados" readonly="1"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="company_id" column_invisible="1"/>
+                                        <field name="recibo_partner_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_recibo_list" model="ir.ui.view">
+            <field name="name">local_py.recibo.list</field>
+            <field name="model">local_py.recibo</field>
+            <field name="arch" type="xml">
+                <list string="Recibos" decoration-muted="state == 'anulado'">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="fecha"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="total_facturas"/>
+                    <field name="total_medios"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_recibo_search" model="ir.ui.view">
+            <field name="name">local_py.recibo.search</field>
+            <field name="model">local_py.recibo</field>
+            <field name="arch" type="xml">
+                <search string="Recibos">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <filter string="Borrador" name="filter_borrador" domain="[('state', '=', 'borrador')]"/>
+                    <filter string="En Proceso" name="filter_en_proceso" domain="[('state', '=', 'en_proceso')]"/>
+                    <filter string="Confirmado" name="filter_confirmado" domain="[('state', '=', 'confirmado')]"/>
+                    <filter string="Anulado" name="filter_anulado" domain="[('state', '=', 'anulado')]"/>
+                    <separator/>
+                    <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_local_py_recibo" model="ir.actions.act_window">
+            <field name="name">Recibo</field>
+            <field name="res_model">local_py.recibo</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_recibo"
+                  name="Recibo"
+                  parent="account.menu_finance_receivables"
+                  action="action_local_py_recibo"
+                  groups="account.group_account_manager"
+                  sequence="15"/>
+
+        <record id="view_local_py_recibo_saldo_favor_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.recibo.saldo_favor_wizard.form</field>
+            <field name="model">local_py.recibo.saldo_favor_wizard</field>
+            <field name="arch" type="xml">
+                <form string="Sobra plata entre Medios y Facturas">
+                    <p>
+                        Los Medios de Cobro cargados suman
+                        <field name="diferencia" readonly="1" class="oe_inline"/>
+                        más de lo que corresponde cobrar de las Facturas seleccionadas.
+                        ¿Qué querés hacer?
+                    </p>
+                    <field name="currency_id" invisible="1"/>
+                    <group>
+                        <field name="decision" widget="radio"/>
+                    </group>
+                    <div class="alert alert-info" role="alert" invisible="decision != 'saldo_favor'">
+                        El sobrante queda sin conciliar, disponible como Saldo a Favor en la
+                        cuenta corriente del Cliente.
+                    </div>
+                    <field name="recibo_id" invisible="1"/>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

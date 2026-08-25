@@ -73,6 +73,15 @@
                                         <field name="l10n_py_cuenta_gasto_absorcion_renta_id"
                                                invisible="not l10n_py_retencion_renta" options="{'no_create': True}"/>
                                     </group>
+                                    <group string="Recibo — Retenciones Recibidas">
+                                        <field name="l10n_py_diario_retencion_recibida_id" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_retencion_a_confirmar_id" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_retenciones_recibidas_id" options="{'no_create': True}"/>
+                                    </group>
+                                    <group string="Recibo — Cheques de Clientes">
+                                        <field name="l10n_py_diario_cheque_cliente_id" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_cheques_rechazados_id" options="{'no_create': True}"/>
+                                    </group>
                                 </group>
                                 <field name="company_currency_id" invisible="1"/>
                                 <separator string="Resoluciones de No Retención"/>
