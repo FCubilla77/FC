@@ -71,7 +71,7 @@
                                     <td style="padding:3px;" t-esc="line.name"/>
                                     <td style="text-align:right; padding:3px;" t-esc="'%.2f' % line.quantity"/>
                                     <td style="text-align:right; padding:3px;" t-esc="'{:,.0f}'.format(line.price_unit)"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="'%.0f%%' % (line.discount or 0)"/>
+                                    <td style="text-align:right; padding:3px;" t-esc="str(round(line.discount or 0)) + '%'"/>
                                     <td style="text-align:right; padding:3px;" t-esc="', '.join(line.tax_ids.mapped('name')) or 'Exento'"/>
                                     <td style="text-align:right; padding:3px;" t-esc="'{:,.0f}'.format(line.price_total)"/>
                                 </tr>
