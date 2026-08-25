@@ -439,6 +439,9 @@
                 <li>Recibo: la Serie se precarga sola cuando el Usuario tiene una sola asignada para la Compañía activa</li>
                 <li>Recibo: columnas de las grillas de Facturas y Medios de Cobro reordenadas para coincidir exactamente con Orden de Pago, con "Importe a Cobrar" e "Importe" resaltados en verde</li>
                 <li>Nuevo layout de impresión (PDF) para Recibo, mismo diseño que Orden de Pago — cabecera con datos del Cliente, cuadro de Facturas, y cuadro de Medios de Cobro</li>
+                <li>Recibo: rediseñado Medios de Cobro — se quitó el campo "Tipo" (quedaba de más); ahora se elige directamente el Diario, y el sistema reconoce solo si es Efectivo, Transferencia, Cheque, o Retención según cuál sea (mismo criterio que ya usa Orden de Pago)</li>
+                <li>Corregido un bug real, presente también en Orden de Pago (se copió sin darse cuenta al construir Recibo): el control de "cotización cargada" no pedía la cotización del día cuando la Moneda de la Factura coincidía con la Moneda de la Cabecera (ej. Recibo y Factura los dos en USD) — aunque esa combinación igual necesita convertir a Guaraníes para el asiento contable. Corregido en los 2 lugares</li>
+                <li>PDF de Orden de Pago y de Recibo: se quitó el logo y la dirección/país de la Compañía en el encabezado (mismo ajuste ya aplicado en el Estado de Cuenta Corriente) — quedó un encabezado propio, compacto, con numeración de página nativa ("Pag. n/n")</li>
             </ul>
         </div>
     </div>

@@ -93,8 +93,12 @@ class LocalPyRecibo(models.Model):
         return entero + (',' + decimal if sep else '')
 
     def _verificar_cotizaciones_cargadas(self, monedas):
+        """Mismo criterio que Orden de Pago: incluye tanto las Monedas de
+        las Facturas como la Moneda de la Cabecera del Recibo, ya que el
+        asiento del Cobro necesita convertir a la Moneda de la Compañía
+        aunque Factura y Cabecera coincidan en la misma Moneda extranjera."""
         self.ensure_one()
-        monedas_a_convertir = monedas - self.currency_id - self.company_id.currency_id
+        monedas_a_convertir = (monedas | self.currency_id) - self.company_id.currency_id
         monedas_sin_cotizacion = self.env['res.currency']
         for moneda in monedas_a_convertir:
             existe = self.env['res.currency.rate'].search_count([
@@ -218,12 +222,18 @@ class LocalPyRecibo(models.Model):
         AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
         currency = self.currency_id
 
-        medios_retencion = self.medio_ids.filtered(lambda m: m.tipo == 'retencion')
+        medios_retencion = self.medio_ids.filtered('es_retencion')
         medios_normales = self.medio_ids - medios_retencion
 
         def _prioridad_medio(medio):
             # 0 = Saldo a Favor, 1 = Cheque, 2 = Transferencia, 3 = Efectivo.
-            return {'saldo_favor': 0, 'cheque': 1, 'transferencia': 2, 'efectivo': 3}.get(medio.tipo, 9)
+            if medio.saldo_favor_payment_id:
+                return 0
+            if medio.es_cheque:
+                return 1
+            if medio.journal_id.type == 'cash':
+                return 3
+            return 2
 
         medios_normales = medios_normales.sorted(key=_prioridad_medio)
 
@@ -284,7 +294,7 @@ class LocalPyRecibo(models.Model):
             )
 
         for factura, medio, monto in asignaciones:
-            if medio.tipo == 'saldo_favor':
+            if medio.saldo_favor_payment_id:
                 linea_origen = medio.saldo_favor_payment_id.move_id.line_ids.filtered(
                     lambda l: l.account_id.account_type == 'asset_receivable' and not l.reconciled
                 )
@@ -298,7 +308,7 @@ class LocalPyRecibo(models.Model):
             (factura.move_line_id + linea_receivable).reconcile()
 
         for medio, monto in sobrante_por_medio:
-            if medio.tipo == 'saldo_favor':
+            if medio.saldo_favor_payment_id:
                 continue
             self._crear_cobro_medio(AccountPayment, medio, monto, es_sobrante=True)
 
@@ -308,7 +318,7 @@ class LocalPyRecibo(models.Model):
         local_py.cheque_cliente en estado "En Cartera" la primera vez."""
         self.ensure_one()
         config = self._get_config_recibo()
-        if medio.tipo == 'cheque':
+        if medio.es_cheque:
             if not config or not config.l10n_py_diario_cheque_cliente_id:
                 raise UserError(
                     'Falta configurar el "Diario de Cheques de Clientes" en Configuraciones '
@@ -341,7 +351,7 @@ class LocalPyRecibo(models.Model):
         if payment.move_id:
             payment.move_id.l10n_py_comentario = comentario
 
-        if medio.tipo == 'cheque' and not medio.cheque_cliente_id:
+        if medio.es_cheque and not medio.cheque_cliente_id:
             cheque = self.env['local_py.cheque_cliente'].create({
                 'name': medio.cheque_numero,
                 'bank_id': medio.cheque_banco_id.id,
@@ -425,7 +435,7 @@ class LocalPyRecibo(models.Model):
             if recibo.state != 'confirmado':
                 raise UserError('Solo se puede Anular un Recibo que esté Confirmado.')
 
-            cheques = recibo.medio_ids.filtered(lambda m: m.tipo == 'cheque').mapped('cheque_cliente_id')
+            cheques = recibo.medio_ids.filtered('es_cheque').mapped('cheque_cliente_id')
             cheques_no_cartera = cheques.filtered(lambda c: c.estado not in ('en_cartera', 'anulado'))
             if cheques_no_cartera:
                 raise UserError(
@@ -465,7 +475,7 @@ class LocalPyRecibo(models.Model):
                 ])
                 partial_reconciles.unlink()
 
-            for medio in recibo.medio_ids.filtered(lambda m: m.tipo == 'retencion'):
+            for medio in recibo.medio_ids.filtered('es_retencion'):
                 if medio.retencion_move_id:
                     medio.retencion_move_id.line_ids.remove_move_reconcile()
                     medio.retencion_move_id.button_draft()

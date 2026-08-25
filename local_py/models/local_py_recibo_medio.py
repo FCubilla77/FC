@@ -13,24 +13,35 @@ class LocalPyReciboMedio(models.Model):
     currency_id = fields.Many2one(related='recibo_id.currency_id', string='Moneda')
     recibo_partner_id = fields.Many2one(related='recibo_id.partner_id', string='Cliente (para filtro)')
 
-    tipo = fields.Selection(
-        [
-            ('efectivo', 'Efectivo'),
-            ('transferencia', 'Transferencia'),
-            ('cheque', 'Cheque'),
-            ('retencion', 'Retención'),
-            ('saldo_favor', 'Saldo a Favor'),
-        ],
-        string='Tipo', required=True, default='efectivo',
-    )
     importe = fields.Monetary(string='Importe', currency_field='currency_id')
 
-    # Efectivo / Transferencia
     journal_id = fields.Many2one(
         'account.journal', string='Diario',
-        domain="[('type', 'in', ('cash', 'bank')), ('company_id', '=', company_id)]",
-        help='Solo para Efectivo y Transferencia.',
+        domain="[('type', 'in', ('cash', 'bank', 'general')), ('company_id', '=', company_id)]",
+        help='Elija el Diario de Efectivo, Transferencia, Cheques de Clientes, o '
+             'Retención Recibida — el sistema reconoce solo mirando el Diario elegido '
+             'qué tipo de fila es (igual que en Orden de Pago), mostrando los datos '
+             'que correspondan a cada caso.',
     )
+
+    # Se completan solos, según el Diario elegido coincida con el configurado en
+    # Configuraciones Localización Py — no son editables, son para uso interno de
+    # la lógica y la vista (mostrar/ocultar los campos que correspondan).
+    es_cheque = fields.Boolean(compute='_compute_tipo_inferido')
+    es_retencion = fields.Boolean(compute='_compute_tipo_inferido')
+
+    @api.depends('journal_id', 'company_id')
+    def _compute_tipo_inferido(self):
+        for medio in self:
+            config = medio.company_id and self.env['local_py.configuracion_localizacion'].search(
+                [('company_id', '=', medio.company_id.id)], limit=1,
+            )
+            medio.es_cheque = bool(
+                config and medio.journal_id and medio.journal_id == config.l10n_py_diario_cheque_cliente_id
+            )
+            medio.es_retencion = bool(
+                config and medio.journal_id and medio.journal_id == config.l10n_py_diario_retencion_recibida_id
+            )
 
     # Cheque de Cliente — datos de carga, el registro real (local_py.cheque_cliente)
     # se genera recién al Confirmar el Recibo.
@@ -92,14 +103,15 @@ class LocalPyReciboMedio(models.Model):
         string='Doc. relacionados', compute='_compute_documentos_relacionados',
     )
 
-    @api.depends('payment_ids', 'tipo', 'cheque_cliente_id', 'saldo_favor_payment_id', 'retencion_move_id')
+    @api.depends('payment_ids', 'es_cheque', 'es_retencion', 'cheque_cliente_id',
+                 'saldo_favor_payment_id', 'retencion_move_id')
     def _compute_documentos_relacionados(self):
         for medio in self:
-            if medio.tipo == 'saldo_favor':
+            if medio.saldo_favor_payment_id:
                 medio.documentos_relacionados = medio.saldo_favor_payment_id.name or ''
-            elif medio.tipo == 'retencion':
+            elif medio.es_retencion:
                 medio.documentos_relacionados = medio.retencion_move_id.name or ''
-            elif medio.tipo == 'cheque' and medio.cheque_cliente_id:
+            elif medio.es_cheque and medio.cheque_cliente_id:
                 medio.documentos_relacionados = medio.cheque_cliente_id.display_name
             else:
                 medio.documentos_relacionados = ', '.join(medio.payment_ids.mapped('name'))
@@ -119,27 +131,39 @@ class LocalPyReciboMedio(models.Model):
                     % (medio.importe, medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible)
                 )
 
-    @api.constrains('tipo', 'journal_id', 'cheque_numero', 'cheque_banco_id', 'saldo_favor_payment_id')
+    @api.constrains('journal_id', 'cheque_numero', 'cheque_banco_id', 'saldo_favor_payment_id', 'recibo_factura_id')
     def _check_datos_segun_tipo(self):
         for medio in self:
-            if medio.tipo in ('efectivo', 'transferencia') and not medio.journal_id:
-                raise ValidationError('Elija el Diario para esta fila de %s.' % dict(
-                    medio._fields['tipo'].selection).get(medio.tipo))
-            if medio.tipo == 'cheque' and not (medio.cheque_numero and medio.cheque_banco_id):
+            if medio.saldo_favor_payment_id and medio.journal_id:
+                raise ValidationError(
+                    'Una fila de Medios no puede tener Diario y Saldo a Favor a la vez — elija uno '
+                    'de los dos.'
+                )
+            if not medio.journal_id and not medio.saldo_favor_payment_id:
+                raise ValidationError('Cada fila de Medios necesita un Diario, o un Saldo a Favor.')
+            if medio.es_cheque and not (medio.cheque_numero and medio.cheque_banco_id):
                 raise ValidationError('Complete el Número de Cheque y el Banco para esta fila.')
-            if medio.tipo == 'saldo_favor' and not medio.saldo_favor_payment_id:
-                raise ValidationError('Elija qué Saldo a Favor usar en esta fila.')
+            if medio.es_retencion and not medio.recibo_factura_id:
+                raise ValidationError(
+                    'Indique a qué Factura corresponde esta fila de Retención.'
+                )
 
     @api.onchange('saldo_favor_payment_id')
     def _onchange_saldo_favor_payment_id(self):
         for medio in self:
             if medio.saldo_favor_payment_id:
+                medio.journal_id = False
                 medio.importe = medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible
 
-    @api.onchange('tipo')
-    def _onchange_tipo(self):
+    @api.onchange('journal_id')
+    def _onchange_journal_id(self):
         for medio in self:
-            medio.journal_id = False
-            medio.cheque_numero = False
-            medio.cheque_banco_id = False
-            medio.saldo_favor_payment_id = False
+            if medio.journal_id:
+                medio.saldo_favor_payment_id = False
+            if not medio.es_cheque:
+                medio.cheque_numero = False
+                medio.cheque_banco_id = False
+                medio.cheque_fecha_emision = False
+                medio.cheque_fecha_vencimiento = False
+            if not medio.es_retencion:
+                medio.recibo_factura_id = False

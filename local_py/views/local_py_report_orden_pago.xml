@@ -1,140 +1,143 @@
 <odoo>
     <data>
         <template id="report_orden_pago_document">
-            <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
                 <t t-foreach="docs" t-as="o">
-                    <t t-call="web.external_layout">
-                        <div class="page" style="font-size: 11px; margin-top: -12mm;">
-                            <h2 style="margin-top: 0;">Orden de Pago <t t-esc="o.name"/></h2>
-                            <table style="width: 100%; margin-bottom: 12px;">
-                                <tr>
-                                    <td style="width: 50%;">
-                                        <strong>Orden de Pago:</strong> <t t-esc="o.name"/><br/>
-                                        <t t-if="o.es_pago_a_cuenta">
-                                            <strong>Cuenta:</strong> <t t-esc="o.cuenta_pago_id.display_name"/><br/>
-                                            <strong>Referencia:</strong> <t t-esc="o.referencia_pago_cuenta or ''"/><br/>
-                                        </t>
-                                        <t t-else="">
-                                            <strong>Proveedor:</strong> <t t-esc="o.partner_id.display_name"/><br/>
-                                        </t>
-                                        <strong>Comentario:</strong> <t t-esc="o.comentario or ''"/>
-                                    </td>
-                                    <td style="width: 50%;">
-                                        <strong>Fecha:</strong> <t t-esc="o.fecha.strftime('%d/%m/%Y')"/><br/>
-                                        <strong>Moneda:</strong> <t t-esc="o.currency_id.name"/><br/>
-                                        <strong>Estado:</strong> <t t-esc="dict(o._fields['state'].selection).get(o.state)"/>
-                                    </td>
-                                </tr>
-                            </table>
+                    <div style="font-size: 11px; font-family: Arial, sans-serif;">
+                        <strong t-esc="o.company_id.name"/><br/>
+                        <h2 style="margin: 6px 0;">Orden de Pago <t t-esc="o.name"/></h2>
+                        <table style="width: 100%; margin-bottom: 12px;">
+                            <tr>
+                                <td style="width: 50%;">
+                                    <strong>Orden de Pago:</strong> <t t-esc="o.name"/><br/>
+                                    <t t-if="o.es_pago_a_cuenta">
+                                        <strong>Cuenta:</strong> <t t-esc="o.cuenta_pago_id.display_name"/><br/>
+                                        <strong>Referencia:</strong> <t t-esc="o.referencia_pago_cuenta or ''"/><br/>
+                                    </t>
+                                    <t t-else="">
+                                        <strong>Proveedor:</strong> <t t-esc="o.partner_id.display_name"/><br/>
+                                    </t>
+                                    <strong>Comentario:</strong> <t t-esc="o.comentario or ''"/>
+                                </td>
+                                <td style="width: 50%;">
+                                    <strong>Fecha:</strong> <t t-esc="o.fecha.strftime('%d/%m/%Y')"/><br/>
+                                    <strong>Moneda:</strong> <t t-esc="o.currency_id.name"/><br/>
+                                    <strong>Estado:</strong> <t t-esc="dict(o._fields['state'].selection).get(o.state)"/>
+                                </td>
+                            </tr>
+                        </table>
 
-                            <h4>Detalle Facturas</h4>
+                        <h4>Detalle Facturas</h4>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Factura</th>
+                                    <th style="padding: 3px;">Cuota</th>
+                                    <th style="padding: 3px;">Vencimiento</th>
+                                    <th style="padding: 3px;">Moneda</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Total Original</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Saldo Pendiente</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Importe a Pagar</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Cotización</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Valor Convertido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.factura_ids" t-as="f">
+                                    <td style="padding: 2px;" t-esc="f.move_id.name"/>
+                                    <td style="padding: 2px;" t-esc="f.move_line_id.name or ''"/>
+                                    <td style="padding: 2px;" t-esc="f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else ''"/>
+                                    <td style="padding: 2px;" t-esc="f.currency_id.name"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.total_original)"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.saldo_pendiente)"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.importe_a_pagar)"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.cotizacion, 4)"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.valor_convertido)"/>
+                                </tr>
+                                <tr style="font-weight: bold; border-top: 1px solid #000000;">
+                                    <td colspan="8" style="padding: 2px;">Total</td>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_facturas)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4 style="margin-top: 12px;">Detalle Pago a Cuenta</h4>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Cuenta</th>
+                                    <th style="padding: 3px;">Referencia</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-if="o.es_pago_a_cuenta">
+                                    <td style="padding: 2px;" t-esc="o.cuenta_pago_id.display_name"/>
+                                    <td style="padding: 2px;" t-esc="o.referencia_pago_cuenta or ''"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.importe_pago_cuenta)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4 style="margin-top: 12px;">Medios de Pago</h4>
+                        <table style="width: 100%; border-collapse: collapse;" border="1">
+                            <thead>
+                                <tr style="background-color: #eeeeee;">
+                                    <th style="padding: 3px;">Diario</th>
+                                    <th style="padding: 3px;">Nro. Documento</th>
+                                    <th style="padding: 3px;">Banco</th>
+                                    <th style="padding: 3px;">Fecha Emisión</th>
+                                    <th style="padding: 3px;">Fecha Venc.</th>
+                                    <th align="right" style="padding: 3px; text-align: right;">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.medio_ids" t-as="m">
+                                    <td style="padding: 2px;"
+                                        t-esc="'Saldo a Favor (%s)' % m.saldo_favor_payment_id.name if m.saldo_favor_payment_id else m.journal_id.name"/>
+                                    <td style="padding: 2px;" t-esc="m.nro_documento or ''"/>
+                                    <td style="padding: 2px;" t-esc="m.banco or ''"/>
+                                    <td style="padding: 2px;" t-esc="m.fecha_emision.strftime('%d/%m/%Y') if m.fecha_emision else ''"/>
+                                    <td style="padding: 2px;" t-esc="m.fecha_vencimiento.strftime('%d/%m/%Y') if m.fecha_vencimiento else ''"/>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(m.importe)"/>
+                                </tr>
+                                <tr style="font-weight: bold; border-top: 1px solid #000000;">
+                                    <td colspan="5" style="padding: 2px;">Total</td>
+                                    <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_medios)"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-if="o.retencion_absorcion_ids">
+                            <h4 style="margin-top: 12px;">Retenciones Absorbidas</h4>
                             <table style="width: 100%; border-collapse: collapse;" border="1">
                                 <thead>
                                     <tr style="background-color: #eeeeee;">
                                         <th style="padding: 3px;">Factura</th>
-                                        <th style="padding: 3px;">Cuota</th>
-                                        <th style="padding: 3px;">Vencimiento</th>
-                                        <th style="padding: 3px;">Moneda</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Total Original</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Saldo Pendiente</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Importe a Pagar</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Cotización</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Valor Convertido</th>
+                                        <th style="padding: 3px;">Concepto IVA</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Monto IVA</th>
+                                        <th style="padding: 3px;">Concepto Renta</th>
+                                        <th align="right" style="padding: 3px; text-align: right;">Monto Renta</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr t-foreach="o.factura_ids" t-as="f">
-                                        <td style="padding: 2px;" t-esc="f.move_id.name"/>
-                                        <td style="padding: 2px;" t-esc="f.move_line_id.name or ''"/>
-                                        <td style="padding: 2px;" t-esc="f.fecha_vencimiento.strftime('%d/%m/%Y') if f.fecha_vencimiento else ''"/>
-                                        <td style="padding: 2px;" t-esc="f.currency_id.name"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.total_original)"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.saldo_pendiente)"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.importe_a_pagar)"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.cotizacion, 4)"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(f.valor_convertido)"/>
-                                    </tr>
-                                    <tr style="font-weight: bold; border-top: 1px solid #000000;">
-                                        <td colspan="8" style="padding: 2px;">Total</td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_facturas)"/>
+                                    <tr t-foreach="o.retencion_absorcion_ids" t-as="r">
+                                        <td style="padding: 2px;" t-esc="r.factura_id.name"/>
+                                        <td style="padding: 2px;" t-esc="r.concepto_iva_id.name or ''"/>
+                                        <td align="right" style="padding: 2px; text-align: right;"
+                                            t-esc="fmt_pyg(r.monto) if r.es_absorcion_iva else ''"/>
+                                        <td style="padding: 2px;" t-esc="r.concepto_renta_id.name or ''"/>
+                                        <td align="right" style="padding: 2px; text-align: right;"
+                                            t-esc="fmt_pyg(r.monto_renta) if r.es_absorcion_renta else ''"/>
                                     </tr>
                                 </tbody>
                             </table>
+                        </t>
 
-                            <h4 style="margin-top: 12px;">Detalle Pago a Cuenta</h4>
-                            <table style="width: 100%; border-collapse: collapse;" border="1">
-                                <thead>
-                                    <tr style="background-color: #eeeeee;">
-                                        <th style="padding: 3px;">Cuenta</th>
-                                        <th style="padding: 3px;">Referencia</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Importe</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr t-if="o.es_pago_a_cuenta">
-                                        <td style="padding: 2px;" t-esc="o.cuenta_pago_id.display_name"/>
-                                        <td style="padding: 2px;" t-esc="o.referencia_pago_cuenta or ''"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.importe_pago_cuenta)"/>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <h4 style="margin-top: 12px;">Medios de Pago</h4>
-                            <table style="width: 100%; border-collapse: collapse;" border="1">
-                                <thead>
-                                    <tr style="background-color: #eeeeee;">
-                                        <th style="padding: 3px;">Diario</th>
-                                        <th style="padding: 3px;">Nro. Documento</th>
-                                        <th style="padding: 3px;">Banco</th>
-                                        <th style="padding: 3px;">Fecha Emisión</th>
-                                        <th style="padding: 3px;">Fecha Venc.</th>
-                                        <th align="right" style="padding: 3px; text-align: right;">Importe</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr t-foreach="o.medio_ids" t-as="m">
-                                        <td style="padding: 2px;"
-                                            t-esc="'Saldo a Favor (%s)' % m.saldo_favor_payment_id.name if m.saldo_favor_payment_id else m.journal_id.name"/>
-                                        <td style="padding: 2px;" t-esc="m.nro_documento or ''"/>
-                                        <td style="padding: 2px;" t-esc="m.banco or ''"/>
-                                        <td style="padding: 2px;" t-esc="m.fecha_emision.strftime('%d/%m/%Y') if m.fecha_emision else ''"/>
-                                        <td style="padding: 2px;" t-esc="m.fecha_vencimiento.strftime('%d/%m/%Y') if m.fecha_vencimiento else ''"/>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(m.importe)"/>
-                                    </tr>
-                                    <tr style="font-weight: bold; border-top: 1px solid #000000;">
-                                        <td colspan="5" style="padding: 2px;">Total</td>
-                                        <td align="right" style="padding: 2px; text-align: right;" t-esc="fmt_pyg(o.total_medios)"/>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <t t-if="o.retencion_absorcion_ids">
-                                <h4 style="margin-top: 12px;">Retenciones Absorbidas</h4>
-                                <table style="width: 100%; border-collapse: collapse;" border="1">
-                                    <thead>
-                                        <tr style="background-color: #eeeeee;">
-                                            <th style="padding: 3px;">Factura</th>
-                                            <th style="padding: 3px;">Concepto IVA</th>
-                                            <th align="right" style="padding: 3px; text-align: right;">Monto IVA</th>
-                                            <th style="padding: 3px;">Concepto Renta</th>
-                                            <th align="right" style="padding: 3px; text-align: right;">Monto Renta</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr t-foreach="o.retencion_absorcion_ids" t-as="r">
-                                            <td style="padding: 2px;" t-esc="r.factura_id.name"/>
-                                            <td style="padding: 2px;" t-esc="r.concepto_iva_id.name or ''"/>
-                                            <td align="right" style="padding: 2px; text-align: right;"
-                                                t-esc="fmt_pyg(r.monto) if r.es_absorcion_iva else ''"/>
-                                            <td style="padding: 2px;" t-esc="r.concepto_renta_id.name or ''"/>
-                                            <td align="right" style="padding: 2px; text-align: right;"
-                                                t-esc="fmt_pyg(r.monto_renta) if r.es_absorcion_renta else ''"/>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </t>
+                        <div class="footer" style="text-align: center; font-size: 10px;">
+                            Pag. <span class="page"/>/<span class="topage"/>
                         </div>
-                    </t>
+                    </div>
                 </t>
             </t>
         </template>

@@ -70,22 +70,23 @@
                             </page>
                             <page string="Medios de Cobro" name="medios">
                                 <field name="medio_ids" readonly="state != 'borrador'">
-                                    <list editable="bottom" decoration-info="tipo == 'retencion'"
+                                    <list editable="bottom" decoration-info="es_retencion"
                                           decoration-warning="saldo_favor_payment_id">
-                                        <field name="tipo"/>
                                         <field name="journal_id"/>
                                         <field name="saldo_favor_payment_id" options="{'no_create': True}"/>
                                         <field name="saldo_favor_disponible" readonly="1" optional="show"/>
                                         <field name="importe" class="bg-success-subtle"/>
-                                        <field name="cheque_fecha_emision"/>
-                                        <field name="cheque_fecha_vencimiento"/>
-                                        <field name="cheque_numero"/>
-                                        <field name="cheque_banco_id" options="{'no_create': True}"/>
-                                        <field name="cheque_tipo"/>
+                                        <field name="cheque_fecha_emision" invisible="not es_cheque"/>
+                                        <field name="cheque_fecha_vencimiento" invisible="not es_cheque"/>
+                                        <field name="cheque_numero" invisible="not es_cheque"/>
+                                        <field name="cheque_banco_id" options="{'no_create': True}" invisible="not es_cheque"/>
+                                        <field name="cheque_tipo" invisible="not es_cheque"/>
                                         <field name="documentos_relacionados" readonly="1" string="Doc. relacionados"/>
-                                        <field name="recibo_factura_id" options="{'no_create': True}" optional="show"/>
-                                        <field name="retencion_estado" invisible="tipo != 'retencion'" optional="show"/>
-                                        <field name="retencion_numero_dni" invisible="tipo != 'retencion'" optional="show"/>
+                                        <field name="recibo_factura_id" options="{'no_create': True}" invisible="not es_retencion"/>
+                                        <field name="retencion_estado" invisible="not es_retencion" optional="show"/>
+                                        <field name="retencion_numero_dni" invisible="not es_retencion" optional="show"/>
+                                        <field name="es_cheque" column_invisible="1"/>
+                                        <field name="es_retencion" column_invisible="1"/>
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="company_id" column_invisible="1"/>
                                         <field name="recibo_partner_id" column_invisible="1"/>

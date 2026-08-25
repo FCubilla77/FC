@@ -313,9 +313,13 @@ class LocalPyOrdenPago(models.Model):
     def _verificar_cotizaciones_cargadas(self, monedas):
         """Bloquea si falta la cotización exacta del día para alguna
         moneda — para no usar en silencio la última cotización cargada,
-        que puede no ser la del día."""
+        que puede no ser la del día. Incluye tanto las Monedas de las
+        Facturas como la Moneda de la Cabecera: aunque Factura y
+        Cabecera coincidan en la misma Moneda extranjera (ej. las dos en
+        USD), el asiento del Pago igual necesita convertir a la Moneda
+        de la Compañía para poder contabilizarse."""
         self.ensure_one()
-        monedas_a_convertir = monedas - self.currency_id - self.company_id.currency_id
+        monedas_a_convertir = (monedas | self.currency_id) - self.company_id.currency_id
         monedas_sin_cotizacion = self.env['res.currency']
         for moneda in monedas_a_convertir:
             existe = self.env['res.currency.rate'].search_count([
