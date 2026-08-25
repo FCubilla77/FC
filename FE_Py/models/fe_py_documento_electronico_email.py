@@ -82,7 +82,26 @@ class FePyDocumentoElectronico(models.Model):
                 for name, datas in attachments
             ],
         }
-        self.env['mail.mail'].sudo().create(mail_values).send()
+        mail = self.env['mail.mail'].sudo().create(mail_values)
+        mail.send()
+
+        # mail.send() NO propaga una excepción cuando falla el envío SMTP
+        # (por defecto la absorbe y la deja registrada en el propio
+        # mail.mail) — hay que revisar el estado real, si no se puede
+        # terminar marcando "Email Enviado" sin que se haya enviado nada.
+        if mail.state == 'exception':
+            self.env['fe_py.documento_electronico.log'].sudo().create({
+                'documento_id': self.id,
+                'tipo_operacion': 'envio_email',
+                'resultado': 'error',
+                'mensaje_resultado': 'Error al enviar el email: %s' % (mail.failure_reason or 'motivo desconocido'),
+            })
+            raise exceptions.UserError(
+                'No se pudo enviar el email. Detalle: %s\n\n'
+                'Revisar la configuración del servidor de correo saliente '
+                '(Ajustes > Técnico > Correo Saliente).'
+                % (mail.failure_reason or 'motivo desconocido')
+            )
 
         self.write({'email_enviado': True, 'fecha_email_enviado': fields.Datetime.now()})
         self.env['fe_py.documento_electronico.log'].sudo().create({
