@@ -25,11 +25,11 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.01.006",
+    "version": "2026.01.007",
     "license": "LGPL-3",
     "depends": ["local_py"],
     "external_dependencies": {
-        "python": ["lxml", "cryptography"],
+        "python": ["lxml", "cryptography", "signxml"],
     },
     "data": [
         "security/ir.model.access.csv",
