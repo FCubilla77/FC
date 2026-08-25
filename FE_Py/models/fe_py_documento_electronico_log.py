@@ -129,3 +129,29 @@ class FePyDocumentoElectronicoLog(models.Model):
             'El Historial de Operaciones Electrónicas no puede eliminarse: '
             'es un registro de auditoría fiscal.'
         )
+
+    def action_ver_operacion(self):
+        """Abre la operación de origen (el comprobante, o el evento si no
+        hay comprobante — caso de Inutilización). Es la acción detrás del
+        "clic para acceder a la operación misma" pedido en el
+        requerimiento de la ventana global de log."""
+        self.ensure_one()
+        if self.move_id:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': self.move_id.display_name,
+                'res_model': 'account.move',
+                'res_id': self.move_id.id,
+                'view_mode': 'form',
+                'target': 'current',
+            }
+        if self.evento_id:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Evento SIFEN',
+                'res_model': 'fe_py.evento',
+                'res_id': self.evento_id.id,
+                'view_mode': 'form',
+                'target': 'current',
+            }
+        raise exceptions.UserError('Esta operación no tiene un comprobante ni un evento asociado.')

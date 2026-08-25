@@ -91,6 +91,30 @@ class FePyDocumentoElectronico(models.Model):
              'de emisión exigido por SIFEN (gCamNCDE/iMotEmi).',
     )
 
+    # -- Simulador SIFEN (Ambiente = Simulado) ---------------------------
+    simular_resultado = fields.Selection(
+        string='Resultado a Simular',
+        selection=[
+            ('aprobado', 'Aprobado'),
+            ('aprobado_observacion', 'Aprobado con Observación'),
+            ('rechazado', 'Rechazado'),
+            ('error_comunicacion', 'Error de Comunicación'),
+        ],
+        default='aprobado',
+        help='Solo tiene efecto cuando la Compañía tiene Ambiente = '
+             'Simulado. Define qué respuesta va a generar el Simulador '
+             'SIFEN interno la próxima vez que se use "Enviar" sobre este '
+             'documento — permite probar todos los estados sin conexión real.',
+    )
+    simular_codigo_rechazo = fields.Char(
+        string='Código a Simular (Rechazo)', default='0160',
+        help='Solo se usa si "Resultado a Simular" = Rechazado.',
+    )
+    simular_mensaje_rechazo = fields.Char(
+        string='Mensaje a Simular (Rechazo)', default='XML malformado (SIMULADO)',
+        help='Solo se usa si "Resultado a Simular" = Rechazado.',
+    )
+
     # -- Contenido: XML y respuesta de SIFEN ------------------------------
     xml_generado = fields.Text(string='XML Generado', copy=False)
     xml_firmado = fields.Text(string='XML Firmado', copy=False)

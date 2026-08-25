@@ -1,0 +1,106 @@
+<odoo>
+    <data>
+        <!-- Vista PROVISORIA, mismo criterio que fe_py_documento_electronico_views.xml -->
+        <record id="view_fe_py_evento_list" model="ir.ui.view">
+            <field name="name">fe_py.evento.list</field>
+            <field name="model">fe_py.evento</field>
+            <field name="arch" type="xml">
+                <list string="Eventos SIFEN">
+                    <field name="tipo_evento"/>
+                    <field name="documento_id"/>
+                    <field name="journal_id"/>
+                    <field name="tipo_fiscal_id"/>
+                    <field name="nro_documento_desde"/>
+                    <field name="nro_documento_hasta"/>
+                    <field name="estado"
+                           decoration-success="estado == 'aprobado'"
+                           decoration-danger="estado in ('rechazado', 'error_comunicacion')"/>
+                    <field name="fecha_envio"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_fe_py_evento_form" model="ir.ui.view">
+            <field name="name">fe_py.evento.form</field>
+            <field name="model">fe_py.evento</field>
+            <field name="arch" type="xml">
+                <form string="Evento SIFEN">
+                    <header>
+                        <button name="action_enviar" type="object"
+                                string="Enviar" class="btn-primary"/>
+                        <field name="estado" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="tipo_evento"/>
+                                <field name="company_id"/>
+                                <field name="documento_id"
+                                       invisible="tipo_evento != 'cancelacion'"/>
+                            </group>
+                            <group>
+                                <field name="journal_id" invisible="tipo_evento != 'inutilizacion'"/>
+                                <field name="tipo_fiscal_id" invisible="tipo_evento != 'inutilizacion'"/>
+                                <field name="nro_documento_desde" invisible="tipo_evento != 'inutilizacion'"/>
+                                <field name="nro_documento_hasta" invisible="tipo_evento != 'inutilizacion'"/>
+                            </group>
+                        </group>
+                        <field name="motivo" placeholder="Motivo del evento..."/>
+                        <group string="Simulador SIFEN (solo aplica con Ambiente = Simulado)">
+                            <group>
+                                <field name="simular_resultado"/>
+                            </group>
+                            <group>
+                                <field name="simular_codigo_rechazo"/>
+                                <field name="simular_mensaje_rechazo"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group>
+                                <field name="fecha_envio"/>
+                                <field name="fecha_respuesta"/>
+                            </group>
+                            <group>
+                                <field name="codigo_respuesta"/>
+                            </group>
+                        </group>
+                        <field name="mensaje_respuesta" placeholder="Mensaje de respuesta de SIFEN..."/>
+                        <notebook>
+                            <page string="XML Generado">
+                                <field name="xml_generado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="XML Firmado">
+                                <field name="xml_firmado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="Historial de Operaciones">
+                                <field name="log_ids" readonly="1">
+                                    <list>
+                                        <field name="fecha"/>
+                                        <field name="tipo_operacion"/>
+                                        <field name="resultado"
+                                               decoration-success="resultado == 'exito'"
+                                               decoration-danger="resultado == 'error'"/>
+                                        <field name="codigo_resultado"/>
+                                        <field name="mensaje_resultado"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_fe_py_evento" model="ir.actions.act_window">
+            <field name="name">Eventos SIFEN</field>
+            <field name="res_model">fe_py.evento</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_fe_py_evento"
+                  name="Eventos SIFEN (FE_Py)"
+                  action="action_fe_py_evento"
+                  parent="local_py.menu_l10n_py_localizacion"
+                  sequence="96"/>
+    </data>
+</odoo>

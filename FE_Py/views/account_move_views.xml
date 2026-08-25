@@ -1,0 +1,80 @@
+<odoo>
+    <data>
+        <record id="view_move_form_fe_py" model="ir.ui.view">
+            <field name="name">account.move.form.fe.py</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Facturación Electrónica" name="fe_py_tab"
+                          invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico">
+
+                        <group>
+                            <group>
+                                <field name="fe_py_estado" widget="badge"
+                                       decoration-success="fe_py_estado in ('aprobado', 'aprobado_observacion')"
+                                       decoration-danger="fe_py_estado in ('rechazado', 'error_comunicacion')"
+                                       decoration-info="fe_py_estado in ('borrador', 'xml_generado', 'firmado', 'enviado')"
+                                       decoration-muted="fe_py_estado in ('cancelado', 'inutilizado')"/>
+                                <field name="fe_py_cdc"/>
+                                <field name="fe_py_codigo_respuesta"/>
+                            </group>
+                            <group>
+                                <field name="fe_py_fecha_envio"/>
+                                <field name="fe_py_fecha_respuesta"/>
+                                <field name="fe_py_intentos"/>
+                                <field name="fe_py_simulado"/>
+                                <field name="fe_py_email_enviado"/>
+                            </group>
+                        </group>
+                        <field name="fe_py_mensaje_respuesta" placeholder="Mensaje de respuesta de SIFEN..." readonly="1"/>
+
+                        <div class="mb-3 mt-2">
+                            <button name="fe_py_action_generar_xml" type="object"
+                                    string="Generar / Regenerar XML" class="btn-secondary"/>
+                            <button name="fe_py_action_firmar" type="object"
+                                    string="Firmar" class="btn-secondary"/>
+                            <button name="fe_py_action_enviar" type="object"
+                                    string="Enviar" class="btn-secondary"/>
+                            <button name="fe_py_action_reenviar" type="object"
+                                    string="Reescribir XML y Reenviar" class="btn-primary"/>
+                            <button name="fe_py_action_generar_kude" type="object"
+                                    string="Generar KuDE" class="btn-secondary"/>
+                            <button name="fe_py_action_enviar_email" type="object"
+                                    string="Enviar Email al Cliente" class="btn-secondary"/>
+                        </div>
+
+                        <notebook>
+                            <page string="XML Generado">
+                                <field name="fe_py_xml_generado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="XML Firmado">
+                                <field name="fe_py_xml_firmado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="KuDE">
+                                <field name="fe_py_kude_pdf" filename="fe_py_kude_pdf_filename" readonly="1"/>
+                                <field name="fe_py_kude_pdf_filename" invisible="1"/>
+                            </page>
+                            <page string="Historial de Envíos, Respuestas y Estados">
+                                <field name="fe_py_log_ids" readonly="1">
+                                    <list>
+                                        <field name="fecha"/>
+                                        <field name="tipo_operacion"/>
+                                        <field name="resultado"
+                                               decoration-success="resultado == 'exito'"
+                                               decoration-danger="resultado == 'error'"
+                                               decoration-warning="resultado == 'advertencia'"/>
+                                        <field name="codigo_resultado"/>
+                                        <field name="mensaje_resultado"/>
+                                        <field name="usuario_id"/>
+                                        <field name="simulado"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

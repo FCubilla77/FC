@@ -1,0 +1,149 @@
+<odoo>
+    <data>
+        <!--
+            Vista PROVISORIA de prueba, para poder ejercitar
+            action_generar_xml / action_firmar / eventos sin depender del
+            menú técnico. La Fase 8 la reemplaza por la pestaña embebida en
+            Factura/NC/ND de Cliente + la ventana global de log — esta
+            queda como acceso auxiliar de bajo nivel, útil para soporte.
+        -->
+        <record id="view_fe_py_documento_electronico_list" model="ir.ui.view">
+            <field name="name">fe_py.documento_electronico.list</field>
+            <field name="model">fe_py.documento_electronico</field>
+            <field name="arch" type="xml">
+                <list string="Documentos Electrónicos">
+                    <field name="move_id"/>
+                    <field name="partner_id"/>
+                    <field name="tipo_fiscal_id"/>
+                    <field name="cdc"/>
+                    <field name="estado"
+                           decoration-success="estado in ('aprobado',)"
+                           decoration-warning="estado in ('aprobado_observacion',)"
+                           decoration-danger="estado in ('rechazado', 'error_comunicacion')"
+                           decoration-muted="estado in ('cancelado', 'inutilizado')"/>
+                    <field name="fecha_generacion"/>
+                    <field name="fecha_envio"/>
+                    <field name="simulado"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_fe_py_documento_electronico_form" model="ir.ui.view">
+            <field name="name">fe_py.documento_electronico.form</field>
+            <field name="model">fe_py.documento_electronico</field>
+            <field name="arch" type="xml">
+                <form string="Documento Electrónico">
+                    <header>
+                        <button name="action_generar_xml" type="object"
+                                string="Generar / Regenerar XML" class="btn-primary"/>
+                        <button name="action_firmar" type="object"
+                                string="Firmar" class="btn-primary"/>
+                        <button name="action_enviar" type="object"
+                                string="Enviar" class="btn-primary"/>
+                        <button name="action_generar_kude" type="object"
+                                string="Generar KuDE" class="btn-secondary"/>
+                        <button name="action_enviar_email_cliente" type="object"
+                                string="Enviar Email al Cliente" class="btn-secondary"/>
+                        <field name="estado" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="move_id"/>
+                                <field name="partner_id"/>
+                                <field name="tipo_fiscal_id"/>
+                                <field name="journal_id"/>
+                            </group>
+                            <group>
+                                <field name="cdc"/>
+                                <field name="codigo_seguridad"/>
+                                <field name="digito_verificador_cdc"/>
+                                <field name="tipo_emision"/>
+                                <field name="tipo_operacion"/>
+                                <field name="motivo_emision"/>
+                            </group>
+                        </group>
+                        <group string="Simulador SIFEN (solo aplica con Ambiente = Simulado)">
+                            <group>
+                                <field name="simular_resultado"/>
+                            </group>
+                            <group>
+                                <field name="simular_codigo_rechazo"/>
+                                <field name="simular_mensaje_rechazo"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group>
+                                <field name="fecha_generacion"/>
+                                <field name="fecha_envio"/>
+                                <field name="fecha_respuesta"/>
+                            </group>
+                            <group>
+                                <field name="intentos"/>
+                                <field name="simulado"/>
+                                <field name="codigo_respuesta"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group>
+                                <field name="qr_url"/>
+                                <field name="kude_pdf" filename="kude_pdf_filename"/>
+                                <field name="kude_pdf_filename" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="email_enviado"/>
+                                <field name="fecha_email_enviado"/>
+                            </group>
+                        </group>
+                        <field name="mensaje_respuesta" placeholder="Mensaje de respuesta de SIFEN..."/>
+                        <notebook>
+                            <page string="XML Generado">
+                                <field name="xml_generado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="XML Firmado">
+                                <field name="xml_firmado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="Historial de Operaciones">
+                                <field name="log_ids" readonly="1">
+                                    <list>
+                                        <field name="fecha"/>
+                                        <field name="tipo_operacion"/>
+                                        <field name="resultado"
+                                               decoration-success="resultado == 'exito'"
+                                               decoration-danger="resultado == 'error'"
+                                               decoration-warning="resultado == 'advertencia'"/>
+                                        <field name="codigo_resultado"/>
+                                        <field name="mensaje_resultado"/>
+                                        <field name="usuario_id"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Eventos">
+                                <field name="evento_ids" readonly="1">
+                                    <list>
+                                        <field name="tipo_evento"/>
+                                        <field name="estado"/>
+                                        <field name="fecha_envio"/>
+                                        <field name="motivo"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_fe_py_documento_electronico" model="ir.actions.act_window">
+            <field name="name">Documentos Electrónicos</field>
+            <field name="res_model">fe_py.documento_electronico</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_fe_py_documento_electronico"
+                  name="Documentos Electrónicos (FE_Py)"
+                  action="action_fe_py_documento_electronico"
+                  parent="local_py.menu_l10n_py_localizacion"
+                  sequence="95"/>
+    </data>
+</odoo>
