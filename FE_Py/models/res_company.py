@@ -46,6 +46,43 @@ class ResCompany(models.Model):
     )
 
     # ------------------------------------------------------------------
+    # Datos del Emisor exigidos por el XML del DE (grupo gEmis) que no
+    # existen en local_py — este módulo no cubre datos de "papel", solo
+    # los que la DNIT exige específicamente para SIFEN.
+    # ------------------------------------------------------------------
+    fe_py_tipo_contribuyente = fields.Selection(
+        string='Tipo de Contribuyente',
+        selection=[('1', 'Persona Física'), ('2', 'Persona Jurídica')],
+        default='2',
+        help='Va tal cual en el CDC y en el XML del DE (iTipCont/gEmis).',
+    )
+    fe_py_tipo_regimen = fields.Selection(
+        string='Tipo de Régimen',
+        selection=[
+            ('1', 'Régimen de Turismo'),
+            ('2', 'Importador'),
+            ('3', 'Exportador'),
+            ('4', 'Maquila'),
+            ('5', 'Ley N° 60/90'),
+            ('6', 'Régimen del Pequeño Productor'),
+            ('7', 'Régimen del Mediano Productor'),
+            ('8', 'Régimen Contable'),
+        ],
+        default='8',
+        help='Va en el XML del DE (cTipReg/gEmis).',
+    )
+    fe_py_actividad_economica_codigo = fields.Char(
+        string='Código de Actividad Económica',
+        help='Según Tabla de Actividades Económicas de la DNIT — debe '
+             'corresponder a lo declarado en el RUC. Va en el XML del DE '
+             '(gActEco/cActEco).',
+    )
+    fe_py_actividad_economica_desc = fields.Char(
+        string='Descripción de Actividad Económica',
+        help='Va en el XML del DE (gActEco/dDesActEco), referida al código de arriba.',
+    )
+
+    # ------------------------------------------------------------------
     # Certificado digital: se sube el .p12/.pfx + contraseña, y el botón
     # "Generar Certificados" lo descompone en Certificado y Clave Privada
     # (.pem), dejándolos escritos en el filesystem del servidor Odoo. La

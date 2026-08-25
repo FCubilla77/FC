@@ -15,13 +15,20 @@
                             <field name="fe_py_idcsc"/>
                             <field name="fe_py_csc"/>
                         </group>
+                        <group string="Datos del Emisor (para el XML del DE)" colspan="2">
+                            <field name="fe_py_tipo_contribuyente"/>
+                            <field name="fe_py_tipo_regimen"/>
+                            <field name="fe_py_actividad_economica_codigo"/>
+                            <field name="fe_py_actividad_economica_desc"/>
+                        </group>
                         <group string="Certificado Digital" colspan="2">
                             <field name="fe_py_certificado_filename" invisible="1"/>
                             <field name="fe_py_certificado_file"
                                    filename="fe_py_certificado_filename"/>
                             <field name="fe_py_certificado_password" password="True"/>
                             <button name="fe_py_generar_certificados" type="object"
-                                    string="Generar Certificados" class="btn-secondary"/>
+                                    string="Generar Certificados" class="btn-secondary"
+                                    colspan="2"/>
                             <field name="fe_py_cert_path" readonly="1"/>
                             <field name="fe_py_private_key_path" readonly="1"/>
                             <field name="fe_py_certificado_vencimiento" readonly="1"/>

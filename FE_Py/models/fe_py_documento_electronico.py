@@ -66,6 +66,31 @@ class FePyDocumentoElectronico(models.Model):
     )
     version_formato = fields.Char(string='Versión de Formato', default='150', copy=False)
 
+    tipo_operacion = fields.Selection(
+        string='Tipo de Operación',
+        selection=[('1', 'B2B'), ('2', 'B2C'), ('3', 'B2G'), ('4', 'B2F')],
+        default='1',
+        help='Se propone automáticamente según el Cliente (B2B si es Empresa, '
+             'B2C si es Persona) — editable antes de generar el XML si '
+             'corresponde otro caso (venta al Estado = B2G, servicios a '
+             'personas/empresas del exterior = B2F).',
+    )
+    motivo_emision = fields.Selection(
+        string='Motivo de Emisión',
+        selection=[
+            ('1', 'Devolución y Ajuste de precios'),
+            ('2', 'Devolución'),
+            ('3', 'Descuento'),
+            ('4', 'Bonificación'),
+            ('5', 'Crédito incobrable'),
+            ('6', 'Recupero de costo'),
+            ('7', 'Recupero de gasto'),
+            ('8', 'Ajuste de precio'),
+        ],
+        help='Obligatorio para Nota de Crédito/Débito Electrónica — motivo '
+             'de emisión exigido por SIFEN (gCamNCDE/iMotEmi).',
+    )
+
     # -- Contenido: XML y respuesta de SIFEN ------------------------------
     xml_generado = fields.Text(string='XML Generado', copy=False)
     xml_firmado = fields.Text(string='XML Firmado', copy=False)
