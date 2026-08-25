@@ -7,6 +7,7 @@ from odoo.exceptions import UserError, ValidationError
 class LocalPyRecibo(models.Model):
     _name = 'local_py.recibo'
     _description = 'Recibo'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
 
     name = fields.Char(string='Recibo', default='Nuevo', copy=False, readonly=True)
