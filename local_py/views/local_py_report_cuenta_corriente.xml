@@ -27,6 +27,7 @@
                         <t t-foreach="data_list" t-as="grupo">
                             <div style="background-color: #eeeeee; padding: 6px; margin-top: 14px;">
                                 <div t-esc="grupo['company'].name"/>
+                                <div t-esc="grupo['tipo_label']"/>
                                 <div t-esc="grupo['currency'].name"/>
                             </div>
                             <table style="width: 100%; border-collapse: collapse; font-size: 11px;" border="1">

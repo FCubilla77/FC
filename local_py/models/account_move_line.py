@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class AccountMoveLine(models.Model):
@@ -33,3 +33,22 @@ class AccountMoveLine(models.Model):
              'para que el control siga siendo correcto aunque el Porcentaje configurado '
              'cambie entre una Orden de Pago y la siguiente.',
     )
+    l10n_py_tipo_cliente_proveedor = fields.Selection(
+        [('cliente', 'Cliente'), ('proveedor', 'Proveedor')],
+        string='Tipo (Cta. Cte.)', compute='_compute_l10n_py_tipo_cliente_proveedor', store=True,
+        help='Cliente si la Cuenta de esta línea es Por Cobrar, Proveedor si es Por '
+             'Pagar — se usa solo para poder agrupar la Cuenta Corriente de un Contacto '
+             'que es Cliente y Proveedor a la vez. No tiene relación con si el Contacto '
+             'de la línea es o no Cliente/Proveedor, sino con el tipo de la Cuenta '
+             'contable de la línea.',
+    )
+
+    @api.depends('account_id.account_type')
+    def _compute_l10n_py_tipo_cliente_proveedor(self):
+        for linea in self:
+            if linea.account_id.account_type == 'asset_receivable':
+                linea.l10n_py_tipo_cliente_proveedor = 'cliente'
+            elif linea.account_id.account_type == 'liability_payable':
+                linea.l10n_py_tipo_cliente_proveedor = 'proveedor'
+            else:
+                linea.l10n_py_tipo_cliente_proveedor = False

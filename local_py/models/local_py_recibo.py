@@ -426,11 +426,52 @@ class LocalPyRecibo(models.Model):
         move.action_post()
         return move
 
-    def action_anular(self):
+    def action_abrir_wizard_anular(self):
+        """Valida las mismas condiciones que action_anular ANTES de pedir
+        el Motivo — para no hacer escribir una justificación si de
+        entrada la Anulación va a estar bloqueada."""
+        self.ensure_one()
+        if self.state != 'confirmado':
+            raise UserError('Solo se puede Anular un Recibo que esté Confirmado.')
+
+        cheques = self.medio_ids.filtered('es_cheque').mapped('cheque_cliente_id')
+        cheques_no_cartera = cheques.filtered(lambda c: c.estado not in ('en_cartera', 'anulado'))
+        if cheques_no_cartera:
+            raise UserError(
+                'No se puede Anular este Recibo: los Cheques %s ya no están "En Cartera" '
+                '(revise su estado, ej. "Deshacer Rechazo" primero, cheque por cheque).'
+                % ', '.join(cheques_no_cartera.mapped('name'))
+            )
+
+        pagos = self.medio_ids.mapped('payment_ids')
+        pagos_saldo_favor = pagos.filtered('l10n_py_es_saldo_favor')
+        if pagos_saldo_favor:
+            medios_que_lo_usan = pagos_saldo_favor.mapped('l10n_py_recibo_medios_saldo_favor_ids')
+            recibos_dependientes = medios_que_lo_usan.mapped('recibo_id') - self
+            if recibos_dependientes:
+                raise UserError(
+                    'Este Recibo generó un Saldo a Favor que ya fue usado en otro(s) '
+                    'Recibo(s) más reciente(s): %s. Hay que Anular ese(os) Recibo(s) '
+                    'primero, antes de poder anular este.'
+                    % ', '.join(recibos_dependientes.mapped('name'))
+                )
+
+        return {
+            'name': 'Anular Recibo',
+            'type': 'ir.actions.act_window',
+            'res_model': 'local_py.recibo.anular_wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_recibo_id': self.id},
+        }
+
+    def action_anular(self, motivo=False):
         """Anula un Recibo Confirmado — revierte todo lo generado (Cobros,
         conciliaciones, asiento de Retención) y queda bloqueado para
         siempre (no vuelve a Borrador): si fue un error, hay que cargar
-        un Recibo nuevo."""
+        un Recibo nuevo. El Motivo queda registrado en el Chatter."""
+        if not motivo:
+            raise UserError('Indique el Motivo de Anulación.')
         for recibo in self:
             if recibo.state != 'confirmado':
                 raise UserError('Solo se puede Anular un Recibo que esté Confirmado.')
@@ -484,6 +525,8 @@ class LocalPyRecibo(models.Model):
             cheques.filtered(lambda c: c.estado == 'en_cartera').write({'estado': 'anulado'})
 
         self.write({'state': 'anulado', 'fecha_anulacion': fields.Datetime.now()})
+        for recibo in self:
+            recibo.message_post(body='Motivo de Anulación: %s' % motivo)
 
 
 class ReportRecibo(models.AbstractModel):

@@ -13,9 +13,10 @@
                                 confirm="Esto genera un Cobro por cada Medio (o el asiento correspondiente) y concilia contra las Facturas seleccionadas. ¿Confirma?"/>
                         <button name="action_volver_borrador" type="object" string="Volver a Borrador"
                                 invisible="state != 'en_proceso'"/>
-                        <button name="action_anular" type="object" string="Anular"
-                                invisible="state != 'confirmado'"
-                                confirm="Esto revierte todo lo generado y deja este Recibo bloqueado para siempre — no se puede volver a Confirmar. Si fue un error, habrá que cargar un Recibo nuevo. ¿Confirma?"/>
+                        <button name="%(local_py.action_report_recibo)d" type="action" string="Descargar PDF"
+                                class="btn-secondary" invisible="state not in ('confirmado', 'anulado')"/>
+                        <button name="action_abrir_wizard_anular" type="object" string="Anular"
+                                invisible="state != 'confirmado'"/>
                         <field name="state" widget="statusbar" statusbar_visible="borrador,en_proceso,confirmado,anulado"/>
                     </header>
                     <sheet>

@@ -11,6 +11,8 @@
                     <field name="move_id" string="Comprobante"/>
                     <field name="name" string="Comentario"/>
                     <field name="currency_id" column_invisible="1"/>
+                    <field name="company_id" column_invisible="1"/>
+                    <field name="l10n_py_tipo_cliente_proveedor" column_invisible="1"/>
                     <field name="debit" string="Débito" sum="Total Débito"/>
                     <field name="credit" string="Crédito" sum="Total Crédito"/>
                 </list>
@@ -27,6 +29,11 @@
                     <field name="journal_id"/>
                     <filter string="Fecha" name="filtro_fecha" date="date"/>
                     <separator/>
+                    <filter string="Agrupar por Compañía" name="group_company" context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                    <filter string="Agrupar por Tipo" name="group_tipo"
+                            context="{'group_by': 'l10n_py_tipo_cliente_proveedor'}"/>
+                    <filter string="Agrupar por Moneda" name="group_currency" context="{'group_by': 'currency_id'}"/>
                     <filter string="Agrupar por Diario" name="group_journal" context="{'group_by': 'journal_id'}"/>
                 </search>
             </field>

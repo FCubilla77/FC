@@ -33,11 +33,19 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
         return entero + (',' + decimal if sep else '')
 
     def _obtener_datos(self):
-        """Arma la estructura Compañía > Moneda con Saldo Inicial (todo lo
-        anterior a Fecha Desde, resumido en una sola línea) y el detalle
-        ordenado cronológicamente (Fecha contable, y Fecha/Hora de creación
-        como desempate) — Saldo = Crédito acumulado menos Débito acumulado
-        (positivo = a favor del Proveedor), reiniciado en cada grupo."""
+        """Arma la estructura Compañía > Tipo (Cliente/Proveedor) > Moneda,
+        separando en secciones distintas las cuentas a cobrar (Cliente) de
+        las cuentas a pagar (Proveedor) — necesario para un Contacto que es
+        Cliente y Proveedor a la vez. Dentro de cada grupo: Saldo Inicial
+        (todo lo anterior a Fecha Desde, resumido en una sola línea) y el
+        detalle ordenado cronológicamente (Fecha contable, y Fecha/Hora de
+        creación como desempate).
+
+        El signo del Saldo depende del Tipo del grupo: Cliente = Débito -
+        Crédito (positivo = a favor de la Empresa, lo que el Cliente
+        debe — estándar de Cuentas por Cobrar); Proveedor = Crédito -
+        Débito (positivo = a favor del Proveedor, lo que la Empresa
+        debe)."""
         self.ensure_one()
         Line = self.env['account.move.line']
         domain_base = [
@@ -50,23 +58,28 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
             domain_base.append(('date', '<=', self.fecha_hasta))
         todas = Line.search(domain_base, order='date, create_date, id')
 
+        etiqueta_tipo = {'cliente': 'Cliente', 'proveedor': 'Proveedor'}
+        orden_tipo = {'cliente': 0, 'proveedor': 1}
+
         grupos = {}
         for linea in todas:
-            clave = (linea.company_id, linea.currency_id or linea.company_id.currency_id)
+            tipo = 'cliente' if linea.account_id.account_type == 'asset_receivable' else 'proveedor'
+            clave = (linea.company_id, tipo, linea.currency_id or linea.company_id.currency_id)
             grupos.setdefault(clave, []).append(linea)
 
         resultado = []
-        for (company, currency), lineas in sorted(
-            grupos.items(), key=lambda kv: (kv[0][0].name, kv[0][1].name)
+        for (company, tipo, currency), lineas in sorted(
+            grupos.items(), key=lambda kv: (kv[0][0].name, orden_tipo[kv[0][1]], kv[0][2].name)
         ):
+            signo = 1 if tipo == 'cliente' else -1
             anteriores = lineas if not self.fecha_desde else [l for l in lineas if l.date < self.fecha_desde]
             detalle_lineas = lineas if not self.fecha_desde else [l for l in lineas if l.date >= self.fecha_desde]
-            saldo_inicial = sum(l.credit - l.debit for l in anteriores)
+            saldo_inicial = signo * sum(l.debit - l.credit for l in anteriores)
 
             saldo = saldo_inicial
             detalle = []
             for linea in detalle_lineas:
-                saldo += linea.credit - linea.debit
+                saldo += signo * (linea.debit - linea.credit)
                 detalle.append({
                     'fecha': linea.date,
                     'fecha_creacion': fields.Datetime.context_timestamp(self, linea.create_date),
@@ -78,6 +91,8 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
                 })
             resultado.append({
                 'company': company,
+                'tipo': tipo,
+                'tipo_label': etiqueta_tipo[tipo],
                 'currency': currency,
                 'saldo_inicial': saldo_inicial,
                 'detalle': detalle,
@@ -109,7 +124,11 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
         sheet.write(0, 0, 'Estado de Cuenta Corriente — %s' % self.partner_id.display_name, fmt_titulo)
         fila = 2
         for grupo in datos:
-            sheet.write(fila, 0, '%s — %s' % (grupo['company'].name, grupo['currency'].name), fmt_grupo)
+            sheet.write(
+                fila, 0,
+                '%s — %s — %s' % (grupo['company'].name, grupo['tipo_label'], grupo['currency'].name),
+                fmt_grupo,
+            )
             fila += 1
             encabezados = ['Fecha', 'Fecha de Creación', 'Diario', 'Comentario', 'Débito', 'Crédito', 'Saldo']
             for col, titulo in enumerate(encabezados):

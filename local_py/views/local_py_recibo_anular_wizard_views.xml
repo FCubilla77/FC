@@ -1,0 +1,25 @@
+<odoo>
+    <data>
+        <record id="view_local_py_recibo_anular_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.recibo.anular_wizard.form</field>
+            <field name="model">local_py.recibo.anular_wizard</field>
+            <field name="arch" type="xml">
+                <form string="Anular Recibo">
+                    <div class="alert alert-warning" role="alert">
+                        Esto revierte todo lo generado (Cobros, conciliaciones, asiento de
+                        Retención) y deja este Recibo bloqueado para siempre — no se puede
+                        volver a Confirmar. Si fue un error, habrá que cargar un Recibo nuevo.
+                    </div>
+                    <group>
+                        <field name="recibo_id" readonly="1"/>
+                        <field name="motivo"/>
+                    </group>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>
