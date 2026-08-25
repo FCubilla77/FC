@@ -9,13 +9,15 @@ from odoo import api, exceptions, fields, models
 _logger = logging.getLogger(__name__)
 
 try:
-    from OpenSSL import crypto
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding, NoEncryption, PrivateFormat, PublicFormat, pkcs12,
+    )
 except ImportError:  # pragma: no cover
-    crypto = None
+    pkcs12 = None
     _logger.warning(
-        "FE_Py: no se encontró la librería 'pyOpenSSL' en el servidor — el "
-        "botón 'Generar Certificados' no va a funcionar hasta instalarla "
-        "(pip install pyOpenSSL)."
+        "FE_Py: no se encontró la librería 'cryptography' en el servidor — "
+        "el botón 'Generar Certificados' no va a funcionar hasta instalarla "
+        "(pip install cryptography)."
     )
 
 
@@ -95,10 +97,10 @@ class ResCompany(models.Model):
     def fe_py_generar_certificados(self):
         """Descompone el archivo .p12/.pfx subido en Certificado y Clave
         Privada (.pem) y los deja escritos en el filesystem del servidor."""
-        if crypto is None:
+        if pkcs12 is None:
             raise exceptions.UserError(
-                'Falta instalar la librería "pyOpenSSL" en el servidor '
-                '(pip install pyOpenSSL) para poder generar los certificados.'
+                'Falta instalar la librería "cryptography" en el servidor '
+                '(pip install cryptography) para poder generar los certificados.'
             )
         for company in self:
             if not (company.fe_py_certificado_file and company.fe_py_certificado_password):
@@ -109,7 +111,15 @@ class ResCompany(models.Model):
             try:
                 file_data = base64.b64decode(company.fe_py_certificado_file)
                 password = company.fe_py_certificado_password.encode()
-                p12 = crypto.load_pkcs12(file_data, password)
+                private_key, certificate, _extra_certs = pkcs12.load_key_and_certificates(
+                    file_data, password
+                )
+                if private_key is None or certificate is None:
+                    raise exceptions.UserError(
+                        'El archivo no contiene clave privada y/o certificado.'
+                    )
+            except exceptions.UserError:
+                raise
             except Exception as ex:
                 raise exceptions.UserError(
                     'No se pudo leer el Certificado: verifique el archivo y '
@@ -123,34 +133,33 @@ class ResCompany(models.Model):
             )
             os.makedirs(target_dir, exist_ok=True)
 
-            private_key = p12.get_privatekey()
-            pk_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, private_key)
+            pk_pem = private_key.private_bytes(
+                encoding=Encoding.PEM,
+                format=PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=NoEncryption(),
+            )
             private_key_path = os.path.join(target_dir, 'private_key.pem')
             with open(private_key_path, 'wb') as f:
                 f.write(pk_pem)
             os.chmod(private_key_path, 0o600)
 
-            certificate = p12.get_certificate()
-            cert_pem = crypto.dump_certificate(crypto.FILETYPE_PEM, certificate)
+            cert_pem = certificate.public_bytes(Encoding.PEM)
             cert_path = os.path.join(target_dir, 'cert.pem')
             with open(cert_path, 'wb') as f:
                 f.write(cert_pem)
 
-            public_key_pem = crypto.dump_publickey(crypto.FILETYPE_PEM, certificate.get_pubkey())
+            public_key_pem = certificate.public_key().public_bytes(
+                encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo,
+            )
             public_key_path = os.path.join(target_dir, 'public_key.pem')
             with open(public_key_path, 'wb') as f:
                 f.write(public_key_pem)
 
-            vencimiento_date = False
-            asn1_vencimiento = certificate.get_notAfter()
-            if asn1_vencimiento:
-                try:
-                    vencimiento_str = asn1_vencimiento.decode()
-                    vencimiento_date = '%s-%s-%s' % (
-                        vencimiento_str[0:4], vencimiento_str[4:6], vencimiento_str[6:8]
-                    )
-                except Exception:
-                    vencimiento_date = False
+            # not_valid_after_utc es la API vigente (cryptography >= 42); en
+            # versiones más viejas del paquete todavía hay que usar
+            # not_valid_after (naive, sin timezone) — se soportan ambas.
+            vencimiento_dt = getattr(certificate, 'not_valid_after_utc', None) or certificate.not_valid_after
+            vencimiento_date = vencimiento_dt.date()
 
             company.write({
                 'fe_py_cert_path': cert_path,
