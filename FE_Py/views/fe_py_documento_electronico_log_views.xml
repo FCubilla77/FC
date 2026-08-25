@@ -86,7 +86,8 @@
                     <filter string="Esta semana" name="filter_semana"
                             domain="[('fecha', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d 00:00:00'))]"/>
                     <separator/>
-                    <group expand="0" string="Agrupar por">
+                    <separator string="Agrupar por"/>
+                    <group>
                         <filter string="Tipo de Operación" name="group_tipo_operacion" context="{'group_by': 'tipo_operacion'}"/>
                         <filter string="Resultado" name="group_resultado" context="{'group_by': 'resultado'}"/>
                         <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
