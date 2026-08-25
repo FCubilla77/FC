@@ -132,8 +132,8 @@
         <field name="name">KuDE</field>
         <field name="model">fe_py.documento_electronico</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">fe_py.report_kude_document</field>
-        <field name="report_file">fe_py.report_kude_document</field>
+        <field name="report_name">FE_Py.report_kude_document</field>
+        <field name="report_file">FE_Py.report_kude_document</field>
         <field name="paperformat_id" ref="paperformat_fe_py_kude"/>
         <field name="print_report_name">'KuDE_%s' % (object.cdc or object.id)</field>
         <field name="binding_model_id" ref="model_fe_py_documento_electronico"/>

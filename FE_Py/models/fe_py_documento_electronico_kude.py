@@ -73,7 +73,7 @@ class FePyDocumentoElectronico(models.Model):
 
         self.write({'qr_url': qr_url, 'qr_image': qr_image_b64})
 
-        report = self.env.ref('fe_py.action_report_kude')
+        report = self.env.ref('FE_Py.action_report_kude')
         pdf_content, _report_type = report._render_qweb_pdf(
             report.report_name, res_ids=self.ids
         )

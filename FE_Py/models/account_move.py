@@ -85,10 +85,24 @@ class AccountMove(models.Model):
     def _fe_py_get_documento(self):
         self.ensure_one()
         if not self.fe_py_documento_id:
-            raise exceptions.UserError(
-                'Este comprobante todavía no tiene un Documento Electrónico '
-                'asociado (se genera automáticamente al Confirmar).'
-            )
+            # Auto-reparación: si el comprobante ya está Confirmado y es
+            # electrónico, pero por algún motivo (ej. el Tipo Fiscal se
+            # marcó como electrónico DESPUÉS de que este comprobante ya
+            # estaba confirmado) nunca se creó el Documento Electrónico,
+            # se crea recién ahora en vez de bloquear al usuario pidiendo
+            # algo que no puede deshacer (no tiene sentido exigir
+            # "restablecer a Borrador y volver a Confirmar" solo para que
+            # se dispare la creación).
+            if self.state == 'posted' and self.move_type in ('out_invoice', 'out_refund') and self.fe_py_es_electronico:
+                doc = self.env['fe_py.documento_electronico'].sudo().search(
+                    [('move_id', '=', self.id)], limit=1
+                ) or self.env['fe_py.documento_electronico'].sudo().create({'move_id': self.id})
+                self.fe_py_documento_id = doc
+            else:
+                raise exceptions.UserError(
+                    'Este comprobante todavía no tiene un Documento Electrónico '
+                    'asociado (se genera automáticamente al Confirmar).'
+                )
         return self.fe_py_documento_id
 
     def fe_py_action_generar_xml(self):
