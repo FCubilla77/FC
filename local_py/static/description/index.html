@@ -435,6 +435,7 @@
                     </ul>
                 </li>
                 <li>Corregidos 2 errores que impedían instalar la versión anterior: el wizard de Rechazo de Cheque de Cliente nunca quedó registrado (faltaba una línea en el archivo de carga de módulos), y el campo Estado de Recibo usaba seguimiento de cambios sin que el modelo tuviera esa función habilitada</li>
+                <li>Corregido: en Recibo, los campos Serie, Cliente, Fecha y Moneda quedaban bloqueados siempre, incluso en Borrador — una condición de "solo editable en Borrador" se había escrito en el lugar equivocado (en la definición del campo, en vez de en la pantalla), donde esa sintaxis no es válida y termina bloqueando el campo en cualquier estado</li>
             </ul>
         </div>
     </div>

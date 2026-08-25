@@ -12,7 +12,7 @@ class LocalPyRecibo(models.Model):
 
     name = fields.Char(string='Recibo', default='Nuevo', copy=False, readonly=True)
     serie_id = fields.Many2one(
-        'local_py.recibo.serie', string='Serie', required=True, readonly="state != 'borrador'",
+        'local_py.recibo.serie', string='Serie', required=True,
         domain="[('user_id', '=', uid), ('company_id', '=', company_id)]",
         help='Solo aparecen las Series asignadas a su Usuario, para la Compañía activa.',
     )
@@ -21,12 +21,12 @@ class LocalPyRecibo(models.Model):
         'res.company', string='Compañía', required=True, default=lambda self: self.env.company,
     )
     partner_id = fields.Many2one(
-        'res.partner', string='Cliente', required=True, readonly="state != 'borrador'",
+        'res.partner', string='Cliente', required=True,
         domain="[('customer_rank', '>', 0)]",
     )
-    fecha = fields.Date(string='Fecha', required=True, default=fields.Date.context_today, readonly="state != 'borrador'")
+    fecha = fields.Date(string='Fecha', required=True, default=fields.Date.context_today)
     currency_id = fields.Many2one(
-        'res.currency', string='Moneda', required=True, readonly="state != 'borrador'",
+        'res.currency', string='Moneda', required=True,
         default=lambda self: self.env.company.currency_id,
     )
     comentario = fields.Char(string='Comentario')
