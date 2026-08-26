@@ -18,6 +18,7 @@
                                        decoration-muted="fe_py_estado in ('cancelado', 'inutilizado')"/>
                                 <field name="fe_py_cdc"/>
                                 <field name="fe_py_codigo_respuesta"/>
+                                <field name="fe_py_motivo_emision" invisible="not fe_py_es_nc_nd"/>
                             </group>
                             <group>
                                 <field name="fe_py_fecha_envio"/>

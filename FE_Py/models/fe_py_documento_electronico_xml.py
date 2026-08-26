@@ -38,6 +38,14 @@ TIDE_POR_TIPO_FISCAL = {
     'Nota de Debito Electronica': ('6', 'Nota de débito electrónica'),
 }
 
+# El Manual Técnico exige el grupo gCamNCDE (Motivo de Emisión) tanto para
+# Nota de Crédito como para Nota de Débito Electrónica (C002 = 5 o 6) — no
+# solo para Nota de Crédito. El "Comprobante Asociado" (gCamDEAsoc) sí
+# queda limitado a Nota de Crédito por ahora, porque es la única que tiene
+# un campo nativo en Odoo (reversed_entry_id) para referenciar la factura
+# original — Nota de Débito no tiene un mecanismo equivalente todavía.
+NOMBRES_NC_ND = ('Nota de Credito Electronica', 'Nota de Debito Electronica')
+
 NOMBRE_MONEDA = {'PYG': 'Guarani', 'USD': 'Dolar americano', 'EUR': 'Euro'}
 
 
@@ -206,8 +214,8 @@ class FePyDocumentoElectronico(models.Model):
             faltantes.append('Departamento del Cliente')
         if not partner.city_id:
             faltantes.append('Ciudad del Cliente')
-        if move.move_type == 'out_refund' and not self.motivo_emision:
-            faltantes.append('Motivo de Emisión (obligatorio en Nota de Crédito)')
+        if move.local_py_tipo_fiscal_id.name in NOMBRES_NC_ND and not self.motivo_emision:
+            faltantes.append('Motivo de Emisión (obligatorio en Nota de Crédito/Débito)')
         if move.move_type == 'out_refund' and not move.reversed_entry_id:
             faltantes.append('Comprobante Asociado (obligatorio en Nota de Crédito)')
         if move.move_type == 'out_refund' and move.reversed_entry_id:
@@ -379,7 +387,7 @@ class FePyDocumentoElectronico(models.Model):
         for line in lineas:
             self._fe_py_xml_gCamItem(g, line)
 
-        if move.move_type == 'out_refund':
+        if move.local_py_tipo_fiscal_id.name in NOMBRES_NC_ND:
             g_ncde = etree.SubElement(g, '{%s}gCamNCDE' % SIFEN_NS)
             _sub(g_ncde, 'iMotEmi', self.motivo_emision)
             _sub(g_ncde, 'dDesMotEmi', dict(self._fields['motivo_emision'].selection).get(self.motivo_emision))

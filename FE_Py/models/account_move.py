@@ -20,6 +20,16 @@ class AccountMove(models.Model):
     fe_py_es_electronico = fields.Boolean(
         related='local_py_tipo_fiscal_id.fe_py_es_electronico', string='Es Electrónico',
     )
+    fe_py_es_nc_nd = fields.Boolean(
+        string='Es Nota de Crédito/Débito Electrónica', compute='_compute_fe_py_es_nc_nd',
+    )
+
+    @api.depends('local_py_tipo_fiscal_id')
+    def _compute_fe_py_es_nc_nd(self):
+        for move in self:
+            move.fe_py_es_nc_nd = move.local_py_tipo_fiscal_id.name in (
+                'Nota de Credito Electronica', 'Nota de Debito Electronica'
+            )
 
     # -- Campos related, para poder mostrar todo embebido en la pestaña
     #    (Factura/NC/ND de Cliente) sin tener que navegar a otra pantalla.
@@ -40,6 +50,7 @@ class AccountMove(models.Model):
     fe_py_simular_resultado = fields.Selection(related='fe_py_documento_id.simular_resultado', string='Resultado a Simular', readonly=False)
     fe_py_simular_codigo_rechazo = fields.Char(related='fe_py_documento_id.simular_codigo_rechazo', string='Código a Simular (Rechazo)', readonly=False)
     fe_py_simular_mensaje_rechazo = fields.Char(related='fe_py_documento_id.simular_mensaje_rechazo', string='Mensaje a Simular (Rechazo)', readonly=False)
+    fe_py_motivo_emision = fields.Selection(related='fe_py_documento_id.motivo_emision', string='Motivo de Emisión', readonly=False)
 
     @api.model
     def _get_suitable_journal_ids(self, move_type, company=False):
