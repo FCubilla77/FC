@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from odoo import api, exceptions, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountMove(models.Model):
@@ -60,10 +63,16 @@ class AccountMove(models.Model):
     def _post(self, soft=True):
         """Al confirmar Factura/Nota de Crédito/Nota de Débito de Cliente
         con un Tipo Fiscal electrónico, crea automáticamente su Documento
-        Electrónico (en Borrador — la generación del XML/CDC es una acción
-        aparte, no ocurre acá) y lo enlaza directo en fe_py_documento_id.
+        Electrónico (en Borrador) y lo enlaza directo en fe_py_documento_id.
         No genera nada para comprobantes no electrónicos ni para los que ya
-        tengan uno creado."""
+        tengan uno creado.
+
+        Si la Compañía tiene "Generar, Firmar y Enviar Automáticamente"
+        activo, además encadena esos 3 pasos (y opcionalmente KuDE/email)
+        acá mismo — pero un fallo en esa cadena NUNCA hace fallar la
+        Confirmación de la factura en sí: el Documento Electrónico
+        simplemente queda en el estado que corresponda, listo para
+        reintentar a mano."""
         posted = super()._post(soft=soft)
         electronicos = posted.filtered(
             lambda m: m.move_type in ('out_invoice', 'out_refund')
@@ -75,7 +84,53 @@ class AccountMove(models.Model):
                 [('move_id', '=', move.id)], limit=1
             ) or self.env['fe_py.documento_electronico'].sudo().create({'move_id': move.id})
             move.fe_py_documento_id = doc
+            if move.company_id.fe_py_envio_automatico:
+                move._fe_py_procesar_automatico(doc)
         return posted
+
+    def _fe_py_procesar_automatico(self, doc):
+        """Encadena Generar XML -> Firmar -> Enviar (y opcionalmente KuDE
+        y email, según los interruptores de la Compañía), absorbiendo
+        cualquier error para no afectar la Confirmación de la factura. Los
+        propios action_* ya dejan registro en el Log de Operaciones de
+        cada paso — acá solo hace falta no dejar que una excepción se
+        propague hacia _post()."""
+        self.ensure_one()
+        company = self.company_id
+        try:
+            doc.action_generar_xml()
+            doc.action_firmar()
+            doc.action_enviar()
+        except Exception:
+            _logger.warning(
+                "FE_Py: envío automático interrumpido para %s (comprobante "
+                "confirmado igual; revisar el Log de Operaciones para el "
+                "detalle del error).", self.display_name, exc_info=True,
+            )
+            return
+
+        if doc.estado not in ('aprobado', 'aprobado_observacion'):
+            return
+
+        if company.fe_py_kude_automatico:
+            try:
+                doc.action_generar_kude()
+            except Exception:
+                _logger.warning(
+                    "FE_Py: generación automática de KuDE falló para %s.",
+                    self.display_name, exc_info=True,
+                )
+                return
+
+        if company.fe_py_email_automatico:
+            try:
+                doc.action_enviar_email_cliente()
+            except Exception:
+                _logger.warning(
+                    "FE_Py: envío automático de email falló para %s.",
+                    self.display_name, exc_info=True,
+                )
+
 
     # ------------------------------------------------------------------
     # Acciones de la pestaña "Facturación Electrónica" — delegan siempre

@@ -15,6 +15,15 @@
                             <field name="fe_py_idcsc"/>
                             <field name="fe_py_csc"/>
                         </group>
+                        <group string="Automatización" colspan="2">
+                            <group>
+                                <field name="fe_py_envio_automatico"/>
+                            </group>
+                            <group>
+                                <field name="fe_py_kude_automatico"/>
+                                <field name="fe_py_email_automatico"/>
+                            </group>
+                        </group>
                         <group string="Datos del Emisor (para el XML del DE)" colspan="2">
                             <field name="fe_py_tipo_contribuyente"/>
                             <field name="fe_py_tipo_regimen"/>

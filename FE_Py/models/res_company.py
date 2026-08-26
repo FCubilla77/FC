@@ -46,6 +46,37 @@ class ResCompany(models.Model):
     )
 
     # ------------------------------------------------------------------
+    # Automatización — todos apagados por defecto (modo manual, el que se
+    # usó durante el desarrollo/pruebas). Se prenden cuando se quiera pasar
+    # al comportamiento de producción (el usuario solo Confirma, el resto
+    # es automático). Separados en 3, no uno solo, para poder automatizar
+    # la parte técnica sin necesariamente automatizar también el envío de
+    # email al cliente.
+    # ------------------------------------------------------------------
+    fe_py_envio_automatico = fields.Boolean(
+        string='Generar, Firmar y Enviar Automáticamente al Confirmar',
+        help='Si está activo, al Confirmar una Factura/NC/ND Electrónica se '
+             'genera el XML, se firma y se envía a SIFEN automáticamente, '
+             'sin usar los botones manuales. Si algún paso falla, la '
+             'Confirmación de la factura NO se ve afectada — el Documento '
+             'Electrónico queda en el estado correspondiente (Error de '
+             'Comunicación / Rechazado), listo para reintentar a mano con '
+             '"Reescribir XML y Reenviar".',
+    )
+    fe_py_kude_automatico = fields.Boolean(
+        string='Generar KuDE Automáticamente al Aprobarse',
+        help='Solo tiene efecto si "Enviar Automáticamente" también está '
+             'activo. Genera el KuDE apenas el envío da Aprobado o '
+             'Aprobado con Observación.',
+    )
+    fe_py_email_automatico = fields.Boolean(
+        string='Enviar Email al Cliente Automáticamente al Aprobarse',
+        help='Solo tiene efecto si "Enviar Automáticamente" también está '
+             'activo. Requiere que el KuDE se haya podido generar (a mano, '
+             'o con "Generar KuDE Automáticamente" también activo).',
+    )
+
+    # ------------------------------------------------------------------
     # Datos del Emisor exigidos por el XML del DE (grupo gEmis) que no
     # existen en local_py — este módulo no cubre datos de "papel", solo
     # los que la DNIT exige específicamente para SIFEN.
