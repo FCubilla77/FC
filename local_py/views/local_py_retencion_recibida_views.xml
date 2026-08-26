@@ -1,0 +1,87 @@
+<odoo>
+    <data>
+        <record id="view_local_py_retencion_recibida_list" model="ir.ui.view">
+            <field name="name">local_py.retencion_recibida.list</field>
+            <field name="model">local_py.retencion_recibida</field>
+            <field name="arch" type="xml">
+                <list string="Retenciones Recibidas" decoration-muted="estado == 'anulada'">
+                    <field name="fecha"/>
+                    <field name="partner_id"/>
+                    <field name="factura_id"/>
+                    <field name="recibo_id"/>
+                    <field name="importe"/>
+                    <field name="importe_dnit"/>
+                    <field name="numero_comprobante"/>
+                    <field name="fecha_confirmacion"/>
+                    <field name="estado" widget="badge"
+                           decoration-warning="estado == 'a_confirmar'"
+                           decoration-success="estado == 'confirmada'"
+                           decoration-danger="estado == 'anulada'"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_retencion_recibida_form" model="ir.ui.view">
+            <field name="name">local_py.retencion_recibida.form</field>
+            <field name="model">local_py.retencion_recibida</field>
+            <field name="arch" type="xml">
+                <form string="Retención Recibida">
+                    <header>
+                        <field name="estado" widget="statusbar" statusbar_visible="a_confirmar,confirmada,anulada"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="recibo_id" readonly="1"/>
+                                <field name="recibo_factura_id" readonly="1"/>
+                                <field name="factura_id" readonly="1"/>
+                                <field name="partner_id" readonly="1"/>
+                                <field name="fecha" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="importe" readonly="1"/>
+                                <field name="importe_dnit" readonly="1"/>
+                                <field name="numero_comprobante" readonly="1"/>
+                                <field name="fecha_confirmacion" readonly="1"/>
+                                <field name="control" readonly="1"/>
+                                <field name="retencion_move_id" readonly="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_local_py_retencion_recibida_search" model="ir.ui.view">
+            <field name="name">local_py.retencion_recibida.search</field>
+            <field name="model">local_py.retencion_recibida</field>
+            <field name="arch" type="xml">
+                <search string="Retenciones Recibidas">
+                    <field name="partner_id"/>
+                    <field name="factura_id"/>
+                    <field name="recibo_id"/>
+                    <field name="numero_comprobante"/>
+                    <filter string="A Confirmar" name="filter_a_confirmar" domain="[('estado', '=', 'a_confirmar')]"/>
+                    <filter string="Confirmada" name="filter_confirmada" domain="[('estado', '=', 'confirmada')]"/>
+                    <filter string="Anulada" name="filter_anulada" domain="[('estado', '=', 'anulada')]"/>
+                    <separator/>
+                    <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_local_py_retencion_recibida" model="ir.actions.act_window">
+            <field name="name">Retenciones Recibidas</field>
+            <field name="res_model">local_py.retencion_recibida</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_local_py_retencion_recibida"
+                  name="Retenciones Recibidas"
+                  parent="local_py.menu_local_py_retenciones"
+                  action="action_local_py_retencion_recibida"
+                  groups="account.group_account_manager"
+                  sequence="16"/>
+    </data>
+</odoo>

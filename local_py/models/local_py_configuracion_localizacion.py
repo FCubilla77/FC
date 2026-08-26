@@ -100,8 +100,9 @@ class LocalPyConfiguracionLocalizacion(models.Model):
     l10n_py_diario_retencion_recibida_id = fields.Many2one(
         'account.journal', string='Diario de Retención Recibida',
         domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
-        help='Diario de tipo Misceláneo — se usa para la fila de Medios "Retención" en '
-             'Recibo, cuando un Cliente informa que retuvo parte del pago.',
+        help='Diario de tipo Misceláneo — se usa para el asiento que genera la '
+             'columna "Importe Retención" de la solapa Facturas en Recibo, cuando un '
+             'Cliente informa que retuvo parte del pago.',
     )
     l10n_py_cuenta_retencion_a_confirmar_id = fields.Many2one(
         'account.account', string='Cuenta "Retenido a Confirmar"',
@@ -115,6 +116,14 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta de Activo (crédito fiscal) donde se reclasifica una Retención '
              'Recibida una vez confirmada contra la DNIT.',
+    )
+    l10n_py_cuenta_retenciones_diferencia_id = fields.Many2one(
+        'account.account', string='Cuenta "Diferencia" (Retenciones Recibidas)',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Cuenta donde se ajusta la diferencia entre el Importe que se cargó en '
+             'el Recibo y el Importe DNIT oficial, cuando una Retención Recibida se '
+             'confirma a mano (emparejamiento manual contra el archivo de Marangatu, '
+             'Fase 2) con un monto distinto al original.',
     )
     l10n_py_diario_cheque_cliente_id = fields.Many2one(
         'account.journal', string='Diario de Cheques de Clientes',
@@ -163,6 +172,29 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                     'ser distintos entre sí (aunque apunten a la misma Cuenta contable) — '
                     'sirve para diferenciar una Retención de la otra en la grilla de Medios '
                     'de la Orden de Pago.'
+                )
+
+    @api.constrains(
+        'l10n_py_cuenta_retencion_a_confirmar_id', 'l10n_py_cuenta_retenciones_recibidas_id',
+        'l10n_py_cuenta_retenciones_diferencia_id',
+    )
+    def _check_cuentas_retencion_recibida_distintas(self):
+        for config in self:
+            cuentas = config.l10n_py_cuenta_retencion_a_confirmar_id | config.l10n_py_cuenta_retenciones_recibidas_id | config.l10n_py_cuenta_retenciones_diferencia_id
+            cuentas_cargadas = [
+                c for c in (
+                    config.l10n_py_cuenta_retencion_a_confirmar_id,
+                    config.l10n_py_cuenta_retenciones_recibidas_id,
+                    config.l10n_py_cuenta_retenciones_diferencia_id,
+                ) if c
+            ]
+            if len(cuentas_cargadas) != len(cuentas):
+                raise exceptions.ValidationError(
+                    'Las Cuentas "Retenido a Confirmar", "Retenciones Recibidas" y '
+                    '"Diferencia" (Retenciones Recibidas) tienen que ser 3 Cuentas '
+                    'distintas entre sí — si dos apuntan a la misma, el asiento de '
+                    'reclasificación contra la DNIT queda contablemente invisible '
+                    '(débito y crédito a la misma Cuenta).'
                 )
 
     _company_uniq = models.Constraint(

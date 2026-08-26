@@ -32,6 +32,7 @@ from . import local_py_numero_a_letras
 from . import local_py_report_impresion_cheques
 from . import local_py_no_retencion
 from . import local_py_retencion_emitida
+from . import local_py_retencion_recibida
 from . import local_py_concepto_iva
 from . import local_py_tesaka_import
 from . import local_py_tesaka_import_linea

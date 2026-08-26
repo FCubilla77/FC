@@ -40,6 +40,20 @@ class LocalPyReciboFactura(models.Model):
         string='Saldo Pendiente', compute='_compute_montos', currency_field='currency_id',
     )
     importe_a_cobrar = fields.Monetary(string='Importe a Cobrar', currency_field='currency_id')
+    retencion_importe = fields.Monetary(
+        string='Importe Retención', currency_field='currency_id',
+        help='Cuánto de esta Factura/Cuota retiene el Cliente al pagar — informado por '
+             'el Cliente, no calculado por el sistema. Se descuenta del Importe a '
+             'Cobrar; no puede superarlo. Al Confirmar el Recibo genera un registro de '
+             'Retención Recibida y su asiento a la Cuenta "Retenido a Confirmar".',
+    )
+    retencion_valor_convertido = fields.Monetary(
+        string='Retención (Moneda Cabecera)', compute='_compute_conversion',
+        currency_field='header_currency_id',
+    )
+    retencion_recibida_id = fields.Many2one(
+        'local_py.retencion_recibida', string='Retención Recibida generada', readonly=True, copy=False,
+    )
 
     cotizacion = fields.Float(
         string='Cotización', digits=(16, 6),
@@ -70,10 +84,11 @@ class LocalPyReciboFactura(models.Model):
                 linea.total_original = abs(linea.move_line_id.balance)
                 linea.saldo_pendiente = abs(linea.move_line_id.amount_residual)
 
-    @api.depends('importe_a_cobrar', 'cotizacion')
+    @api.depends('importe_a_cobrar', 'retencion_importe', 'cotizacion')
     def _compute_conversion(self):
         for linea in self:
             linea.valor_convertido = linea.importe_a_cobrar * (linea.cotizacion or 0.0)
+            linea.retencion_valor_convertido = linea.retencion_importe * (linea.cotizacion or 0.0)
 
     @api.onchange('cotizacion')
     def _onchange_cotizacion(self):
@@ -106,4 +121,15 @@ class LocalPyReciboFactura(models.Model):
                 raise ValidationError(
                     'El importe a cobrar de "%s" no puede ser mayor a su saldo pendiente (%s).'
                     % (linea.move_id.name or '', linea.saldo_pendiente)
+                )
+
+    @api.constrains('retencion_importe', 'importe_a_cobrar')
+    def _check_retencion_importe(self):
+        for linea in self:
+            if linea.retencion_importe < 0:
+                raise ValidationError('El Importe Retención no puede ser negativo.')
+            if linea.currency_id.compare_amounts(linea.retencion_importe, linea.importe_a_cobrar) > 0:
+                raise ValidationError(
+                    'El Importe Retención de "%s" no puede ser mayor a su Importe a Cobrar (%s).'
+                    % (linea.move_id.name or '', linea.importe_a_cobrar)
                 )

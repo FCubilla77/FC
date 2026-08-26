@@ -65,24 +65,36 @@ class LocalPyRecibo(models.Model):
 
     total_facturas = fields.Monetary(string='Total a Cobrar (Facturas)', compute='_compute_totales', currency_field='currency_id')
     total_medios = fields.Monetary(string='Total Medios de Cobro', compute='_compute_totales', currency_field='currency_id')
+    total_retenciones = fields.Monetary(
+        string='Total Retenciones', compute='_compute_totales', currency_field='currency_id',
+        help='Suma de la columna "Importe Retención" de todas las Facturas (convertida '
+             'a la Moneda de la Cabecera) — se descuenta del Total a Cobrar junto con '
+             'el Total de Medios de Cobro.',
+    )
     diferencia = fields.Monetary(
         string='Diferencia', compute='_compute_totales', currency_field='currency_id',
-        help='Total a Cobrar (Facturas) menos Total Medios de Cobro. No puede quedar '
-             'en negativo (faltaría plata) para poder pasar a "En Proceso" — si queda '
-             'en positivo (sobra), el sistema pregunta si corregir los importes o '
-             'dejarlo como Saldo a Favor del Cliente.',
+        help='Total a Cobrar (Facturas) menos Total Medios de Cobro menos Total '
+             'Retenciones. No puede quedar en negativo (faltaría plata) para poder '
+             'pasar a "En Proceso" — si queda en positivo (sobra), el sistema '
+             'pregunta si corregir los importes o dejarlo como Saldo a Favor del '
+             'Cliente.',
     )
     hay_monedas_distintas = fields.Boolean(compute='_compute_totales')
+    retencion_recibida_ids = fields.One2many(
+        'local_py.retencion_recibida', 'recibo_id', string='Retenciones Recibidas',
+    )
 
-    @api.depends('factura_ids.valor_convertido', 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
+    @api.depends('factura_ids.valor_convertido', 'factura_ids.retencion_valor_convertido',
+                 'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
     def _compute_totales(self):
         for recibo in self:
             recibo.total_facturas = sum(recibo.factura_ids.mapped('valor_convertido'))
             recibo.total_medios = sum(recibo.medio_ids.mapped('importe'))
+            recibo.total_retenciones = sum(recibo.factura_ids.mapped('retencion_valor_convertido'))
             recibo.hay_monedas_distintas = bool(
                 recibo.factura_ids.filtered(lambda f: f.currency_id != recibo.currency_id)
             )
-            recibo.diferencia = recibo.total_facturas - recibo.total_medios
+            recibo.diferencia = recibo.total_facturas - recibo.total_medios - recibo.total_retenciones
 
     def _fmt(self, valor):
         self.ensure_one()
@@ -222,9 +234,6 @@ class LocalPyRecibo(models.Model):
         AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
         currency = self.currency_id
 
-        medios_retencion = self.medio_ids.filtered('es_retencion')
-        medios_normales = self.medio_ids - medios_retencion
-
         def _prioridad_medio(medio):
             # 0 = Saldo a Favor, 1 = Cheque, 2 = Transferencia, 3 = Efectivo.
             if medio.saldo_favor_payment_id:
@@ -235,19 +244,18 @@ class LocalPyRecibo(models.Model):
                 return 3
             return 2
 
-        medios_normales = medios_normales.sorted(key=_prioridad_medio)
+        medios_normales = self.medio_ids.sorted(key=_prioridad_medio)
 
         facturas_pend = []
         for f in self.factura_ids:
-            retenido = sum(medios_retencion.filtered(lambda m: m.recibo_factura_id == f).mapped('importe'))
-            facturas_pend.append([f, f.valor_convertido - retenido])
+            facturas_pend.append([f, f.valor_convertido - f.retencion_valor_convertido])
 
-        for medio in medios_retencion:
-            factura = medio.recibo_factura_id
-            if not factura:
-                raise UserError('La fila de Retención tiene que indicar a qué Factura corresponde.')
-            move = self._crear_movimiento_retencion_recibida(medio, factura, medio.importe)
-            medio.retencion_move_id = move.id
+        facturas_retenidas = self.factura_ids.filtered(
+            lambda f: currency.compare_amounts(f.retencion_importe, 0) > 0
+        )
+        for factura in facturas_retenidas:
+            move, retencion = self._crear_movimiento_retencion_recibida(factura)
+            factura.retencion_recibida_id = retencion.id
             linea_receivable = move.line_ids.filtered(
                 lambda l: l.account_id.account_type == 'asset_receivable' and not l.reconciled
             )
@@ -374,11 +382,14 @@ class LocalPyRecibo(models.Model):
             [('company_id', '=', self.company_id.id)], limit=1,
         )
 
-    def _crear_movimiento_retencion_recibida(self, medio, factura, monto_header):
-        """Asiento de la porción retenida por el Cliente: Débito a la
-        Cuenta "Retenido a Confirmar" (Activo), Crédito a la Cuenta Por
-        Cobrar del Cliente — la línea de Crédito se concilia contra la
-        Factura, igual que un Cobro más."""
+    def _crear_movimiento_retencion_recibida(self, factura):
+        """Asiento de la porción retenida por el Cliente en esta Factura:
+        Débito a la Cuenta "Retenido a Confirmar" (Activo), Crédito a la
+        Cuenta Por Cobrar del Cliente — la línea de Crédito se concilia
+        contra la Factura, igual que un Cobro más. También genera el
+        registro de local_py.retencion_recibida (estado "A Confirmar"),
+        que va a quedar pendiente de emparejar contra el archivo de la
+        DNIT/Marangatu más adelante. Devuelve (asiento, retención)."""
         self.ensure_one()
         config = self._get_config_recibo()
         if not config or not config.l10n_py_diario_retencion_recibida_id or not config.l10n_py_cuenta_retencion_a_confirmar_id:
@@ -390,6 +401,7 @@ class LocalPyRecibo(models.Model):
         cuenta_a_confirmar = config.l10n_py_cuenta_retencion_a_confirmar_id
         cuenta_receivable = factura.move_line_id.account_id
 
+        monto_header = factura.retencion_valor_convertido
         company = self.company_id
         es_moneda_extranjera = self.currency_id != company.currency_id
         if es_moneda_extranjera:
@@ -424,7 +436,16 @@ class LocalPyRecibo(models.Model):
             ],
         })
         move.action_post()
-        return move
+
+        retencion = self.env['local_py.retencion_recibida'].create({
+            'recibo_id': self.id,
+            'recibo_factura_id': factura.id,
+            'fecha': self.fecha,
+            'importe': factura.retencion_importe,
+            'estado': 'a_confirmar',
+            'retencion_move_id': move.id,
+        })
+        return move, retencion
 
     def action_abrir_wizard_anular(self):
         """Valida las mismas condiciones que action_anular ANTES de pedir
@@ -455,6 +476,14 @@ class LocalPyRecibo(models.Model):
                     'primero, antes de poder anular este.'
                     % ', '.join(recibos_dependientes.mapped('name'))
                 )
+
+        retenciones_confirmadas = self.retencion_recibida_ids.filtered(lambda r: r.estado == 'confirmada')
+        if retenciones_confirmadas:
+            raise UserError(
+                'No se puede Anular este Recibo: ya tiene Retención(es) Recibida(s) '
+                'Confirmada(s) contra la DNIT (%s). No se pueden revertir.'
+                % ', '.join(retenciones_confirmadas.mapped('recibo_factura_id.nro_documento_factura'))
+            )
 
         return {
             'name': 'Anular Recibo',
@@ -498,6 +527,14 @@ class LocalPyRecibo(models.Model):
                         % ', '.join(recibos_dependientes.mapped('name'))
                     )
 
+            retenciones_confirmadas = recibo.retencion_recibida_ids.filtered(lambda r: r.estado == 'confirmada')
+            if retenciones_confirmadas:
+                raise UserError(
+                    'No se puede Anular este Recibo: ya tiene Retención(es) Recibida(s) '
+                    'Confirmada(s) contra la DNIT (%s). No se pueden revertir.'
+                    % ', '.join(retenciones_confirmadas.mapped('recibo_factura_id.nro_documento_factura'))
+                )
+
             for pago in pagos:
                 pago.move_id.line_ids.remove_move_reconcile()
                 pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
@@ -516,11 +553,12 @@ class LocalPyRecibo(models.Model):
                 ])
                 partial_reconciles.unlink()
 
-            for medio in recibo.medio_ids.filtered('es_retencion'):
-                if medio.retencion_move_id:
-                    medio.retencion_move_id.line_ids.remove_move_reconcile()
-                    medio.retencion_move_id.button_draft()
-                    medio.retencion_move_id.unlink()
+            for retencion in recibo.retencion_recibida_ids.filtered(lambda r: r.estado == 'a_confirmar'):
+                if retencion.retencion_move_id:
+                    retencion.retencion_move_id.line_ids.remove_move_reconcile()
+                    retencion.retencion_move_id.button_draft()
+                    retencion.retencion_move_id.unlink()
+                retencion.unlink()
 
             cheques.filtered(lambda c: c.estado == 'en_cartera').write({'estado': 'anulado'})
 
