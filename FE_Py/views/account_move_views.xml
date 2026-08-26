@@ -29,6 +29,16 @@
                         </group>
                         <field name="fe_py_mensaje_respuesta" placeholder="Mensaje de respuesta de SIFEN..." readonly="1"/>
 
+                        <group string="Simulador SIFEN (solo aplica con Ambiente = Simulado)" colspan="2">
+                            <group>
+                                <field name="fe_py_simular_resultado"/>
+                            </group>
+                            <group>
+                                <field name="fe_py_simular_codigo_rechazo"/>
+                                <field name="fe_py_simular_mensaje_rechazo"/>
+                            </group>
+                        </group>
+
                         <div class="mb-3 mt-2">
                             <button name="fe_py_action_generar_xml" type="object"
                                     string="Generar / Regenerar XML" class="btn-secondary"/>

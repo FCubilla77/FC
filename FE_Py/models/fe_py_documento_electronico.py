@@ -111,7 +111,7 @@ class FePyDocumentoElectronico(models.Model):
         help='Solo se usa si "Resultado a Simular" = Rechazado.',
     )
     simular_mensaje_rechazo = fields.Char(
-        string='Mensaje a Simular (Rechazo)', default='XML malformado (SIMULADO)',
+        string='Mensaje a Simular (Rechazo)', default='XML malformado',
         help='Solo se usa si "Resultado a Simular" = Rechazado.',
     )
 

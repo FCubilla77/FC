@@ -48,8 +48,9 @@ class FePyDocumentoElectronico(models.Model):
                 'El Cliente "%s" no tiene un email cargado.' % partner.display_name
             )
 
-        xml_attachment_name = 'DE_%s.xml' % (self.cdc or move.name)
-        kude_attachment_name = self.kude_pdf_filename or ('KuDE_%s.pdf' % (self.cdc or move.name))
+        nombre_base = self._fe_py_get_nombre_base_archivo()
+        xml_attachment_name = nombre_base + '.xml'
+        kude_attachment_name = self.kude_pdf_filename or (nombre_base + '.pdf')
 
         attachments = []
         if self.xml_firmado:

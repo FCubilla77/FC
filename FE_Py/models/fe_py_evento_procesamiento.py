@@ -80,7 +80,7 @@ class FePyEvento(models.Model):
     )
     simular_codigo_rechazo = fields.Char(string='Código a Simular (Rechazo)', default='4000')
     simular_mensaje_rechazo = fields.Char(
-        string='Mensaje a Simular (Rechazo)', default='Motivo del Evento inválido (SIMULADO)',
+        string='Mensaje a Simular (Rechazo)', default='Motivo del Evento inválido',
     )
 
     def action_enviar(self):

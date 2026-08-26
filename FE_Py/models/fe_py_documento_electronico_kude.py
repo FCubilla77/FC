@@ -43,6 +43,14 @@ QR_BASE_URLS = {
     'simulado': 'https://ekuatia.set.gov.py/consultas-test/qr?',
 }
 
+# URL "humana" que se imprime como texto junto al CDC en el KuDE (distinta
+# de la URL completa del QR, que lleva todos los parámetros/hash).
+CONSULTA_BASE_URLS = {
+    'test': 'https://ekuatia.set.gov.py/consultas-test',
+    'produccion': 'https://ekuatia.set.gov.py/consultas',
+    'simulado': 'https://ekuatia.set.gov.py/consultas-test',
+}
+
 
 class FePyDocumentoElectronico(models.Model):
     _inherit = 'fe_py.documento_electronico'
@@ -79,7 +87,7 @@ class FePyDocumentoElectronico(models.Model):
         )
         self.write({
             'kude_pdf': base64.b64encode(pdf_content),
-            'kude_pdf_filename': 'KuDE_%s.pdf' % (self.cdc or self.move_id.id),
+            'kude_pdf_filename': self._fe_py_get_nombre_base_archivo() + '.pdf',
         })
         self.env['fe_py.documento_electronico.log'].sudo().create({
             'documento_id': self.id,
@@ -87,6 +95,77 @@ class FePyDocumentoElectronico(models.Model):
             'resultado': 'exito',
             'mensaje_resultado': 'KuDE generado (QR + PDF).',
         })
+
+    def _fe_py_get_nombre_base_archivo(self):
+        """Nombre base (sin extensión) usado tanto para el KuDE como para
+        el XML adjunto por email: '<Tipo Fiscal> <Nro Documento>' — ej.
+        'Factura Electronica 001-001-0000123'."""
+        self.ensure_one()
+        tipo = self.tipo_fiscal_id.name or 'Documento Electronico'
+        nro = self.move_id.l10n_py_nro_documento or self.move_id.name or str(self.move_id.id)
+        return '%s %s' % (tipo, nro)
+
+    def _fe_py_get_tipo_operacion_desc(self):
+        """Misma clasificación (bienes/servicios/mixto) que ya se usa al
+        armar iTipTra en el XML (Fase 3) — se replica acá para mostrar la
+        misma descripción en el KuDE, sin duplicar la fuente de verdad del
+        cálculo en sí (llama al mismo criterio)."""
+        self.ensure_one()
+        lineas = self.move_id.invoice_line_ids.filtered(
+            lambda l: l.display_type not in ('line_section', 'line_note')
+        )
+        tipos_producto = set(lineas.mapped('product_id.type'))
+        if tipos_producto and tipos_producto <= {'service'}:
+            return 'Prestación de servicios'
+        if tipos_producto and 'service' not in tipos_producto:
+            return 'Venta de mercadería'
+        return 'Mixto (Venta de mercadería y servicios)'
+
+    def _fe_py_get_cdc_formateado(self):
+        self.ensure_one()
+        cdc = self.cdc or ''
+        return ' '.join(cdc[i:i + 4] for i in range(0, len(cdc), 4))
+
+    def _fe_py_get_total_descuento(self):
+        self.ensure_one()
+        lineas = self.move_id.invoice_line_ids.filtered(
+            lambda l: l.display_type not in ('line_section', 'line_note')
+        )
+        return sum((l.price_unit * l.quantity) * (l.discount or 0) / 100 for l in lineas)
+
+    def _fe_py_get_redondeo(self):
+        """Diferencia entre la suma de los subtotales por tasa (antes de
+        redondear) y el Total General ya redondeado por Odoo. No
+        implementa la regla de redondeo SEDECO en sí (a la denominación
+        más chica disponible en Guaraníes) — solo muestra la diferencia
+        que ya exista entre ambos montos, si la hay."""
+        self.ensure_one()
+        montos = self.move_id._l10n_py_mkt_montos_por_tasa()
+        subtotal = montos['10'] + montos['5'] + montos['exento']
+        return subtotal - self.move_id.amount_total
+
+    def _fe_py_get_consulta_url_base(self):
+        self.ensure_one()
+        ambiente = self.move_id.company_id.fe_py_ambiente
+        return CONSULTA_BASE_URLS.get(ambiente, CONSULTA_BASE_URLS['test'])
+
+    def _fe_py_get_tipo_fiscal_display(self):
+        """Nombre del Tipo Fiscal con tildes, solo para mostrar en el KuDE
+        — el catálogo en sí (local_py.tipo_fiscal) usa nombres sin tilde
+        por convención técnica, no se toca acá."""
+        self.ensure_one()
+        nombres = {
+            'Factura Electronica': 'Factura electrónica',
+            'Nota de Credito Electronica': 'Nota de crédito electrónica',
+            'Nota de Debito Electronica': 'Nota de débito electrónica',
+        }
+        nombre = self.tipo_fiscal_id.name or ''
+        return nombres.get(nombre, nombre)
+
+    def _fe_py_formato_gs(self, valor):
+        """Formato numérico paraguayo: punto como separador de miles, sin
+        decimales (el Guaraní no usa centavos en la práctica)."""
+        return '{:,.0f}'.format(valor or 0).replace(',', '.')
 
     # ------------------------------------------------------------------
     # Algoritmo del QR — Manual Técnico v150, cap. 13.8.4

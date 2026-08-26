@@ -3,125 +3,181 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-call="web.basic_layout">
-                    <div class="page" style="font-size:11px;">
+                    <div class="page" style="font-size:10px; font-family: Arial, sans-serif;">
+                        <div style="border:1px solid #000;">
 
-                        <!-- Encabezado: Emisor + Datos de Timbrado -->
-                        <table style="width:100%; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:8px;">
-                            <tr>
-                                <td style="width:58%; vertical-align:top;">
-                                    <div style="font-size:14px; font-weight:bold;" t-esc="doc.move_id.company_id.name"/>
-                                    <div>RUC: <span t-esc="doc.move_id.company_id.vat"/></div>
-                                    <div t-esc="doc.move_id.company_id.street"/>
-                                    <div>
-                                        <span t-if="doc.move_id.company_id.city_id" t-esc="doc.move_id.company_id.city_id.name"/><span t-if="doc.move_id.company_id.city_id and doc.move_id.company_id.state_id">, </span>
-                                        <span t-if="doc.move_id.company_id.state_id" t-esc="doc.move_id.company_id.state_id.name"/>
-                                    </div>
-                                    <div t-if="doc.move_id.company_id.phone">Tel.: <span t-esc="doc.move_id.company_id.phone"/></div>
-                                    <div t-if="doc.move_id.company_id.email">Email: <span t-esc="doc.move_id.company_id.email"/></div>
-                                </td>
-                                <td style="width:42%; vertical-align:top; border:1px solid #000; padding:6px;">
-                                    <div style="text-align:center; font-weight:bold;">DOCUMENTO ELECTRÓNICO</div>
-                                    <div style="text-align:center; font-weight:bold;" t-esc="doc.tipo_fiscal_id.name"/>
-                                    <div>Timbrado N°: <span t-esc="'%08d' % (doc.move_id.l10n_py_timbrado or 0)"/></div>
-                                    <div>N° Documento: <span t-esc="doc.move_id.l10n_py_nro_documento"/></div>
-                                    <div>Fecha Emisión: <span t-esc="doc.move_id.invoice_date"/></div>
-                                </td>
-                            </tr>
-                        </table>
+                            <!-- Encabezado: KuDE + Emisor (izq) / Timbrado + Tipo + Numero (der) -->
+                            <table style="width:100%; border-bottom:1px solid #000;">
+                                <tr>
+                                    <td style="width:60%; vertical-align:top; padding:6px; border-right:1px solid #000;">
+                                        <div style="font-weight:bold; font-size:12px;">
+                                            KuDE de <span t-esc="doc._fe_py_get_tipo_fiscal_display()"/>
+                                        </div>
+                                        <table style="width:100%; margin-top:4px;">
+                                            <tr>
+                                                <td style="width:15%; vertical-align:top;">
+                                                    <img t-if="doc.move_id.company_id.logo"
+                                                         t-att-src="image_data_uri(doc.move_id.company_id.logo)"
+                                                         style="max-width:50px; max-height:50px;"/>
+                                                </td>
+                                                <td style="vertical-align:top;">
+                                                    <div style="font-weight:bold;" t-esc="doc.move_id.company_id.name"/>
+                                                    <div t-if="doc.move_id.company_id.fe_py_actividad_economica_desc"
+                                                         t-esc="doc.move_id.company_id.fe_py_actividad_economica_desc"/>
+                                                    <div t-esc="doc.move_id.company_id.street"/>
+                                                    <div t-if="doc.move_id.company_id.street2" t-esc="doc.move_id.company_id.street2"/>
+                                                    <div t-if="doc.move_id.company_id.phone">Teléfono: <span t-esc="doc.move_id.company_id.phone"/></div>
+                                                    <div t-if="doc.move_id.company_id.email">Correo: <span t-esc="doc.move_id.company_id.email"/></div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style="width:40%; vertical-align:top; padding:6px;">
+                                        <div><strong>RUC:</strong> <span t-esc="doc.move_id.company_id.vat"/></div>
+                                        <div><strong>Timbrado N°:</strong> <span t-esc="'%08d' % (doc.move_id.l10n_py_timbrado or 0)"/></div>
+                                        <div><strong>Inicio de vigencia:</strong>
+                                            <span t-esc="doc.move_id.journal_id.l10n_py_inicio_vigencia_timbrado"/>
+                                        </div>
+                                        <div style="font-weight:bold; margin-top:4px;" t-esc="doc._fe_py_get_tipo_fiscal_display()"/>
+                                        <div><strong>N°:</strong> <span t-esc="doc.move_id.l10n_py_nro_documento"/></div>
+                                    </td>
+                                </tr>
+                            </table>
 
-                        <!-- CDC -->
-                        <div style="border:1px solid #000; padding:5px; margin-bottom:8px; word-break:break-all; text-align:center;">
-                            <strong>CDC: </strong><span t-esc="doc.cdc"/>
+                            <!-- Datos de la operación (izq) / Datos del receptor (der) -->
+                            <table style="width:100%; border-bottom:1px solid #000;">
+                                <tr>
+                                    <td style="width:60%; vertical-align:top; padding:6px; border-right:1px solid #000;">
+                                        <div><strong>Fecha y hora de emisión:</strong>
+                                            <span t-esc="doc.move_id.invoice_date"/>
+                                        </div>
+                                        <div><strong>Nombre o razón social:</strong> <span t-esc="doc.partner_id.name"/></div>
+                                        <div><strong>Moneda:</strong>
+                                            <span t-esc="'Guarani' if doc.move_id.currency_id.name == 'PYG' else doc.move_id.currency_id.name"/>
+                                        </div>
+                                        <div><strong>Tipo de cambio:</strong>
+                                            <span t-if="doc.move_id.currency_id.name != 'PYG'" t-esc="doc.move_id.currency_id.rate"/>
+                                        </div>
+                                        <div><strong>Tipo de operación:</strong> <span t-esc="doc._fe_py_get_tipo_operacion_desc()"/></div>
+                                    </td>
+                                    <td style="width:40%; vertical-align:top; padding:6px;">
+                                        <div>
+                                            <strong>Cond. de venta:</strong>
+                                            <span style="border:1px solid #000; display:inline-block; width:9px; height:9px; text-align:center; line-height:9px;"
+                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.l10n_py_condicion != 'credito' else ''"/>
+                                            Contado
+                                            <span style="border:1px solid #000; display:inline-block; width:9px; height:9px; text-align:center; line-height:9px; margin-left:6px;"
+                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.l10n_py_condicion == 'credito' else ''"/>
+                                            Crédito
+                                        </div>
+                                        <div><strong>RUC/documento de identidad:</strong> <span t-esc="doc.partner_id.vat"/></div>
+                                        <div><strong>Dirección:</strong> <span t-esc="doc.partner_id.street"/></div>
+                                        <div><strong>Teléfono:</strong> <span t-esc="doc.partner_id.phone or doc.partner_id.mobile"/></div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Items -->
+                            <table style="width:100%; border-collapse:collapse; min-height:200px;">
+                                <thead>
+                                    <tr style="border-bottom:1px solid #000;">
+                                        <th style="text-align:left; padding:3px;">Código</th>
+                                        <th style="text-align:left; padding:3px;">Descripción</th>
+                                        <th style="text-align:right; padding:3px;">Cantidad</th>
+                                        <th style="text-align:right; padding:3px;">Precio unitario</th>
+                                        <th style="text-align:right; padding:3px;">Descuento</th>
+                                        <th style="text-align:right; padding:3px;">Precio Exentas</th>
+                                        <th style="text-align:right; padding:3px;">Precio 5%</th>
+                                        <th style="text-align:right; padding:3px;">Precio 10%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="doc.move_id.invoice_line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))" t-as="line">
+                                        <t t-set="tasa_linea" t-value="doc._fe_py_linea_tasa_iva(line)[0]"/>
+                                        <t t-set="neto_linea" t-value="(line.price_unit * line.quantity) - ((line.price_unit * line.quantity) * (line.discount or 0) / 100)"/>
+                                        <tr>
+                                            <td style="padding:3px;" t-esc="line.product_id.default_code or ''"/>
+                                            <td style="padding:3px;" t-esc="line.name"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="'%.1f' % line.quantity"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="doc._fe_py_formato_gs(line.price_unit)"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="doc._fe_py_formato_gs((line.price_unit * line.quantity) * (line.discount or 0) / 100)"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="doc._fe_py_formato_gs(neto_linea) if tasa_linea == 0 else '0'"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="doc._fe_py_formato_gs(neto_linea) if tasa_linea == 5 else '0'"/>
+                                            <td style="text-align:right; padding:3px;" t-esc="doc._fe_py_formato_gs(neto_linea) if tasa_linea == 10 else '0'"/>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <!-- Totales -->
+                            <table style="width:100%; border-top:1px solid #000;">
+                                <tr>
+                                    <td style="width:60%;"/>
+                                    <td style="width:40%; padding:6px;">
+                                        <table style="width:100%;">
+                                            <tr>
+                                                <td><strong>SUBTOTAL</strong></td>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['exento'])"/>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['5'])"/>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['10'])"/>
+                                            </tr>
+                                            <tr t-if="doc._fe_py_get_redondeo()">
+                                                <td colspan="3"><strong>REDONDEO SEDECO</strong></td>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc._fe_py_get_redondeo())"/>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3"><strong>TOTAL DE LA OPERACIÓN</strong></td>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id.amount_total)"/>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3"><strong>TOTAL EN GUARANÍES</strong></td>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id.amount_total)"/>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>LIQUIDACIÓN IVA</strong>
+                                                    &#160;&#160;5% <span t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] / 1.05)"/>
+                                                    &#160;&#160;10% <span t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] / 1.10)"/>
+                                                    &#160;&#160;<strong>TOTAL IVA</strong>
+                                                    <span t-esc="doc._fe_py_formato_gs(
+                                                        (doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] / 1.05)
+                                                        + (doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] / 1.10)
+                                                    )"/>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Pie: ahorro + QR + CDC + textos legales -->
+                            <table style="width:100%; border-top:1px solid #000;">
+                                <tr>
+                                    <td style="width:20%; text-align:center; vertical-align:top; padding:6px;">
+                                        <img t-if="doc.qr_image" t-att-src="'data:image/png;base64,%s' % doc.qr_image.decode('utf-8')"
+                                             style="width:90px; height:90px;"/>
+                                    </td>
+                                    <td style="width:80%; vertical-align:top; padding:6px;">
+                                        <div t-if="doc._fe_py_get_total_descuento() > 0" style="margin-bottom:4px;">
+                                            En esta compra te ahorraste: <span t-esc="doc._fe_py_formato_gs(doc._fe_py_get_total_descuento())"/> Gs.
+                                        </div>
+                                        <div>
+                                            Consulte la validez de esta <span t-esc="doc._fe_py_get_tipo_fiscal_display()"/> con el
+                                            número de CDC impreso abajo en:
+                                        </div>
+                                        <div t-esc="doc._fe_py_get_consulta_url_base()"/>
+                                        <div style="font-weight:bold; letter-spacing:1px;" t-esc="doc._fe_py_get_cdc_formateado()"/>
+                                        <div style="margin-top:4px; font-size:9px;">
+                                            ESTE DOCUMENTO ES UNA REPRESENTACIÓN GRÁFICA DE UN DOCUMENTO ELECTRÓNICO (XML)
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="border-top:1px solid #000; padding:4px 6px; font-size:9px;">
+                                Si su documento electrónico presenta algún error puede solicitar la modificación
+                                dentro de las 48 horas siguientes de la emisión de este comprobante.
+                            </div>
                         </div>
-
-                        <!-- Receptor + Condicion -->
-                        <table style="width:100%; margin-bottom:8px;">
-                            <tr>
-                                <td style="width:60%; vertical-align:top;">
-                                    <strong>Cliente:</strong> <span t-esc="doc.partner_id.name"/><br/>
-                                    <strong>RUC/Doc.:</strong> <span t-esc="doc.partner_id.vat"/><br/>
-                                    <strong>Dirección:</strong> <span t-esc="doc.partner_id.street"/>
-                                </td>
-                                <td style="width:40%; vertical-align:top;">
-                                    <strong>Condición de Venta:</strong>
-                                    <span t-esc="'Crédito' if doc.move_id.invoice_payment_term_id.l10n_py_condicion == 'credito' else 'Contado'"/>
-                                    <br/>
-                                    <strong>Moneda:</strong> <span t-esc="doc.move_id.currency_id.name"/>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <!-- Items -->
-                        <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
-                            <thead>
-                                <tr style="border-top:1px solid #000; border-bottom:1px solid #000;">
-                                    <th style="text-align:left; padding:3px;">Código</th>
-                                    <th style="text-align:left; padding:3px;">Descripción</th>
-                                    <th style="text-align:right; padding:3px;">Cant.</th>
-                                    <th style="text-align:right; padding:3px;">P. Unit.</th>
-                                    <th style="text-align:right; padding:3px;">Desc.</th>
-                                    <th style="text-align:right; padding:3px;">IVA</th>
-                                    <th style="text-align:right; padding:3px;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr t-foreach="doc.move_id.invoice_line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))" t-as="line"
-                                    style="border-bottom:1px solid #ddd;">
-                                    <td style="padding:3px;" t-esc="line.product_id.default_code or ''"/>
-                                    <td style="padding:3px;" t-esc="line.name"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="'%.2f' % line.quantity"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="'{:,.0f}'.format(line.price_unit)"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="str(round(line.discount or 0)) + '%'"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="', '.join(line.tax_ids.mapped('name')) or 'Exento'"/>
-                                    <td style="text-align:right; padding:3px;" t-esc="'{:,.0f}'.format(line.price_total)"/>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- Totales -->
-                        <table style="width:100%; margin-bottom:12px;">
-                            <tr>
-                                <td style="width:60%;"/>
-                                <td style="width:40%;">
-                                    <table style="width:100%;">
-                                        <tr>
-                                            <td>Total Gravado 10%:</td>
-                                            <td style="text-align:right;" t-esc="'{:,.0f}'.format(doc.move_id._l10n_py_mkt_montos_por_tasa()['10'])"/>
-                                        </tr>
-                                        <tr>
-                                            <td>Total Gravado 5%:</td>
-                                            <td style="text-align:right;" t-esc="'{:,.0f}'.format(doc.move_id._l10n_py_mkt_montos_por_tasa()['5'])"/>
-                                        </tr>
-                                        <tr>
-                                            <td>Total Exento:</td>
-                                            <td style="text-align:right;" t-esc="'{:,.0f}'.format(doc.move_id._l10n_py_mkt_montos_por_tasa()['exento'])"/>
-                                        </tr>
-                                        <tr style="font-weight:bold; border-top:1px solid #000;">
-                                            <td>Total a Pagar (Gs.):</td>
-                                            <td style="text-align:right;" t-esc="'{:,.0f}'.format(doc.move_id.amount_total)"/>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <!-- QR + textos legales -->
-                        <table style="width:100%; border-top:1px solid #000; padding-top:8px;">
-                            <tr>
-                                <td style="width:25%; text-align:center; vertical-align:top;">
-                                    <img t-if="doc.qr_image" t-att-src="'data:image/png;base64,%s' % doc.qr_image.decode('utf-8')"
-                                         style="width:90px; height:90px;"/>
-                                </td>
-                                <td style="width:75%; font-size:8px; vertical-align:top; padding-left:8px;">
-                                    <p>Consulte la validez de este Documento Electrónico con el número de CDC
-                                       en: <span t-esc="doc.qr_url"/></p>
-                                    <p>Este documento es una representación gráfica (KuDE) de un Documento
-                                       Electrónico, generado a partir del XML autorizado por la DNIT a
-                                       través del SIFEN.</p>
-                                </td>
-                            </tr>
-                        </table>
-
                     </div>
                 </t>
             </t>
@@ -135,7 +191,7 @@
         <field name="report_name">FE_Py.report_kude_document</field>
         <field name="report_file">FE_Py.report_kude_document</field>
         <field name="paperformat_id" ref="paperformat_fe_py_kude"/>
-        <field name="print_report_name">'KuDE_%s' % (object.cdc or object.id)</field>
+        <field name="print_report_name">object._fe_py_get_nombre_base_archivo()</field>
         <field name="binding_model_id" ref="model_fe_py_documento_electronico"/>
         <field name="binding_type">report</field>
     </record>
