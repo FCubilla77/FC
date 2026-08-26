@@ -112,7 +112,12 @@ class FePyDocumentoElectronico(models.Model):
         fecha_emi = move.invoice_date.strftime('%Y%m%d')
 
         tipo_emi_codigo = '1' if self.tipo_emision != 'contingencia' else '2'
-        cod_seg = self.codigo_seguridad or self._fe_py_generar_codigo_seguridad()
+        # Siempre se genera un código de seguridad NUEVO acá — no se
+        # reutiliza el de un intento anterior. "Generar/Regenerar XML" es
+        # justamente el botón para reintentar tras un Rechazo/Error, y cada
+        # intento debe tener un CDC genuinamente distinto (evita cualquier
+        # riesgo de que SIFEN interprete un reenvío como CDC duplicado).
+        cod_seg = self._fe_py_generar_codigo_seguridad()
 
         cdc_sin_dv = ''.join([
             i_tide.zfill(2),
