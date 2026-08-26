@@ -206,7 +206,9 @@ class LocalPyRecibo(models.Model):
             a_refrescar = recibo.factura_ids.filtered(lambda f: not f.cotizacion_manual)
             recibo._verificar_cotizaciones_cargadas(a_refrescar.mapped('currency_id'))
             a_refrescar._set_cotizacion_default(recibo.fecha)
-            diferencia_final = recibo.currency_id.round(recibo.total_facturas - recibo.total_medios)
+            diferencia_final = recibo.currency_id.round(
+                recibo.total_facturas - recibo.total_medios - recibo.total_retenciones
+            )
             if diferencia_final > 0:
                 raise UserError(
                     'La cotización cambió y el total de Medios de Cobro ya no alcanza para '
