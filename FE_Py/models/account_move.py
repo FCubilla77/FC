@@ -108,6 +108,56 @@ class AccountMove(models.Model):
             journals |= extra
         return journals
 
+    def _fe_py_validar_datos_electronicos(self):
+        """Devuelve la lista de datos que faltan para poder generar el DE
+        de este comprobante (vacía si está todo completo). Se usa tanto al
+        Confirmar (bloquea la Confirmación si falta algo) como al Generar/
+        Regenerar XML (por si algo cambió después de confirmar) — una sola
+        fuente de verdad para no repetir la misma lista en dos lugares."""
+        self.ensure_one()
+        company = self.company_id
+        partner = self.partner_id
+        faltantes = []
+
+        if not company.vat:
+            faltantes.append('RUC de la Compañía')
+        if not company.fe_py_actividad_economica_codigo:
+            faltantes.append('Código de Actividad Económica (Compañía)')
+        if not company.street:
+            faltantes.append('Dirección de la Compañía')
+        if not company.state_id:
+            faltantes.append('Departamento de la Compañía')
+        if not company.city_id:
+            faltantes.append('Ciudad de la Compañía')
+        if not self.journal_id.l10n_py_inicio_vigencia_timbrado:
+            faltantes.append('Inicio de Vigencia del Timbrado (Diario)')
+
+        if not partner.vat:
+            faltantes.append(
+                'RUC del Cliente (receptor sin RUC todavía no está soportado en esta fase)'
+            )
+        if not partner.country_id:
+            faltantes.append('País del Cliente')
+        if not partner.street:
+            faltantes.append('Dirección del Cliente')
+        if not partner.state_id:
+            faltantes.append('Departamento del Cliente')
+        if not partner.city_id:
+            faltantes.append('Ciudad del Cliente')
+
+        if self.fe_py_es_nc_nd and not self.fe_py_motivo_emision:
+            faltantes.append('Motivo de Emisión')
+        if self.move_type == 'out_refund' and not self.reversed_entry_id:
+            faltantes.append('Comprobante Asociado')
+        if self.move_type == 'out_refund' and self.reversed_entry_id:
+            doc_asociado = self.reversed_entry_id.fe_py_documento_id
+            if not doc_asociado or not doc_asociado.cdc:
+                faltantes.append(
+                    'CDC de la Factura Electrónica asociada (todavía no fue generado)'
+                )
+
+        return faltantes
+
     def _post(self, soft=True):
         """Al confirmar Factura/Nota de Crédito/Nota de Débito de Cliente
         con un Tipo Fiscal electrónico, crea automáticamente su Documento
@@ -115,9 +165,12 @@ class AccountMove(models.Model):
         No genera nada para comprobantes no electrónicos ni para los que ya
         tengan uno creado.
 
-        Antes de confirmar, exige "Motivo de Emisión" en Nota de Crédito/
-        Débito Electrónica — si falta, bloquea la Confirmación completa
-        (no llega a postearse nada).
+        Antes de confirmar, valida TODOS los datos necesarios para
+        Facturación Electrónica (RUC/dirección de Compañía y Cliente,
+        Timbrado del Diario, Motivo de Emisión en NC/ND, etc.) — si falta
+        algo, bloquea la Confirmación completa (no llega a postearse nada),
+        en vez de dejar que la factura se confirme y recién explote más
+        adelante al Generar el XML.
 
         Si la Compañía tiene "Generar, Firmar y Enviar Automáticamente"
         activo, además encadena esos 3 pasos (y opcionalmente KuDE/email)
@@ -125,15 +178,18 @@ class AccountMove(models.Model):
         Confirmación de la factura en sí: el Documento Electrónico
         simplemente queda en el estado que corresponda, listo para
         reintentar a mano."""
-        faltantes = self.filtered(
-            lambda m: m.move_type in ('out_invoice', 'out_refund')
-            and m.fe_py_es_nc_nd and not m.fe_py_motivo_emision
+        a_validar = self.filtered(
+            lambda m: m.move_type in ('out_invoice', 'out_refund') and m.fe_py_es_electronico
         )
-        if faltantes:
+        errores = []
+        for move in a_validar:
+            faltantes = move._fe_py_validar_datos_electronicos()
+            if faltantes:
+                errores.append('%s:\n  - %s' % (move.display_name, '\n  - '.join(faltantes)))
+        if errores:
             raise exceptions.UserError(
-                'No se puede Confirmar: falta completar "Motivo de Emisión" '
-                '(pestaña "Facturación Electrónica") en: %s'
-                % ', '.join(faltantes.mapped('display_name'))
+                'No se puede Confirmar: faltan datos para Facturación Electrónica.\n\n'
+                + '\n\n'.join(errores)
             )
 
         posted = super()._post(soft=soft)

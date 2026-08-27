@@ -192,47 +192,7 @@ class FePyDocumentoElectronico(models.Model):
     def _fe_py_validar_datos_para_generar(self):
         self.ensure_one()
         move = self.move_id
-        company = move.company_id
-        partner = move.partner_id
-
-        faltantes = []
-        if not company.vat:
-            faltantes.append('RUC de la Compañía')
-        if not company.fe_py_actividad_economica_codigo:
-            faltantes.append('Código de Actividad Económica (Compañía)')
-        if not company.street:
-            faltantes.append('Dirección de la Compañía')
-        if not company.state_id:
-            faltantes.append('Departamento de la Compañía')
-        if not company.city_id:
-            faltantes.append('Ciudad de la Compañía')
-        if not move.journal_id.l10n_py_inicio_vigencia_timbrado:
-            faltantes.append('Inicio de Vigencia del Timbrado (Diario)')
-        if not partner.vat:
-            faltantes.append(
-                'RUC del Cliente (receptor sin RUC todavía no está soportado en esta fase)'
-            )
-        if not partner.country_id:
-            faltantes.append('País del Cliente')
-        if not partner.street:
-            faltantes.append('Dirección del Cliente')
-        if not partner.state_id:
-            faltantes.append('Departamento del Cliente')
-        if not partner.city_id:
-            faltantes.append('Ciudad del Cliente')
-        if move.local_py_tipo_fiscal_id.name in NOMBRES_NC_ND and not self.motivo_emision:
-            faltantes.append('Motivo de Emisión (obligatorio en Nota de Crédito/Débito)')
-        if move.move_type == 'out_refund' and not move.reversed_entry_id:
-            faltantes.append('Comprobante Asociado (obligatorio en Nota de Crédito)')
-        if move.move_type == 'out_refund' and move.reversed_entry_id:
-            doc_asociado = self.env['fe_py.documento_electronico'].search([
-                ('move_id', '=', move.reversed_entry_id.id)
-            ], limit=1)
-            if not doc_asociado or not doc_asociado.cdc:
-                faltantes.append(
-                    'CDC de la Factura Electrónica asociada (todavía no fue generado)'
-                )
-
+        faltantes = move._fe_py_validar_datos_electronicos()
         if faltantes:
             raise exceptions.UserError(
                 'Faltan datos para generar el XML de %s:\n- %s'
@@ -356,7 +316,7 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g, 'dDesDisRec', distrito.name if distrito else False)
         _sub(g, 'cCiuRec', partner.city_id.code if partner.city_id else False)
         _sub(g, 'dDesCiuRec', partner.city_id.name if partner.city_id else False)
-        _sub(g, 'dTelRec', partner.phone or partner.mobile)
+        _sub(g, 'dTelRec', partner.phone)
 
     def _fe_py_linea_tasa_iva(self, line):
         rates = line.tax_ids.mapped('amount')
