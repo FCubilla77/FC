@@ -1095,7 +1095,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     # Reporte de Recibo
     # ------------------------------------------------------------------
     def _build_reporte_recibo_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None,
-                                    partner_ids=None, incluir_anulados=True, estados_incluidos=None):
+                                    partner_ids=None, estados_incluidos=None):
         """Arma las filas del Reporte de Recibo: agrupado por Moneda y,
         dentro de cada Moneda, por Recibo (ordenado por número), con el
         detalle de sus Medios y Facturas. Los Recibos Anulados aparecen
@@ -1107,10 +1107,10 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         Recibo). Devuelve además el resumen cruzado de Medios + Retención
         por Moneda.
 
-        estados_incluidos filtra por Estado (lista de valores de state);
-        incluir_anulados es un interruptor general que, si es False,
-        excluye los Anulados sin importar si "anulado" está en
-        estados_incluidos."""
+        estados_incluidos filtra por Estado (lista de valores de state) —
+        para no mostrar Anulados, alcanza con no incluir 'anulado' en la
+        lista (Anulado ya es un Estado real de Recibo, a diferencia de
+        Orden de Pago donde Archivada es independiente del Estado)."""
         domain = [
             ('company_id', '=', company.id),
             ('fecha', '>=', fecha_desde),
@@ -1122,8 +1122,6 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             domain.append(('partner_id', 'in', partner_ids.ids))
         if estados_incluidos:
             domain.append(('state', 'in', estados_incluidos))
-        if not incluir_anulados:
-            domain.append(('state', '!=', 'anulado'))
 
         recibos = self.env['local_py.recibo'].search(domain, order='currency_id, name')
 

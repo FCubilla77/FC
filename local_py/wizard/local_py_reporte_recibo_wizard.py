@@ -21,12 +21,6 @@ class LocalPyReporteReciboWizard(models.TransientModel):
     filtro_en_proceso = fields.Boolean(string='En Proceso', default=True)
     filtro_confirmado = fields.Boolean(string='Confirmado', default=True)
     filtro_anulado = fields.Boolean(string='Anulado', default=True)
-    incluir_anulados = fields.Boolean(
-        string='Incluir Recibos Anulados', default=True,
-        help='Interruptor general: si está destildado, los Recibos Anulados nunca '
-             'aparecen, sin importar lo tildado en Estados. Aparecen solo a efectos de '
-             'control numérico de la secuencia, sin sumar valores a ningún total.',
-    )
 
     @api.model
     def default_get(self, fields_list):
@@ -54,7 +48,7 @@ class LocalPyReporteReciboWizard(models.TransientModel):
         builder = self.env['local_py.libro_report.builder']
         rows, resumen = builder._build_reporte_recibo_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.currency_ids, self.partner_ids,
-            self.incluir_anulados, self._estados_seleccionados(),
+            self._estados_seleccionados(),
         )
         return {
             'company': self.company_id,
