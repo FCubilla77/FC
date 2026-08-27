@@ -50,7 +50,28 @@ class AccountMove(models.Model):
     fe_py_simular_resultado = fields.Selection(related='fe_py_documento_id.simular_resultado', string='Resultado a Simular', readonly=False)
     fe_py_simular_codigo_rechazo = fields.Char(related='fe_py_documento_id.simular_codigo_rechazo', string='Código a Simular (Rechazo)', readonly=False)
     fe_py_simular_mensaje_rechazo = fields.Char(related='fe_py_documento_id.simular_mensaje_rechazo', string='Mensaje a Simular (Rechazo)', readonly=False)
-    fe_py_motivo_emision = fields.Selection(related='fe_py_documento_id.motivo_emision', string='Motivo de Emisión', readonly=False)
+
+    # Campo PROPIO (no related) — a diferencia de los de arriba, este tiene
+    # que poder completarse ANTES de Confirmar (en Borrador), momento en el
+    # que el Documento Electrónico todavía no existe (se crea recién en
+    # _post). Se copia hacia fe_py.documento_electronico.motivo_emision
+    # (related, de solo lectura desde ese lado) una vez creado.
+    fe_py_motivo_emision = fields.Selection(
+        string='Motivo de Emisión',
+        selection=[
+            ('1', 'Devolución y Ajuste de precios'),
+            ('2', 'Devolución'),
+            ('3', 'Descuento'),
+            ('4', 'Bonificación'),
+            ('5', 'Crédito incobrable'),
+            ('6', 'Recupero de costo'),
+            ('7', 'Recupero de gasto'),
+            ('8', 'Ajuste de precio'),
+        ],
+        copy=False,
+        help='Obligatorio para Nota de Crédito/Débito Electrónica — se '
+             'exige al Confirmar, no recién al generar el XML.',
+    )
 
     @api.model
     def _get_suitable_journal_ids(self, move_type, company=False):
@@ -81,12 +102,27 @@ class AccountMove(models.Model):
         No genera nada para comprobantes no electrónicos ni para los que ya
         tengan uno creado.
 
+        Antes de confirmar, exige "Motivo de Emisión" en Nota de Crédito/
+        Débito Electrónica — si falta, bloquea la Confirmación completa
+        (no llega a postearse nada).
+
         Si la Compañía tiene "Generar, Firmar y Enviar Automáticamente"
         activo, además encadena esos 3 pasos (y opcionalmente KuDE/email)
         acá mismo — pero un fallo en esa cadena NUNCA hace fallar la
         Confirmación de la factura en sí: el Documento Electrónico
         simplemente queda en el estado que corresponda, listo para
         reintentar a mano."""
+        faltantes = self.filtered(
+            lambda m: m.move_type in ('out_invoice', 'out_refund')
+            and m.fe_py_es_nc_nd and not m.fe_py_motivo_emision
+        )
+        if faltantes:
+            raise exceptions.UserError(
+                'No se puede Confirmar: falta completar "Motivo de Emisión" '
+                '(pestaña "Facturación Electrónica") en: %s'
+                % ', '.join(faltantes.mapped('display_name'))
+            )
+
         posted = super()._post(soft=soft)
         electronicos = posted.filtered(
             lambda m: m.move_type in ('out_invoice', 'out_refund')
@@ -96,7 +132,10 @@ class AccountMove(models.Model):
         for move in electronicos:
             doc = self.env['fe_py.documento_electronico'].sudo().search(
                 [('move_id', '=', move.id)], limit=1
-            ) or self.env['fe_py.documento_electronico'].sudo().create({'move_id': move.id})
+            ) or self.env['fe_py.documento_electronico'].sudo().create({
+                'move_id': move.id,
+                'motivo_emision': move.fe_py_motivo_emision,
+            })
             move.fe_py_documento_id = doc
             if move.company_id.fe_py_envio_automatico:
                 move._fe_py_procesar_automatico(doc)

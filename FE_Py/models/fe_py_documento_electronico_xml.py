@@ -158,6 +158,12 @@ class FePyDocumentoElectronico(models.Model):
                     'Borrador, o luego de un Error de Comunicación o Rechazo.'
                     % (doc.move_id.display_name, dict(doc._fields['estado'].selection).get(doc.estado))
                 )
+            # Se sincroniza siempre desde el comprobante antes de validar —
+            # así, si el usuario corrigió el Motivo de Emisión después de
+            # un Rechazo (antes de "Reescribir XML y Reenviar"), toma el
+            # valor actual y no uno viejo copiado solo al Confirmar.
+            if doc.move_id.fe_py_es_nc_nd:
+                doc.motivo_emision = doc.move_id.fe_py_motivo_emision
             doc._fe_py_validar_datos_para_generar()
             cdc, cod_seg, dv_final = doc._fe_py_generar_cdc()
             xml_root = doc._fe_py_construir_xml(cdc, cod_seg)
