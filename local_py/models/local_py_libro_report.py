@@ -100,6 +100,14 @@ class ReportChequesEmitidos(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportReciboListado(models.AbstractModel):
+    _name = 'report.local_py.report_recibo_listado_document'
+    _description = 'Reporte de Recibo (listado)'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
