@@ -31,6 +31,8 @@
                                 <field name="numero" readonly="1" invisible="not numero"/>
                                 <field name="partner_id" options="{'no_create': True}"
                                        domain="[('customer_rank', '>', 0)]" readonly="state != 'borrador'"/>
+                                <field name="total_saldo_favor_cliente" readonly="1"
+                                       invisible="total_saldo_favor_cliente == 0"/>
                                 <field name="comentario"/>
                             </group>
                             <group>

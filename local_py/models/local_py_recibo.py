@@ -34,6 +34,14 @@ class LocalPyRecibo(models.Model):
         'res.partner', string='Cliente', required=True,
         domain="[('customer_rank', '>', 0)]",
     )
+    total_saldo_favor_cliente = fields.Monetary(
+        string='Saldo a Favor del Cliente', compute='_compute_total_saldo_favor_cliente',
+        currency_field='currency_id',
+        help='Total disponible del Cliente, en la misma Moneda de este Recibo — es lo '
+             'que se puede elegir como Medio "Saldo a Favor" acá. Si el Cliente '
+             'también tiene saldo en alguna otra Moneda, no se incluye acá (no se '
+             'puede usar en este Recibo, al no coincidir la Moneda).',
+    )
     fecha = fields.Date(string='Fecha', required=True, default=fields.Date.context_today)
     currency_id = fields.Many2one(
         'res.currency', string='Moneda', required=True,
@@ -83,6 +91,20 @@ class LocalPyRecibo(models.Model):
     retencion_recibida_ids = fields.One2many(
         'local_py.retencion_recibida', 'recibo_id', string='Retenciones Recibidas',
     )
+
+    @api.depends('partner_id', 'currency_id')
+    def _compute_total_saldo_favor_cliente(self):
+        for recibo in self:
+            if not recibo.partner_id:
+                recibo.total_saldo_favor_cliente = 0.0
+                continue
+            pagos = self.env['account.payment'].search([
+                ('partner_id', '=', recibo.partner_id.id),
+                ('l10n_py_es_saldo_favor', '=', True),
+                ('currency_id', '=', recibo.currency_id.id),
+                ('l10n_py_saldo_favor_disponible', '>', 0),
+            ])
+            recibo.total_saldo_favor_cliente = sum(pagos.mapped('l10n_py_saldo_favor_disponible'))
 
     @api.depends('factura_ids.valor_convertido', 'factura_ids.retencion_valor_convertido',
                  'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
