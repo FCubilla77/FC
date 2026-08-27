@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 from ..models.local_py_libro_report import fmt_pyg, fmt_moneda
 
@@ -16,10 +17,15 @@ class LocalPyReporteReciboWizard(models.TransientModel):
     fecha_hasta = fields.Date(string='Fecha hasta', required=True)
     currency_ids = fields.Many2many('res.currency', string='Moneda', help='Vacío = todas.')
     partner_ids = fields.Many2many('res.partner', string='Cliente', help='Vacío = todos.')
+    filtro_borrador = fields.Boolean(string='Borrador', default=True)
+    filtro_en_proceso = fields.Boolean(string='En Proceso', default=True)
+    filtro_confirmado = fields.Boolean(string='Confirmado', default=True)
+    filtro_anulado = fields.Boolean(string='Anulado', default=True)
     incluir_anulados = fields.Boolean(
         string='Incluir Recibos Anulados', default=True,
-        help='Los Recibos Anulados aparecen solo a efectos de control numérico de la '
-             'secuencia, sin sumar valores a ningún total.',
+        help='Interruptor general: si está destildado, los Recibos Anulados nunca '
+             'aparecen, sin importar lo tildado en Estados. Aparecen solo a efectos de '
+             'control numérico de la secuencia, sin sumar valores a ningún total.',
     )
 
     @api.model
@@ -30,12 +36,25 @@ class LocalPyReporteReciboWizard(models.TransientModel):
         res.setdefault('fecha_hasta', today)
         return res
 
+    def _estados_seleccionados(self):
+        self.ensure_one()
+        mapa = [
+            ('borrador', self.filtro_borrador),
+            ('en_proceso', self.filtro_en_proceso),
+            ('confirmado', self.filtro_confirmado),
+            ('anulado', self.filtro_anulado),
+        ]
+        estados = [estado for estado, activo in mapa if activo]
+        if not estados:
+            raise UserError('Seleccione al menos un Estado para poder generar el Reporte.')
+        return estados
+
     def _armar_render_context(self):
         self.ensure_one()
         builder = self.env['local_py.libro_report.builder']
         rows, resumen = builder._build_reporte_recibo_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.currency_ids, self.partner_ids,
-            self.incluir_anulados,
+            self.incluir_anulados, self._estados_seleccionados(),
         )
         return {
             'company': self.company_id,

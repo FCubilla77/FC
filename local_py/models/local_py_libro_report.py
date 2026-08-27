@@ -108,6 +108,14 @@ class ReportReciboListado(models.AbstractModel):
         return self.env.context.get('local_py_libro_render_data', {})
 
 
+class ReportRetencionesListado(models.AbstractModel):
+    _name = 'report.local_py.report_retenciones_listado_document'
+    _description = 'Reporte de Retenciones (listado)'
+
+    def _get_report_values(self, docids, data=None):
+        return self.env.context.get('local_py_libro_render_data', {})
+
+
 class LocalPyLibroReportBuilder(models.AbstractModel):
     """Lógica compartida para armar el contenido paginado de Libro Diario,
     Libro Mayor y Libro Inventario, y para vincular la generación oficial
@@ -967,14 +975,19 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     # Reporte de Orden de Pago
     # ------------------------------------------------------------------
     def _build_reporte_orden_pago_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None,
-                                        partner_ids=None, incluir_archivadas=True):
+                                        partner_ids=None, incluir_archivadas=True, estados_incluidos=None):
         """Arma las filas del Reporte de Orden de Pago: agrupado por
         Moneda y, dentro de cada Moneda, por Orden de Pago (ordenado por
         número), con el detalle de sus Medios y Facturas. Las Órdenes de
         Pago Archivadas (operaciones canceladas, nunca ejecutadas)
         aparecen solo a efectos de control numérico de la secuencia —
         con importe en cero y sin sumar a ningún total. Devuelve además
-        el resumen cruzado de Medios por Moneda (por tipo de Diario)."""
+        el resumen cruzado de Medios por Moneda (por tipo de Diario).
+
+        estados_incluidos filtra por Estado (lista de valores de state);
+        incluir_archivadas es un interruptor general que, si es False,
+        excluye las Archivadas sin importar el Estado que tuvieran al
+        archivarse (Archivada es independiente del Estado)."""
         domain = [
             ('company_id', '=', company.id),
             ('fecha', '>=', fecha_desde),
@@ -984,6 +997,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             domain.append(('currency_id', 'in', currency_ids.ids))
         if partner_ids:
             domain.append(('partner_id', 'in', partner_ids.ids))
+        if estados_incluidos:
+            domain.append(('state', 'in', estados_incluidos))
         if not incluir_archivadas:
             domain.append(('active', '=', True))
 
@@ -1080,7 +1095,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
     # Reporte de Recibo
     # ------------------------------------------------------------------
     def _build_reporte_recibo_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None,
-                                    partner_ids=None, incluir_anulados=True):
+                                    partner_ids=None, incluir_anulados=True, estados_incluidos=None):
         """Arma las filas del Reporte de Recibo: agrupado por Moneda y,
         dentro de cada Moneda, por Recibo (ordenado por número), con el
         detalle de sus Medios y Facturas. Los Recibos Anulados aparecen
@@ -1090,7 +1105,12 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         muestra en su propia fila, y se suma al Recibo como si fuera un
         Medio más (mismo criterio que ya usa el PDF individual del
         Recibo). Devuelve además el resumen cruzado de Medios + Retención
-        por Moneda."""
+        por Moneda.
+
+        estados_incluidos filtra por Estado (lista de valores de state);
+        incluir_anulados es un interruptor general que, si es False,
+        excluye los Anulados sin importar si "anulado" está en
+        estados_incluidos."""
         domain = [
             ('company_id', '=', company.id),
             ('fecha', '>=', fecha_desde),
@@ -1100,6 +1120,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             domain.append(('currency_id', 'in', currency_ids.ids))
         if partner_ids:
             domain.append(('partner_id', 'in', partner_ids.ids))
+        if estados_incluidos:
+            domain.append(('state', 'in', estados_incluidos))
         if not incluir_anulados:
             domain.append(('state', '!=', 'anulado'))
 
@@ -1193,6 +1215,107 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             resumen_por_moneda.setdefault(moneda, {})[diario] = total
 
         return rows, resumen_por_moneda
+
+    # ------------------------------------------------------------------
+    # Reporte de Retenciones (Emitidas / Recibidas)
+    # ------------------------------------------------------------------
+    def _build_reporte_retenciones_rows(self, company, fecha_desde, fecha_hasta, partner_ids=None,
+                                         incluir_emitidas=True, estados_emitida=None,
+                                         incluir_recibidas=True, estados_recibida=None):
+        """Arma las filas del Reporte de Retenciones: agrupado por Moneda
+        y, dentro de cada Moneda, por Familia (Retenciones Emitidas /
+        Retenciones Recibidas) — filas planas, una por Retención (sin
+        sub-detalle, a diferencia de Orden de Pago/Recibo, ya que una
+        Retención no tiene Medios ni Facturas propias que desglosar). El
+        Número es el Nro. de Comprobante de la DNIT — vacío en las que
+        todavía no se confirmaron. Subtotal por grupo (Moneda + Familia)
+        y total por Moneda; sin tabla de Resumen aparte."""
+        datos = []
+        if incluir_emitidas:
+            domain = [
+                ('company_id', '=', company.id),
+                ('fecha', '>=', fecha_desde), ('fecha', '<=', fecha_hasta),
+            ]
+            if partner_ids:
+                domain.append(('partner_id', 'in', partner_ids.ids))
+            if estados_emitida:
+                domain.append(('estado', 'in', estados_emitida))
+            for r in self.env['local_py.retencion_emitida'].search(domain):
+                datos.append({
+                    'familia': 'Retenciones Emitidas',
+                    'moneda': r.currency_id,
+                    'fecha': r.fecha,
+                    'numero': r.numero_comprobante or '',
+                    'contacto': r.partner_id.display_name if r.partner_id else '',
+                    'nro_factura': (r.factura_id.l10n_py_nro_documento or '') if r.factura_id else '',
+                    'importe': r.monto_total,
+                })
+        if incluir_recibidas:
+            domain = [
+                ('company_id', '=', company.id),
+                ('fecha', '>=', fecha_desde), ('fecha', '<=', fecha_hasta),
+            ]
+            if partner_ids:
+                domain.append(('partner_id', 'in', partner_ids.ids))
+            if estados_recibida:
+                domain.append(('estado', 'in', estados_recibida))
+            for r in self.env['local_py.retencion_recibida'].search(domain):
+                datos.append({
+                    'familia': 'Retenciones Recibidas',
+                    'moneda': r.currency_id,
+                    'fecha': r.fecha,
+                    'numero': r.numero_comprobante or '',
+                    'contacto': r.partner_id.display_name if r.partner_id else '',
+                    'nro_factura': (r.factura_id.l10n_py_nro_documento or '') if r.factura_id else '',
+                    'importe': r.importe,
+                })
+
+        orden_familia = {'Retenciones Emitidas': 0, 'Retenciones Recibidas': 1}
+        datos.sort(key=lambda d: (d['moneda'].name, orden_familia.get(d['familia'], 2), d['fecha']))
+
+        rows = []
+        moneda_actual = None
+        familia_actual = None
+        subtotal_familia = 0.0
+        total_moneda = 0.0
+
+        def cerrar_familia():
+            if familia_actual is not None:
+                rows.append({
+                    'tipo': 'subtotal_familia', 'familia': familia_actual, 'total': subtotal_familia,
+                    'moneda_obj': moneda_actual,
+                })
+
+        def cerrar_moneda():
+            cerrar_familia()
+            if moneda_actual is not None:
+                rows.append({
+                    'tipo': 'total_moneda', 'moneda': moneda_actual.name, 'total': total_moneda,
+                    'moneda_obj': moneda_actual,
+                })
+
+        for d in datos:
+            if d['moneda'] != moneda_actual:
+                cerrar_moneda()
+                moneda_actual = d['moneda']
+                familia_actual = None
+                total_moneda = 0.0
+                rows.append({'tipo': 'moneda', 'moneda': moneda_actual.name})
+            if d['familia'] != familia_actual:
+                cerrar_familia()
+                familia_actual = d['familia']
+                subtotal_familia = 0.0
+                rows.append({'tipo': 'familia', 'familia': familia_actual})
+            rows.append({
+                'tipo': 'retencion',
+                'fecha': d['fecha'], 'numero': d['numero'], 'contacto': d['contacto'],
+                'nro_factura': d['nro_factura'], 'importe': d['importe'], 'moneda_obj': moneda_actual,
+            })
+            subtotal_familia += d['importe']
+            total_moneda += d['importe']
+
+        cerrar_moneda()
+        return rows
 
     # ------------------------------------------------------------------
     # Reporte de Cheques Emitidos

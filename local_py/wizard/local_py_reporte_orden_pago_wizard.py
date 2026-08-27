@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 from ..models.local_py_libro_report import fmt_pyg, fmt_moneda
 
@@ -16,10 +17,15 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
     fecha_hasta = fields.Date(string='Fecha hasta', required=True)
     currency_ids = fields.Many2many('res.currency', string='Moneda', help='Vacío = todas.')
     partner_ids = fields.Many2many('res.partner', string='Proveedor', help='Vacío = todos.')
+    filtro_borrador = fields.Boolean(string='Borrador', default=True)
+    filtro_en_proceso = fields.Boolean(string='En Proceso', default=True)
+    filtro_confirmado = fields.Boolean(string='Confirmado', default=True)
     incluir_archivadas = fields.Boolean(
         string='Incluir Órdenes Archivadas', default=True,
-        help='Las Órdenes de Pago Archivadas aparecen solo a efectos de control numérico '
-             'de la secuencia, sin sumar valores a ningún total.',
+        help='Interruptor general: si está destildado, las Órdenes Archivadas nunca '
+             'aparecen, sin importar lo tildado en Estados (Archivada no es un Estado, '
+             'es independiente). Aparecen solo a efectos de control numérico de la '
+             'secuencia, sin sumar valores a ningún total.',
     )
 
     @api.model
@@ -30,12 +36,24 @@ class LocalPyReporteOrdenPagoWizard(models.TransientModel):
         res.setdefault('fecha_hasta', today)
         return res
 
+    def _estados_seleccionados(self):
+        self.ensure_one()
+        mapa = [
+            ('borrador', self.filtro_borrador),
+            ('en_proceso', self.filtro_en_proceso),
+            ('confirmado', self.filtro_confirmado),
+        ]
+        estados = [estado for estado, activo in mapa if activo]
+        if not estados:
+            raise UserError('Seleccione al menos un Estado para poder generar el Reporte.')
+        return estados
+
     def _armar_render_context(self):
         self.ensure_one()
         builder = self.env['local_py.libro_report.builder']
         rows, resumen = builder._build_reporte_orden_pago_rows(
             self.company_id, self.fecha_desde, self.fecha_hasta, self.currency_ids, self.partner_ids,
-            self.incluir_archivadas,
+            self.incluir_archivadas, self._estados_seleccionados(),
         )
         return {
             'company': self.company_id,

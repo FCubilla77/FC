@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.27.004",
+    "version": "2026.27.005",
     "license": "LGPL-3",
     "depends": ["base", "account", "base_address_extended", "mail", "stock", "stock_account"],
     "data": [
@@ -87,6 +87,8 @@
         "views/local_py_reporte_orden_pago_wizard_views.xml",
         "views/local_py_report_recibo_listado.xml",
         "views/local_py_reporte_recibo_wizard_views.xml",
+        "views/local_py_report_retenciones_listado.xml",
+        "views/local_py_reporte_retenciones_wizard_views.xml",
         "views/local_py_report_cheques_listado.xml",
         "views/local_py_reporte_cheques_wizard_views.xml",
         "views/local_py_retencion_emitida_views.xml",

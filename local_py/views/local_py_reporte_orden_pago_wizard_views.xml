@@ -13,6 +13,15 @@
                         <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         <field name="incluir_archivadas"/>
                     </group>
+                    <group string="Estados a incluir">
+                        <group>
+                            <field name="filtro_borrador"/>
+                            <field name="filtro_en_proceso"/>
+                        </group>
+                        <group>
+                            <field name="filtro_confirmado"/>
+                        </group>
+                    </group>
                     <footer>
                         <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>
                         <button name="action_descargar_pdf" type="object" string="Descargar PDF" class="btn-secondary"/>
