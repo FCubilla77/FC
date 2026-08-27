@@ -1,0 +1,39 @@
+<odoo>
+    <data>
+        <record id="view_local_py_reporte_recibo_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.reporte_recibo.wizard.form</field>
+            <field name="model">local_py.reporte_recibo.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Reporte de Recibo">
+                    <group>
+                        <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="currency_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="incluir_anulados"/>
+                    </group>
+                    <footer>
+                        <button name="action_ver_reporte" type="object" string="Ver Reporte" class="btn-primary"/>
+                        <button name="action_descargar_pdf" type="object" string="Descargar PDF" class="btn-secondary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_reporte_recibo_wizard" model="ir.actions.act_window">
+            <field name="name">Informe de Recibos</field>
+            <field name="res_model">local_py.reporte_recibo.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_local_py_reporte_recibo"
+                  name="Informe de Recibos"
+                  parent="local_py.menu_local_py_reportes_localizacion"
+                  action="action_local_py_reporte_recibo_wizard"
+                  groups="account.group_account_manager"
+                  sequence="71"/>
+    </data>
+</odoo>

@@ -1069,6 +1069,124 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         return rows, resumen_por_moneda
 
     # ------------------------------------------------------------------
+    # Reporte de Recibo
+    # ------------------------------------------------------------------
+    def _build_reporte_recibo_rows(self, company, fecha_desde, fecha_hasta, currency_ids=None,
+                                    partner_ids=None, incluir_anulados=True):
+        """Arma las filas del Reporte de Recibo: agrupado por Moneda y,
+        dentro de cada Moneda, por Recibo (ordenado por número), con el
+        detalle de sus Medios y Facturas. Los Recibos Anulados aparecen
+        solo a efectos de control numérico de la secuencia — con importe
+        en cero y sin sumar a ningún total (mismo criterio que las
+        Órdenes de Pago Archivadas). La Retención de cada Factura se
+        muestra en su propia fila, y se suma al Recibo como si fuera un
+        Medio más (mismo criterio que ya usa el PDF individual del
+        Recibo). Devuelve además el resumen cruzado de Medios + Retención
+        por Moneda."""
+        domain = [
+            ('company_id', '=', company.id),
+            ('fecha', '>=', fecha_desde),
+            ('fecha', '<=', fecha_hasta),
+        ]
+        if currency_ids:
+            domain.append(('currency_id', 'in', currency_ids.ids))
+        if partner_ids:
+            domain.append(('partner_id', 'in', partner_ids.ids))
+        if not incluir_anulados:
+            domain.append(('state', '!=', 'anulado'))
+
+        recibos = self.env['local_py.recibo'].search(domain, order='currency_id, name')
+
+        rows = []
+        resumen = {}  # {(currency, diario_name_o_'Retención'), total}
+        moneda_actual = None
+        total_moneda_medios = total_moneda_facturas = total_moneda_recibo = 0.0
+
+        def cerrar_moneda():
+            if moneda_actual is not None:
+                rows.append({
+                    'tipo': 'total_moneda', 'moneda': moneda_actual.name,
+                    'total_medios': total_moneda_medios, 'total_facturas': total_moneda_facturas,
+                    'total_recibo': total_moneda_recibo, 'moneda_obj': moneda_actual,
+                })
+
+        for recibo in recibos:
+            if recibo.currency_id != moneda_actual:
+                cerrar_moneda()
+                moneda_actual = recibo.currency_id
+                total_moneda_medios = total_moneda_facturas = total_moneda_recibo = 0.0
+                rows.append({'tipo': 'moneda', 'moneda': moneda_actual.name})
+
+            es_anulado = recibo.state == 'anulado'
+            total_recibo = 0.0 if es_anulado else (recibo.total_medios + recibo.total_retenciones)
+
+            rows.append({
+                'tipo': 'recibo',
+                'name': recibo.name,
+                'estado': 'Anulado' if es_anulado else dict(recibo._fields['state'].selection).get(recibo.state),
+                'fecha': recibo.fecha,
+                'cliente': recibo.partner_id.display_name,
+                'total': total_recibo,
+                'moneda_obj': moneda_actual,
+            })
+
+            if not es_anulado:
+                for medio in recibo.medio_ids:
+                    rows.append({
+                        'tipo': 'medio',
+                        'referencia': medio.documentos_relacionados or '',
+                        'diario': medio.saldo_favor_payment_id.name if medio.saldo_favor_payment_id else medio.journal_id.name,
+                        'importe': medio.importe,
+                        'nro_documento': medio.cheque_numero or '',
+                        'banco': medio.cheque_banco_id.name or '',
+                        'fecha_emision': medio.cheque_fecha_emision,
+                        'moneda_obj': moneda_actual,
+                    })
+                    clave = (moneda_actual, medio.journal_id.name if medio.journal_id else 'Saldo a Favor')
+                    resumen[clave] = resumen.get(clave, 0.0) + medio.importe
+                if recibo.total_retenciones:
+                    rows.append({
+                        'tipo': 'medio',
+                        'referencia': '', 'diario': 'Retención', 'importe': recibo.total_retenciones,
+                        'nro_documento': '', 'banco': '', 'fecha_emision': False,
+                        'moneda_obj': moneda_actual,
+                    })
+                    clave = (moneda_actual, 'Retención')
+                    resumen[clave] = resumen.get(clave, 0.0) + recibo.total_retenciones
+                for factura in recibo.factura_ids:
+                    rows.append({
+                        'tipo': 'factura',
+                        'factura': factura.move_id.name,
+                        'nro_documento': factura.nro_documento_factura or '',
+                        'importe_aplicado': factura.valor_convertido,
+                        'moneda_obj': moneda_actual,
+                    })
+
+                total_facturas_recibo = sum(recibo.factura_ids.mapped('valor_convertido'))
+                rows.append({
+                    'tipo': 'total_recibo', 'total_medios': recibo.total_medios + recibo.total_retenciones,
+                    'total_facturas': total_facturas_recibo,
+                    'total_recibo': total_recibo,
+                    'moneda_obj': moneda_actual,
+                })
+                total_moneda_medios += recibo.total_medios + recibo.total_retenciones
+                total_moneda_facturas += total_facturas_recibo
+                total_moneda_recibo += total_recibo
+            else:
+                rows.append({
+                    'tipo': 'total_recibo', 'total_medios': 0.0, 'total_facturas': 0.0, 'total_recibo': 0.0,
+                    'moneda_obj': moneda_actual,
+                })
+
+        cerrar_moneda()
+
+        resumen_por_moneda = {}
+        for (moneda, diario), total in resumen.items():
+            resumen_por_moneda.setdefault(moneda, {})[diario] = total
+
+        return rows, resumen_por_moneda
+
+    # ------------------------------------------------------------------
     # Reporte de Cheques Emitidos
     # ------------------------------------------------------------------
     def _build_reporte_cheques_rows(self, company, fecha_desde, fecha_hasta, chequera_ids=None):
