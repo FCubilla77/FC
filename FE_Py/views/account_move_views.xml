@@ -19,6 +19,7 @@
                                 <field name="fe_py_cdc"/>
                                 <field name="fe_py_codigo_respuesta"/>
                                 <field name="fe_py_motivo_emision" invisible="not fe_py_es_nc_nd"/>
+                                <field name="fe_py_cdc_comprobante_asociado" invisible="not reversed_entry_id"/>
                             </group>
                             <group>
                                 <field name="fe_py_fecha_envio"/>

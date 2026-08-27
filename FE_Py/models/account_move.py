@@ -23,6 +23,19 @@ class AccountMove(models.Model):
     fe_py_es_nc_nd = fields.Boolean(
         string='Es Nota de Crédito/Débito Electrónica', compute='_compute_fe_py_es_nc_nd',
     )
+    fe_py_cdc_comprobante_asociado = fields.Char(
+        string='CDC del Comprobante Asociado', compute='_compute_fe_py_cdc_comprobante_asociado',
+        help='CDC de la Factura Electrónica original que esta Nota de '
+             'Crédito referencia (gCamDEAsoc). Vacío si la factura '
+             'original todavía no tiene su propio CDC generado.',
+    )
+
+    @api.depends('reversed_entry_id', 'reversed_entry_id.fe_py_documento_id.cdc')
+    def _compute_fe_py_cdc_comprobante_asociado(self):
+        for move in self:
+            move.fe_py_cdc_comprobante_asociado = (
+                move.reversed_entry_id.fe_py_documento_id.cdc if move.reversed_entry_id else False
+            )
 
     @api.depends('local_py_tipo_fiscal_id')
     def _compute_fe_py_es_nc_nd(self):
