@@ -9,6 +9,7 @@
                     <group string="Localización Paraguay" invisible="type not in ('sale', 'general')">
                         <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
                         <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000-000-0000000"/>
+                        <field name="l10n_py_nro_documento_final" string="Nro. Documento Final" placeholder="000-000-0000000"/>
                         <field name="l10n_py_inicio_vigencia_timbrado" string="Inicio Vigencia Timbrado"/>
                         <field name="l10n_py_venc_timbrado" string="Venc. Timbrado"/>
                     </group>
