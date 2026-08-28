@@ -38,13 +38,6 @@ class FePyEvento(models.Model):
         related='documento_id.move_id', store=True, readonly=True,
     )
 
-    @api.onchange('documento_journal_id')
-    def _onchange_documento_journal_id(self):
-        domain = [('estado', '=', 'aprobado')]
-        if self.documento_journal_id:
-            domain.append(('journal_id', '=', self.documento_journal_id.id))
-        return {'domain': {'documento_id': domain}}
-
     # -- Inutilización: se hace sobre un rango de numeración no usado ----
     journal_id = fields.Many2one(
         'account.journal', string='Diario',

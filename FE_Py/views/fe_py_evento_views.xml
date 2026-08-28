@@ -38,6 +38,7 @@
                                 <field name="documento_journal_id"
                                        invisible="tipo_evento != 'cancelacion'"/>
                                 <field name="documento_id"
+                                       domain="[('estado', '=', 'aprobado')] + ([('journal_id', '=', documento_journal_id)] if documento_journal_id else [])"
                                        invisible="tipo_evento != 'cancelacion'"/>
                             </group>
                             <group>
