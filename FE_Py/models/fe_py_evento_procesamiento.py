@@ -195,6 +195,12 @@ class FePyEvento(models.Model):
 
     def _fe_py_validar_inutilizacion(self):
         self.ensure_one()
+        if not self.journal_id.local_py_tipo_fiscal_id.fe_py_es_electronico:
+            raise exceptions.UserError(
+                'El Diario "%s" no tiene un Tipo Fiscal electrónico — los '
+                'Eventos SIFEN solo aplican a diarios electrónicos.'
+                % self.journal_id.name
+            )
         partes_desde = (self.nro_documento_desde or '').split('-')
         partes_hasta = (self.nro_documento_hasta or '').split('-')
         if len(partes_desde) != 3 or len(partes_hasta) != 3:

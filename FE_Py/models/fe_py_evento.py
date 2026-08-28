@@ -34,12 +34,16 @@ class FePyEvento(models.Model):
     # -- Inutilización: se hace sobre un rango de numeración no usado ----
     journal_id = fields.Many2one(
         'account.journal', string='Diario',
+        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.fe_py_es_electronico', '=', True)]",
         help='Diario (Punto de Expedición) del rango a inutilizar. Solo '
-             'aplica a eventos de tipo Inutilización.',
+             'aplica a eventos de tipo Inutilización — solo se ofrecen '
+             'diarios cuyo Tipo Fiscal es electrónico.',
     )
     tipo_fiscal_id = fields.Many2one(
-        'local_py.tipo_fiscal', string='Tipo Fiscal',
-        help='Tipo de comprobante del rango a inutilizar. Solo aplica a '
+        'local_py.tipo_fiscal', string='Tipo Fiscal', readonly=True,
+        help='Tipo de comprobante del rango a inutilizar. Se completa solo '
+             'al elegir el Diario (no editable a mano, para que no pueda '
+             'quedar desincronizado del Diario elegido). Solo aplica a '
              'eventos de tipo Inutilización.',
     )
     nro_documento_desde = fields.Char(
@@ -48,6 +52,11 @@ class FePyEvento(models.Model):
     nro_documento_hasta = fields.Char(
         string='Nro. Documento Hasta', size=15, placeholder='000-000-0000000',
     )
+
+    @api.onchange('journal_id')
+    def _onchange_journal_id(self):
+        for evento in self:
+            evento.tipo_fiscal_id = evento.journal_id.local_py_tipo_fiscal_id
 
     motivo = fields.Text(string='Motivo', required=True)
 
