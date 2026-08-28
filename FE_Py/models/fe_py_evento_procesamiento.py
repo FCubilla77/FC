@@ -29,12 +29,14 @@ _logger = logging.getLogger(__name__)
 try:
     import signxml
     from signxml import XMLSigner, XMLVerifier
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     signxml = None
+    XMLSigner = None
+    XMLVerifier = None
 
 try:
     import requests
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     requests = None
 
 SIFEN_NS = 'http://ekuatia.set.gov.py/sifen/xsd'

@@ -23,7 +23,7 @@ _logger = logging.getLogger(__name__)
 
 try:
     import qrcode
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     qrcode = None
     _logger.warning(
         "FE_Py: no se encontró la librería 'qrcode' en el servidor — la "

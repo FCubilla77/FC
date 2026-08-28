@@ -15,13 +15,15 @@ _logger = logging.getLogger(__name__)
 try:
     import signxml
     from signxml import XMLSigner, XMLVerifier
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     signxml = None
     XMLSigner = None
     XMLVerifier = None
     _logger.warning(
-        "FE_Py: no se encontró la librería 'signxml' en el servidor — la "
-        "firma electrónica no va a funcionar hasta instalarla (pip install signxml)."
+        "FE_Py: no se pudo importar la librería 'signxml' en el servidor "
+        "(o alguna de sus dependencias falló al cargar) — la firma "
+        "electrónica no va a funcionar hasta resolverlo.",
+        exc_info=True,
     )
 
 # Exclusive XML Canonicalization 1.0 — mismo algoritmo que exige SIFEN

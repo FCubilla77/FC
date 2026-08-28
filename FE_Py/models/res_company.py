@@ -12,7 +12,7 @@ try:
     from cryptography.hazmat.primitives.serialization import (
         Encoding, NoEncryption, PrivateFormat, PublicFormat, pkcs12,
     )
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     pkcs12 = None
     _logger.warning(
         "FE_Py: no se encontró la librería 'cryptography' en el servidor — "
