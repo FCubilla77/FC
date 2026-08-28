@@ -79,6 +79,7 @@ class FePyEvento(models.Model):
         help='Solo tiene efecto con Ambiente = Simulado.',
     )
     simular_codigo_rechazo = fields.Char(string='Código a Simular (Rechazo)', default='4000')
+    fe_py_ambiente = fields.Selection(related='company_id.fe_py_ambiente', string='Ambiente FE')
     simular_mensaje_rechazo = fields.Char(
         string='Mensaje a Simular (Rechazo)', default='Motivo del Evento inválido',
     )

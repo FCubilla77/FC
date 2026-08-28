@@ -64,6 +64,13 @@ class AccountMove(models.Model):
     fe_py_simular_codigo_rechazo = fields.Char(related='fe_py_documento_id.simular_codigo_rechazo', string='Código a Simular (Rechazo)', readonly=False)
     fe_py_simular_mensaje_rechazo = fields.Char(related='fe_py_documento_id.simular_mensaje_rechazo', string='Mensaje a Simular (Rechazo)', readonly=False)
 
+    # -- Ambiente y Automatización de la Compañía, para condicionar la
+    #    visibilidad de botones y del bloque del Simulador en la pestaña.
+    fe_py_ambiente = fields.Selection(related='company_id.fe_py_ambiente', string='Ambiente FE')
+    fe_py_envio_automatico = fields.Boolean(related='company_id.fe_py_envio_automatico')
+    fe_py_kude_automatico = fields.Boolean(related='company_id.fe_py_kude_automatico')
+    fe_py_email_automatico = fields.Boolean(related='company_id.fe_py_email_automatico')
+
     # Campo PROPIO (no related) — a diferencia de los de arriba, este tiene
     # que poder completarse ANTES de Confirmar (en Borrador), momento en el
     # que el Documento Electrónico todavía no existe (se crea recién en

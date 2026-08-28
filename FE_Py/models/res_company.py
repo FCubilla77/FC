@@ -45,6 +45,31 @@ class ResCompany(models.Model):
              'corresponda).',
     )
 
+    @api.onchange('fe_py_ambiente')
+    def _onchange_fe_py_ambiente(self):
+        """Pasar a Producción PROPONE activar la Automatización (para que
+        no haga falta acordarse de prenderla aparte) — pero no la fuerza:
+        sigue siendo editable de forma independiente después, para poder
+        arrancar Producción en modo manual unos días, o frenar todo de
+        urgencia sin tener que salir de Producción."""
+        if self.fe_py_ambiente == 'produccion' and not (
+            self.fe_py_envio_automatico or self.fe_py_kude_automatico or self.fe_py_email_automatico
+        ):
+            self.fe_py_envio_automatico = True
+            self.fe_py_kude_automatico = True
+            self.fe_py_email_automatico = True
+            return {
+                'warning': {
+                    'title': 'Ambiente de Producción',
+                    'message': (
+                        'Se activó automáticamente "Generar, Firmar y Enviar", '
+                        '"Generar KuDE" y "Enviar Email" — es solo una '
+                        'sugerencia inicial, podés apagarlos de nuevo acá '
+                        'mismo si preferís empezar Producción en modo manual.'
+                    ),
+                }
+            }
+
     # ------------------------------------------------------------------
     # Automatización — todos apagados por defecto (modo manual, el que se
     # usó durante el desarrollo/pruebas). Se prenden cuando se quiera pasar

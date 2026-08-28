@@ -1,0 +1,204 @@
+<section class="oe_container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="text-center" style="margin-bottom: 20px;">
+                FE_Py
+            </h2>
+            <h4 class="text-center text-muted" style="margin-bottom: 30px;">
+                Facturación Electrónica Paraguay (SIFEN)
+            </h4>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <p>
+                Integración con el Sistema Integrado de Facturación Electrónica
+                Nacional (SIFEN) de la DNIT — Paraguay. Extiende <b>local_py</b>
+                por herencia (sin modificar ninguno de sus archivos) para cubrir
+                la generación, firma, envío y seguimiento de Documentos
+                Electrónicos sobre Factura, Nota de Crédito y Nota de Débito de
+                Cliente.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-6 text-center">
+            <h3>🧾</h3>
+            <h5>Factura Electrónica</h5>
+            <p class="text-muted">
+                Generación del CDC, armado del XML del DE (Manual Técnico
+                v150), firma electrónica y envío a SIFEN — con pestaña propia
+                embebida en la Factura de Cliente.
+            </p>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>🔄</h3>
+            <h5>Nota de Crédito / Débito Electrónica</h5>
+            <p class="text-muted">
+                Motivo de Emisión obligatorio al Confirmar, Documento Asociado
+                con el CDC de la factura original, y diario electrónico propio
+                seleccionable desde el asistente nativo de Odoo.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-6 text-center">
+            <h3>✍️</h3>
+            <h5>Firma Electrónica</h5>
+            <p class="text-muted">
+                Firma XML-DSig local, con el certificado digital propio de la
+                Compañía (carga de .p12/.pfx y generación de certificado/clave
+                en el servidor).
+            </p>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>📡</h3>
+            <h5>Comunicación con SIFEN</h5>
+            <p class="text-muted">
+                Envío por el WS Sincrónico real (Ambiente Test/Producción, con
+                autenticación mutua TLS), o por el Simulador SIFEN interno
+                (Ambiente Simulado) para probar todo el circuito sin conexión.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-6 text-center">
+            <h3>🚫</h3>
+            <h5>Eventos</h5>
+            <p class="text-muted">
+                Cancelación de un Documento Electrónico Aprobado (marca la
+                factura como Cancelada automáticamente) e Inutilización de
+                rangos de numeración no utilizados.
+            </p>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>📱</h3>
+            <h5>KuDE</h5>
+            <p class="text-muted">
+                Representación gráfica en PDF (A4) con código QR según el
+                algoritmo oficial del Manual Técnico, más envío del XML y el
+                KuDE por email al cliente.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-6 text-center">
+            <h3>⚙️</h3>
+            <h5>Automatización configurable</h5>
+            <p class="text-muted">
+                Todo el circuito puede correr a mano (botón por botón) o
+                automático al Confirmar — configurable por separado para
+                Envío, KuDE y Email; pasar a Ambiente Producción sugiere
+                activarlo solo.
+            </p>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>📋</h3>
+            <h5>Log de Operaciones</h5>
+            <p class="text-muted">
+                Historial embebido en cada comprobante y ventana global con
+                filtros (Éxito/Error/Advertencia/Simulado/Fecha) y
+                agrupamientos — registro inmutable, protegido contra edición
+                o borrado.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 10px;">
+        <div class="col-md-12">
+            <p class="text-muted" style="font-style: italic;">
+                Nota: por ahora cubre receptores <b>con RUC</b> (persona física
+                o jurídica). Consumidor final sin RUC, Autofactura y Nota de
+                Remisión Electrónica quedan fuera de este alcance.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-12">
+            <h4>Funcionalidades actuales</h4>
+
+            <h5 style="margin-top: 20px;">Documento Electrónico</h5>
+            <ul>
+                <li>Generación del CDC (44 dígitos, algoritmo módulo 11 verificado contra el Manual Técnico)</li>
+                <li>Armado del XML del DE (Factura, Nota de Crédito y Nota de Débito Electrónica), receptor con RUC, condición Contado/Crédito, IVA 10%/5%/Exento por línea</li>
+                <li>Estados: Borrador, XML Generado, Firmado, Enviado, Aprobado, Aprobado con Observación, Rechazado, Error de Comunicación, Cancelado, Inutilizado</li>
+                <li>Creación automática del Documento Electrónico al Confirmar Factura/NC/ND con Tipo Fiscal electrónico</li>
+                <li>Validación consolidada de datos obligatorios (RUC y dirección de Compañía y Cliente, Actividad Económica, Timbrado del Diario) antes de Confirmar</li>
+                <li>Botón "Reescribir XML y Reenviar": regenera CDC y XML, vuelve a firmar y reenviar en un solo paso, para el ciclo de corrección tras un Rechazo o Error de Comunicación</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Nota de Crédito / Débito Electrónica</h5>
+            <ul>
+                <li>Catálogo "Nota de Credito Electronica" y "Nota de Debito Electronica" (Facturación &gt; Localización Paraguay &gt; Tipos de Documentos Fiscales)</li>
+                <li>Motivo de Emisión (8 opciones oficiales), obligatorio al Confirmar</li>
+                <li>Documento Asociado (gCamDEAsoc): referencia el CDC de la Factura Electrónica original, visible en la propia pestaña para validación</li>
+                <li>Diario electrónico de Nota de Crédito disponible directo en el asistente nativo de Odoo ("Agregar Nota de Crédito")</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Firma Electrónica</h5>
+            <ul>
+                <li>Carga de certificado digital (.p12/.pfx) + contraseña, con botón "Generar Certificados" que lo descompone en Certificado y Clave Privada (.pem) en el servidor — la Clave Privada nunca queda en la base de datos</li>
+                <li>Firma XML-DSig (Exclusive Canonicalization, RSA-SHA256) sobre el Documento Electrónico y sobre los Eventos, con verificación inmediata tras firmar</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Comunicación con SIFEN</h5>
+            <ul>
+                <li>Ambiente configurable por Compañía: Simulado, Test o Producción</li>
+                <li>Envío individual por el WS Sincrónico real (Test/Producción), con autenticación mutua TLS usando el certificado de la Compañía</li>
+                <li>Simulador SIFEN interno (Ambiente Simulado): genera respuestas sintéticas (Aprobado, Aprobado con Observación, Rechazado, Error de Comunicación) sin salir a la red, para probar todo el circuito</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Eventos</h5>
+            <ul>
+                <li>Cancelación de un Documento Electrónico Aprobado — al aprobarse el evento, la Factura Electrónica pasa sola a estado Cancelado</li>
+                <li>Inutilización de rango de numeración no utilizado, con validación de límite (máximo 1000 números) antes de intentar el envío</li>
+                <li>Mismo circuito de firma y envío (real o Simulado) que el Documento Electrónico</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">KuDE</h5>
+            <ul>
+                <li>Representación gráfica en PDF, formato A4 con márgenes estándar (1,5 cm sup./inf./der., 2 cm izq.)</li>
+                <li>Código QR generado según el algoritmo oficial del Manual Técnico (verificado contra el ejemplo paso a paso del propio manual)</li>
+                <li>Envío del XML firmado y el KuDE por email al Cliente, con verificación real del estado de entrega (no se marca "enviado" si el servidor de correo falla)</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Automatización</h5>
+            <ul>
+                <li>3 interruptores independientes por Compañía: Generar+Firmar+Enviar, Generar KuDE, y Enviar Email — todos automáticos al Confirmar, o todos apagados (modo manual, botón por botón)</li>
+                <li>Un fallo en la cadena automática nunca bloquea la Confirmación del comprobante — el Documento Electrónico queda en el estado que corresponda, listo para reintentar</li>
+                <li>Pasar el Ambiente a Producción sugiere activar la automatización (con aviso), sin forzarla — sigue siendo editable por separado</li>
+                <li>El botón "Reescribir XML y Reenviar" queda siempre disponible ante un Rechazo o Error de Comunicación, incluso con la automatización activa</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Log de Operaciones Electrónicas</h5>
+            <ul>
+                <li>Historial embebido en la propia pestaña de cada Factura/NC/ND, con fecha, tipo de operación, resultado, código y mensaje</li>
+                <li>Ventana global (Facturación &gt; Localización Paraguay &gt; Log de Operaciones Electrónicas), con filtros por resultado, por Simulado, por fecha, y agrupamientos por tipo de operación, cliente, diario o fecha</li>
+                <li>Botón de acceso directo desde cada fila del log hacia el comprobante o evento de origen</li>
+                <li>Registro inmutable: no se puede editar ni eliminar, ni siquiera como Administrador</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-12">
+            <h4>Compatibilidad</h4>
+            <p>Odoo 19 Community — depende de <b>local_py</b>.</p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-12">
+            <hr/>
+            <p class="text-muted text-center">
+                Desarrollado por FC_Py — Paraguay
+            </p>
+        </div>
+    </div>
+</section>

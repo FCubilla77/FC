@@ -32,6 +32,9 @@ class FePyDocumentoElectronico(models.Model):
     journal_id = fields.Many2one(
         related='move_id.journal_id', string='Diario', store=True, readonly=True,
     )
+    fe_py_ambiente = fields.Selection(
+        related='move_id.company_id.fe_py_ambiente', string='Ambiente FE',
+    )
 
     # ------------------------------------------------------------------
     # Estado del ciclo de vida SIFEN. El paso a cada estado lo controla la

@@ -31,7 +31,7 @@
                         </group>
                         <field name="fe_py_mensaje_respuesta" placeholder="Mensaje de respuesta de SIFEN..." readonly="1"/>
 
-                        <group string="Simulador SIFEN (solo aplica con Ambiente = Simulado)" colspan="2">
+                        <group string="Simulador SIFEN" colspan="2" invisible="fe_py_ambiente != 'simulado'">
                             <group>
                                 <field name="fe_py_simular_resultado"/>
                             </group>
@@ -43,17 +43,23 @@
 
                         <div class="mb-3 mt-2">
                             <button name="fe_py_action_generar_xml" type="object"
-                                    string="Generar / Regenerar XML" class="btn-secondary"/>
+                                    string="Generar / Regenerar XML" class="btn-secondary"
+                                    invisible="fe_py_envio_automatico"/>
                             <button name="fe_py_action_firmar" type="object"
-                                    string="Firmar" class="btn-secondary"/>
+                                    string="Firmar" class="btn-secondary"
+                                    invisible="fe_py_envio_automatico"/>
                             <button name="fe_py_action_enviar" type="object"
-                                    string="Enviar" class="btn-secondary"/>
+                                    string="Enviar" class="btn-secondary"
+                                    invisible="fe_py_envio_automatico"/>
                             <button name="fe_py_action_reenviar" type="object"
-                                    string="Reescribir XML y Reenviar" class="btn-primary"/>
+                                    string="Reescribir XML y Reenviar" class="btn-primary"
+                                    invisible="fe_py_envio_automatico and fe_py_estado not in ('rechazado', 'error_comunicacion')"/>
                             <button name="fe_py_action_generar_kude" type="object"
-                                    string="Generar KuDE" class="btn-secondary"/>
+                                    string="Generar KuDE" class="btn-secondary"
+                                    invisible="fe_py_kude_automatico"/>
                             <button name="fe_py_action_enviar_email" type="object"
-                                    string="Enviar Email al Cliente" class="btn-secondary"/>
+                                    string="Enviar Email al Cliente" class="btn-secondary"
+                                    invisible="fe_py_email_automatico"/>
                         </div>
 
                         <notebook>

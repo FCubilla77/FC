@@ -63,7 +63,7 @@
                                 <field name="motivo_emision"/>
                             </group>
                         </group>
-                        <group string="Simulador SIFEN (solo aplica con Ambiente = Simulado)">
+                        <group string="Simulador SIFEN" invisible="fe_py_ambiente != 'simulado'">
                             <group>
                                 <field name="simular_resultado"/>
                             </group>
