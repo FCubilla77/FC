@@ -20,9 +20,16 @@ class FePyEvento(models.Model):
     )
 
     # -- Cancelación: se hace sobre un CDC puntual, ya Aprobado ----------
+    documento_journal_id = fields.Many2one(
+        'account.journal', string='Filtrar por Diario',
+        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.fe_py_es_electronico', '=', True)]",
+        help='Solo para acotar la lista de "Documento Electrónico" de más '
+             'abajo — no se guarda como parte del Evento en sí. Opcional.',
+    )
     documento_id = fields.Many2one(
         'fe_py.documento_electronico', string='Documento Electrónico',
         copy=False,
+        domain="[('estado', '=', 'aprobado')]",
         help='Documento a cancelar (debe estar Aprobado). Solo aplica a '
              'eventos de tipo Cancelación.',
     )
@@ -30,6 +37,13 @@ class FePyEvento(models.Model):
         'account.move', string='Comprobante',
         related='documento_id.move_id', store=True, readonly=True,
     )
+
+    @api.onchange('documento_journal_id')
+    def _onchange_documento_journal_id(self):
+        domain = [('estado', '=', 'aprobado')]
+        if self.documento_journal_id:
+            domain.append(('journal_id', '=', self.documento_journal_id.id))
+        return {'domain': {'documento_id': domain}}
 
     # -- Inutilización: se hace sobre un rango de numeración no usado ----
     journal_id = fields.Many2one(

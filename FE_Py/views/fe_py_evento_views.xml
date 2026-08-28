@@ -35,6 +35,8 @@
                             <group>
                                 <field name="tipo_evento"/>
                                 <field name="company_id"/>
+                                <field name="documento_journal_id"
+                                       invisible="tipo_evento != 'cancelacion'"/>
                                 <field name="documento_id"
                                        invisible="tipo_evento != 'cancelacion'"/>
                             </group>
@@ -100,7 +102,7 @@
         <menuitem id="menu_fe_py_evento"
                   name="Eventos SIFEN (FE_Py)"
                   action="action_fe_py_evento"
-                  parent="local_py.menu_l10n_py_localizacion"
-                  sequence="96"/>
+                  parent="menu_fe_py_grupo"
+                  sequence="40"/>
     </data>
 </odoo>

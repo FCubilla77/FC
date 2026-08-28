@@ -108,7 +108,7 @@
         <menuitem id="menu_fe_py_log"
                   name="Log de Operaciones Electrónicas"
                   action="action_fe_py_log"
-                  parent="local_py.menu_l10n_py_localizacion"
-                  sequence="97"/>
+                  parent="menu_fe_py_grupo"
+                  sequence="50"/>
     </data>
 </odoo>

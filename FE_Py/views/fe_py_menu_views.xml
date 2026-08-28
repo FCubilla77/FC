@@ -1,0 +1,23 @@
+<odoo>
+    <data>
+        <menuitem id="menu_fe_py_grupo"
+                  name="Facturación Electrónica Py"
+                  parent="local_py.menu_l10n_py_localizacion"
+                  sequence="90"/>
+
+        <!-- Accesos adicionales a pantallas de local_py — no duplican ni
+             mueven los menús que local_py ya tiene en otro lado, son un
+             acceso extra consolidado junto con todo lo de FE_Py. -->
+        <menuitem id="menu_fe_py_documento_anulado"
+                  name="Documentos Anulados"
+                  parent="menu_fe_py_grupo"
+                  action="local_py.action_local_py_documento_anulado"
+                  sequence="10"/>
+
+        <menuitem id="menu_fe_py_documento_anulado_rango"
+                  name="Registrar Doc. Anulados por Rango"
+                  parent="menu_fe_py_grupo"
+                  action="local_py.action_local_py_documento_anulado_rango_wizard"
+                  sequence="20"/>
+    </data>
+</odoo>

@@ -143,7 +143,7 @@
         <menuitem id="menu_fe_py_documento_electronico"
                   name="Documentos Electrónicos (FE_Py)"
                   action="action_fe_py_documento_electronico"
-                  parent="local_py.menu_l10n_py_localizacion"
-                  sequence="95"/>
+                  parent="menu_fe_py_grupo"
+                  sequence="30"/>
     </data>
 </odoo>

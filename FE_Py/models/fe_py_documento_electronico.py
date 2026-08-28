@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models, exceptions
+from odoo import api, fields, models, exceptions
 
 
 class FePyDocumentoElectronico(models.Model):
@@ -8,6 +8,14 @@ class FePyDocumentoElectronico(models.Model):
     _description = 'Documento Electrónico (SIFEN)'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
+
+    @api.depends('move_id', 'move_id.l10n_py_nro_documento', 'move_id.name', 'partner_id')
+    def _compute_display_name(self):
+        for doc in self:
+            nro = doc.move_id.l10n_py_nro_documento or doc.move_id.name or str(doc.id)
+            cliente = doc.partner_id.name or ''
+            comprobante = doc.move_id.name or ''
+            doc.display_name = '%s - %s (%s)' % (nro, cliente, comprobante)
 
     # ------------------------------------------------------------------
     # Relación 1:1 con el comprobante contable. Aplica a Factura Cliente,
