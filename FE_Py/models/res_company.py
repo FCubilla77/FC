@@ -100,6 +100,16 @@ class ResCompany(models.Model):
              'activo. Requiere que el KuDE se haya podido generar (a mano, '
              'o con "Generar KuDE Automáticamente" también activo).',
     )
+    fe_py_reintento_automatico = fields.Boolean(
+        string='Reintentar Automáticamente Rechazados/Error de Comunicación',
+        help='Activa un proceso programado (cada 30 minutos por defecto — '
+             'editable en Ajustes > Técnico > Acciones Planificadas) que '
+             'reintenta solo (Regenerar XML/Firmar/Enviar) todos los '
+             'Documentos Electrónicos y Eventos en estado Rechazado o Error '
+             'de Comunicación de esta Compañía. Si el dato que causó el '
+             'problema todavía no se corrigió, simplemente vuelve a fallar '
+             'y sigue esperando el próximo ciclo.',
+    )
 
     # ------------------------------------------------------------------
     # Datos del Emisor exigidos por el XML del DE (grupo gEmis) que no

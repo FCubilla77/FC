@@ -86,11 +86,11 @@ class FePyEvento(models.Model):
 
     def action_enviar(self):
         for evento in self:
-            if evento.estado not in ('borrador', 'error_comunicacion'):
+            if evento.estado not in ('borrador', 'error_comunicacion', 'rechazado'):
                 raise exceptions.UserError(
                     'No se puede enviar: el Evento está en estado "%s". Solo '
-                    'se puede enviar desde Borrador (o reintentar desde Error '
-                    'de Comunicación).'
+                    'se puede enviar desde Borrador, o reintentar desde '
+                    'Rechazado o Error de Comunicación.'
                     % dict(evento._fields['estado'].selection).get(evento.estado)
                 )
             evento._fe_py_procesar_evento()
@@ -102,6 +102,10 @@ class FePyEvento(models.Model):
             self._fe_py_validar_cancelacion()
         else:
             self._fe_py_validar_inutilizacion()
+            # Se reserva el rango en local_py ANTES de tocar SIFEN — así
+            # ningún otro comprobante puede tomar esos números mientras el
+            # evento está en trámite (no recién cuando SIFEN aprueba).
+            self._fe_py_registrar_documentos_anulados()
 
         company = self.company_id
         xml_root = self._fe_py_construir_xml_evento()
@@ -168,6 +172,12 @@ class FePyEvento(models.Model):
         if self.tipo_evento == 'cancelacion' and nuevo_estado == 'aprobado' and self.documento_id:
             self.documento_id.write({'estado': 'cancelado'})
 
+        if self.tipo_evento == 'inutilizacion' and nuevo_estado == 'rechazado':
+            # Error de Comunicación NO libera (no se sabe si SIFEN llegó a
+            # procesarlo) — pero un Rechazo sí es una respuesta definitiva,
+            # así que corresponde intentar liberar los números reservados.
+            self._fe_py_liberar_documentos_anulados_si_corresponde()
+
     def _fe_py_validar_cancelacion(self):
         self.ensure_one()
         if not self.documento_id.cdc:
@@ -209,6 +219,80 @@ class FePyEvento(models.Model):
                 'El Tipo Fiscal "%s" no está soportado todavía para Inutilización.'
                 % (self.tipo_fiscal_id.name or '(vacío)')
             )
+
+    # ------------------------------------------------------------------
+    # Integración con local_py.documento_anulado — reserva el rango antes
+    # de tocar SIFEN, para que la numeración de Factura/NC/ND no vuelva a
+    # ofrecer esos números mientras el evento está en trámite.
+    # ------------------------------------------------------------------
+    def _fe_py_generar_numeros_rango(self):
+        """Lista de números completos (999-999-9999999) del rango Desde-
+        Hasta — mismo criterio de armado que ya usa el wizard nativo de
+        local_py (Registrar por Rango), para que el formato sea idéntico."""
+        self.ensure_one()
+        correlativo_desde = int(self.nro_documento_desde.split('-')[2])
+        correlativo_hasta = int(self.nro_documento_hasta.split('-')[2])
+        prefijo = self.nro_documento_desde[:8]
+        return ['%s%07d' % (prefijo, c) for c in range(correlativo_desde, correlativo_hasta + 1)]
+
+    def _fe_py_registrar_documentos_anulados(self):
+        """Reserva cada número del rango en local_py.documento_anulado. Si
+        algún número ya fue usado en una Factura/NC/ND real, local_py lo
+        rechaza acá mismo (con su propio mensaje) — antes de gastar un
+        envío real contra SIFEN. Si ya estaban registrados por un intento
+        anterior de este mismo evento (reintento tras Error de
+        Comunicación), no vuelve a crearlos ni falla por duplicado."""
+        self.ensure_one()
+        numeros = self._fe_py_generar_numeros_rango()
+        ya_existentes = self.env['local_py.documento_anulado'].search([
+            ('diario_id', '=', self.journal_id.id),
+            ('numero', 'in', numeros),
+        ])
+        numeros_faltantes = set(numeros) - set(ya_existentes.mapped('numero'))
+        if not numeros_faltantes:
+            return
+        vals_list = [{
+            'diario_id': self.journal_id.id,
+            'timbrado': self.journal_id.l10n_py_timbrado,
+            'numero': numero,
+            'tipo_fiscal_id': self.tipo_fiscal_id.id,
+            'motivo': 'Inutilización SIFEN (Evento #%s) — %s' % (self.id, self.motivo),
+            'fecha_registro': fields.Date.context_today(self),
+            'fe_py_evento_id': self.id,
+        } for numero in sorted(numeros_faltantes)]
+        self.env['local_py.documento_anulado'].sudo().create(vals_list)
+
+    def _fe_py_liberar_documentos_anulados_si_corresponde(self):
+        """Tras un Rechazo de SIFEN, intenta liberar los números reservados
+        por ESTE evento. local_py bloquea el unlink() de un Documento
+        Anulado si la numeración real del Diario ya lo superó (liberarlo
+        dejaría un hueco que no se puede volver a llenar) — en ese caso
+        queda reservado tal cual, a la espera de corregir el motivo del
+        rechazo y reenviar sobre este mismo rango."""
+        self.ensure_one()
+        registros = self.env['local_py.documento_anulado'].search([
+            ('fe_py_evento_id', '=', self.id),
+        ])
+        retenidos = self.env['local_py.documento_anulado']
+        for registro in registros:
+            try:
+                registro.unlink()
+            except exceptions.UserError:
+                retenidos |= registro
+        if retenidos:
+            self.env['fe_py.documento_electronico.log'].sudo().create({
+                'evento_id': self.id,
+                'tipo_operacion': 'evento_inutilizacion',
+                'resultado': 'advertencia',
+                'mensaje_resultado': (
+                    'No se pudieron liberar %s número(s) reservados por este '
+                    'evento (la numeración real ya los superó — liberarlos '
+                    'dejaría un hueco). Quedan reservados en Documentos '
+                    'Anulados, a la espera de corregir y reenviar sobre '
+                    'este mismo rango: %s'
+                    % (len(retenidos), ', '.join(sorted(retenidos.mapped('numero'))))
+                ),
+            })
 
     def _fe_py_construir_xml_evento(self):
         self.ensure_one()

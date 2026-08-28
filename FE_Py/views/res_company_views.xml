@@ -18,6 +18,7 @@
                         <group string="Automatización" colspan="2">
                             <group>
                                 <field name="fe_py_envio_automatico"/>
+                                <field name="fe_py_reintento_automatico"/>
                             </group>
                             <group>
                                 <field name="fe_py_kude_automatico"/>
