@@ -10,7 +10,7 @@ class LocalPyDocumentoAnulado(models.Model):
 
     diario_id = fields.Many2one(
         'account.journal', string='Diario', required=True,
-        domain="[('type', '=', 'sale')]",
+        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.local_py_es_fisico', '=', True)]",
     )
     company_id = fields.Many2one(related='diario_id.company_id', string='Compañía', store=True)
     timbrado = fields.Integer(
@@ -46,6 +46,16 @@ class LocalPyDocumentoAnulado(models.Model):
             if doc.diario_id:
                 doc.timbrado = doc.diario_id.l10n_py_timbrado
                 doc.tipo_fiscal_id = doc.diario_id.local_py_tipo_fiscal_id
+
+    @api.constrains('diario_id')
+    def _check_diario_es_fisico(self):
+        for doc in self:
+            if doc.diario_id and doc.diario_id.local_py_tipo_fiscal_id \
+                    and not doc.diario_id.local_py_tipo_fiscal_id.local_py_es_fisico:
+                raise exceptions.ValidationError(
+                    'El Diario "%s" tiene configurado un Tipo Fiscal electrónico (no '
+                    'Físico) — Documentos Anulados no aplica ahí.' % doc.diario_id.name
+                )
 
     @api.constrains('diario_id', 'numero')
     def _check_numero_dentro_de_rango(self):

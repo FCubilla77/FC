@@ -9,6 +9,7 @@
                     <field name="code"/>
                     <field name="name"/>
                     <field name="tipo_comprobante_retencion"/>
+                    <field name="local_py_es_fisico"/>
                     <field name="active"/>
                 </list>
             </field>
@@ -25,6 +26,7 @@
                             <field name="name"/>
                             <field name="tipo_comprobante_retencion"/>
                             <field name="sequence"/>
+                            <field name="local_py_es_fisico"/>
                             <field name="active"/>
                         </group>
                     </sheet>

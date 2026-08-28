@@ -22,3 +22,11 @@ class L10nPyTipoFiscal(models.Model):
     )
     sequence = fields.Integer(string='Secuencia', default=10)
     active = fields.Boolean(string='Activo', default=True)
+    local_py_es_fisico = fields.Boolean(
+        string='Es Físico', default=True,
+        help='Tildado para los Tipos de Documento Fiscal en papel (Timbrado con '
+             'talonario) — sin tildar para los electrónicos (ej. Factura Electronica). '
+             'Se usa para filtrar qué Diarios pueden elegirse en Documentos Anulados: '
+             'un talonario físico puede tener números dañados/no utilizados, un '
+             'Documento Electrónico no.',
+    )

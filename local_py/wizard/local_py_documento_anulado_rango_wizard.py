@@ -12,7 +12,7 @@ class LocalPyDocumentoAnuladoRangoWizard(models.TransientModel):
 
     diario_id = fields.Many2one(
         'account.journal', string='Diario', required=True,
-        domain="[('type', '=', 'sale')]",
+        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.local_py_es_fisico', '=', True)]",
     )
     numero_desde = fields.Char(string='Número Desde', size=15, required=True)
     numero_hasta = fields.Char(string='Número Hasta', size=15, required=True)
