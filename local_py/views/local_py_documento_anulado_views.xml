@@ -88,14 +88,14 @@
         </record>
 
         <record id="action_local_py_documento_anulado_rango_wizard" model="ir.actions.act_window">
-            <field name="name">Registrar por Rango</field>
+            <field name="name">Registrar Doc. Anulados por Rango</field>
             <field name="res_model">local_py.documento_anulado_rango_wizard</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
 
         <menuitem id="menu_local_py_documento_anulado_rango"
-                  name="Registrar por Rango"
+                  name="Registrar Doc. Anulados por Rango"
                   parent="local_py.menu_l10n_py_localizacion"
                   action="action_local_py_documento_anulado_rango_wizard"
                   groups="account.group_account_manager"

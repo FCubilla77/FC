@@ -191,7 +191,7 @@ class AccountJournal(models.Model):
         if numero[:7] != self.l10n_py_nro_documento[:7]:
             raise exceptions.ValidationError(
                 'El Número tiene que compartir el mismo Establecimiento y Punto de '
-                'Expedición que el Diario "%s" (%s).' % (self.name, self.l10n_py_nro_documento[:7])
+                'Expedición que el Diario "%s" (%s).' % (self.name, self.l10n_py_nro_documento[:8])
             )
         correlativo_inicial = self._l10n_py_correlativo(self.l10n_py_nro_documento)
         correlativo_final = self._l10n_py_correlativo(self.l10n_py_nro_documento_final)

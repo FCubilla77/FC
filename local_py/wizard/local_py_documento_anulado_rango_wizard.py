@@ -41,7 +41,7 @@ class LocalPyDocumentoAnuladoRangoWizard(models.TransientModel):
         if correlativo_hasta - correlativo_desde + 1 > MAX_RANGO:
             raise UserError('El rango no puede superar los %s números por vez.' % MAX_RANGO)
 
-        prefijo = self.numero_desde[:7]
+        prefijo = self.numero_desde[:8]
         vals_list = [{
             'diario_id': self.diario_id.id,
             'timbrado': self.diario_id.l10n_py_timbrado,
