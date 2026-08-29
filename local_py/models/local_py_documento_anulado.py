@@ -35,10 +35,10 @@ class LocalPyDocumentoAnulado(models.Model):
         string='Fecha de Registro', required=True, default=fields.Date.context_today,
     )
 
-    _sql_constraints = [
-        ('diario_numero_unique', 'unique(diario_id, numero)',
-         'Ya existe un Documento Anulado registrado con ese Diario y Número.'),
-    ]
+    _diario_numero_unique = models.Constraint(
+        'unique(diario_id, numero)',
+        'Ya existe un Documento Anulado registrado con ese Diario y Número.',
+    )
 
     @api.onchange('diario_id')
     def _onchange_diario_id(self):

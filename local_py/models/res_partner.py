@@ -21,7 +21,7 @@ class ResPartner(models.Model):
              'Solo aplica a contactos de tipo Empresa.',
     )
     local_py_incoterm_id = fields.Many2one(
-        'account.incoterm', string='Incoterm',
+        'account.incoterms', string='Incoterm',
         help='Incoterm habitual de este Cliente — se autocompleta como valor por '
              'defecto en cada Factura/Nota de Crédito nueva que se le haga (editable '
              'por operación). Pensado para Clientes de exportación.',
