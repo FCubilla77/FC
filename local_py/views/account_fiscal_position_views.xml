@@ -1,0 +1,14 @@
+<odoo>
+    <data>
+        <record id="view_account_fiscal_position_form_local_py" model="ir.ui.view">
+            <field name="name">account.fiscal.position.form.local_py</field>
+            <field name="model">account.fiscal.position</field>
+            <field name="inherit_id" ref="account.view_account_position_form"/>
+            <field name="arch" type="xml">
+                <field name="auto_apply" position="after">
+                    <field name="local_py_es_exterior"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

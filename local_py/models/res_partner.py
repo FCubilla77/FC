@@ -20,6 +20,12 @@ class ResPartner(models.Model):
              'Especificación Técnica de Marangatu (DNIT, RG 90/2021). '
              'Solo aplica a contactos de tipo Empresa.',
     )
+    local_py_incoterm_id = fields.Many2one(
+        'account.incoterm', string='Incoterm',
+        help='Incoterm habitual de este Cliente — se autocompleta como valor por '
+             'defecto en cada Factura/Nota de Crédito nueva que se le haga (editable '
+             'por operación). Pensado para Clientes de exportación.',
+    )
     l10n_py_creado_desde_usuario_empleado = fields.Boolean(
         string='Creado desde Usuario',
         default=False,
@@ -349,40 +355,100 @@ class ResPartner(models.Model):
                     % ', '.join(faltantes)
                 )
 
-    @api.constrains('is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id', 'l10n_py_concepto_iva_id')
-    def _check_consistencia_proveedor_exterior(self):
-        """Un Proveedor del Exterior se define por 3 datos juntos: Tipo de
-        Identificación Fiscal = "Identificación Tributaria", País
-        distinto de Paraguay, y Concepto IVA = "IVA.2". Si alguno de los
-        3 indica "exterior", los otros 2 tienen que coincidir también —
-        no alcanza con uno solo suelto (por ejemplo, cambiar el País sin
-        actualizar también el Concepto IVA)."""
+    def _l10n_py_tipos_identificacion_exterior(self):
+        """Tipos de Identificación Fiscal que cuentan como señal de
+        "exterior" — comunes a Cliente y Proveedor."""
         tipo_tributaria = self.env.ref('local_py.tipo_identificacion_tributaria', raise_if_not_found=False)
-        paraguay = self.env.ref('base.py', raise_if_not_found=False)
-        concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
-        if not (tipo_tributaria and paraguay and concepto_iva_2):
-            return
+        tipo_cedula_extranjero = self.env.ref('local_py.tipo_identificacion_cedula_extranjero', raise_if_not_found=False)
+        return (tipo_tributaria or self.env['local_py.tipo_identificacion_fiscal']) \
+            | (tipo_cedula_extranjero or self.env['local_py.tipo_identificacion_fiscal'])
+
+    @api.constrains(
+        'is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id',
+        'property_account_position_id', 'local_py_incoterm_id', 'customer_rank',
+    )
+    def _check_consistencia_cliente_exterior(self):
+        """Un Cliente del Exterior se define por 4 datos juntos: País
+        distinto de la Compañía, Tipo de Identificación Fiscal =
+        "Identificación Tributaria" o "Cédula Extranjero", Posición
+        Fiscal marcada como "Es Exterior", e Incoterm cargado. Si alguno
+        de los 4 indica "exterior", los otros 3 tienen que coincidir
+        también. Aplica solo a Clientes (customer_rank > 0) — un
+        Proveedor puro no tiene por qué cumplir esto (ver
+        _check_consistencia_proveedor_exterior, que agrega además el
+        Concepto IVA, propio de Proveedor)."""
+        tipos_exterior = self._l10n_py_tipos_identificacion_exterior()
+        company_country = self.env.company.country_id
         for partner in self:
-            if not partner.is_company:
+            if not partner.is_company or partner.customer_rank <= 0:
                 continue
-            if not (
-                partner.l10n_py_tipo_identificacion_fiscal_id
-                or partner.country_id
-                or partner.l10n_py_concepto_iva_id
-            ):
-                continue
-            es_tipo_exterior = partner.l10n_py_tipo_identificacion_fiscal_id == tipo_tributaria
-            es_pais_exterior = bool(partner.country_id) and partner.country_id != paraguay
-            es_concepto_exterior = partner.l10n_py_concepto_iva_id == concepto_iva_2
-            señales = (es_tipo_exterior, es_pais_exterior, es_concepto_exterior)
+            es_pais_exterior = bool(partner.country_id) and partner.country_id != company_country
+            es_tipo_exterior = bool(tipos_exterior) and partner.l10n_py_tipo_identificacion_fiscal_id in tipos_exterior
+            es_posicion_exterior = bool(
+                partner.property_account_position_id and partner.property_account_position_id.local_py_es_exterior
+            )
+            es_incoterm_cargado = bool(partner.local_py_incoterm_id)
+            señales = (es_pais_exterior, es_tipo_exterior, es_posicion_exterior, es_incoterm_cargado)
             if any(señales) and not all(señales):
+                faltantes = []
+                if not es_pais_exterior:
+                    faltantes.append('País distinto al de la Compañía')
+                if not es_tipo_exterior:
+                    faltantes.append('Tipo de Identificación Fiscal = "Identificación Tributaria" o "Cédula Extranjero"')
+                if not es_posicion_exterior:
+                    faltantes.append('Posición Fiscal marcada como "Es Exterior"')
+                if not es_incoterm_cargado:
+                    faltantes.append('Incoterm')
+                raise exceptions.ValidationError(
+                    'Los datos de este Cliente no son consistentes para determinar si es del '
+                    'Exterior o local — un Cliente del Exterior debe cumplir estos 4 datos '
+                    'juntos: País distinto de la Compañía, Tipo de Identificación Fiscal de '
+                    'exterior, Posición Fiscal "Es Exterior", e Incoterm. Complete (o corrija): '
+                    '%s.' % '; '.join(faltantes)
+                )
+
+    @api.constrains(
+        'is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id',
+        'property_account_position_id', 'local_py_incoterm_id', 'l10n_py_concepto_iva_id', 'supplier_rank',
+    )
+    def _check_consistencia_proveedor_exterior(self):
+        """Mismo criterio que _check_consistencia_cliente_exterior, para
+        Proveedores (supplier_rank > 0) — con una 5ta señal propia:
+        Concepto IVA = "IVA.2" (motor de cálculo de Retención IVA del
+        exterior). Un Contacto que es Cliente y Proveedor a la vez queda
+        evaluado por los 2 métodos en simultáneo."""
+        tipos_exterior = self._l10n_py_tipos_identificacion_exterior()
+        concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
+        company_country = self.env.company.country_id
+        for partner in self:
+            if not partner.is_company or partner.supplier_rank <= 0:
+                continue
+            es_pais_exterior = bool(partner.country_id) and partner.country_id != company_country
+            es_tipo_exterior = bool(tipos_exterior) and partner.l10n_py_tipo_identificacion_fiscal_id in tipos_exterior
+            es_posicion_exterior = bool(
+                partner.property_account_position_id and partner.property_account_position_id.local_py_es_exterior
+            )
+            es_incoterm_cargado = bool(partner.local_py_incoterm_id)
+            es_concepto_exterior = bool(concepto_iva_2) and partner.l10n_py_concepto_iva_id == concepto_iva_2
+            señales = (es_pais_exterior, es_tipo_exterior, es_posicion_exterior, es_incoterm_cargado, es_concepto_exterior)
+            if any(señales) and not all(señales):
+                faltantes = []
+                if not es_pais_exterior:
+                    faltantes.append('País distinto al de la Compañía')
+                if not es_tipo_exterior:
+                    faltantes.append('Tipo de Identificación Fiscal = "Identificación Tributaria" o "Cédula Extranjero"')
+                if not es_posicion_exterior:
+                    faltantes.append('Posición Fiscal marcada como "Es Exterior"')
+                if not es_incoterm_cargado:
+                    faltantes.append('Incoterm')
+                if not es_concepto_exterior:
+                    faltantes.append('Concepto IVA = "IVA.2"')
                 raise exceptions.ValidationError(
                     'Los datos de este Proveedor no son consistentes para determinar si es '
-                    'del Exterior o local — un Proveedor del Exterior debe cumplir los 3 '
-                    'datos juntos: Tipo de Identificación Fiscal = "Identificación '
-                    'Tributaria", País distinto de Paraguay, y Concepto IVA = "IVA.2 — Pago '
-                    'Único y Definitivo por acreditamiento...". Revise estos 3 campos en la '
-                    'ficha del Proveedor.'
+                    'del Exterior o local — un Proveedor del Exterior debe cumplir estos 5 '
+                    'datos juntos: País distinto de la Compañía, Tipo de Identificación '
+                    'Fiscal de exterior, Posición Fiscal "Es Exterior", Incoterm, y Concepto '
+                    'IVA = "IVA.2". Complete (o corrija): %s.' % '; '.join(faltantes)
                 )
 
     @api.constrains(

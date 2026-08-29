@@ -313,6 +313,19 @@ class AccountMove(models.Model):
                     move.partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id
                 )
 
+    @api.onchange('partner_id')
+    def _onchange_local_py_incoterm_default(self):
+        """Autocompleta el Incoterm con el habitual configurado en la ficha
+        del Cliente (pensado para exportación) — sin pisar una selección
+        manual ya hecha por el usuario en esta misma Factura."""
+        for move in self:
+            if (
+                move.move_type in SALE_MOVE_TYPES
+                and not move.invoice_incoterm_id
+                and move.partner_id.local_py_incoterm_id
+            ):
+                move.invoice_incoterm_id = move.partner_id.local_py_incoterm_id
+
     @api.onchange('move_type', 'company_id')
     def _onchange_l10n_py_imputacion_tributaria_default(self):
         """Autocompleta la Imputación Tributaria con la configurada en la

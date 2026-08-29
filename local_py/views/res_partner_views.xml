@@ -112,6 +112,9 @@
                             <group string="Retención Renta">
                                 <field name="l10n_py_retencion_renta"/>
                             </group>
+                            <group string="Exportación">
+                                <field name="local_py_incoterm_id" options="{'no_create': True}"/>
+                            </group>
                             <group string="Retención Renta No Residente (Exterior)"
                                    invisible="not l10n_py_retencion_renta">
                                 <field name="l10n_py_concepto_renta_no_residente_ids"
