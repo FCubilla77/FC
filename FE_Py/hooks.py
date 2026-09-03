@@ -41,19 +41,73 @@ def _backfill_csc_generico(env):
 def _backfill_tipo_fiscal_electronico(env):
     """Refuerzo explícito: marca fe_py_es_electronico=True en los 3 Tipos
     Fiscales electrónicos, por nombre, sin depender de que la actualización
-    vía XML de datos sobre el registro de local_py se haya aplicado."""
-    tipos = env['local_py.tipo_fiscal'].sudo().search([
+    vía XML de datos sobre el registro de local_py se haya aplicado.
+
+    Además sincroniza local_py_es_fisico como su opuesto exacto — desde
+    2026.02.001 ambos campos tienen un constraint que exige que sean
+    siempre contrarios entre sí."""
+    TipoFiscal = env['local_py.tipo_fiscal'].sudo()
+
+    tipos = TipoFiscal.search([
         ('name', 'in', list(NOMBRES_TIPO_FISCAL_ELECTRONICO)),
+    ])
+    a_corregir = tipos.filtered(
+        lambda t: not t.fe_py_es_electronico or t.local_py_es_fisico
+    )
+    if a_corregir:
+        a_corregir.write({'fe_py_es_electronico': True, 'local_py_es_fisico': False})
+        _logger.info(
+            "FE_Py: Es Electrónico / Es Físico sincronizado en %s Tipo(s) Fiscal(es): %s",
+            len(a_corregir), ', '.join(a_corregir.mapped('name')),
+        )
+
+    # Los que NO son electrónicos deben quedar como físicos — cubre el caso
+    # de un registro que hubiera quedado con ambos campos en False.
+    otros = TipoFiscal.search([
+        ('name', 'not in', list(NOMBRES_TIPO_FISCAL_ELECTRONICO)),
+        ('local_py_es_fisico', '=', False),
         ('fe_py_es_electronico', '=', False),
     ])
-    if tipos:
-        tipos.write({'fe_py_es_electronico': True})
+    if otros:
+        otros.write({'local_py_es_fisico': True})
         _logger.info(
-            "FE_Py: fe_py_es_electronico reforzado en %s Tipo(s) Fiscal(es): %s",
-            len(tipos), ', '.join(tipos.mapped('name')),
+            "FE_Py: %s Tipo(s) Fiscal(es) no electrónico(s) marcados como físicos.",
+            len(otros),
         )
+
+
+def _backfill_itipidrec(env):
+    """Carga el mapeo Tipo de Identificación Fiscal (local_py, Tabla 3
+    Marangatu) -> iTipIDRec (SIFEN, Tabla D208).
+
+    Se hace por Python y no por XML de datos a propósito: los registros
+    del catálogo pertenecen a local_py y están marcados noupdate="1", así
+    que un <record> desde FE_Py no los actualiza de forma confiable (ya
+    ocurrió con fe_py_es_electronico, que hubo que tildar a mano).
+
+    Solo completa los que estén vacíos — nunca pisa un mapeo que alguien
+    haya ajustado a mano."""
+    mapeo = {
+        'local_py.tipo_identificacion_cedula': '1',            # Cédula paraguaya
+        'local_py.tipo_identificacion_pasaporte': '2',         # Pasaporte
+        'local_py.tipo_identificacion_cedula_extranjero': '3',  # Cédula extranjera
+        'local_py.tipo_identificacion_sin_nombre': '5',        # Innominado
+        'local_py.tipo_identificacion_diplomatico': '6',       # Tarjeta Diplomática
+        'local_py.tipo_identificacion_tributaria': '9',        # Otro + descripción libre
+        # "RUC" (código 11) no se mapea: un receptor con RUC se informa por
+        # dRucRec/dDVRec, no pasa por la tabla iTipIDRec.
+    }
+    aplicados = 0
+    for xmlid, codigo in mapeo.items():
+        registro = env.ref(xmlid, raise_if_not_found=False)
+        if registro and not registro.fe_py_itipidrec:
+            registro.sudo().fe_py_itipidrec = codigo
+            aplicados += 1
+    if aplicados:
+        _logger.info("FE_Py: mapeo iTipIDRec aplicado a %s tipo(s) de identificación.", aplicados)
 
 
 def post_init_hook(env):
     _backfill_csc_generico(env)
     _backfill_tipo_fiscal_electronico(env)
+    _backfill_itipidrec(env)

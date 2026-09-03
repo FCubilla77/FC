@@ -28,6 +28,9 @@ from lxml import etree
 
 from odoo import exceptions, fields, models
 
+from .res_partner import INDICADOR_PRESENCIA, TIPO_IMPUESTO
+from .local_py_tipo_identificacion_fiscal import DESCRIPCION_ITIPIDREC
+
 SIFEN_NS = 'http://ekuatia.set.gov.py/sifen/xsd'
 XSI_NS = 'http://www.w3.org/2001/XMLSchema-instance'
 NSMAP = {None: SIFEN_NS, 'xsi': XSI_NS}
@@ -269,11 +272,40 @@ class FePyDocumentoElectronico(models.Model):
             i_tip_tra, d_desc = '3', 'Mixto (Venta de mercadería y servicios)'
         _sub(g, 'iTipTra', i_tip_tra)
         _sub(g, 'dDesTipTra', d_desc)
-        _sub(g, 'iTImp', '1')
-        _sub(g, 'dDesTImp', 'IVA')
+
+        i_timp = move.fe_py_itimp or '1'
+        _sub(g, 'iTImp', i_timp)
+        _sub(g, 'dDesTImp', dict(TIPO_IMPUESTO).get(i_timp, 'IVA'))
+
         moneda = move.currency_id.name or 'PYG'
         _sub(g, 'cMoneOpe', moneda)
         _sub(g, 'dDesMoneOpe', NOMBRE_MONEDA.get(moneda, moneda))
+        # Moneda extranjera: tipo de cambio global para todo el DE (D017=1).
+        # No se informa nada de esto cuando la operación es en Guaraníes.
+        if moneda != 'PYG':
+            _sub(g, 'dCondTiCam', '1')
+            _sub(g, 'dTiCam', round(self._fe_py_tipo_cambio(move), 4))
+
+    def _fe_py_tipo_cambio(self, move):
+        """Cotización de la moneda de la operación expresada en Guaraníes.
+
+        Se toma la que Odoo dejó guardada en la propia factura al
+        confirmarla (invoice_currency_rate), no una cotización recalculada
+        al momento de generar el XML — así el XML y la contabilidad
+        siempre informan exactamente el mismo valor."""
+        company_currency = move.company_id.currency_id
+        if move.currency_id == company_currency:
+            return 1.0
+        rate = getattr(move, 'invoice_currency_rate', 0) or 0
+        if rate:
+            # invoice_currency_rate va de moneda de la compañía a moneda del
+            # documento; SIFEN quiere el inverso (cuántos Gs vale 1 USD).
+            return 1.0 / rate
+        # Respaldo si el campo no existiera o quedara en cero.
+        return move.currency_id._convert(
+            1.0, company_currency, move.company_id,
+            move.invoice_date or fields.Date.context_today(move),
+        )
 
     def _fe_py_xml_gEmis(self, parent, company):
         g = etree.SubElement(parent, '{%s}gEmis' % SIFEN_NS)
@@ -287,6 +319,11 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g, 'dNumCas', getattr(company, 'street_number', False) or '0')
         _sub(g, 'cDepEmi', company.state_id.code if company.state_id else False)
         _sub(g, 'dDesDepEmi', company.state_id.name if company.state_id else False)
+        # Distrito del emisor — estaba faltando (detectado comparando contra
+        # XML reales de producción, que sí lo traen).
+        distrito_emi = company.city_id.district_id if company.city_id else False
+        _sub(g, 'cDisEmi', distrito_emi.code if distrito_emi else False)
+        _sub(g, 'dDesDisEmi', distrito_emi.name if distrito_emi else False)
         _sub(g, 'cCiuEmi', company.city_id.code if company.city_id else False)
         _sub(g, 'dDesCiuEmi', company.city_id.name if company.city_id else False)
         _sub(g, 'dTelEmi', company.phone)
@@ -296,27 +333,76 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g_act, 'dDesActEco', company.fe_py_actividad_economica_desc)
 
     def _fe_py_xml_gDatRec(self, parent, partner):
+        """Datos del receptor.
+
+        Orden de campos y reglas de omisión confirmados contra 4 XML
+        reales de producción aprobados por SIFEN (local, Estado,
+        exterior y organismo internacional).
+
+        Nota sobre una contradicción del Manual: la regla D208/D210 dice
+        "No informar si D202=4" (B2F), pero los XML reales de exportación
+        aprobados por SIFEN SÍ informan iTipIDRec/dNumIDRec. Se sigue la
+        evidencia de producción, no la letra del manual.
+        """
+        move = self.move_id
         g = etree.SubElement(parent, '{%s}gDatRec' % SIFEN_NS)
-        _sub(g, 'iNatRec', '1')
-        _sub(g, 'iTiOpe', self.tipo_operacion or '1')
+
+        es_contribuyente = move._fe_py_receptor_es_contribuyente()
+        tipo_operacion = move.fe_py_tipo_operacion or '1'
+        es_b2f = tipo_operacion == '4'
+
+        _sub(g, 'iNatRec', '1' if es_contribuyente else '2')
+        _sub(g, 'iTiOpe', tipo_operacion)
         cod_pais = partner.country_id.code_alpha3 or 'PRY'
         _sub(g, 'cPaisRec', cod_pais)
         _sub(g, 'dDesPaisRe', partner.country_id.name or 'Paraguay')
-        _sub(g, 'iTiContRec', '2' if partner.is_company else '1')
-        ruc_rec, dv_rec = self._fe_py_split_ruc_dv(partner.vat, partner.display_name)
-        _sub(g, 'dRucRec', ruc_rec)
-        _sub(g, 'dDVRec', dv_rec)
+
+        if es_contribuyente:
+            # iTiContRec solo se informa para contribuyentes ("No informar
+            # si D201 = 2").
+            _sub(g, 'iTiContRec', '2' if partner.fe_py_tipo_persona == 'juridica' else '1')
+            ruc_rec, dv_rec = self._fe_py_split_ruc_dv(partner.vat, partner.display_name)
+            _sub(g, 'dRucRec', ruc_rec)
+            _sub(g, 'dDVRec', dv_rec)
+        else:
+            tipo_ident = partner.l10n_py_tipo_identificacion_fiscal_id
+            codigo = tipo_ident.fe_py_itipidrec if tipo_ident else False
+            if not codigo:
+                raise exceptions.UserError(
+                    'El Tipo de Identificación Fiscal "%s" del Cliente "%s" no '
+                    'tiene mapeado su código SIFEN equivalente. Completarlo en '
+                    'Localización Paraguay > Tipos de Identificación Fiscal.'
+                    % (tipo_ident.name if tipo_ident else '(vacío)', partner.display_name)
+                )
+            _sub(g, 'iTipIDRec', codigo)
+            # Para el código 9 ("Otro") SIFEN espera la descripción real del
+            # documento en vez del texto genérico de la tabla.
+            if codigo == '9':
+                _sub(g, 'dDTipIDRec', partner.fe_py_identificacion_texto or 'Otro')
+            else:
+                _sub(g, 'dDTipIDRec', DESCRIPCION_ITIPIDREC.get(codigo, ''))
+            # Innominado: el manual pide completar con 0.
+            _sub(g, 'dNumIDRec', partner.vat or ('0' if codigo == '5' else ''))
+
         _sub(g, 'dNomRec', partner.name)
         _sub(g, 'dDirRec', partner.street)
         _sub(g, 'dNumCasRec', getattr(partner, 'street_number', False) or '0')
-        _sub(g, 'cDepRec', partner.state_id.code if partner.state_id else False)
-        _sub(g, 'dDesDepRec', partner.state_id.name if partner.state_id else False)
-        distrito = partner.city_id.district_id if partner.city_id else False
-        _sub(g, 'cDisRec', distrito.code if distrito else False)
-        _sub(g, 'dDesDisRec', distrito.name if distrito else False)
-        _sub(g, 'cCiuRec', partner.city_id.code if partner.city_id else False)
-        _sub(g, 'dDesCiuRec', partner.city_id.name if partner.city_id else False)
+
+        # Departamento / Distrito / Ciudad: "no se debe informar cuando
+        # D202 = 4" (B2F). Confirmado también en los XML reales de
+        # exportación, que no los traen.
+        if not es_b2f:
+            _sub(g, 'cDepRec', partner.state_id.code if partner.state_id else False)
+            _sub(g, 'dDesDepRec', partner.state_id.name if partner.state_id else False)
+            distrito = partner.city_id.district_id if partner.city_id else False
+            _sub(g, 'cDisRec', distrito.code if distrito else False)
+            _sub(g, 'dDesDisRec', distrito.name if distrito else False)
+            _sub(g, 'cCiuRec', partner.city_id.code if partner.city_id else False)
+            _sub(g, 'dDesCiuRec', partner.city_id.name if partner.city_id else False)
+
         _sub(g, 'dTelRec', partner.phone)
+        _sub(g, 'dCelRec', partner.phone)
+        _sub(g, 'dEmailRec', partner.email)
 
     def _fe_py_linea_tasa_iva(self, line):
         rates = line.tax_ids.mapped('amount')
@@ -328,26 +414,19 @@ class FePyDocumentoElectronico(models.Model):
 
     def _fe_py_xml_gDtipDE(self, de, move):
         g = etree.SubElement(de, '{%s}gDtipDE' % SIFEN_NS)
+        i_tide, _desc = TIDE_POR_TIPO_FISCAL.get(move.local_py_tipo_fiscal_id.name, ('1', ''))
 
-        g_fe = etree.SubElement(g, '{%s}gCamFE' % SIFEN_NS)
-        _sub(g_fe, 'iIndPres', '1')
-        _sub(g_fe, 'dDesIndPres', 'Operación presencial')
+        # gCamFE es EXCLUSIVO de la Factura Electrónica: "Obligatorio si
+        # C002=1, No informar si C002≠1". Antes se generaba siempre, también
+        # para NC/ND — corregido acá.
+        if i_tide == '1':
+            g_fe = etree.SubElement(g, '{%s}gCamFE' % SIFEN_NS)
+            ind_pres = move.fe_py_indicador_presencia or '1'
+            _sub(g_fe, 'iIndPres', ind_pres)
+            _sub(g_fe, 'dDesIndPres', dict(INDICADOR_PRESENCIA).get(ind_pres, 'Operación presencial'))
+            self._fe_py_xml_gCompPub(g_fe, move)
 
-        condicion = move.invoice_payment_term_id.l10n_py_condicion if move.invoice_payment_term_id else False
-        g_cond = etree.SubElement(g, '{%s}gCamCond' % SIFEN_NS)
-        if condicion == 'credito':
-            _sub(g_cond, 'iCondOpe', '2')
-            _sub(g_cond, 'dDCondOpe', 'Crédito')
-            g_pag = etree.SubElement(g_cond, '{%s}gPagCred' % SIFEN_NS)
-            _sub(g_pag, 'iCondCred', '1')
-            _sub(g_pag, 'dDCondCred', 'Plazo')
-            plazo = 0
-            if move.invoice_date_due and move.invoice_date:
-                plazo = (move.invoice_date_due - move.invoice_date).days
-            _sub(g_pag, 'dPlazoCre', plazo)
-        else:
-            _sub(g_cond, 'iCondOpe', '1')
-            _sub(g_cond, 'dDCondOpe', 'Contado')
+        self._fe_py_xml_gCamCond(g, move)
 
         lineas = move.invoice_line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))
         for line in lineas:
@@ -357,6 +436,75 @@ class FePyDocumentoElectronico(models.Model):
             g_ncde = etree.SubElement(g, '{%s}gCamNCDE' % SIFEN_NS)
             _sub(g_ncde, 'iMotEmi', self.motivo_emision)
             _sub(g_ncde, 'dDesMotEmi', dict(self._fields['motivo_emision'].selection).get(self.motivo_emision))
+
+    def _fe_py_xml_gCompPub(self, parent, move):
+        """Compras Públicas (E020-E029) — dentro de gCamFE.
+
+        Obligatorio para B2G salvo que se haya marcado "Venta Directa"
+        (venta al Estado sin licitación de por medio). El Tipo de Operación
+        sigue siendo B2G igual: SIFEN lo exige para todo receptor que sea
+        un Organismo del Estado (Nota Técnica N° 20)."""
+        if move.fe_py_tipo_operacion != '3' or move.fe_py_venta_directa:
+            return
+        g = etree.SubElement(parent, '{%s}gCompPub' % SIFEN_NS)
+        _sub(g, 'dModCont', move.fe_py_dmodcont)
+        _sub(g, 'dEntCont', move.fe_py_dentcont)
+        _sub(g, 'dAnoCont', move.fe_py_danocont)
+        _sub(g, 'dSecCont', move.fe_py_dseccont)
+        _sub(g, 'dFeCodCont', move.fe_py_dfecodcont)
+
+    def _fe_py_xml_gCamCond(self, parent, move):
+        """Condición de la operación (E600-E699): contado o crédito.
+
+        Contado -> gPaConEIni (forma de pago) es OBLIGATORIO.
+        Crédito  -> gPagCred, con plazo o con detalle de cuotas.
+        """
+        condicion = move.invoice_payment_term_id.l10n_py_condicion if move.invoice_payment_term_id else False
+        moneda = move.currency_id.name or 'PYG'
+        g_cond = etree.SubElement(parent, '{%s}gCamCond' % SIFEN_NS)
+
+        if condicion == 'credito':
+            _sub(g_cond, 'iCondOpe', '2')
+            _sub(g_cond, 'dDCondOpe', 'Crédito')
+            g_pag = etree.SubElement(g_cond, '{%s}gPagCred' % SIFEN_NS)
+            if move.fe_py_condicion_credito == '2':
+                _sub(g_pag, 'iCondCred', '2')
+                _sub(g_pag, 'dDCondCred', 'Cuota')
+                _sub(g_pag, 'dCuotas', len(move.fe_py_cuota_ids))
+                for cuota in move.fe_py_cuota_ids:
+                    g_cuota = etree.SubElement(g_pag, '{%s}gCuotas' % SIFEN_NS)
+                    _sub(g_cuota, 'cMoneCuo', moneda)
+                    _sub(g_cuota, 'dDMoneCuo', NOMBRE_MONEDA.get(moneda, moneda))
+                    _sub(g_cuota, 'dMonCuota', round(cuota.monto, 4))
+                    _sub(g_cuota, 'dVencCuo', cuota.fecha_vencimiento)
+            else:
+                _sub(g_pag, 'iCondCred', '1')
+                _sub(g_pag, 'dDCondCred', 'Plazo')
+                plazo = 0
+                if move.invoice_date_due and move.invoice_date:
+                    plazo = (move.invoice_date_due - move.invoice_date).days
+                # SIFEN espera texto con la unidad ("30 días"), no un número
+                # pelado — confirmado en los XML reales de producción.
+                _sub(g_pag, 'dPlazoCre', '%s días' % plazo)
+        else:
+            _sub(g_cond, 'iCondOpe', '1')
+            _sub(g_cond, 'dDCondOpe', 'Contado')
+            # gPaConEIni es obligatorio para toda venta al contado (E605).
+            #
+            # LIMITACIÓN CONOCIDA: el método de cobro real vive en el Pago,
+            # que en el flujo actual se registra DESPUÉS de generar el XML.
+            # Por eso, por ahora, toda venta contado se informa como
+            # Efectivo. Resolverlo bien exige invertir la secuencia (exigir
+            # el Pago registrado antes de permitir Generar XML) y agregar
+            # los subgrupos de tarjeta (gPagTarCD) y cheque (gPagCheq).
+            g_pago = etree.SubElement(g_cond, '{%s}gPaConEIni' % SIFEN_NS)
+            _sub(g_pago, 'iTiPago', '1')
+            _sub(g_pago, 'dDesTiPag', 'Efectivo')
+            _sub(g_pago, 'dMonTiPag', round(move.amount_total, 4))
+            _sub(g_pago, 'cMoneTiPag', moneda)
+            _sub(g_pago, 'dDMoneTiPag', NOMBRE_MONEDA.get(moneda, moneda))
+            if moneda != 'PYG':
+                _sub(g_pago, 'dTiCamTiPag', round(self._fe_py_tipo_cambio(move), 4))
 
     def _fe_py_xml_gCamItem(self, parent, line):
         g = etree.SubElement(parent, '{%s}gCamItem' % SIFEN_NS)
@@ -392,8 +540,20 @@ class FePyDocumentoElectronico(models.Model):
             base, iva = 0, 0
         _sub(g_iva, 'dBasGravIVA', round(base, 8))
         _sub(g_iva, 'dLiqIVAItem', round(iva, 8))
+        # Base exenta por ítem (E737). Con dPropIVA=100 (gravado total) la
+        # fórmula de la NT 013 da siempre 0; se informa igual porque el
+        # campo debe existir. Solo sería distinto de 0 en "Gravado parcial"
+        # (iAfecIVA=4), que este módulo todavía no genera.
+        _sub(g_iva, 'dBasExe', 0)
 
     def _fe_py_xml_gTotSub(self, de, move):
+        """Subtotales y totales (F001-F037).
+
+        Las fórmulas siguen la Nota Técnica N° 001 (oct-2019), que CORRIGE
+        al Manual base (sep-2019):
+            Manual:  F014 = F008 - F011 - F012 - F013
+            NT 001:  F014 = F008 - F013 + F025   <-- la que se aplica acá
+        """
         montos = move._l10n_py_mkt_montos_por_tasa()
         base_10 = montos['10'] / 1.10 if montos['10'] else 0
         iva_10 = montos['10'] - base_10
@@ -401,10 +561,23 @@ class FePyDocumentoElectronico(models.Model):
         iva_5 = montos['5'] - base_5
 
         lineas = move.invoice_line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))
+        # F009: suma de (descuento por ítem x cantidad) — fórmula NT 001.
         total_desc = sum(
-            (l.price_unit * l.quantity) * (l.discount or 0) / 100 for l in lineas
+            (l.price_unit * (l.discount or 0) / 100) * l.quantity for l in lineas
         )
-        total_ope = sum(l.price_unit * l.quantity for l in lineas)
+        # F008: total bruto = suma de los subtotales por tasa.
+        total_ope = montos['exento'] + montos['5'] + montos['10']
+
+        # F013 (redondeo): se toma la diferencia que Odoo YA produjo entre
+        # la suma de subtotales y el total del comprobante, en vez de
+        # aplicar por nuestra cuenta la regla SEDECO de múltiplos de 50 Gs.
+        #
+        # Motivo: si redondeáramos acá por separado, el XML informaría un
+        # total distinto del que quedó contabilizado en Odoo. Si se quiere
+        # el redondeo SEDECO automático, hay que configurarlo en Odoo
+        # (redondeo de efectivo) para que contabilidad y XML coincidan.
+        redondeo = total_ope - move.amount_total
+        comision = 0.0
 
         g = etree.SubElement(de, '{%s}gTotSub' % SIFEN_NS)
         _sub(g, 'dSubExe', round(montos['exento'], 8))
@@ -417,16 +590,29 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g, 'dTotAntItem', 0)
         _sub(g, 'dTotAnt', 0)
         _sub(g, 'dPorcDescTotal', 0)
-        _sub(g, 'dDescTotal', 0.0)
-        _sub(g, 'dAnticipo', 0)
-        _sub(g, 'dRedon', 0.0)
-        _sub(g, 'dTotGralOpe', round(move.amount_total, 8))
+        _sub(g, 'dDescTotal', round(total_desc, 8))   # F011 = F009 + F033
+        _sub(g, 'dAnticipo', 0)                        # F012 = F034 + F035
+        _sub(g, 'dRedon', round(redondeo, 8))
+        # dComi (F025) va SIEMPRE, aunque sea 0 — así lo hacen los 4 XML
+        # reales de producción.
+        _sub(g, 'dComi', round(comision, 8))
+        total_general = total_ope - redondeo + comision
+        # F014 = F008 - F013 + F025 (NT 001, que corrige al Manual base)
+        _sub(g, 'dTotGralOpe', round(total_general, 8))
         _sub(g, 'dIVA5', round(iva_5, 8))
         _sub(g, 'dIVA10', round(iva_10, 8))
+        # dLiqTotIVA5/dLiqTotIVA10 (F036/F037), dIVAComi (F026) y dTotComi
+        # (F024) son opcionales y NO se emiten: los XML reales de
+        # producción no los traen en ningún caso — ni siquiera cuando hay
+        # redondeo distinto de cero. Solo tendrían sentido con comisiones,
+        # que este módulo todavía no maneja.
         _sub(g, 'dTotIVA', round(iva_5 + iva_10, 8))
         _sub(g, 'dBaseGrav5', round(base_5, 8))
         _sub(g, 'dBaseGrav10', round(base_10, 8))
         _sub(g, 'dTBasGraIVA', round(base_5 + base_10, 8))
+        # F023: solo existe si la operación NO es en Guaraníes.
+        if (move.currency_id.name or 'PYG') != 'PYG':
+            _sub(g, 'dTotalGs', round(total_general * self._fe_py_tipo_cambio(move), 8))
 
     def _fe_py_xml_gCamDEAsoc(self, de, move):
         doc_asociado = self.env['fe_py.documento_electronico'].search([

@@ -1,0 +1,55 @@
+<odoo>
+    <data>
+        <record id="view_partner_form_fe_py" model="ir.ui.view">
+            <field name="name">res.partner.form.fe.py</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Facturación Electrónica" name="fe_py_tab"
+                          invisible="not is_company">
+                        <group>
+                            <group string="Identificación ante SIFEN">
+                                <field name="fe_py_tipo_persona"/>
+                                <field name="fe_py_identificacion_texto"
+                                       placeholder="CUIT, RFC, NIT, Tax ID..."/>
+                                <field name="fe_py_es_exterior" readonly="1"/>
+                                <field name="fe_py_es_estado"/>
+                            </group>
+                            <group string="Valores por defecto de la operación">
+                                <field name="fe_py_itimp"/>
+                                <field name="fe_py_indicador_presencia"/>
+                            </group>
+                        </group>
+                        <div class="text-muted">
+                            Estos valores se proponen automáticamente en cada Factura
+                            de este Cliente y quedan editables por operación.
+                        </div>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_local_py_tipo_identificacion_form_fe_py" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.form.fe.py</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_identificacion_fiscal_form"/>
+            <field name="arch" type="xml">
+                <field name="code" position="after">
+                    <field name="fe_py_itipidrec"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_local_py_tipo_identificacion_list_fe_py" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.list.fe.py</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_identificacion_fiscal_list"/>
+            <field name="arch" type="xml">
+                <field name="code" position="after">
+                    <field name="fe_py_itipidrec" optional="show"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

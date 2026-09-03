@@ -5,3 +5,5 @@ access_fe_py_documento_electronico_log_user,fe_py.documento_electronico.log.user
 access_fe_py_documento_electronico_log_manager,fe_py.documento_electronico.log.manager,model_fe_py_documento_electronico_log,account.group_account_manager,1,1,1,0
 access_fe_py_evento_user,fe_py.evento.user,model_fe_py_evento,base.group_user,1,0,0,0
 access_fe_py_evento_manager,fe_py.evento.manager,model_fe_py_evento,account.group_account_manager,1,1,1,0
+access_fe_py_cuota_user,fe_py.cuota.user,model_fe_py_cuota,base.group_user,1,1,1,1
+access_fe_py_cuota_manager,fe_py.cuota.manager,model_fe_py_cuota,account.group_account_manager,1,1,1,1

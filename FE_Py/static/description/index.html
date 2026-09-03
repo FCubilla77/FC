@@ -88,6 +88,28 @@
 
     <div class="row" style="margin-top: 20px;">
         <div class="col-md-6 text-center">
+            <h3>🌎</h3>
+            <h5>Exportación y Exterior (B2F)</h5>
+            <p class="text-muted">
+                Receptor sin RUC (cédula extranjera, tarjeta diplomática,
+                identificación tributaria de otro país), moneda extranjera con
+                tipo de cambio, y omisión automática de los campos que no
+                corresponden a una operación con el exterior.
+            </p>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>🏛️</h3>
+            <h5>Venta al Estado (B2G)</h5>
+            <p class="text-muted">
+                Datos de Compras Públicas (modalidad, entidad contratante, año,
+                contrato, código DNCP), con opción "Venta Directa" para las
+                ventas al Estado que no pasaron por licitación.
+            </p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="col-md-6 text-center">
             <h3>⚙️</h3>
             <h5>Automatización configurable</h5>
             <p class="text-muted">
@@ -174,6 +196,29 @@
                 <li>Un fallo en la cadena automática nunca bloquea la Confirmación del comprobante — el Documento Electrónico queda en el estado que corresponda, listo para reintentar</li>
                 <li>Pasar el Ambiente a Producción sugiere activar la automatización (con aviso), sin forzarla — sigue siendo editable por separado</li>
                 <li>El botón "Reescribir XML y Reenviar" queda siempre disponible ante un Rechazo o Error de Comunicación, incluso con la automatización activa</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Tipos de Operación y Receptor</h5>
+            <ul>
+                <li>Tipo de Operación (B2B, B2C, B2G, B2F) en la cabecera del comprobante, propuesto automáticamente según el Cliente y editable por operación</li>
+                <li>Receptor sin RUC: mapeo del Tipo de Identificación Fiscal de la localización al código que exige SIFEN (cédula paraguaya, pasaporte, cédula extranjera, innominado, tarjeta diplomática, otro)</li>
+                <li>Ficha del Cliente: Organismo del Estado, Tipo de Persona, Tipo de Impuesto Afectado e Indicador de Presencia, que se trasladan como valor por defecto a cada Factura</li>
+                <li>Compras Públicas para ventas al Estado, con opción de Venta Directa cuando no hubo licitación</li>
+                <li>Validaciones de consistencia: un Contacto no puede ser Organismo del Estado y del Exterior a la vez; un Tipo de Documento Fiscal es electrónico o físico, nunca ambos</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Moneda, Pagos y Cuotas</h5>
+            <ul>
+                <li>Facturación en moneda extranjera, informando el tipo de cambio que quedó guardado en la factura al confirmarla (Total en Guaraníes calculado sobre ese mismo valor)</li>
+                <li>Forma de pago obligatoria en toda venta al contado</li>
+                <li>Venta a crédito por Plazo o por Cuotas, con detalle de monto y vencimiento de cada cuota</li>
+            </ul>
+
+            <h5 style="margin-top: 20px;">Trazabilidad del Documento Fiscal</h5>
+            <ul>
+                <li>Tres XML por documento: generado (sin firmar), firmado, y final — este último con el código QR y el protocolo de autorización de SIFEN incorporados, que es el que corresponde archivar</li>
+                <li>Respuesta completa de SIFEN guardada sin interpretar, además del registro en el Log</li>
+                <li>Protocolo de Autorización visible en el comprobante</li>
             </ul>
 
             <h5 style="margin-top: 20px;">Log de Operaciones Electrónicas</h5>

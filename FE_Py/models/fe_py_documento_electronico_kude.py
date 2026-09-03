@@ -180,7 +180,21 @@ class FePyDocumentoElectronico(models.Model):
 
         de = root.find('.//s:DE', ns)
         d_fe_emi_de = de.find('.//s:gDatGralOpe/s:dFeEmiDE', ns).text
-        d_ruc_rec = de.find('.//s:gDatRec/s:dRucRec', ns).text
+        # Receptor: con RUC va dRucRec; sin RUC (exterior, diplomático,
+        # innominado) va dNumIDRec — cambia el nombre del parámetro, no
+        # solo el valor. Confirmado contra los QR de los XML reales de
+        # producción (exterior y organismo internacional usan dNumIDRec).
+        el_ruc_rec = de.find('.//s:gDatRec/s:dRucRec', ns)
+        if el_ruc_rec is not None and el_ruc_rec.text:
+            clave_receptor, valor_receptor = 'dRucRec', el_ruc_rec.text
+        else:
+            el_num_id = de.find('.//s:gDatRec/s:dNumIDRec', ns)
+            if el_num_id is None or not el_num_id.text:
+                raise exceptions.UserError(
+                    'El XML firmado no tiene ni dRucRec ni dNumIDRec en los '
+                    'datos del receptor — no se puede armar el QR.'
+                )
+            clave_receptor, valor_receptor = 'dNumIDRec', el_num_id.text
         d_tot_gral_ope = de.find('.//s:gTotSub/s:dTotGralOpe', ns).text
         d_tot_iva = de.find('.//s:gTotSub/s:dTotIVA', ns).text
         c_items = len(de.findall('.//s:gCamItem', ns))
@@ -203,7 +217,7 @@ class FePyDocumentoElectronico(models.Model):
         qpd['nVersion'] = self.version_formato or '150'
         qpd['Id'] = self.cdc
         qpd['dFeEmiDE'] = d_fe_emi_de.encode('utf-8').hex()
-        qpd['dRucRec'] = d_ruc_rec
+        qpd[clave_receptor] = valor_receptor
         qpd['dTotGralOpe'] = d_tot_gral_ope
         qpd['dTotIVA'] = d_tot_iva
         qpd['cItems'] = str(c_items)

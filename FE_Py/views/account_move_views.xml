@@ -1,5 +1,21 @@
 <odoo>
     <data>
+        <!-- Tipo de Operación en la cabecera del comprobante -->
+        <record id="view_move_form_fe_py_cabecera" model="ir.ui.view">
+            <field name="name">account.move.form.fe.py.cabecera</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <field name="invoice_date" position="after">
+                    <field name="fe_py_es_electronico" invisible="1"/>
+                    <field name="fe_py_es_nc_nd" invisible="1"/>
+                    <field name="fe_py_tipo_operacion"
+                           invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Pestaña completa de Facturación Electrónica -->
         <record id="view_move_form_fe_py" model="ir.ui.view">
             <field name="name">account.move.form.fe.py</field>
             <field name="model">account.move</field>
@@ -10,6 +26,40 @@
                           invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico">
 
                         <group>
+                            <group string="Datos de la Operación">
+                                <field name="fe_py_indicador_presencia"/>
+                                <field name="fe_py_itimp"/>
+                                <field name="fe_py_motivo_emision" invisible="not fe_py_es_nc_nd"/>
+                                <field name="fe_py_cdc_comprobante_asociado" invisible="not reversed_entry_id"/>
+                            </group>
+                            <group string="Condición del Crédito">
+                                <field name="fe_py_condicion_credito"/>
+                            </group>
+                        </group>
+
+                        <group string="Compras Públicas" invisible="fe_py_tipo_operacion != '3'">
+                            <field name="fe_py_venta_directa"/>
+                            <group invisible="fe_py_venta_directa">
+                                <field name="fe_py_dmodcont" placeholder="LP, CD, LC..."/>
+                                <field name="fe_py_dentcont"/>
+                                <field name="fe_py_danocont"/>
+                            </group>
+                            <group invisible="fe_py_venta_directa">
+                                <field name="fe_py_dseccont"/>
+                                <field name="fe_py_dfecodcont"/>
+                                <field name="fe_py_dcodcondncp"/>
+                            </group>
+                        </group>
+
+                        <field name="fe_py_cuota_ids" invisible="fe_py_condicion_credito != '2'">
+                            <list editable="bottom">
+                                <field name="fecha_vencimiento"/>
+                                <field name="monto"/>
+                                <field name="currency_id" column_invisible="1"/>
+                            </list>
+                        </field>
+
+                        <group string="Estado en SIFEN">
                             <group>
                                 <field name="fe_py_estado" widget="badge"
                                        decoration-success="fe_py_estado in ('aprobado', 'aprobado_observacion')"
@@ -18,8 +68,7 @@
                                        decoration-muted="fe_py_estado in ('cancelado', 'inutilizado')"/>
                                 <field name="fe_py_cdc"/>
                                 <field name="fe_py_codigo_respuesta"/>
-                                <field name="fe_py_motivo_emision" invisible="not fe_py_es_nc_nd"/>
-                                <field name="fe_py_cdc_comprobante_asociado" invisible="not reversed_entry_id"/>
+                                <field name="fe_py_protocolo_autorizacion"/>
                             </group>
                             <group>
                                 <field name="fe_py_fecha_envio"/>
@@ -68,6 +117,12 @@
                             </page>
                             <page string="XML Firmado">
                                 <field name="fe_py_xml_firmado" widget="text" readonly="1"/>
+                            </page>
+                            <page string="XML Final (documento fiscal)">
+                                <field name="fe_py_xml_final" widget="text" readonly="1"/>
+                            </page>
+                            <page string="Respuesta SIFEN">
+                                <field name="fe_py_respuesta_sifen_raw" widget="text" readonly="1"/>
                             </page>
                             <page string="KuDE">
                                 <field name="fe_py_kude_pdf" filename="fe_py_kude_pdf_filename" readonly="1"/>

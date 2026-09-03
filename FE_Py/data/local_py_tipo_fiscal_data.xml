@@ -6,6 +6,7 @@
              creación de uno nuevo). -->
         <record id="local_py.tipo_fiscal_factura_electronica" model="local_py.tipo_fiscal">
             <field name="fe_py_es_electronico">1</field>
+            <field name="local_py_es_fisico">0</field>
         </record>
 
         <!-- Nuevas variantes electrónicas, mismo código Marangatu (Tabla 4)
@@ -16,12 +17,14 @@
             <field name="code">110</field>
             <field name="sequence">115</field>
             <field name="fe_py_es_electronico">1</field>
+            <field name="local_py_es_fisico">0</field>
         </record>
         <record id="tipo_fiscal_nota_debito_electronica" model="local_py.tipo_fiscal">
             <field name="name">Nota de Debito Electronica</field>
             <field name="code">111</field>
             <field name="sequence">125</field>
             <field name="fe_py_es_electronico">1</field>
+            <field name="local_py_es_fisico">0</field>
         </record>
     </data>
 </odoo>

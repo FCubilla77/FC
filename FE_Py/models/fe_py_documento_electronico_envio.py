@@ -24,6 +24,7 @@ ALCANCE / LIMITACIONES DE ESTA FASE:
     quedan para una fase posterior, según lo definido.
 """
 import logging
+import random
 
 from lxml import etree
 
@@ -120,6 +121,8 @@ class FePyDocumentoElectronico(models.Model):
             'mensaje_respuesta': mensaje,
             'fecha_respuesta': fields.Datetime.now(),
             'simulado': simulado,
+            'protocolo_autorizacion': resultado.get('protocolo') or False,
+            'respuesta_sifen_raw': response_payload,
         })
         self.env['fe_py.documento_electronico.log'].sudo().create({
             'documento_id': self.id,
@@ -131,6 +134,28 @@ class FePyDocumentoElectronico(models.Model):
             'response_payload': response_payload,
             'simulado': simulado,
         })
+
+        # Documento fiscal definitivo: el XML firmado + QR + protocolo.
+        # Se arma acá porque el protocolo recién existe después de que
+        # SIFEN aprueba. Un fallo armándolo no debe tumbar el envío ya
+        # aprobado — queda registrado como advertencia.
+        if nuevo_estado in ('aprobado', 'aprobado_observacion'):
+            try:
+                self._fe_py_generar_xml_final()
+            except Exception as ex:
+                _logger.warning(
+                    "FE_Py: no se pudo armar el XML final de %s: %s",
+                    self.move_id.display_name, ex, exc_info=True,
+                )
+                self.env['fe_py.documento_electronico.log'].sudo().create({
+                    'documento_id': self.id,
+                    'tipo_operacion': 'envio_individual',
+                    'resultado': 'advertencia',
+                    'mensaje_resultado':
+                        'El documento fue aprobado por SIFEN, pero no se pudo '
+                        'armar el XML final (firmado + QR + protocolo): %s' % ex,
+                    'simulado': simulado,
+                })
 
     def _fe_py_construir_soap_envio(self, d_id):
         self.ensure_one()
@@ -194,6 +219,11 @@ class FePyDocumentoElectronico(models.Model):
             'protocolo': prot_aut.text if prot_aut is not None else False,
         }
 
+    def _fe_py_protocolo_simulado(self):
+        """Número de protocolo sintético (10 dígitos, como los reales) para
+        que el XML final se pueda armar y probar completo en Simulado."""
+        return '%010d' % random.randint(0, 9999999999)
+
     def _fe_py_simular_respuesta_sifen(self):
         """No sale a la red. Devuelve una respuesta sintética según
         self.simular_resultado, con la misma forma que
@@ -207,12 +237,14 @@ class FePyDocumentoElectronico(models.Model):
                 'codigo_respuesta': '0260',
                 'mensaje_respuesta': 'Autorización del DE satisfactoria (SIMULADO)',
                 'estado': 'aprobado',
+                'protocolo': self._fe_py_protocolo_simulado(),
             }
         if opcion == 'aprobado_observacion':
             return {
                 'codigo_respuesta': '0260',
                 'mensaje_respuesta': 'Autorización del DE con observaciones (SIMULADO)',
                 'estado': 'aprobado_observacion',
+                'protocolo': self._fe_py_protocolo_simulado(),
             }
         if opcion == 'rechazado':
             return {
