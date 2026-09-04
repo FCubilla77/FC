@@ -22,8 +22,7 @@
                                                 </td>
                                                 <td style="vertical-align:top;">
                                                     <div style="font-weight:bold;" t-esc="doc.move_id.company_id.name"/>
-                                                    <div t-if="doc.move_id.company_id.fe_py_actividad_economica_desc"
-                                                         t-esc="doc.move_id.company_id.fe_py_actividad_economica_desc"/>
+                                                    <div t-esc="doc._fe_py_get_actividades_economicas()"/>
                                                     <div t-esc="doc.move_id.company_id.street"/>
                                                     <div t-if="doc.move_id.company_id.street2" t-esc="doc.move_id.company_id.street2"/>
                                                     <div t-if="doc.move_id.company_id.phone">Teléfono: <span t-esc="doc.move_id.company_id.phone"/></div>
@@ -93,7 +92,7 @@
                                 </thead>
                                 <tbody>
                                     <t t-foreach="doc.move_id.invoice_line_ids.filtered(lambda l: l.display_type not in ('line_section', 'line_note'))" t-as="line">
-                                        <t t-set="tasa_linea" t-value="doc._fe_py_linea_tasa_iva(line)[0]"/>
+                                        <t t-set="tasa_linea" t-value="doc._fe_py_datos_iva_linea(line)[1]"/>
                                         <t t-set="neto_linea" t-value="(line.price_unit * line.quantity) - ((line.price_unit * line.quantity) * (line.discount or 0) / 100)"/>
                                         <tr>
                                             <td style="padding:3px;" t-esc="line.product_id.default_code or ''"/>

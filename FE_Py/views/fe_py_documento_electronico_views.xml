@@ -58,9 +58,9 @@
                                 <field name="cdc"/>
                                 <field name="codigo_seguridad"/>
                                 <field name="digito_verificador_cdc"/>
-                                <field name="tipo_emision"/>
-                                <field name="tipo_operacion"/>
-                                <field name="motivo_emision"/>
+                                <field name="tipo_emision_id"/>
+                                <field name="tipo_operacion_id"/>
+                                <field name="motivo_emision_id"/>
                             </group>
                         </group>
                         <group string="Simulador SIFEN" invisible="fe_py_ambiente != 'simulado'">
@@ -107,7 +107,7 @@
                                 <field name="log_ids" readonly="1">
                                     <list>
                                         <field name="fecha"/>
-                                        <field name="tipo_operacion"/>
+                                        <field name="tipo_operacion_id"/>
                                         <field name="resultado"
                                                decoration-success="resultado == 'exito'"
                                                decoration-danger="resultado == 'error'"

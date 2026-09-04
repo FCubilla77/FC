@@ -106,20 +106,11 @@ class FePyDocumentoElectronico(models.Model):
         return '%s %s' % (tipo, nro)
 
     def _fe_py_get_tipo_operacion_desc(self):
-        """Misma clasificación (bienes/servicios/mixto) que ya se usa al
-        armar iTipTra en el XML (Fase 3) — se replica acá para mostrar la
-        misma descripción en el KuDE, sin duplicar la fuente de verdad del
-        cálculo en sí (llama al mismo criterio)."""
+        """Tipo de transacción que se muestra en el KuDE. Sale del mismo
+        campo del comprobante que viaja al XML, así el papel y el archivo
+        no pueden decir cosas distintas."""
         self.ensure_one()
-        lineas = self.move_id.invoice_line_ids.filtered(
-            lambda l: l.display_type not in ('line_section', 'line_note')
-        )
-        tipos_producto = set(lineas.mapped('product_id.type'))
-        if tipos_producto and tipos_producto <= {'service'}:
-            return 'Prestación de servicios'
-        if tipos_producto and 'service' not in tipos_producto:
-            return 'Venta de mercadería'
-        return 'Mixto (Venta de mercadería y servicios)'
+        return self.move_id.fe_py_tipo_transaccion_id.name or ''
 
     def _fe_py_get_cdc_formateado(self):
         self.ensure_one()
@@ -150,17 +141,20 @@ class FePyDocumentoElectronico(models.Model):
         return config.fe_py_get_url('consulta')
 
     def _fe_py_get_tipo_fiscal_display(self):
-        """Nombre del Tipo Fiscal con tildes, solo para mostrar en el KuDE
-        — el catálogo en sí (local_py.tipo_fiscal) usa nombres sin tilde
-        por convención técnica, no se toca acá."""
+        """Nombre del documento para el encabezado del KuDE.
+
+        Sale de la descripción cargada en el Tipo de Documento Fiscal
+        ("FEPy Descripción del Documento Electrónico"), que es la misma
+        que viaja en el XML — antes era un diccionario fijo en el código."""
         self.ensure_one()
-        nombres = {
-            'Factura Electronica': 'Factura electrónica',
-            'Nota de Credito Electronica': 'Nota de crédito electrónica',
-            'Nota de Debito Electronica': 'Nota de débito electrónica',
-        }
-        nombre = self.tipo_fiscal_id.name or ''
-        return nombres.get(nombre, nombre)
+        tipo = self.tipo_fiscal_id
+        return tipo.fe_py_itide_descripcion or tipo.name or ''
+
+    def _fe_py_get_actividades_economicas(self):
+        """Actividades económicas de la Compañía, para el encabezado."""
+        self.ensure_one()
+        config = self.env['fe_py.configuracion']._get_config(self.move_id.company_id)
+        return ' / '.join(config.fe_py_actividad_economica_ids.mapped('name'))
 
     def _fe_py_formato_gs(self, valor):
         """Formato numérico paraguayo: punto como separador de miles, sin
