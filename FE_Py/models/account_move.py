@@ -70,10 +70,29 @@ class AccountMove(models.Model):
 
     # -- Ambiente y Automatización de la Compañía, para condicionar la
     #    visibilidad de botones y del bloque del Simulador en la pestaña.
-    fe_py_ambiente = fields.Selection(related='company_id.fe_py_ambiente', string='Ambiente FE')
-    fe_py_envio_automatico = fields.Boolean(related='company_id.fe_py_envio_automatico')
-    fe_py_kude_automatico = fields.Boolean(related='company_id.fe_py_kude_automatico')
-    fe_py_email_automatico = fields.Boolean(related='company_id.fe_py_email_automatico')
+    # Se leen directamente de la Configuración FEPy, no a través de la
+    # Compañía: en res.company estos campos son un espejo no almacenado, y
+    # encadenar dos saltos sobre campos no almacenados es frágil y lento.
+    fe_py_configuracion_id = fields.Many2one(
+        'fe_py.configuracion', compute='_compute_fe_py_configuracion')
+    fe_py_ambiente = fields.Selection(
+        related='fe_py_configuracion_id.fe_py_ambiente', string='Ambiente FE')
+    fe_py_envio_automatico = fields.Boolean(
+        related='fe_py_configuracion_id.fe_py_envio_automatico')
+    fe_py_kude_automatico = fields.Boolean(
+        related='fe_py_configuracion_id.fe_py_kude_automatico')
+    fe_py_email_automatico = fields.Boolean(
+        related='fe_py_configuracion_id.fe_py_email_automatico')
+
+    @api.depends('company_id')
+    def _compute_fe_py_configuracion(self):
+        Config = self.env['fe_py.configuracion'].sudo()
+        cache = {}
+        for move in self:
+            cid = move.company_id.id
+            if cid not in cache:
+                cache[cid] = Config.search([('company_id', '=', cid)], limit=1)
+            move.fe_py_configuracion_id = cache[cid]
 
     # ------------------------------------------------------------------
     # Datos de la operación exigidos por SIFEN — viven en el comprobante
@@ -458,7 +477,7 @@ class AccountMove(models.Model):
                 'motivo_emision_id': move.fe_py_motivo_emision_id.id,
             })
             move.fe_py_documento_id = doc
-            if move.company_id.fe_py_envio_automatico:
+            if move.fe_py_configuracion_id.fe_py_envio_automatico:
                 move._fe_py_procesar_automatico(doc)
         return posted
 
@@ -470,7 +489,7 @@ class AccountMove(models.Model):
         cada paso — acá solo hace falta no dejar que una excepción se
         propague hacia _post()."""
         self.ensure_one()
-        company = self.company_id
+        config = self.fe_py_configuracion_id
         try:
             doc.action_generar_xml()
             doc.action_firmar()
@@ -486,7 +505,7 @@ class AccountMove(models.Model):
         if doc.estado not in ('aprobado', 'aprobado_observacion'):
             return
 
-        if company.fe_py_kude_automatico:
+        if config.fe_py_kude_automatico:
             try:
                 doc.action_generar_kude()
             except Exception:
@@ -496,7 +515,7 @@ class AccountMove(models.Model):
                 )
                 return
 
-        if company.fe_py_email_automatico:
+        if config.fe_py_email_automatico:
             try:
                 doc.action_enviar_email_cliente()
             except Exception:

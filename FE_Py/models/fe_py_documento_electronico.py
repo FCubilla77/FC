@@ -41,7 +41,7 @@ class FePyDocumentoElectronico(models.Model):
         related='move_id.journal_id', string='Diario', store=True, readonly=True,
     )
     fe_py_ambiente = fields.Selection(
-        related='move_id.company_id.fe_py_ambiente', string='Ambiente FE',
+        related='move_id.fe_py_ambiente', string='Ambiente FE',
     )
 
     # ------------------------------------------------------------------

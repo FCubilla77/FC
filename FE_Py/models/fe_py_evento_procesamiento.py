@@ -20,7 +20,7 @@ import logging
 
 from lxml import etree
 
-from odoo import exceptions, fields, models
+from odoo import api, exceptions, fields, models
 
 
 _logger = logging.getLogger(__name__)
@@ -80,7 +80,17 @@ class FePyEvento(models.Model):
         help='Solo tiene efecto con Ambiente = Simulado.',
     )
     simular_codigo_rechazo = fields.Char(string='Código a Simular (Rechazo)', default='4000')
-    fe_py_ambiente = fields.Selection(related='company_id.fe_py_ambiente', string='Ambiente FE')
+    fe_py_configuracion_id = fields.Many2one(
+        'fe_py.configuracion', compute='_compute_fe_py_configuracion')
+    fe_py_ambiente = fields.Selection(
+        related='fe_py_configuracion_id.fe_py_ambiente', string='Ambiente FE')
+
+    @api.depends('company_id')
+    def _compute_fe_py_configuracion(self):
+        Config = self.env['fe_py.configuracion'].sudo()
+        for evento in self:
+            evento.fe_py_configuracion_id = Config.search(
+                [('company_id', '=', evento.company_id.id)], limit=1)
     simular_mensaje_rechazo = fields.Char(
         string='Mensaje a Simular (Rechazo)', default='Motivo del Evento inválido',
     )

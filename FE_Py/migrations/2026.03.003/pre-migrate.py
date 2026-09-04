@@ -43,8 +43,43 @@ def migrate(cr, version):
     if not version:
         return
 
+    _eliminar_vistas_viejas(cr)
     _migrar_configuracion_de_compania(cr)
     _logger.info("FE_Py 2026.03.001: migración previa completada.")
+
+
+def _eliminar_vistas_viejas(cr):
+    """Borra las vistas que FE_Py tenía cargadas en la base.
+
+    Es imprescindible en esta versión: al validar una vista heredada,
+    Odoo valida el resultado COMBINADO de todas las que heredan del mismo
+    formulario. Si queda en la base una vista de la versión anterior que
+    referencia campos ya renombrados (fe_py_indicador_presencia ->
+    fe_py_indicador_presencia_id) o eliminados (los de Compañía, que se
+    mudaron a Configuraciones Generales FEPy), la validación falla antes
+    de llegar a reemplazarlas.
+
+    Se borran solo las vistas de este módulo; el propio archivo de datos
+    las vuelve a crear inmediatamente después, ya con la definición nueva.
+    """
+    cr.execute("""
+        SELECT res_id FROM ir_model_data
+         WHERE module = 'FE_Py' AND model = 'ir.ui.view'
+    """)
+    ids = [r[0] for r in cr.fetchall()]
+    if not ids:
+        return
+    # Primero los hijos, para no chocar con la dependencia inherit_id.
+    cr.execute("DELETE FROM ir_ui_view WHERE inherit_id IN %s", (tuple(ids),))
+    cr.execute("DELETE FROM ir_ui_view WHERE id IN %s", (tuple(ids),))
+    cr.execute("""
+        DELETE FROM ir_model_data
+         WHERE module = 'FE_Py' AND model = 'ir.ui.view'
+    """)
+    _logger.info(
+        "FE_Py: %s vista(s) de la versión anterior eliminadas para que se "
+        "recreen con la definición nueva.", len(ids),
+    )
 
 
 def _migrar_configuracion_de_compania(cr):

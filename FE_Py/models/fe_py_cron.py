@@ -18,9 +18,17 @@ class FePyDocumentoElectronico(models.Model):
         vuelve a fallar (queda registrado en el Log, como cualquier otro
         intento) y sigue esperando el próximo ciclo — no hace falta ningún
         marcador de "ya corregido"."""
+        # Las compañías con reintento activo se resuelven contra el modelo
+        # de configuración: en res.company esos campos son un espejo NO
+        # almacenado, y Odoo no puede filtrar por campos así.
+        companias = self.env['fe_py.configuracion'].sudo().search([
+            ('fe_py_reintento_automatico', '=', True),
+        ]).mapped('company_id')
+        if not companias:
+            return
         docs = self.search([
             ('estado', 'in', ('rechazado', 'error_comunicacion')),
-            ('company_id.fe_py_reintento_automatico', '=', True),
+            ('company_id', 'in', companias.ids),
         ])
         for doc in docs:
             try:
@@ -44,9 +52,14 @@ class FePyEvento(models.Model):
         """Mismo criterio que el de Documento Electrónico, para Eventos
         (Cancelación e Inutilización) en Rechazado o Error de
         Comunicación."""
+        companias = self.env['fe_py.configuracion'].sudo().search([
+            ('fe_py_reintento_automatico', '=', True),
+        ]).mapped('company_id')
+        if not companias:
+            return
         eventos = self.search([
             ('estado', 'in', ('rechazado', 'error_comunicacion')),
-            ('company_id.fe_py_reintento_automatico', '=', True),
+            ('company_id', 'in', companias.ids),
         ])
         for evento in eventos:
             try:
