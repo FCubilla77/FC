@@ -107,7 +107,7 @@
                                 <field name="log_ids" readonly="1">
                                     <list>
                                         <field name="fecha"/>
-                                        <field name="tipo_operacion_id"/>
+                                        <field name="tipo_operacion"/>
                                         <field name="resultado"
                                                decoration-success="resultado == 'exito'"
                                                decoration-danger="resultado == 'error'"

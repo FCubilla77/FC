@@ -40,18 +40,8 @@ except Exception:  # pragma: no cover
 SIFEN_NS = 'http://ekuatia.set.gov.py/sifen/xsd'
 SOAP_NS = 'http://www.w3.org/2003/05/soap-envelope'
 
-WS_SINCRONICO_URLS = {
-    # NOTA: el Manual Técnico v150 (cap. 7.10) muestra la URL de Test como
-    # ".../recibe.wsd?wsdl" (sin la "l" final de "wsdl"), a diferencia de
-    # Producción (".../recibe.wsdl?wsdl"). Parece una errata del propio
-    # manual - se deja acá la forma consistente con el resto de los
-    # servicios (todos terminan en ".wsdl"), pero HAY QUE VERIFICARLO
-    # contra el WSDL real apenas haya acceso al Ambiente de Test.
-    'test': 'https://sifen-test.set.gov.py/de/ws/sync/recibe.wsdl',
-    'produccion': 'https://sifen.set.gov.py/de/ws/sync/recibe.wsdl',
-}
-
-TIMEOUT_SEGUNDOS = 30
+# Las URLs de los servicios y el tiempo de espera se configuran en
+# Configuraciones Generales FEPy — ya no viven en el código.
 
 
 class FePyDocumentoElectronico(models.Model):
@@ -200,7 +190,7 @@ class FePyDocumentoElectronico(models.Model):
             data=soap_xml.encode('utf-8'),
             headers=headers,
             cert=(company.fe_py_cert_path, company.fe_py_private_key_path),
-            timeout=TIMEOUT_SEGUNDOS,
+            timeout=self.env['fe_py.configuracion']._get_config(company).fe_py_timeout or 30,
         )
         response.raise_for_status()
         return response.text

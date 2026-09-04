@@ -164,7 +164,7 @@ class FePyDocumentoElectronico(models.Model):
             # un Rechazo (antes de "Reescribir XML y Reenviar"), toma el
             # valor actual y no uno viejo copiado solo al Confirmar.
             if doc.move_id.fe_py_es_nc_nd:
-                doc.motivo_emision = doc.move_id.fe_py_motivo_emision
+                doc.motivo_emision_id = doc.move_id.fe_py_motivo_emision_id
             doc._fe_py_validar_datos_para_generar()
             cdc, cod_seg, dv_final = doc._fe_py_generar_cdc()
             xml_root = doc._fe_py_construir_xml(cdc, cod_seg)
@@ -236,7 +236,7 @@ class FePyDocumentoElectronico(models.Model):
         tipo_emision = self.tipo_emision_id or config.fe_py_tipo_emision_id
         tipo_emi_codigo = tipo_emision.codigo if tipo_emision else '1'
         _sub(g, 'iTipEmi', tipo_emi_codigo)
-        _sub(g, 'dDesTipEmi', 'Normal' if tipo_emi_codigo == '1' else 'Contingencia')
+        _sub(g, 'dDesTipEmi', tipo_emision.name if tipo_emision else 'Normal')
         _sub(g, 'dCodSeg', cod_seg)
 
     def _fe_py_xml_gTimb(self, de, journal, i_tide, d_des_tide):
@@ -475,7 +475,7 @@ class FePyDocumentoElectronico(models.Model):
         (venta al Estado sin licitación de por medio). El Tipo de Operación
         sigue siendo B2G igual: SIFEN lo exige para todo receptor que sea
         un Organismo del Estado (Nota Técnica N° 20)."""
-        if move.fe_py_tipo_operacion != '3' or move.fe_py_venta_directa:
+        if not move.fe_py_tipo_operacion_id.es_b2g or move.fe_py_venta_directa:
             return
         g = etree.SubElement(parent, '{%s}gCompPub' % SIFEN_NS)
         _sub(g, 'dModCont', move.fe_py_dmodcont)

@@ -34,22 +34,8 @@ except Exception:  # pragma: no cover
 SIFEN_NS = 'http://ekuatia.set.gov.py/sifen/xsd'
 DS_NS = 'http://www.w3.org/2000/09/xmldsig#'
 
-QR_BASE_URLS = {
-    'test': 'https://ekuatia.set.gov.py/consultas-test/qr?',
-    'produccion': 'https://ekuatia.set.gov.py/consultas/qr?',
-    # En Simulado no existe una consulta real detrás de este link, pero se
-    # arma igual (con la URL de Test) para poder generar y ver el KuDE
-    # completo, con QR, sin depender de tener Ambiente real configurado.
-    'simulado': 'https://ekuatia.set.gov.py/consultas-test/qr?',
-}
-
-# URL "humana" que se imprime como texto junto al CDC en el KuDE (distinta
-# de la URL completa del QR, que lleva todos los parámetros/hash).
-CONSULTA_BASE_URLS = {
-    'test': 'https://ekuatia.set.gov.py/consultas-test',
-    'produccion': 'https://ekuatia.set.gov.py/consultas',
-    'simulado': 'https://ekuatia.set.gov.py/consultas-test',
-}
+# Las URLs de consulta y del QR se configuran en Configuraciones
+# Generales FEPy — ya no viven en el código.
 
 
 class FePyDocumentoElectronico(models.Model):
