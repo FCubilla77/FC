@@ -106,6 +106,143 @@
                                 </div>
                             </page>
 
+                            <page string="Sistema de Facturación" name="fe_py_sistema_facturacion_ids">
+                                <field name="fe_py_sistema_facturacion_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Emisión" name="fe_py_tipo_emision_ids">
+                                <field name="fe_py_tipo_emision_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Régimen" name="fe_py_tipo_regimen_ids">
+                                <field name="fe_py_tipo_regimen_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Operación" name="fe_py_tipo_operacion_ids">
+                                <field name="fe_py_tipo_operacion_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="es_b2g"/>
+                                        <field name="es_b2f"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Transacción" name="fe_py_tipo_transaccion_ids">
+                                <field name="fe_py_tipo_transaccion_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="tipo_producto"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Impuesto" name="fe_py_tipo_impuesto_ids">
+                                <field name="fe_py_tipo_impuesto_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Indicadores de Presencia" name="fe_py_indicador_presencia_ids">
+                                <field name="fe_py_indicador_presencia_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Motivos de Emisión" name="fe_py_motivo_emision_ids">
+                                <field name="fe_py_motivo_emision_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Documento Asociado" name="fe_py_tipo_documento_asociado_ids">
+                                <field name="fe_py_tipo_documento_asociado_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipo de Contribuyente" name="fe_py_tipo_contribuyente_ids">
+                                <field name="fe_py_tipo_contribuyente_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Condición Tipo de Cambio" name="fe_py_condicion_tipo_cambio_ids">
+                                <field name="fe_py_condicion_tipo_cambio_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Afectación IVA" name="fe_py_afectacion_iva_ids">
+                                <field name="fe_py_afectacion_iva_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                        <field name="proporcion_gravada"/>
+                                        <field name="disponible"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Unidades de Medida" name="fe_py_unidad_medida_ids">
+                                <field name="fe_py_unidad_medida_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name" string="Representación (va al XML)"/>
+                                        <field name="descripcion_larga"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+
                             <page string="Servicios de SIFEN" name="urls">
                                 <group>
                                     <group string="Ambiente de Test">

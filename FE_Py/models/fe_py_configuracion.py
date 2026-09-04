@@ -166,6 +166,97 @@ class FePyConfiguracion(models.Model):
         'fe_py.tipo_emision', string='FEPy Tipo de Emisión por Defecto',
         help='Se informa como iTipEmi. Normalmente "Normal".')
 
+
+    # ------------------------------------------------------------------
+    # Catálogos SIFEN embebidos como pestañas
+    #
+    # Los catálogos son datos GLOBALES (no dependen de la Compañía), pero
+    # se muestran acá para tener toda la parametrización de Facturación
+    # Electrónica en una sola pantalla.
+    #
+    # Se implementan como campos calculados que devuelven todos los
+    # registros del catálogo, con un inverso que permite crear, editar y
+    # eliminar desde la propia pestaña. No es el patrón habitual de Odoo
+    # (lo normal sería un menú por catálogo), pero es lo que permite
+    # mantenerlos agrupados sin duplicar los datos por Compañía.
+    # ------------------------------------------------------------------
+    fe_py_sistema_facturacion_ids = fields.Many2many(
+        'fe_py.sistema_facturacion', string='Sistemas de Facturación',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_emision_ids = fields.Many2many(
+        'fe_py.tipo_emision', string='Tipos de Emisión',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_regimen_ids = fields.Many2many(
+        'fe_py.tipo_regimen', string='Tipos de Régimen',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_operacion_ids = fields.Many2many(
+        'fe_py.tipo_operacion', string='Tipos de Operación',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_transaccion_ids = fields.Many2many(
+        'fe_py.tipo_transaccion', string='Tipos de Transacción',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_impuesto_ids = fields.Many2many(
+        'fe_py.tipo_impuesto', string='Tipos de Impuesto Afectado',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_indicador_presencia_ids = fields.Many2many(
+        'fe_py.indicador_presencia', string='Indicadores de Presencia',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_motivo_emision_ids = fields.Many2many(
+        'fe_py.motivo_emision', string='Motivos de Emisión (NC/ND)',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_documento_asociado_ids = fields.Many2many(
+        'fe_py.tipo_documento_asociado', string='Tipos de Documento Asociado',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_tipo_contribuyente_ids = fields.Many2many(
+        'fe_py.tipo_contribuyente_receptor', string='Tipos de Contribuyente (Receptor)',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_condicion_tipo_cambio_ids = fields.Many2many(
+        'fe_py.condicion_tipo_cambio', string='Condiciones del Tipo de Cambio',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_afectacion_iva_ids = fields.Many2many(
+        'fe_py.afectacion_iva', string='Códigos de Afectación IVA',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    fe_py_unidad_medida_ids = fields.Many2many(
+        'fe_py.unidad_medida', string='Unidades de Medida',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+
+    # Campo del catálogo -> modelo que muestra
+    _CATALOGOS_EN_PESTANAS = {
+        'fe_py_sistema_facturacion_ids': 'fe_py.sistema_facturacion',
+        'fe_py_tipo_emision_ids': 'fe_py.tipo_emision',
+        'fe_py_tipo_regimen_ids': 'fe_py.tipo_regimen',
+        'fe_py_tipo_operacion_ids': 'fe_py.tipo_operacion',
+        'fe_py_tipo_transaccion_ids': 'fe_py.tipo_transaccion',
+        'fe_py_tipo_impuesto_ids': 'fe_py.tipo_impuesto',
+        'fe_py_indicador_presencia_ids': 'fe_py.indicador_presencia',
+        'fe_py_motivo_emision_ids': 'fe_py.motivo_emision',
+        'fe_py_tipo_documento_asociado_ids': 'fe_py.tipo_documento_asociado',
+        'fe_py_tipo_contribuyente_ids': 'fe_py.tipo_contribuyente_receptor',
+        'fe_py_condicion_tipo_cambio_ids': 'fe_py.condicion_tipo_cambio',
+        'fe_py_afectacion_iva_ids': 'fe_py.afectacion_iva',
+        'fe_py_unidad_medida_ids': 'fe_py.unidad_medida',
+    }
+
+    def _compute_catalogos(self):
+        """Cada pestaña muestra el catálogo completo, incluidos los
+        registros archivados, para que se puedan reactivar desde acá."""
+        for config in self:
+            for campo, modelo in self._CATALOGOS_EN_PESTANAS.items():
+                config[campo] = self.env[modelo].with_context(
+                    active_test=False).search([])
+
+    def _inverse_catalogos(self):
+        """Permite crear, editar y eliminar registros del catálogo desde la
+        pestaña. Al quitar una fila, se elimina el registro del catálogo:
+        como el campo muestra siempre TODOS los registros, sacar uno de la
+        lista solo puede significar que se lo quiere borrar."""
+        for config in self:
+            for campo, modelo in self._CATALOGOS_EN_PESTANAS.items():
+                actuales = self.env[modelo].with_context(active_test=False).search([])
+                quitados = actuales - config[campo]
+                if quitados:
+                    quitados.unlink()
+
     _company_uniq = models.Constraint(
         'unique(company_id)',
         'Ya existe una Configuración FEPy para esta Compañía.',
