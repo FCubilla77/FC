@@ -39,9 +39,10 @@ class FePyCatalogoBase(models.AbstractModel):
         for reg in self:
             reg.display_name = '%s - %s' % (reg.codigo or '', reg.name or '')
 
-    _sql_constraints = [
-        ('codigo_uniq', 'unique(codigo)', 'Ya existe un registro con ese Código SIFEN.'),
-    ]
+    _codigo_uniq = models.Constraint(
+        'unique(codigo)',
+        'Ya existe un registro con ese Código SIFEN.',
+    )
 
 
 class FePySistemaFacturacion(models.Model):

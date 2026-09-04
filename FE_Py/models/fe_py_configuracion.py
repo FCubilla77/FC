@@ -166,10 +166,10 @@ class FePyConfiguracion(models.Model):
         'fe_py.tipo_emision', string='FEPy Tipo de Emisión por Defecto',
         help='Se informa como iTipEmi. Normalmente "Normal".')
 
-    _sql_constraints = [
-        ('company_uniq', 'unique(company_id)',
-         'Ya existe una Configuración FEPy para esta Compañía.'),
-    ]
+    _company_uniq = models.Constraint(
+        'unique(company_id)',
+        'Ya existe una Configuración FEPy para esta Compañía.',
+    )
 
     # ------------------------------------------------------------------
     # Acceso desde el resto del módulo

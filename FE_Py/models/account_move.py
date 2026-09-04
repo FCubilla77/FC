@@ -3,7 +3,6 @@ import logging
 
 from odoo import api, exceptions, fields, models
 
-from .res_partner import INDICADOR_PRESENCIA, TIPO_IMPUESTO
 
 _logger = logging.getLogger(__name__)
 
