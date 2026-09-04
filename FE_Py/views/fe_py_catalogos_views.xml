@@ -1,0 +1,336 @@
+<odoo>
+    <data>
+
+        <menuitem id="menu_fe_py_datos_maestros" name="Datos Maestros"
+                  parent="menu_fe_py_grupo" sequence="5"/>
+
+        <record id="view_sistema_facturacion_list" model="ir.ui.view">
+            <field name="name">fe_py.sistema_facturacion.list</field>
+            <field name="model">fe_py.sistema_facturacion</field>
+            <field name="arch" type="xml">
+                <list string="Sistemas de Facturación" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_sistema_facturacion" model="ir.actions.act_window">
+            <field name="name">Sistemas de Facturación</field>
+            <field name="res_model">fe_py.sistema_facturacion</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_sistema_facturacion" name="Sistemas de Facturación"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_sistema_facturacion" sequence="10"/>
+
+        <record id="view_tipo_emision_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_emision.list</field>
+            <field name="model">fe_py.tipo_emision</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Emisión" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_emision" model="ir.actions.act_window">
+            <field name="name">Tipos de Emisión</field>
+            <field name="res_model">fe_py.tipo_emision</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_emision" name="Tipos de Emisión"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_emision" sequence="20"/>
+
+        <record id="view_tipo_regimen_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_regimen.list</field>
+            <field name="model">fe_py.tipo_regimen</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Régimen" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_regimen" model="ir.actions.act_window">
+            <field name="name">Tipos de Régimen</field>
+            <field name="res_model">fe_py.tipo_regimen</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_regimen" name="Tipos de Régimen"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_regimen" sequence="30"/>
+
+        <record id="view_tipo_operacion_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_operacion.list</field>
+            <field name="model">fe_py.tipo_operacion</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Operación" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                        <field name="es_b2g"/>
+                        <field name="es_b2f"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_operacion" model="ir.actions.act_window">
+            <field name="name">Tipos de Operación</field>
+            <field name="res_model">fe_py.tipo_operacion</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_operacion" name="Tipos de Operación"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_operacion" sequence="40"/>
+
+        <record id="view_tipo_transaccion_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_transaccion.list</field>
+            <field name="model">fe_py.tipo_transaccion</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Transacción" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                        <field name="tipo_producto"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_transaccion" model="ir.actions.act_window">
+            <field name="name">Tipos de Transacción</field>
+            <field name="res_model">fe_py.tipo_transaccion</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_transaccion" name="Tipos de Transacción"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_transaccion" sequence="50"/>
+
+        <record id="view_tipo_impuesto_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_impuesto.list</field>
+            <field name="model">fe_py.tipo_impuesto</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Impuesto Afectado" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_impuesto" model="ir.actions.act_window">
+            <field name="name">Tipos de Impuesto Afectado</field>
+            <field name="res_model">fe_py.tipo_impuesto</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_impuesto" name="Tipos de Impuesto Afectado"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_impuesto" sequence="60"/>
+
+        <record id="view_indicador_presencia_list" model="ir.ui.view">
+            <field name="name">fe_py.indicador_presencia.list</field>
+            <field name="model">fe_py.indicador_presencia</field>
+            <field name="arch" type="xml">
+                <list string="Indicadores de Presencia" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_indicador_presencia" model="ir.actions.act_window">
+            <field name="name">Indicadores de Presencia</field>
+            <field name="res_model">fe_py.indicador_presencia</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_indicador_presencia" name="Indicadores de Presencia"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_indicador_presencia" sequence="70"/>
+
+        <record id="view_motivo_emision_list" model="ir.ui.view">
+            <field name="name">fe_py.motivo_emision.list</field>
+            <field name="model">fe_py.motivo_emision</field>
+            <field name="arch" type="xml">
+                <list string="Motivos de Emisión (NC/ND)" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_motivo_emision" model="ir.actions.act_window">
+            <field name="name">Motivos de Emisión (NC/ND)</field>
+            <field name="res_model">fe_py.motivo_emision</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_motivo_emision" name="Motivos de Emisión (NC/ND)"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_motivo_emision" sequence="80"/>
+
+        <record id="view_tipo_documento_asociado_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_documento_asociado.list</field>
+            <field name="model">fe_py.tipo_documento_asociado</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Documento Asociado" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_documento_asociado" model="ir.actions.act_window">
+            <field name="name">Tipos de Documento Asociado</field>
+            <field name="res_model">fe_py.tipo_documento_asociado</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_documento_asociado" name="Tipos de Documento Asociado"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_documento_asociado" sequence="90"/>
+
+        <record id="view_tipo_contribuyente_receptor_list" model="ir.ui.view">
+            <field name="name">fe_py.tipo_contribuyente_receptor.list</field>
+            <field name="model">fe_py.tipo_contribuyente_receptor</field>
+            <field name="arch" type="xml">
+                <list string="Tipos de Contribuyente (Receptor)" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tipo_contribuyente_receptor" model="ir.actions.act_window">
+            <field name="name">Tipos de Contribuyente (Receptor)</field>
+            <field name="res_model">fe_py.tipo_contribuyente_receptor</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_tipo_contribuyente_receptor" name="Tipos de Contribuyente (Receptor)"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_tipo_contribuyente_receptor" sequence="100"/>
+
+        <record id="view_condicion_tipo_cambio_list" model="ir.ui.view">
+            <field name="name">fe_py.condicion_tipo_cambio.list</field>
+            <field name="model">fe_py.condicion_tipo_cambio</field>
+            <field name="arch" type="xml">
+                <list string="Condiciones del Tipo de Cambio" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_condicion_tipo_cambio" model="ir.actions.act_window">
+            <field name="name">Condiciones del Tipo de Cambio</field>
+            <field name="res_model">fe_py.condicion_tipo_cambio</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_condicion_tipo_cambio" name="Condiciones del Tipo de Cambio"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_condicion_tipo_cambio" sequence="110"/>
+
+        <record id="view_afectacion_iva_list" model="ir.ui.view">
+            <field name="name">fe_py.afectacion_iva.list</field>
+            <field name="model">fe_py.afectacion_iva</field>
+            <field name="arch" type="xml">
+                <list string="Códigos de Afectación IVA" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                        <field name="disponible"/>
+                        <field name="proporcion_gravada"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_afectacion_iva" model="ir.actions.act_window">
+            <field name="name">Códigos de Afectación IVA</field>
+            <field name="res_model">fe_py.afectacion_iva</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_afectacion_iva" name="Códigos de Afectación IVA"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_afectacion_iva" sequence="120"/>
+
+        <record id="view_actividad_economica_list" model="ir.ui.view">
+            <field name="name">fe_py.actividad_economica.list</field>
+            <field name="model">fe_py.actividad_economica</field>
+            <field name="arch" type="xml">
+                <list string="Actividades Económicas" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_actividad_economica" model="ir.actions.act_window">
+            <field name="name">Actividades Económicas</field>
+            <field name="res_model">fe_py.actividad_economica</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_actividad_economica" name="Actividades Económicas"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_actividad_economica" sequence="130"/>
+
+        <record id="view_unidad_medida_list" model="ir.ui.view">
+            <field name="name">fe_py.unidad_medida.list</field>
+            <field name="model">fe_py.unidad_medida</field>
+            <field name="arch" type="xml">
+                <list string="Unidades de Medida" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="codigo"/>
+                    <field name="name" string="Representación (va al XML)"/>
+                    <field name="descripcion_larga"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_unidad_medida" model="ir.actions.act_window">
+            <field name="name">Unidades de Medida</field>
+            <field name="res_model">fe_py.unidad_medida</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <menuitem id="menu_unidad_medida" name="Unidades de Medida"
+                  parent="menu_fe_py_datos_maestros"
+                  action="action_unidad_medida" sequence="140"/>
+
+    </data>
+</odoo>

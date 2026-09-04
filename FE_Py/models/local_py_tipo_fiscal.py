@@ -26,6 +26,20 @@ class LocalPyTipoFiscal(models.Model):
              'es electrónico o es físico, nunca ambos ni ninguno.',
     )
 
+    fe_py_itide = fields.Char(
+        string='FEPy Código de Documento Electrónico',
+        help='Código que se informa como iTiDE en el XML (Factura '
+             'electrónica = 1, Nota de crédito = 5, Nota de débito = 6, '
+             'Factura de exportación = 2, Autofactura = 4, Nota de remisión '
+             '= 7). Habilitar un tipo nuevo es cargar acá su código, sin '
+             'tocar el programa.',
+    )
+    fe_py_itide_descripcion = fields.Char(
+        string='FEPy Descripción del Documento Electrónico',
+        help='Texto que se informa como dDesTiDE, junto al código. Debe '
+             'coincidir con la descripción publicada por la DNIT.',
+    )
+
     # ------------------------------------------------------------------
     # Sincronización con local_py_es_fisico
     #

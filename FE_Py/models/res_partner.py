@@ -3,83 +3,66 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
-# Tabla E011 del Manual Técnico — Indicador de presencia de la operación.
-INDICADOR_PRESENCIA = [
-    ('1', 'Operación presencial'),
-    ('2', 'Operación electrónica'),
-    ('3', 'Operación telemarketing'),
-    ('4', 'Operación de venta a domicilio'),
-    ('5', 'Operación bancaria'),
-    ('6', 'Operación cíclica'),
-    ('9', 'Otro'),
-]
-
-# Tabla D013 del Manual Técnico — Tipo de impuesto afectado.
-TIPO_IMPUESTO = [
-    ('1', 'IVA'),
-    ('2', 'ISC'),
-    ('3', 'Renta'),
-    ('4', 'Ninguno'),
-    ('5', 'IVA - Renta'),
-]
-
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     fe_py_es_estado = fields.Boolean(
-        string='Es Organismo del Estado',
+        string='FEPy Es Organismo del Estado',
         help='Tildar para Organismos o Entidades del Estado (OEE). SIFEN '
-             'valida contra su propia base de datos: si el RUC del receptor '
+             'valida contra su propia base: si el RUC del receptor '
              'corresponde a un OEE, el Tipo de Operación DEBE ser B2G '
              '(Nota Técnica N° 20).\n\n'
              'Excluyente con "Es Exterior": un OEE tiene RUC paraguayo por '
-             'definición, nunca puede ser del exterior.',
+             'definición.',
     )
-    fe_py_tipo_persona = fields.Selection(
-        string='Tipo de Persona (FE)',
-        selection=[('fisica', 'Persona Física'), ('juridica', 'Persona Jurídica')],
-        compute='_compute_fe_py_tipo_persona', store=True, readonly=False,
-        help='Se informa como iTiContRec en el XML. Se propone según el tipo '
-             'de Contacto (Empresa = Jurídica, Individual = Física), pero '
-             'queda editable: puede haber un contribuyente registrado como '
-             'Empresa en Odoo que legalmente sea Persona Física.',
+    fe_py_tipo_contribuyente_id = fields.Many2one(
+        'fe_py.tipo_contribuyente_receptor', string='FEPy Tipo de Contribuyente',
+        compute='_compute_fe_py_tipo_contribuyente', store=True, readonly=False,
+        help='Se informa como iTiContRec. Se propone según el tipo de '
+             'Contacto (Empresa = Jurídica, Individual = Física), pero queda '
+             'editable: puede haber un contribuyente registrado como Empresa '
+             'en Odoo que legalmente sea Persona Física.',
     )
     fe_py_identificacion_texto = fields.Char(
-        string='Descripción de la Identificación',
-        help='Solo aplica cuando el Tipo de Identificación Fiscal es '
-             '"Identificacion Tributaria". SIFEN no tiene un código propio '
-             'para ese caso, así que se informa como "Otro" (iTipIDRec=9) '
-             'más esta descripción libre. Ejemplos: "CUIT", "RFC", "NIT", '
-             '"Tax ID".',
+        string='FEPy Descripción de la Identificación',
+        help='Solo aplica cuando el Tipo de Identificación Fiscal se informa '
+             'a SIFEN como "Otro". Ahí el usuario escribe el dato real: '
+             '"CUIT", "RFC", "NIT", "Tax ID".',
     )
-    fe_py_itimp = fields.Selection(
-        string='Tipo de Impuesto Afectado (FE)',
-        selection=TIPO_IMPUESTO, default='1',
-        help='Se informa como iTImp en el XML. Valor por defecto para las '
-             'facturas de este Cliente — queda editable por operación.',
+    fe_py_tipo_impuesto_id = fields.Many2one(
+        'fe_py.tipo_impuesto', string='FEPy Tipo de Impuesto Afectado',
+        help='Se informa como iTImp. Valor por defecto para las facturas de '
+             'este Cliente — queda editable por operación.',
     )
-    fe_py_indicador_presencia = fields.Selection(
-        string='Indicador de Presencia (FE)',
-        selection=INDICADOR_PRESENCIA, default='1',
-        help='Se informa como iIndPres en el XML. Presencial = venta física '
-             'en el local; Electrónica = e-commerce o similar; Cíclica = '
-             'facturación recurrente de contrato. Valor por defecto para las '
-             'facturas de este Cliente — queda editable por operación.',
+    fe_py_indicador_presencia_id = fields.Many2one(
+        'fe_py.indicador_presencia', string='FEPy Indicador de Presencia',
+        help='Se informa como iIndPres. Presencial = venta física en el '
+             'local; Electrónica = e-commerce; Cíclica = facturación '
+             'recurrente de contrato. Valor por defecto para este Cliente.',
     )
     fe_py_es_exterior = fields.Boolean(
-        string='Es del Exterior (FE)', compute='_compute_fe_py_es_exterior',
+        string='FEPy Es del Exterior', compute='_compute_fe_py_es_exterior',
         help='Calculado desde la Posición Fiscal marcada como "Es Exterior" '
-             'en local_py. local_py ya valida que este dato sea coherente con '
-             'el País, el Tipo de Identificación Fiscal y el Incoterm del '
-             'Contacto, así que se usa directamente como fuente confiable.',
+             'en local_py, que ya valida su coherencia con el País, el Tipo '
+             'de Identificación Fiscal y el Incoterm del Contacto.',
+    )
+    fe_py_es_contribuyente = fields.Boolean(
+        string='FEPy Es Contribuyente', compute='_compute_fe_py_es_contribuyente',
+        help='Se informa como iNatRec. Automático: es Contribuyente si su '
+             'Tipo de Identificación Fiscal es RUC; en cualquier otro caso '
+             '(cédula, pasaporte, identificación extranjera) va como No '
+             'Contribuyente.',
     )
 
     @api.depends('is_company')
-    def _compute_fe_py_tipo_persona(self):
+    def _compute_fe_py_tipo_contribuyente(self):
+        Cat = self.env['fe_py.tipo_contribuyente_receptor']
+        juridica = Cat.search([('codigo', '=', '2')], limit=1)
+        fisica = Cat.search([('codigo', '=', '1')], limit=1)
         for partner in self:
-            if not partner.fe_py_tipo_persona:
-                partner.fe_py_tipo_persona = 'juridica' if partner.is_company else 'fisica'
+            if not partner.fe_py_tipo_contribuyente_id:
+                partner.fe_py_tipo_contribuyente_id = juridica if partner.is_company else fisica
 
     @api.depends('property_account_position_id', 'property_account_position_id.local_py_es_exterior')
     def _compute_fe_py_es_exterior(self):
@@ -88,6 +71,13 @@ class ResPartner(models.Model):
                 partner.property_account_position_id
                 and partner.property_account_position_id.local_py_es_exterior
             )
+
+    @api.depends('l10n_py_tipo_identificacion_fiscal_id',
+                 'l10n_py_tipo_identificacion_fiscal_id.fe_py_es_ruc')
+    def _compute_fe_py_es_contribuyente(self):
+        for partner in self:
+            tipo = partner.l10n_py_tipo_identificacion_fiscal_id
+            partner.fe_py_es_contribuyente = bool(tipo and tipo.fe_py_es_ruc)
 
     @api.constrains('fe_py_es_estado', 'property_account_position_id')
     def _check_fe_py_estado_vs_exterior(self):

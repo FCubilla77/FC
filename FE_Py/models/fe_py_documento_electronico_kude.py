@@ -146,8 +146,8 @@ class FePyDocumentoElectronico(models.Model):
 
     def _fe_py_get_consulta_url_base(self):
         self.ensure_one()
-        ambiente = self.move_id.company_id.fe_py_ambiente
-        return CONSULTA_BASE_URLS.get(ambiente, CONSULTA_BASE_URLS['test'])
+        config = self.env['fe_py.configuracion']._get_config(self.move_id.company_id)
+        return config.fe_py_get_url('consulta')
 
     def _fe_py_get_tipo_fiscal_display(self):
         """Nombre del Tipo Fiscal con tildes, solo para mostrar en el KuDE
@@ -229,9 +229,8 @@ class FePyDocumentoElectronico(models.Model):
         c_hash_qr = hashlib.sha256(qparsec.encode('utf-8')).hexdigest()
         qpar_final = qpar + '&cHashQR=' + c_hash_qr
 
-        ambiente = company.fe_py_ambiente
-        base_url = QR_BASE_URLS.get(ambiente, QR_BASE_URLS['test'])
-        return base_url + qpar_final
+        config = self.env['fe_py.configuracion']._get_config(company)
+        return config.fe_py_get_url('qr') + qpar_final
 
     def _fe_py_generar_imagen_qr(self, url):
         """Devuelve la imagen QR como PNG en base64 (para el campo Binary

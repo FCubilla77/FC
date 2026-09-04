@@ -1,0 +1,160 @@
+<odoo>
+    <data>
+        <record id="view_fe_py_configuracion_form" model="ir.ui.view">
+            <field name="name">fe_py.configuracion.form</field>
+            <field name="model">fe_py.configuracion</field>
+            <field name="arch" type="xml">
+                <form string="Configuraciones Generales FEPy">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="company_id" options="{'no_create': True}"/>
+                                <field name="fe_py_habilitado"/>
+                            </group>
+                            <group>
+                                <field name="fe_py_ambiente"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Datos del Emisor" name="emisor">
+                                <group>
+                                    <group>
+                                        <field name="fe_py_tipo_contribuyente"/>
+                                        <field name="fe_py_tipo_regimen_id" options="{'no_create': True}"/>
+                                    </group>
+                                </group>
+                                <separator string="Actividades Económicas"/>
+                                <div class="text-muted mb-2">
+                                    Deben coincidir exactamente con las actividades registradas
+                                    ante la DNIT. Se informan todas en el XML.
+                                </div>
+                                <field name="fe_py_actividad_economica_ids" widget="many2many">
+                                    <list editable="bottom">
+                                        <field name="codigo"/>
+                                        <field name="name"/>
+                                    </list>
+                                </field>
+                            </page>
+
+                            <page string="Certificado Digital" name="certificado">
+                                <group>
+                                    <group>
+                                        <field name="fe_py_certificado_file"
+                                               filename="fe_py_certificado_filename"/>
+                                        <field name="fe_py_certificado_filename" invisible="1"/>
+                                        <field name="fe_py_certificado_password" password="True"/>
+                                    </group>
+                                    <group>
+                                        <field name="fe_py_certificado_vencimiento"/>
+                                    </group>
+                                </group>
+                                <button name="fe_py_generar_certificados" type="object"
+                                        string="Generar Certificados" class="btn-primary"/>
+                                <group string="Rutas generadas en el servidor">
+                                    <field name="fe_py_cert_path"/>
+                                    <field name="fe_py_private_key_path"/>
+                                    <field name="fe_py_public_key_path"/>
+                                </group>
+                                <div class="text-muted">
+                                    La Clave Privada nunca se guarda en la base de datos:
+                                    queda como archivo en el servidor, con permisos restringidos.
+                                </div>
+                            </page>
+
+                            <page string="Código de Seguridad (CSC)" name="csc">
+                                <group>
+                                    <field name="fe_py_idcsc"/>
+                                    <field name="fe_py_csc"/>
+                                </group>
+                                <div class="text-muted">
+                                    Los valores que vienen cargados son los genéricos que la DNIT
+                                    publica para el Ambiente de Test. Antes de pasar a Producción
+                                    hay que reemplazarlos por los propios.
+                                </div>
+                            </page>
+
+                            <page string="Automatización" name="automatizacion">
+                                <group>
+                                    <field name="fe_py_envio_automatico"/>
+                                    <field name="fe_py_kude_automatico"/>
+                                    <field name="fe_py_email_automatico"/>
+                                    <field name="fe_py_reintento_automatico"/>
+                                </group>
+                                <div class="text-muted">
+                                    El reintento automático corre cada 30 minutos por defecto.
+                                    El intervalo se cambia en Ajustes &gt; Técnico &gt;
+                                    Acciones Planificadas.
+                                </div>
+                            </page>
+
+                            <page string="Valores por Defecto" name="defaults">
+                                <group>
+                                    <group>
+                                        <field name="fe_py_sistema_facturacion_id" options="{'no_create': True}"/>
+                                        <field name="fe_py_tipo_emision_id" options="{'no_create': True}"/>
+                                        <field name="fe_py_condicion_tipo_cambio_id" options="{'no_create': True}"/>
+                                    </group>
+                                    <group>
+                                        <field name="fe_py_tipo_documento_asociado_id" options="{'no_create': True}"/>
+                                        <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                                    </group>
+                                </group>
+                                <div class="text-muted">
+                                    La Unidad de Medida por Defecto se usa solo en las líneas de
+                                    factura cargadas a mano, sin producto.
+                                </div>
+                            </page>
+
+                            <page string="Servicios de SIFEN" name="urls">
+                                <group>
+                                    <group string="Ambiente de Test">
+                                        <field name="fe_py_ws_recibe_test"/>
+                                        <field name="fe_py_ws_evento_test"/>
+                                        <field name="fe_py_qr_test"/>
+                                        <field name="fe_py_consulta_test"/>
+                                    </group>
+                                    <group string="Ambiente de Producción">
+                                        <field name="fe_py_ws_recibe_prod"/>
+                                        <field name="fe_py_ws_evento_prod"/>
+                                        <field name="fe_py_qr_prod"/>
+                                        <field name="fe_py_consulta_prod"/>
+                                    </group>
+                                </group>
+                                <group>
+                                    <field name="fe_py_timeout"/>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_fe_py_configuracion_list" model="ir.ui.view">
+            <field name="name">fe_py.configuracion.list</field>
+            <field name="model">fe_py.configuracion</field>
+            <field name="arch" type="xml">
+                <list string="Configuraciones Generales FEPy">
+                    <field name="company_id"/>
+                    <field name="fe_py_ambiente"/>
+                    <field name="fe_py_habilitado"/>
+                    <field name="fe_py_certificado_vencimiento"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_fe_py_configuracion" model="ir.actions.act_window">
+            <field name="name">Configuraciones Generales FEPy</field>
+            <field name="res_model">fe_py.configuracion</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_fe_py_configuracion"
+                  name="Configuraciones Generales FEPy"
+                  parent="menu_fe_py_grupo"
+                  action="action_fe_py_configuracion"
+                  groups="account.group_account_manager"
+                  sequence="8"/>
+    </data>
+</odoo>

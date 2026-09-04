@@ -19,6 +19,7 @@ class AccountJournal(models.Model):
         """Devuelve (idcsc, csc) efectivos para este Diario: los propios si
         están cargados, o los de la Compañía como valor por defecto."""
         self.ensure_one()
-        idcsc = self.fe_py_idcsc or self.company_id.fe_py_idcsc
-        csc = self.fe_py_csc or self.company_id.fe_py_csc
+        config = self.env['fe_py.configuracion']._get_config(self.company_id)
+        idcsc = self.fe_py_idcsc or config.fe_py_idcsc
+        csc = self.fe_py_csc or config.fe_py_csc
         return idcsc, csc

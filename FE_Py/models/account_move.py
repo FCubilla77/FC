@@ -81,107 +81,126 @@ class AccountMove(models.Model):
     # (no en el Documento Electrónico) porque tienen que poder cargarse
     # ANTES de Confirmar, momento en el que el DE todavía no existe.
     # ------------------------------------------------------------------
-    fe_py_tipo_operacion = fields.Selection(
-        string='Tipo de Operación (FE)',
-        selection=[('1', 'B2B'), ('2', 'B2C'), ('3', 'B2G'), ('4', 'B2F')],
+    fe_py_tipo_operacion_id = fields.Many2one(
+        'fe_py.tipo_operacion', string='FEPy Tipo de Operación',
         compute='_compute_fe_py_tipo_operacion', store=True, readonly=False, copy=False,
         help='Se informa como iTiOpe. B2B = a empresa; B2C = a consumidor '
              'final; B2G = a Organismo del Estado; B2F = al exterior.\n\n'
              'Se propone automáticamente según el Cliente, pero queda '
-             'editable. Atención: si el RUC del receptor corresponde a un '
-             'Organismo del Estado registrado en SIFEN, el tipo DEBE ser B2G '
-             '(Nota Técnica N° 20) — SIFEN valida contra su propia base.',
+             'editable. Atención: si el receptor es un Organismo del Estado '
+             'registrado en SIFEN, el tipo DEBE ser B2G (Nota Técnica N° 20).',
     )
-    fe_py_indicador_presencia = fields.Selection(
-        string='Indicador de Presencia (FE)',
-        selection=INDICADOR_PRESENCIA,
+    fe_py_tipo_transaccion_id = fields.Many2one(
+        'fe_py.tipo_transaccion', string='FEPy Tipo de Transacción',
+        compute='_compute_fe_py_tipo_transaccion', store=True, readonly=False, copy=False,
+        help='Se informa como iTipTra. Se propone según la composición de la '
+             'operación (solo bienes, solo servicios o mixta), y queda '
+             'editable para los demás casos de la tabla: venta de activo '
+             'fijo, donación, anticipo, muestras médicas, etc.',
+    )
+    fe_py_indicador_presencia_id = fields.Many2one(
+        'fe_py.indicador_presencia', string='FEPy Indicador de Presencia',
         compute='_compute_fe_py_datos_del_cliente', store=True, readonly=False, copy=False,
         help='Se informa como iIndPres. Se precarga desde la ficha del '
              'Cliente y queda editable por operación.',
     )
-    fe_py_itimp = fields.Selection(
-        string='Tipo de Impuesto Afectado (FE)',
-        selection=TIPO_IMPUESTO,
+    fe_py_tipo_impuesto_id = fields.Many2one(
+        'fe_py.tipo_impuesto', string='FEPy Tipo de Impuesto Afectado',
         compute='_compute_fe_py_datos_del_cliente', store=True, readonly=False, copy=False,
-        help='Se informa como iTImp. Se precarga desde la ficha del Cliente '
-             'y queda editable por operación.',
+        help='Se informa como iTImp. Se precarga desde la ficha del Cliente.',
     )
 
     # -- Compras Públicas (gCompPub, E020-E029) — solo B2G ---------------
+    fe_py_es_b2g = fields.Boolean(
+        related='fe_py_tipo_operacion_id.es_b2g', string='Es B2G',
+        help='Auxiliar para mostrar u ocultar el bloque de Compras Públicas.',
+    )
     fe_py_venta_directa = fields.Boolean(
-        string='Venta Directa (sin licitación)', copy=False,
+        string='FEPy Venta Directa (sin licitación)', copy=False,
         help='Tildar cuando la venta al Organismo del Estado NO pasó por un '
-             'proceso de licitación/contratación pública. En ese caso los '
-             'datos de Compras Públicas dejan de ser obligatorios.\n\n'
+             'proceso de licitación. En ese caso los datos de Compras '
+             'Públicas dejan de ser obligatorios.\n\n'
              'El Tipo de Operación sigue siendo B2G igual: SIFEN lo exige '
              'para todo receptor que sea un Organismo del Estado.',
     )
-    fe_py_dmodcont = fields.Char(string='Modalidad del Contrato', copy=False)
-    fe_py_dentcont = fields.Integer(string='Entidad Contratante', copy=False)
-    fe_py_danocont = fields.Integer(string='Año del Contrato', copy=False)
-    fe_py_dseccont = fields.Char(string='Secuencia / N° de Contrato', copy=False)
-    fe_py_dfecodcont = fields.Date(string='Fecha del Código de Contratación', copy=False)
+    fe_py_dmodcont = fields.Char(string='FEPy Modalidad del Contrato', copy=False)
+    fe_py_dentcont = fields.Integer(string='FEPy Entidad Contratante', copy=False)
+    fe_py_danocont = fields.Integer(string='FEPy Año del Contrato', copy=False)
+    fe_py_dseccont = fields.Char(string='FEPy Secuencia / N° de Contrato', copy=False)
+    fe_py_dfecodcont = fields.Date(string='FEPy Fecha del Código de Contratación', copy=False)
     fe_py_dcodcondncp = fields.Char(
-        string='Código de Contratación DNCP', copy=False,
+        string='FEPy Código de Contratación DNCP', copy=False,
         help='Opcional (Nota Técnica N° 20). Código proveído por la DNCP.',
     )
 
     # -- Crédito por cuotas (gCuotas, E650-E659) -------------------------
     fe_py_condicion_credito = fields.Selection(
-        string='Condición del Crédito',
-        selection=[('1', 'Plazo'), ('2', 'Cuota')], default='1', copy=False,
-        help='Solo aplica a ventas a Crédito. "Plazo" informa dPlazoCre '
-             '(ej. "30 días"); "Cuota" informa el detalle de cada cuota.',
+        related='invoice_payment_term_id.fe_py_condicion_credito',
+        string='FEPy Condición del Crédito', readonly=True,
+        help='Viene del Término de Pago. "Plazo" informa dPlazoCre; "Cuota" '
+             'exige cargar el detalle de cada cuota.',
     )
     fe_py_cuota_ids = fields.One2many(
-        'fe_py.cuota', 'move_id', string='Cuotas', copy=False,
+        'fe_py.cuota', 'move_id', string='FEPy Cuotas', copy=False,
     )
 
-    @api.depends('partner_id', 'partner_id.fe_py_es_estado', 'partner_id.fe_py_es_exterior',
-                 'partner_id.fe_py_tipo_persona')
+    @api.depends('partner_id', 'partner_id.fe_py_es_estado',
+                 'partner_id.fe_py_es_exterior', 'partner_id.is_company')
     def _compute_fe_py_tipo_operacion(self):
+        Tipo = self.env['fe_py.tipo_operacion']
+        b2g = Tipo.search([('es_b2g', '=', True)], limit=1)
+        b2f = Tipo.search([('es_b2f', '=', True)], limit=1)
+        b2b = Tipo.search([('codigo', '=', '1')], limit=1)
+        b2c = Tipo.search([('codigo', '=', '2')], limit=1)
         for move in self:
             partner = move.partner_id
             if not partner:
-                move.fe_py_tipo_operacion = move.fe_py_tipo_operacion or False
                 continue
             if partner.fe_py_es_estado:
-                move.fe_py_tipo_operacion = '3'   # B2G
+                move.fe_py_tipo_operacion_id = b2g
             elif partner.fe_py_es_exterior:
-                move.fe_py_tipo_operacion = '4'   # B2F
-            elif partner.fe_py_tipo_persona == 'juridica':
-                move.fe_py_tipo_operacion = '1'   # B2B
+                move.fe_py_tipo_operacion_id = b2f
+            elif partner.is_company:
+                move.fe_py_tipo_operacion_id = b2b
             else:
-                move.fe_py_tipo_operacion = '2'   # B2C
+                move.fe_py_tipo_operacion_id = b2c
 
-    @api.depends('partner_id', 'partner_id.fe_py_indicador_presencia', 'partner_id.fe_py_itimp')
+    @api.depends('invoice_line_ids.product_id')
+    def _compute_fe_py_tipo_transaccion(self):
+        """Propone el Tipo de Transacción según la composición de la
+        operación. El catálogo indica qué registro corresponde a cada
+        composición, así que si la DNIT cambia los códigos, se ajusta en
+        el catálogo y no acá."""
+        Tipo = self.env['fe_py.tipo_transaccion']
+        por_composicion = {
+            comp: Tipo.search([('tipo_producto', '=', comp)], limit=1)
+            for comp in ('bienes', 'servicios', 'mixto')
+        }
+        for move in self:
+            lineas = move.invoice_line_ids.filtered(
+                lambda l: l.display_type not in ('line_section', 'line_note')
+            )
+            tipos = set(lineas.mapped('product_id.type'))
+            if tipos and tipos <= {'service'}:
+                comp = 'servicios'
+            elif tipos and 'service' not in tipos:
+                comp = 'bienes'
+            else:
+                comp = 'mixto'
+            move.fe_py_tipo_transaccion_id = por_composicion.get(comp)
+
+    @api.depends('partner_id', 'partner_id.fe_py_indicador_presencia_id',
+                 'partner_id.fe_py_tipo_impuesto_id')
     def _compute_fe_py_datos_del_cliente(self):
         for move in self:
             partner = move.partner_id
-            move.fe_py_indicador_presencia = (partner.fe_py_indicador_presencia or '1') if partner else '1'
-            move.fe_py_itimp = (partner.fe_py_itimp or '1') if partner else '1'
+            move.fe_py_indicador_presencia_id = partner.fe_py_indicador_presencia_id if partner else False
+            move.fe_py_tipo_impuesto_id = partner.fe_py_tipo_impuesto_id if partner else False
 
-
-    # Campo PROPIO (no related) — a diferencia de los de arriba, este tiene
-    # que poder completarse ANTES de Confirmar (en Borrador), momento en el
-    # que el Documento Electrónico todavía no existe (se crea recién en
-    # _post). Se copia hacia fe_py.documento_electronico.motivo_emision
-    # (related, de solo lectura desde ese lado) una vez creado.
-    fe_py_motivo_emision = fields.Selection(
-        string='Motivo de Emisión',
-        selection=[
-            ('1', 'Devolución y Ajuste de precios'),
-            ('2', 'Devolución'),
-            ('3', 'Descuento'),
-            ('4', 'Bonificación'),
-            ('5', 'Crédito incobrable'),
-            ('6', 'Recupero de costo'),
-            ('7', 'Recupero de gasto'),
-            ('8', 'Ajuste de precio'),
-        ],
-        copy=False,
-        help='Obligatorio para Nota de Crédito/Débito Electrónica — se '
-             'exige al Confirmar, no recién al generar el XML.',
+    fe_py_motivo_emision_id = fields.Many2one(
+        'fe_py.motivo_emision', string='FEPy Motivo de Emisión', copy=False,
+        help='Se informa como iMotEmi. Obligatorio en Nota de Crédito y Nota '
+             'de Débito Electrónica — se exige al Confirmar.',
     )
 
     @api.model
@@ -206,117 +225,187 @@ class AccountMove(models.Model):
             journals |= extra
         return journals
 
-    def _fe_py_receptor_es_contribuyente(self):
-        """True si el receptor se informa a SIFEN como contribuyente
-        (iNatRec=1, con dRucRec/dDVRec); False si va como no contribuyente
-        (iNatRec=2, con iTipIDRec/dNumIDRec).
-
-        El criterio es el Tipo de Identificación Fiscal del Contacto: solo
-        "RUC" es contribuyente. Cualquier otro (Cédula, Pasaporte, Cédula
-        Extranjero, Diplomático, Identificación Tributaria, Sin Nombre) va
-        como no contribuyente.
-
-        Fuente única de verdad: la usan tanto la validación previa como el
-        generador de XML y el del QR, para que no puedan divergir."""
-        self.ensure_one()
-        tipo_ruc = self.env.ref('local_py.tipo_identificacion_ruc', raise_if_not_found=False)
-        tipo_ident = self.partner_id.l10n_py_tipo_identificacion_fiscal_id
-        return bool(tipo_ruc and tipo_ident and tipo_ident.id == tipo_ruc.id)
-
     def _fe_py_validar_datos_electronicos(self):
-        """Devuelve la lista de datos que faltan para poder generar el DE
-        de este comprobante (vacía si está todo completo). Se usa tanto al
-        Confirmar (bloquea la Confirmación si falta algo) como al Generar/
-        Regenerar XML (por si algo cambió después de confirmar) — una sola
-        fuente de verdad para no repetir la misma lista en dos lugares."""
+        """Devuelve la lista de datos y configuraciones que faltan para
+        poder generar el Documento Electrónico de este comprobante.
+
+        Se ejecuta al CONFIRMAR: si falta algo, la operación queda en
+        Borrador y el mensaje indica exactamente qué completar y dónde.
+        También se reutiliza al Generar/Regenerar XML, por si algo cambió
+        después de confirmar — una sola fuente de verdad, para que
+        validación y generación no puedan divergir.
+        """
         self.ensure_one()
         company = self.company_id
         partner = self.partner_id
+        journal = self.journal_id
         faltantes = []
 
-        if not company.vat:
-            faltantes.append('RUC de la Compañía')
-        if not company.fe_py_actividad_economica_codigo:
-            faltantes.append('Código de Actividad Económica (Compañía)')
-        if not company.street:
-            faltantes.append('Dirección de la Compañía')
-        if not company.state_id:
-            faltantes.append('Departamento de la Compañía')
-        if not company.city_id:
-            faltantes.append('Ciudad de la Compañía')
-        if not self.journal_id.l10n_py_inicio_vigencia_timbrado:
-            faltantes.append('Inicio de Vigencia del Timbrado (Diario)')
+        Config = self.env['fe_py.configuracion'].sudo()
+        config = Config.search([('company_id', '=', company.id)], limit=1)
+        if not config:
+            return ['Configuración FEPy de la Compañía "%s" (Localización '
+                    'Paraguay > Facturación Electrónica Py > Configuraciones '
+                    'Generales FEPy)' % company.name]
 
-        # -- Receptor -------------------------------------------------
-        # local_py guarda el número de identificación SIEMPRE en `vat`
-        # (con "Omitir control RUT" activo cuando no es un RUC paraguayo).
-        # El discriminador contribuyente / no contribuyente es el Tipo de
-        # Identificación Fiscal, no si `vat` está vacío.
-        es_b2f = self.fe_py_tipo_operacion == '4'
+        # -- Configuración general -------------------------------------
+        if not config.fe_py_cert_path:
+            faltantes.append('Certificado digital sin generar (Configuraciones Generales FEPy)')
+        if not (config.fe_py_idcsc and config.fe_py_csc):
+            faltantes.append('IdCSC / CSC (Configuraciones Generales FEPy)')
+        if not config.fe_py_tipo_regimen_id:
+            faltantes.append('FEPy Tipo de Régimen (Configuraciones Generales FEPy)')
+        if not config.fe_py_actividad_economica_ids:
+            faltantes.append('FEPy Actividades Económicas (Configuraciones Generales FEPy)')
+        if not config.fe_py_sistema_facturacion_id:
+            faltantes.append('FEPy Sistema de Facturación (Configuraciones Generales FEPy)')
+        if not config.fe_py_tipo_emision_id:
+            faltantes.append('FEPy Tipo de Emisión por Defecto (Configuraciones Generales FEPy)')
+
+        # -- Emisor ----------------------------------------------------
+        if not company.vat:
+            faltantes.append('RUC de la Compañía (Ajustes > Empresas)')
+        for campo, etiqueta in (('street', 'Dirección'), ('state_id', 'Departamento'),
+                                ('city_id', 'Ciudad')):
+            if not company[campo]:
+                faltantes.append('%s de la Compañía (Ajustes > Empresas)' % etiqueta)
+
+        # -- Diario y Timbrado -----------------------------------------
+        if not journal.l10n_py_inicio_vigencia_timbrado:
+            faltantes.append('Inicio de Vigencia del Timbrado (Diario "%s")' % journal.name)
+        tipo_fiscal = journal.local_py_tipo_fiscal_id
+        if not tipo_fiscal:
+            faltantes.append('Tipo de Documento Fiscal del Diario "%s"' % journal.name)
+        elif not tipo_fiscal.fe_py_itide:
+            faltantes.append(
+                'FEPy Código de Documento Electrónico del Tipo Fiscal "%s" '
+                '(Localización Paraguay > Tipos de Documentos Fiscales)' % tipo_fiscal.name
+            )
+
+        # -- Receptor --------------------------------------------------
         tipo_ident = partner.l10n_py_tipo_identificacion_fiscal_id
         if not tipo_ident:
-            faltantes.append('Tipo de Identificación Fiscal del Cliente')
+            faltantes.append('Tipo de Identificación Fiscal del Cliente "%s"' % partner.display_name)
         if not partner.vat:
-            faltantes.append('RUT / Número de Identificación del Cliente')
-
-        if tipo_ident and not self._fe_py_receptor_es_contribuyente():
+            faltantes.append('RUT / Número de Identificación del Cliente "%s"' % partner.display_name)
+        if tipo_ident and not partner.fe_py_es_contribuyente:
             if not tipo_ident.fe_py_itipidrec:
                 faltantes.append(
-                    'Mapeo a código SIFEN del Tipo de Identificación Fiscal "%s" '
-                    '(Localización Paraguay > Tipos de Identificación Fiscal)'
+                    'FEPy Código de Documento SIFEN del Tipo de Identificación '
+                    '"%s" (Localización Paraguay > Tipos de Identificación Fiscal)'
                     % tipo_ident.name
                 )
             elif tipo_ident.fe_py_itipidrec == '9' and not partner.fe_py_identificacion_texto:
                 faltantes.append(
-                    'Descripción de la Identificación del Cliente (obligatoria '
-                    'cuando el tipo se informa a SIFEN como "Otro")'
+                    'FEPy Descripción de la Identificación del Cliente "%s" '
+                    '(obligatoria cuando el tipo se informa como "Otro")' % partner.display_name
                 )
-
+        if partner.fe_py_es_contribuyente and not partner.fe_py_tipo_contribuyente_id:
+            faltantes.append('FEPy Tipo de Contribuyente del Cliente "%s"' % partner.display_name)
         if not partner.country_id:
-            faltantes.append('País del Cliente')
+            faltantes.append('País del Cliente "%s"' % partner.display_name)
         if not partner.street:
-            faltantes.append('Dirección del Cliente')
-        # Departamento/Distrito/Ciudad NO se informan para B2F (regla D219
-        # del Manual, confirmada contra XML reales de producción), así que
+            faltantes.append('Dirección del Cliente "%s"' % partner.display_name)
+        # Departamento/Distrito/Ciudad no se informan en operaciones con el
+        # exterior (regla D219, confirmada contra XML reales), así que
         # tampoco se exigen en ese caso.
-        if not es_b2f:
+        if not (self.fe_py_tipo_operacion_id and self.fe_py_tipo_operacion_id.es_b2f):
             if not partner.state_id:
-                faltantes.append('Departamento del Cliente')
+                faltantes.append('Departamento del Cliente "%s"' % partner.display_name)
             if not partner.city_id:
-                faltantes.append('Ciudad del Cliente')
+                faltantes.append('Ciudad del Cliente "%s"' % partner.display_name)
 
-        # -- Nota de Crédito / Débito ---------------------------------
-        if self.fe_py_es_nc_nd and not self.fe_py_motivo_emision:
-            faltantes.append('Motivo de Emisión')
-        if self.move_type == 'out_refund' and not self.reversed_entry_id:
-            faltantes.append('Comprobante Asociado')
-        if self.move_type == 'out_refund' and self.reversed_entry_id:
-            doc_asociado = self.reversed_entry_id.fe_py_documento_id
-            if not doc_asociado or not doc_asociado.cdc:
+        # -- Datos de la operación -------------------------------------
+        if not self.fe_py_tipo_operacion_id:
+            faltantes.append('FEPy Tipo de Operación')
+        if not self.fe_py_tipo_transaccion_id:
+            faltantes.append('FEPy Tipo de Transacción')
+        if not self.fe_py_tipo_impuesto_id:
+            faltantes.append('FEPy Tipo de Impuesto Afectado')
+        if not self.fe_py_indicador_presencia_id:
+            faltantes.append('FEPy Indicador de Presencia')
+
+        # -- Moneda ----------------------------------------------------
+        if not self.currency_id.fe_py_descripcion:
+            faltantes.append(
+                'FEPy Descripción de Moneda en "%s" (Contabilidad > Monedas)'
+                % self.currency_id.name
+            )
+        if self.currency_id != company.currency_id and not config.fe_py_condicion_tipo_cambio_id:
+            faltantes.append('FEPy Condición del Tipo de Cambio (Configuraciones Generales FEPy)')
+
+        # -- Condición de la operación ---------------------------------
+        term = self.invoice_payment_term_id
+        if not term:
+            faltantes.append('Términos de Pago (define si la operación es Contado o Crédito)')
+        elif term.l10n_py_condicion == 'credito':
+            if term.fe_py_condicion_credito == '2' and not self.fe_py_cuota_ids:
                 faltantes.append(
-                    'CDC de la Factura Electrónica asociada (todavía no fue generado)'
+                    'FEPy Cuotas: el Término de Pago "%s" es por Cuota, hay que '
+                    'cargar el detalle de cada una' % term.name
                 )
 
-        # -- Compras Públicas (B2G) -----------------------------------
-        if self.fe_py_tipo_operacion == '3' and not self.fe_py_venta_directa:
-            campos_compub = [
+        # -- Líneas ----------------------------------------------------
+        lineas = self.invoice_line_ids.filtered(
+            lambda l: l.display_type not in ('line_section', 'line_note')
+        )
+        if not lineas:
+            faltantes.append('Al menos una línea de producto o servicio')
+        impuestos_sin_codigo, productos_sin_unidad = set(), set()
+        for line in lineas:
+            for tax in line.tax_ids:
+                if not tax.fe_py_afectacion_iva_id:
+                    impuestos_sin_codigo.add(tax.name)
+            if line.product_id:
+                if not line.product_id.fe_py_unidad_medida_id:
+                    productos_sin_unidad.add(line.product_id.display_name)
+            elif not config.fe_py_unidad_medida_id:
+                faltantes.append(
+                    'FEPy Unidad de Medida por Defecto (Configuraciones Generales '
+                    'FEPy): hay líneas sin producto y no hay unidad de respaldo'
+                )
+        for nombre in sorted(impuestos_sin_codigo):
+            faltantes.append(
+                'FEPy Afectación IVA en el impuesto "%s" (Contabilidad > Impuestos)' % nombre
+            )
+        for nombre in sorted(productos_sin_unidad):
+            faltantes.append('FEPy Unidad de Medida en el producto "%s"' % nombre)
+
+        # -- Nota de Crédito / Débito ----------------------------------
+        if self.fe_py_es_nc_nd:
+            if not self.fe_py_motivo_emision_id:
+                faltantes.append('FEPy Motivo de Emisión')
+            if not config.fe_py_tipo_documento_asociado_id:
+                faltantes.append(
+                    'FEPy Tipo de Documento Asociado (Configuraciones Generales FEPy)'
+                )
+        if self.move_type == 'out_refund':
+            if not self.reversed_entry_id:
+                faltantes.append('Comprobante Asociado (factura que se está revirtiendo)')
+            else:
+                doc = self.reversed_entry_id.fe_py_documento_id
+                if not doc or not doc.cdc:
+                    faltantes.append(
+                        'CDC de la Factura Electrónica asociada: la factura "%s" '
+                        'todavía no generó su Documento Electrónico'
+                        % self.reversed_entry_id.display_name
+                    )
+
+        # -- Compras Públicas (B2G) ------------------------------------
+        if (self.fe_py_tipo_operacion_id and self.fe_py_tipo_operacion_id.es_b2g
+                and not self.fe_py_venta_directa):
+            for campo, etiqueta in (
                 ('fe_py_dmodcont', 'Modalidad del Contrato'),
                 ('fe_py_dentcont', 'Entidad Contratante'),
                 ('fe_py_danocont', 'Año del Contrato'),
                 ('fe_py_dseccont', 'Secuencia / N° de Contrato'),
                 ('fe_py_dfecodcont', 'Fecha del Código de Contratación'),
-            ]
-            for campo, etiqueta in campos_compub:
+            ):
                 if not self[campo]:
                     faltantes.append(
-                        '%s (Compras Públicas — obligatorio en B2G; si no hubo '
-                        'licitación, tildar "Venta Directa")' % etiqueta
+                        'FEPy %s — Compras Públicas es obligatorio en B2G; si no '
+                        'hubo licitación, tildar "Venta Directa"' % etiqueta
                     )
-
-        # -- Crédito por cuotas ---------------------------------------
-        condicion = self.invoice_payment_term_id.l10n_py_condicion if self.invoice_payment_term_id else False
-        if condicion == 'credito' and self.fe_py_condicion_credito == '2' and not self.fe_py_cuota_ids:
-            faltantes.append('Detalle de Cuotas (condición del crédito = Cuota)')
 
         return faltantes
 
@@ -350,7 +439,9 @@ class AccountMove(models.Model):
                 errores.append('%s:\n  - %s' % (move.display_name, '\n  - '.join(faltantes)))
         if errores:
             raise exceptions.UserError(
-                'No se puede Confirmar: faltan datos para Facturación Electrónica.\n\n'
+                'No se puede Confirmar: faltan datos o configuraciones de '
+                'Facturación Electrónica.\n\nLa operación queda en Borrador. '
+                'Completá lo siguiente y volvé a Confirmar:\n\n'
                 + '\n\n'.join(errores)
             )
 
@@ -365,7 +456,7 @@ class AccountMove(models.Model):
                 [('move_id', '=', move.id)], limit=1
             ) or self.env['fe_py.documento_electronico'].sudo().create({
                 'move_id': move.id,
-                'motivo_emision': move.fe_py_motivo_emision,
+                'motivo_emision_id': move.fe_py_motivo_emision_id.id,
             })
             move.fe_py_documento_id = doc
             if move.company_id.fe_py_envio_automatico:

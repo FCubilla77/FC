@@ -1,0 +1,180 @@
+<odoo>
+    <data noupdate="1">
+
+        <!-- Tabla 5 del Manual Técnico — Unidades de Medida.
+             Ojo: al XML va la REPRESENTACIÓN (dDesUniMed = "UNI",
+             "kg", "LT"), no la descripción larga. -->
+
+        <record id="unimed_77" model="fe_py.unidad_medida">
+            <field name="codigo">77</field>
+            <field name="name">UNI</field>
+            <field name="descripcion_larga">Unidad</field>
+        </record>
+        <record id="unimed_87" model="fe_py.unidad_medida">
+            <field name="codigo">87</field>
+            <field name="name">m</field>
+            <field name="descripcion_larga">Metros</field>
+        </record>
+        <record id="unimed_2366" model="fe_py.unidad_medida">
+            <field name="codigo">2366</field>
+            <field name="name">CPM</field>
+            <field name="descripcion_larga">Costo por Mil</field>
+        </record>
+        <record id="unimed_2329" model="fe_py.unidad_medida">
+            <field name="codigo">2329</field>
+            <field name="name">UI</field>
+            <field name="descripcion_larga">Unidad Internacional</field>
+        </record>
+        <record id="unimed_110" model="fe_py.unidad_medida">
+            <field name="codigo">110</field>
+            <field name="name">M3</field>
+            <field name="descripcion_larga">Metros cúbicos</field>
+        </record>
+        <record id="unimed_86" model="fe_py.unidad_medida">
+            <field name="codigo">86</field>
+            <field name="name">g</field>
+            <field name="descripcion_larga">Gramos</field>
+        </record>
+        <record id="unimed_89" model="fe_py.unidad_medida">
+            <field name="codigo">89</field>
+            <field name="name">LT</field>
+            <field name="descripcion_larga">Litros</field>
+        </record>
+        <record id="unimed_90" model="fe_py.unidad_medida">
+            <field name="codigo">90</field>
+            <field name="name">MG</field>
+            <field name="descripcion_larga">Miligramos</field>
+        </record>
+        <record id="unimed_91" model="fe_py.unidad_medida">
+            <field name="codigo">91</field>
+            <field name="name">CM</field>
+            <field name="descripcion_larga">Centímetros</field>
+        </record>
+        <record id="unimed_92" model="fe_py.unidad_medida">
+            <field name="codigo">92</field>
+            <field name="name">CM2</field>
+            <field name="descripcion_larga">Centímetros cuadrados</field>
+        </record>
+        <record id="unimed_93" model="fe_py.unidad_medida">
+            <field name="codigo">93</field>
+            <field name="name">CM3</field>
+            <field name="descripcion_larga">Centímetros cúbicos</field>
+        </record>
+        <record id="unimed_94" model="fe_py.unidad_medida">
+            <field name="codigo">94</field>
+            <field name="name">PUL</field>
+            <field name="descripcion_larga">Pulgadas</field>
+        </record>
+        <record id="unimed_96" model="fe_py.unidad_medida">
+            <field name="codigo">96</field>
+            <field name="name">MM2</field>
+            <field name="descripcion_larga">Milímetros cuadrados</field>
+        </record>
+        <record id="unimed_79" model="fe_py.unidad_medida">
+            <field name="codigo">79</field>
+            <field name="name">kg/m²</field>
+            <field name="descripcion_larga">Kilogramos sobre metro cuadrado</field>
+        </record>
+        <record id="unimed_97" model="fe_py.unidad_medida">
+            <field name="codigo">97</field>
+            <field name="name">AA</field>
+            <field name="descripcion_larga">Año</field>
+        </record>
+        <record id="unimed_98" model="fe_py.unidad_medida">
+            <field name="codigo">98</field>
+            <field name="name">ME</field>
+            <field name="descripcion_larga">Mes</field>
+        </record>
+        <record id="unimed_99" model="fe_py.unidad_medida">
+            <field name="codigo">99</field>
+            <field name="name">TN</field>
+            <field name="descripcion_larga">Tonelada</field>
+        </record>
+        <record id="unimed_100" model="fe_py.unidad_medida">
+            <field name="codigo">100</field>
+            <field name="name">Hs</field>
+            <field name="descripcion_larga">Hora</field>
+        </record>
+        <record id="unimed_101" model="fe_py.unidad_medida">
+            <field name="codigo">101</field>
+            <field name="name">Mi</field>
+            <field name="descripcion_larga">Minuto</field>
+        </record>
+        <record id="unimed_104" model="fe_py.unidad_medida">
+            <field name="codigo">104</field>
+            <field name="name">DET</field>
+            <field name="descripcion_larga">Determinación</field>
+        </record>
+        <record id="unimed_103" model="fe_py.unidad_medida">
+            <field name="codigo">103</field>
+            <field name="name">Ya</field>
+            <field name="descripcion_larga">Yardas</field>
+        </record>
+        <record id="unimed_108" model="fe_py.unidad_medida">
+            <field name="codigo">108</field>
+            <field name="name">MT</field>
+            <field name="descripcion_larga">Metros</field>
+        </record>
+        <record id="unimed_109" model="fe_py.unidad_medida">
+            <field name="codigo">109</field>
+            <field name="name">M2</field>
+            <field name="descripcion_larga">Metros cuadrados</field>
+        </record>
+        <record id="unimed_95" model="fe_py.unidad_medida">
+            <field name="codigo">95</field>
+            <field name="name">MM</field>
+            <field name="descripcion_larga">Milímetros</field>
+        </record>
+        <record id="unimed_666" model="fe_py.unidad_medida">
+            <field name="codigo">666</field>
+            <field name="name">Se</field>
+            <field name="descripcion_larga">Segundo</field>
+        </record>
+        <record id="unimed_102" model="fe_py.unidad_medida">
+            <field name="codigo">102</field>
+            <field name="name">Di</field>
+            <field name="descripcion_larga">Día</field>
+        </record>
+        <record id="unimed_83" model="fe_py.unidad_medida">
+            <field name="codigo">83</field>
+            <field name="name">kg</field>
+            <field name="descripcion_larga">Kilogramos</field>
+        </record>
+        <record id="unimed_88" model="fe_py.unidad_medida">
+            <field name="codigo">88</field>
+            <field name="name">ML</field>
+            <field name="descripcion_larga">Mililitros</field>
+        </record>
+        <record id="unimed_625" model="fe_py.unidad_medida">
+            <field name="codigo">625</field>
+            <field name="name">Km</field>
+            <field name="descripcion_larga">Kilómetros</field>
+        </record>
+        <record id="unimed_660" model="fe_py.unidad_medida">
+            <field name="codigo">660</field>
+            <field name="name">ml</field>
+            <field name="descripcion_larga">Metro lineal</field>
+        </record>
+        <record id="unimed_885" model="fe_py.unidad_medida">
+            <field name="codigo">885</field>
+            <field name="name">GL</field>
+            <field name="descripcion_larga">Unidad Medida Global</field>
+        </record>
+        <record id="unimed_891" model="fe_py.unidad_medida">
+            <field name="codigo">891</field>
+            <field name="name">pm</field>
+            <field name="descripcion_larga">Por Milaje</field>
+        </record>
+        <record id="unimed_869" model="fe_py.unidad_medida">
+            <field name="codigo">869</field>
+            <field name="name">ha</field>
+            <field name="descripcion_larga">Hectáreas</field>
+        </record>
+        <record id="unimed_569" model="fe_py.unidad_medida">
+            <field name="codigo">569</field>
+            <field name="name">ración</field>
+            <field name="descripcion_larga">Ración</field>
+        </record>
+
+    </data>
+</odoo>

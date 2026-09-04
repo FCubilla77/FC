@@ -1,0 +1,74 @@
+<odoo>
+    <data>
+        <!-- Impuestos: código de afectación IVA -->
+        <record id="view_account_tax_form_fe_py" model="ir.ui.view">
+            <field name="name">account.tax.form.fe.py</field>
+            <field name="model">account.tax</field>
+            <field name="inherit_id" ref="account.view_tax_form"/>
+            <field name="arch" type="xml">
+                <field name="amount" position="after">
+                    <field name="fe_py_afectacion_iva_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_account_tax_list_fe_py" model="ir.ui.view">
+            <field name="name">account.tax.list.fe.py</field>
+            <field name="model">account.tax</field>
+            <field name="inherit_id" ref="account.view_tax_tree"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_afectacion_iva_id" optional="show"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Monedas: descripción para el XML -->
+        <record id="view_res_currency_form_fe_py" model="ir.ui.view">
+            <field name="name">res.currency.form.fe.py</field>
+            <field name="model">res.currency</field>
+            <field name="inherit_id" ref="base.view_currency_form"/>
+            <field name="arch" type="xml">
+                <field name="full_name" position="after">
+                    <field name="fe_py_descripcion"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Términos de Pago: condición del crédito -->
+        <record id="view_account_payment_term_form_fe_py" model="ir.ui.view">
+            <field name="name">account.payment.term.form.fe.py</field>
+            <field name="model">account.payment.term</field>
+            <field name="inherit_id" ref="account.view_payment_term_form"/>
+            <field name="arch" type="xml">
+                <field name="note" position="before">
+                    <field name="fe_py_condicion_credito"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Producto: unidad de medida SIFEN -->
+        <record id="view_product_template_form_fe_py" model="ir.ui.view">
+            <field name="name">product.template.form.fe.py</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_form_view"/>
+            <field name="arch" type="xml">
+                <field name="uom_id" position="after">
+                    <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Unidades de Medida de Odoo: correspondencia con SIFEN -->
+        <record id="view_uom_form_fe_py" model="ir.ui.view">
+            <field name="name">uom.uom.form.fe.py</field>
+            <field name="model">uom.uom</field>
+            <field name="inherit_id" ref="uom.product_uom_form_view"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

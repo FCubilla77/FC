@@ -1,0 +1,222 @@
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============ dSisFact — Sistema de Facturación ============ -->
+        <record id="sisfact_1" model="fe_py.sistema_facturacion">
+            <field name="codigo">1</field>
+            <field name="name">Sistema de facturación del contribuyente</field>
+        </record>
+
+        <!-- ============ iTipEmi — Tipo de Emisión ============ -->
+        <record id="tipoemi_1" model="fe_py.tipo_emision">
+            <field name="codigo">1</field><field name="name">Normal</field>
+        </record>
+        <record id="tipoemi_2" model="fe_py.tipo_emision">
+            <field name="codigo">2</field><field name="name">Contingencia</field>
+        </record>
+
+        <!-- ============ dCondTiCam — Condición del Tipo de Cambio ============ -->
+        <record id="condticam_1" model="fe_py.condicion_tipo_cambio">
+            <field name="codigo">1</field><field name="name">Global</field>
+        </record>
+        <record id="condticam_2" model="fe_py.condicion_tipo_cambio">
+            <field name="codigo">2</field><field name="name">Por ítem</field>
+        </record>
+
+        <!-- ============ iTiContRec — Tipo de Contribuyente (Receptor) ============ -->
+        <record id="ticontrec_1" model="fe_py.tipo_contribuyente_receptor">
+            <field name="codigo">1</field><field name="name">Persona Física</field>
+        </record>
+        <record id="ticontrec_2" model="fe_py.tipo_contribuyente_receptor">
+            <field name="codigo">2</field><field name="name">Persona Jurídica</field>
+        </record>
+
+        <!-- ============ cTipReg — Tipo de Régimen (Tabla 1) ============ -->
+        <record id="tiporeg_1" model="fe_py.tipo_regimen">
+            <field name="codigo">1</field><field name="name">Régimen de Turismo</field>
+        </record>
+        <record id="tiporeg_2" model="fe_py.tipo_regimen">
+            <field name="codigo">2</field><field name="name">Importador</field>
+        </record>
+        <record id="tiporeg_3" model="fe_py.tipo_regimen">
+            <field name="codigo">3</field><field name="name">Exportador</field>
+        </record>
+        <record id="tiporeg_4" model="fe_py.tipo_regimen">
+            <field name="codigo">4</field><field name="name">Maquila</field>
+        </record>
+        <record id="tiporeg_5" model="fe_py.tipo_regimen">
+            <field name="codigo">5</field><field name="name">Ley N° 60/90</field>
+        </record>
+        <record id="tiporeg_6" model="fe_py.tipo_regimen">
+            <field name="codigo">6</field><field name="name">Régimen del Pequeño Productor</field>
+        </record>
+        <record id="tiporeg_7" model="fe_py.tipo_regimen">
+            <field name="codigo">7</field><field name="name">Régimen del Mediano Productor</field>
+        </record>
+        <record id="tiporeg_8" model="fe_py.tipo_regimen">
+            <field name="codigo">8</field><field name="name">Régimen Contable</field>
+        </record>
+
+        <!-- ============ iTiOpe — Tipo de Operación ============ -->
+        <record id="tiope_1" model="fe_py.tipo_operacion">
+            <field name="codigo">1</field><field name="name">B2B</field>
+        </record>
+        <record id="tiope_2" model="fe_py.tipo_operacion">
+            <field name="codigo">2</field><field name="name">B2C</field>
+        </record>
+        <record id="tiope_3" model="fe_py.tipo_operacion">
+            <field name="codigo">3</field><field name="name">B2G</field>
+            <field name="es_b2g" eval="True"/>
+        </record>
+        <record id="tiope_4" model="fe_py.tipo_operacion">
+            <field name="codigo">4</field><field name="name">B2F</field>
+            <field name="es_b2f" eval="True"/>
+        </record>
+
+        <!-- ============ iTImp — Tipo de Impuesto Afectado ============ -->
+        <record id="timp_1" model="fe_py.tipo_impuesto">
+            <field name="codigo">1</field><field name="name">IVA</field>
+        </record>
+        <record id="timp_2" model="fe_py.tipo_impuesto">
+            <field name="codigo">2</field><field name="name">ISC</field>
+        </record>
+        <record id="timp_3" model="fe_py.tipo_impuesto">
+            <field name="codigo">3</field><field name="name">Renta</field>
+        </record>
+        <record id="timp_4" model="fe_py.tipo_impuesto">
+            <field name="codigo">4</field><field name="name">Ninguno</field>
+        </record>
+        <record id="timp_5" model="fe_py.tipo_impuesto">
+            <field name="codigo">5</field><field name="name">IVA - Renta</field>
+        </record>
+
+        <!-- ============ iIndPres — Indicador de Presencia (E011) ============ -->
+        <record id="indpres_1" model="fe_py.indicador_presencia">
+            <field name="codigo">1</field><field name="name">Operación presencial</field>
+        </record>
+        <record id="indpres_2" model="fe_py.indicador_presencia">
+            <field name="codigo">2</field><field name="name">Operación electrónica</field>
+        </record>
+        <record id="indpres_3" model="fe_py.indicador_presencia">
+            <field name="codigo">3</field><field name="name">Operación telemarketing</field>
+        </record>
+        <record id="indpres_4" model="fe_py.indicador_presencia">
+            <field name="codigo">4</field><field name="name">Operación de venta a domicilio</field>
+        </record>
+        <record id="indpres_5" model="fe_py.indicador_presencia">
+            <field name="codigo">5</field><field name="name">Operación bancaria</field>
+        </record>
+        <record id="indpres_6" model="fe_py.indicador_presencia">
+            <field name="codigo">6</field><field name="name">Operación cíclica</field>
+        </record>
+        <record id="indpres_9" model="fe_py.indicador_presencia">
+            <field name="codigo">9</field><field name="name">Otro</field>
+        </record>
+
+        <!-- ============ iMotEmi — Motivo de Emisión NC/ND ============ -->
+        <record id="motemi_1" model="fe_py.motivo_emision">
+            <field name="codigo">1</field><field name="name">Devolución y Ajuste de precios</field>
+        </record>
+        <record id="motemi_2" model="fe_py.motivo_emision">
+            <field name="codigo">2</field><field name="name">Devolución</field>
+        </record>
+        <record id="motemi_3" model="fe_py.motivo_emision">
+            <field name="codigo">3</field><field name="name">Descuento</field>
+        </record>
+        <record id="motemi_4" model="fe_py.motivo_emision">
+            <field name="codigo">4</field><field name="name">Bonificación</field>
+        </record>
+        <record id="motemi_5" model="fe_py.motivo_emision">
+            <field name="codigo">5</field><field name="name">Crédito incobrable</field>
+        </record>
+        <record id="motemi_6" model="fe_py.motivo_emision">
+            <field name="codigo">6</field><field name="name">Recupero de costo</field>
+        </record>
+        <record id="motemi_7" model="fe_py.motivo_emision">
+            <field name="codigo">7</field><field name="name">Recupero de gasto</field>
+        </record>
+        <record id="motemi_8" model="fe_py.motivo_emision">
+            <field name="codigo">8</field><field name="name">Ajuste de precio</field>
+        </record>
+
+        <!-- ============ iTipDocAso — Tipo de Documento Asociado ============ -->
+        <record id="tipdocaso_1" model="fe_py.tipo_documento_asociado">
+            <field name="codigo">1</field><field name="name">Electrónico</field>
+        </record>
+        <record id="tipdocaso_2" model="fe_py.tipo_documento_asociado">
+            <field name="codigo">2</field><field name="name">Impreso</field>
+        </record>
+        <record id="tipdocaso_3" model="fe_py.tipo_documento_asociado">
+            <field name="codigo">3</field><field name="name">Constancia Electrónica</field>
+        </record>
+
+        <!-- ============ iAfecIVA — Afectación IVA (Tabla 6) ============
+             Los 4 códigos oficiales. Exonerado y Gravado parcial quedan
+             marcados como NO disponibles: su cálculo (total exonerado,
+             proporción gravada y base exenta por línea) todavía no está
+             implementado, y usarlos generaría un XML inconsistente. -->
+        <record id="afeciva_1" model="fe_py.afectacion_iva">
+            <field name="codigo">1</field><field name="name">Gravado IVA</field>
+            <field name="proporcion_gravada">100</field>
+        </record>
+        <record id="afeciva_2" model="fe_py.afectacion_iva">
+            <field name="codigo">2</field><field name="name">Exonerado (Art. 83 - Ley 125/91)</field>
+            <field name="proporcion_gravada">0</field>
+            <field name="disponible" eval="False"/>
+        </record>
+        <record id="afeciva_3" model="fe_py.afectacion_iva">
+            <field name="codigo">3</field><field name="name">Exento</field>
+            <field name="proporcion_gravada">0</field>
+        </record>
+        <record id="afeciva_4" model="fe_py.afectacion_iva">
+            <field name="codigo">4</field><field name="name">Gravado parcial</field>
+            <field name="proporcion_gravada">50</field>
+            <field name="disponible" eval="False"/>
+        </record>
+
+        <!-- ============ iTipTra — Tipo de Transacción (D011) ============ -->
+        <record id="tiptra_1" model="fe_py.tipo_transaccion">
+            <field name="codigo">1</field><field name="name">Venta de mercadería</field>
+            <field name="tipo_producto">bienes</field>
+        </record>
+        <record id="tiptra_2" model="fe_py.tipo_transaccion">
+            <field name="codigo">2</field><field name="name">Prestación de servicios</field>
+            <field name="tipo_producto">servicios</field>
+        </record>
+        <record id="tiptra_3" model="fe_py.tipo_transaccion">
+            <field name="codigo">3</field><field name="name">Mixto (Venta de mercadería y servicios)</field>
+            <field name="tipo_producto">mixto</field>
+        </record>
+        <record id="tiptra_4" model="fe_py.tipo_transaccion">
+            <field name="codigo">4</field><field name="name">Venta de activo fijo</field>
+        </record>
+        <record id="tiptra_5" model="fe_py.tipo_transaccion">
+            <field name="codigo">5</field><field name="name">Venta de divisas</field>
+        </record>
+        <record id="tiptra_6" model="fe_py.tipo_transaccion">
+            <field name="codigo">6</field><field name="name">Compra de divisas</field>
+        </record>
+        <record id="tiptra_7" model="fe_py.tipo_transaccion">
+            <field name="codigo">7</field><field name="name">Promoción o entrega de muestras</field>
+        </record>
+        <record id="tiptra_8" model="fe_py.tipo_transaccion">
+            <field name="codigo">8</field><field name="name">Donación</field>
+        </record>
+        <record id="tiptra_9" model="fe_py.tipo_transaccion">
+            <field name="codigo">9</field><field name="name">Anticipo</field>
+        </record>
+        <record id="tiptra_10" model="fe_py.tipo_transaccion">
+            <field name="codigo">10</field><field name="name">Compra de productos</field>
+        </record>
+        <record id="tiptra_11" model="fe_py.tipo_transaccion">
+            <field name="codigo">11</field><field name="name">Compra de servicios</field>
+        </record>
+        <record id="tiptra_12" model="fe_py.tipo_transaccion">
+            <field name="codigo">12</field><field name="name">Venta de crédito fiscal</field>
+        </record>
+        <record id="tiptra_13" model="fe_py.tipo_transaccion">
+            <field name="codigo">13</field><field name="name">Muestras médicas (Art. 3 RG 24/2014)</field>
+        </record>
+
+    </data>
+</odoo>

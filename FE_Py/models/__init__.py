@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# ORDEN IMPORTANTE: un archivo que extiende un modelo con _inherit debe
-# cargarse DESPUÉS del que lo define con _name. Además, los módulos que
-# exportan tablas compartidas (res_partner, local_py_tipo_identificacion_fiscal)
-# van primero, porque otros importan constantes desde ellos.
+# ORDEN IMPORTANTE: los catálogos primero (otros modelos los referencian),
+# y un archivo con _inherit siempre después del que define el _name.
+from . import fe_py_catalogos
+from . import fe_py_configuracion
+from . import fe_py_campos_existentes
 from . import res_partner
 from . import local_py_tipo_identificacion_fiscal
 from . import local_py_tipo_fiscal

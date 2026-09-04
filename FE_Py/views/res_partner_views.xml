@@ -10,15 +10,16 @@
                           invisible="not is_company">
                         <group>
                             <group string="Identificación ante SIFEN">
-                                <field name="fe_py_tipo_persona"/>
+                                <field name="fe_py_tipo_contribuyente_id" options="{'no_create': True}"/>
                                 <field name="fe_py_identificacion_texto"
                                        placeholder="CUIT, RFC, NIT, Tax ID..."/>
                                 <field name="fe_py_es_exterior" readonly="1"/>
+                                <field name="fe_py_es_contribuyente" readonly="1"/>
                                 <field name="fe_py_es_estado"/>
                             </group>
                             <group string="Valores por defecto de la operación">
-                                <field name="fe_py_itimp"/>
-                                <field name="fe_py_indicador_presencia"/>
+                                <field name="fe_py_tipo_impuesto_id"/>
+                                <field name="fe_py_indicador_presencia_id"/>
                             </group>
                         </group>
                         <div class="text-muted">
@@ -37,6 +38,8 @@
             <field name="arch" type="xml">
                 <field name="code" position="after">
                     <field name="fe_py_itipidrec"/>
+                    <field name="fe_py_itipidrec_descripcion"/>
+                    <field name="fe_py_es_ruc"/>
                 </field>
             </field>
         </record>

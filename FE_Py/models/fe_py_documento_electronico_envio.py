@@ -187,7 +187,7 @@ class FePyDocumentoElectronico(models.Model):
                 'Falta la librería "requests" en el servidor (normalmente '
                 'viene con Odoo — revisar la instalación de Python).'
             )
-        url = WS_SINCRONICO_URLS.get(ambiente)
+        url = self.env['fe_py.configuracion']._get_config(company).fe_py_get_url('recibe')
         if not (company.fe_py_cert_path and company.fe_py_private_key_path):
             raise exceptions.UserError(
                 'Falta el Certificado de la Compañía (necesario para la '

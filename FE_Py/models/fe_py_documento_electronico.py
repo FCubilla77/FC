@@ -70,36 +70,22 @@ class FePyDocumentoElectronico(models.Model):
     cdc = fields.Char(string='CDC', size=44, copy=False, index=True)
     codigo_seguridad = fields.Char(string='Código de Seguridad', size=9, copy=False)
     digito_verificador_cdc = fields.Char(string='DV del CDC', size=1, copy=False)
-    tipo_emision = fields.Selection(
-        string='Tipo de Emisión',
-        selection=[('normal', 'Normal'), ('contingencia', 'Contingencia')],
-        default='normal', copy=False,
+    tipo_emision_id = fields.Many2one(
+        'fe_py.tipo_emision', string='Tipo de Emisión', copy=False,
+        help='Se informa como iTipEmi. Se toma del valor por defecto de la '
+             'Configuración FEPy al crear el documento.',
     )
     version_formato = fields.Char(string='Versión de Formato', default='150', copy=False)
 
-    tipo_operacion = fields.Selection(
-        string='Tipo de Operación',
-        selection=[('1', 'B2B'), ('2', 'B2C'), ('3', 'B2G'), ('4', 'B2F')],
-        default='1',
-        help='Se propone automáticamente según el Cliente (B2B si es Empresa, '
-             'B2C si es Persona) — editable antes de generar el XML si '
-             'corresponde otro caso (venta al Estado = B2G, servicios a '
-             'personas/empresas del exterior = B2F).',
+    tipo_operacion_id = fields.Many2one(
+        related='move_id.fe_py_tipo_operacion_id', string='Tipo de Operación',
+        store=True, readonly=True,
+        help='Se informa como iTiOpe. Vive en el comprobante, porque tiene que '
+             'poder cargarse antes de Confirmar.',
     )
-    motivo_emision = fields.Selection(
-        string='Motivo de Emisión',
-        selection=[
-            ('1', 'Devolución y Ajuste de precios'),
-            ('2', 'Devolución'),
-            ('3', 'Descuento'),
-            ('4', 'Bonificación'),
-            ('5', 'Crédito incobrable'),
-            ('6', 'Recupero de costo'),
-            ('7', 'Recupero de gasto'),
-            ('8', 'Ajuste de precio'),
-        ],
-        help='Obligatorio para Nota de Crédito/Débito Electrónica — motivo '
-             'de emisión exigido por SIFEN (gCamNCDE/iMotEmi).',
+    motivo_emision_id = fields.Many2one(
+        'fe_py.motivo_emision', string='Motivo de Emisión', copy=False,
+        help='Se informa como iMotEmi. Obligatorio en Nota de Crédito/Débito.',
     )
 
     # -- Simulador SIFEN (Ambiente = Simulado) ---------------------------

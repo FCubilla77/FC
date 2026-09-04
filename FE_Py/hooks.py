@@ -29,12 +29,12 @@ def _backfill_csc_generico(env):
     no retroactivamente a las que ya existían antes de instalar FE_Py) —
     así el módulo queda utilizable en modo Simulado apenas se instala, sin
     pasos manuales previos."""
-    companies = env['res.company'].sudo().search([('fe_py_idcsc', '=', False)])
-    if companies:
-        companies.write({'fe_py_idcsc': IDCSC_GENERICO, 'fe_py_csc': CSC_GENERICO})
+    configs = env['fe_py.configuracion'].sudo().search([('fe_py_idcsc', '=', False)])
+    if configs:
+        configs.write({'fe_py_idcsc': IDCSC_GENERICO, 'fe_py_csc': CSC_GENERICO})
         _logger.info(
-            "FE_Py: IdCSC/CSC genérico (Ambiente de Test) aplicado a %s compañía(s).",
-            len(companies),
+            "FE_Py: IdCSC/CSC genérico (Ambiente de Test) aplicado a %s configuración(es).",
+            len(configs),
         )
 
 
@@ -107,7 +107,33 @@ def _backfill_itipidrec(env):
         _logger.info("FE_Py: mapeo iTipIDRec aplicado a %s tipo(s) de identificación.", aplicados)
 
 
+def _crear_configuracion(env):
+    """Crea la Configuración FEPy de cada Compañía en una instalación
+    nueva, con los valores por defecto de los catálogos ya cargados."""
+    Config = env['fe_py.configuracion'].sudo()
+    creadas = 0
+    for company in env['res.company'].sudo().search([]):
+        if Config.search([('company_id', '=', company.id)], limit=1):
+            continue
+        vals = {'company_id': company.id}
+        for campo, modelo, codigo in (
+            ('fe_py_sistema_facturacion_id', 'fe_py.sistema_facturacion', '1'),
+            ('fe_py_tipo_emision_id', 'fe_py.tipo_emision', '1'),
+            ('fe_py_condicion_tipo_cambio_id', 'fe_py.condicion_tipo_cambio', '1'),
+            ('fe_py_tipo_documento_asociado_id', 'fe_py.tipo_documento_asociado', '1'),
+            ('fe_py_unidad_medida_id', 'fe_py.unidad_medida', '77'),
+            ('fe_py_tipo_regimen_id', 'fe_py.tipo_regimen', '8'),
+        ):
+            reg = env[modelo].sudo().search([('codigo', '=', codigo)], limit=1)
+            if reg:
+                vals[campo] = reg.id
+        Config.create(vals)
+        creadas += 1
+    if creadas:
+        _logger.info("FE_Py: %s Configuración(es) Generales FEPy creadas.", creadas)
+
+
 def post_init_hook(env):
-    _backfill_csc_generico(env)
+    _crear_configuracion(env)
     _backfill_tipo_fiscal_electronico(env)
     _backfill_itipidrec(env)

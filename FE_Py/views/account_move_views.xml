@@ -9,7 +9,7 @@
                 <field name="invoice_date" position="after">
                     <field name="fe_py_es_electronico" invisible="1"/>
                     <field name="fe_py_es_nc_nd" invisible="1"/>
-                    <field name="fe_py_tipo_operacion"
+                    <field name="fe_py_tipo_operacion_id"
                            invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico"/>
                 </field>
             </field>
@@ -27,9 +27,9 @@
 
                         <group>
                             <group string="Datos de la Operación">
-                                <field name="fe_py_indicador_presencia"/>
-                                <field name="fe_py_itimp"/>
-                                <field name="fe_py_motivo_emision" invisible="not fe_py_es_nc_nd"/>
+                                <field name="fe_py_indicador_presencia_id"/>
+                                <field name="fe_py_tipo_impuesto_id"/>
+                                <field name="fe_py_motivo_emision_id" invisible="not fe_py_es_nc_nd"/>
                                 <field name="fe_py_cdc_comprobante_asociado" invisible="not reversed_entry_id"/>
                             </group>
                             <group string="Condición del Crédito">
@@ -37,7 +37,7 @@
                             </group>
                         </group>
 
-                        <group string="Compras Públicas" invisible="fe_py_tipo_operacion != '3'">
+                        <group string="Compras Públicas" invisible="not fe_py_es_b2g">
                             <field name="fe_py_venta_directa"/>
                             <group invisible="fe_py_venta_directa">
                                 <field name="fe_py_dmodcont" placeholder="LP, CD, LC..."/>

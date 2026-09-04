@@ -22,7 +22,6 @@ from lxml import etree
 
 from odoo import exceptions, fields, models
 
-from .fe_py_documento_electronico_xml import TIDE_POR_TIPO_FISCAL
 
 _logger = logging.getLogger(__name__)
 
@@ -222,10 +221,11 @@ class FePyEvento(models.Model):
             )
         if not self.journal_id.l10n_py_timbrado:
             raise exceptions.UserError('El Diario no tiene Timbrado configurado.')
-        if self.tipo_fiscal_id.name not in TIDE_POR_TIPO_FISCAL:
+        if not self.tipo_fiscal_id.fe_py_itide:
             raise exceptions.UserError(
-                'El Tipo Fiscal "%s" no está soportado todavía para Inutilización.'
-                % (self.tipo_fiscal_id.name or '(vacío)')
+                'El Tipo de Documento Fiscal "%s" no tiene cargado su "FEPy '
+                'Código de Documento Electrónico" (Localización Paraguay > '
+                'Tipos de Documentos Fiscales).' % (self.tipo_fiscal_id.name or '(vacío)')
             )
 
     # ------------------------------------------------------------------
@@ -326,7 +326,7 @@ class FePyEvento(models.Model):
             r_inu = etree.SubElement(g_tipo, '{%s}rGeVeInu' % SIFEN_NS)
             partes_desde = self.nro_documento_desde.split('-')
             partes_hasta = self.nro_documento_hasta.split('-')
-            i_tide, _desc = TIDE_POR_TIPO_FISCAL[self.tipo_fiscal_id.name]
+            i_tide = self.tipo_fiscal_id.fe_py_itide
             _sub(r_inu, 'dNumTim', '%08d' % self.journal_id.l10n_py_timbrado)
             _sub(r_inu, 'dEst', partes_desde[0].zfill(3))
             _sub(r_inu, 'dPunExp', partes_desde[1].zfill(3))
@@ -402,7 +402,7 @@ class FePyEvento(models.Model):
     def _fe_py_llamar_ws_eventos(self, soap_xml, ambiente, company):
         if requests is None:
             raise exceptions.UserError('Falta la librería "requests" en el servidor.')
-        url = WS_EVENTOS_URLS.get(ambiente)
+        url = self.env['fe_py.configuracion']._get_config(company).fe_py_get_url('evento')
         headers = {'Content-Type': 'application/soap+xml; charset=utf-8'}
         response = requests.post(
             url, data=soap_xml.encode('utf-8'), headers=headers,
