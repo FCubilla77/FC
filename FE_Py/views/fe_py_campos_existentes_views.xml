@@ -69,6 +69,43 @@
             </field>
         </record>
 
+        <!-- Producto: columna en la lista, para revisar y completar muchos
+             productos de una vez -->
+        <record id="view_product_template_list_fe_py" model="ir.ui.view">
+            <field name="name">product.template.list.fe.py</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_unidad_medida_id" optional="show"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Variantes de Producto: product.product tiene su PROPIO
+             formulario, que no hereda del de product.template. Sin esto, el
+             campo no se ve al abrir un producto desde Variantes. -->
+        <record id="view_product_product_form_fe_py" model="ir.ui.view">
+            <field name="name">product.product.form.fe.py</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Facturación Electrónica" name="fe_py_producto">
+                        <group>
+                            <group>
+                                <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                            </group>
+                        </group>
+                        <div class="text-muted">
+                            Unidad que se informa a SIFEN en cada línea de factura de este
+                            producto. Es obligatoria para poder facturarlo electrónicamente.
+                        </div>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
         <!-- Unidades de Medida de Odoo: correspondencia con SIFEN -->
         <record id="view_uom_form_fe_py" model="ir.ui.view">
             <field name="name">uom.uom.form.fe.py</field>
@@ -103,5 +140,35 @@
                 </field>
             </field>
         </record>
+        <!-- Acceso propio a la unidad de medida de los productos.
+             No hereda ningún formulario de Odoo: es una pantalla nuestra,
+             pensada para revisar y completar el dato en muchos productos de
+             una sola vez. -->
+        <record id="view_product_template_list_fe_py_unidad" model="ir.ui.view">
+            <field name="name">product.template.list.fe.py.unidad</field>
+            <field name="model">product.template</field>
+            <field name="arch" type="xml">
+                <list string="Unidad de Medida FEPy por Producto" editable="bottom" create="false">
+                    <field name="default_code" readonly="1"/>
+                    <field name="name" readonly="1"/>
+                    <field name="uom_id" readonly="1" string="Unidad en Odoo"/>
+                    <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_fe_py_producto_unidad" model="ir.actions.act_window">
+            <field name="name">Unidad de Medida FEPy por Producto</field>
+            <field name="res_model">product.template</field>
+            <field name="view_mode">list</field>
+            <field name="view_id" ref="view_product_template_list_fe_py_unidad"/>
+            <field name="domain">[('sale_ok', '=', True)]</field>
+        </record>
+
+        <menuitem id="menu_fe_py_producto_unidad"
+                  name="Unidad de Medida FEPy por Producto"
+                  parent="menu_fe_py_grupo"
+                  action="action_fe_py_producto_unidad"
+                  sequence="15"/>
     </data>
 </odoo>

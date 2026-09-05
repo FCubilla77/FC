@@ -222,6 +222,12 @@ def campos_por_modelo():
                 hereda[modelo] = base.group(1)
     for modelo, base in hereda.items():
         directos.setdefault(modelo, set()).update(directos.get(base, set()))
+    # Delegación (_inherits): product.product accede a todos los campos de
+    # product.template a través de product_tmpl_id, sin declararlos.
+    DELEGACION = {'product.product': 'product.template'}
+    for hijo, padre in DELEGACION.items():
+        if padre in directos:
+            directos.setdefault(hijo, set()).update(directos[padre])
     return directos
 
 
