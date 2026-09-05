@@ -7,6 +7,8 @@
             <field name="arch" type="xml">
                 <field name="sequence" position="after">
                     <field name="fe_py_es_electronico"/>
+                    <field name="fe_py_itide" invisible="not fe_py_es_electronico"/>
+                    <field name="fe_py_itide_descripcion" invisible="not fe_py_es_electronico"/>
                 </field>
             </field>
         </record>
@@ -18,6 +20,8 @@
             <field name="arch" type="xml">
                 <field name="active" position="before">
                     <field name="fe_py_es_electronico" optional="show"/>
+                    <field name="fe_py_itide" optional="show"/>
+                    <field name="fe_py_itide_descripcion" optional="hide"/>
                 </field>
             </field>
         </record>

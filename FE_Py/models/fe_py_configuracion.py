@@ -237,6 +237,7 @@ class FePyConfiguracion(models.Model):
         'fe_py_unidad_medida_ids': 'fe_py.unidad_medida',
     }
 
+    @api.depends('company_id')
     def _compute_catalogos(self):
         """Cada pestaña muestra el catálogo completo, incluidos los
         registros archivados, para que se puedan reactivar desde acá."""
@@ -267,17 +268,40 @@ class FePyConfiguracion(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def _get_config(self, company):
-        """Devuelve la configuración de la Compañía, o lanza un error claro
-        si todavía no fue creada. Es el único punto de entrada que usa el
-        resto del módulo, para no repetir el search en cada archivo."""
+        """Configuración de la Compañía. Si todavía no existe, la crea
+        vacía con los valores por defecto de los catálogos.
+
+        Se crea en vez de fallar porque una Compañía nueva (dada de alta
+        después de instalar el módulo) no tendría configuración, y un
+        error acá cortaría el proceso sin explicar qué falta. Creándola,
+        la validación al Confirmar sí puede listar con detalle los datos
+        que hay que completar."""
         config = self.sudo().search([('company_id', '=', company.id)], limit=1)
         if not config:
-            raise exceptions.UserError(
-                'La Compañía "%s" no tiene Configuración de Facturación '
-                'Electrónica. Crearla en Localización Paraguay > Facturación '
-                'Electrónica Py > Configuraciones Generales FEPy.' % company.name
-            )
+            config = self.sudo()._crear_para_compania(company)
         return config
+
+    @api.model
+    def _crear_para_compania(self, company):
+        """Crea la configuración de una Compañía con los valores por
+        defecto que se pueden deducir de los catálogos ya cargados."""
+        vals = {'company_id': company.id}
+        for campo, modelo, codigo in (
+            ('fe_py_sistema_facturacion_id', 'fe_py.sistema_facturacion', '1'),
+            ('fe_py_tipo_emision_id', 'fe_py.tipo_emision', '1'),
+            ('fe_py_condicion_tipo_cambio_id', 'fe_py.condicion_tipo_cambio', '1'),
+            ('fe_py_tipo_documento_asociado_id', 'fe_py.tipo_documento_asociado', '1'),
+            ('fe_py_unidad_medida_id', 'fe_py.unidad_medida', '77'),
+            ('fe_py_tipo_regimen_id', 'fe_py.tipo_regimen', '8'),
+        ):
+            registro = self.env[modelo].sudo().search([('codigo', '=', codigo)], limit=1)
+            if registro:
+                vals[campo] = registro.id
+        _logger.info(
+            "FE_Py: Configuración Generales FEPy creada automáticamente para "
+            "la Compañía '%s'.", company.name,
+        )
+        return self.sudo().create(vals)
 
     def fe_py_get_url(self, servicio):
         """URL del servicio pedido según el ambiente activo. En Simulado se

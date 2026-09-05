@@ -109,25 +109,14 @@ def _backfill_itipidrec(env):
 
 def _crear_configuracion(env):
     """Crea la Configuración FEPy de cada Compañía en una instalación
-    nueva, con los valores por defecto de los catálogos ya cargados."""
+    nueva. Reutiliza el mismo método que usa el resto del módulo, para no
+    duplicar la lista de valores por defecto en dos lugares."""
     Config = env['fe_py.configuracion'].sudo()
     creadas = 0
     for company in env['res.company'].sudo().search([]):
         if Config.search([('company_id', '=', company.id)], limit=1):
             continue
-        vals = {'company_id': company.id}
-        for campo, modelo, codigo in (
-            ('fe_py_sistema_facturacion_id', 'fe_py.sistema_facturacion', '1'),
-            ('fe_py_tipo_emision_id', 'fe_py.tipo_emision', '1'),
-            ('fe_py_condicion_tipo_cambio_id', 'fe_py.condicion_tipo_cambio', '1'),
-            ('fe_py_tipo_documento_asociado_id', 'fe_py.tipo_documento_asociado', '1'),
-            ('fe_py_unidad_medida_id', 'fe_py.unidad_medida', '77'),
-            ('fe_py_tipo_regimen_id', 'fe_py.tipo_regimen', '8'),
-        ):
-            reg = env[modelo].sudo().search([('codigo', '=', codigo)], limit=1)
-            if reg:
-                vals[campo] = reg.id
-        Config.create(vals)
+        Config._crear_para_compania(company)
         creadas += 1
     if creadas:
         _logger.info("FE_Py: %s Configuración(es) Generales FEPy creadas.", creadas)

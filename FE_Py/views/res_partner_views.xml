@@ -6,8 +6,7 @@
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//notebook" position="inside">
-                    <page string="Facturación Electrónica" name="fe_py_tab"
-                          invisible="not is_company">
+                    <page string="Facturación Electrónica" name="fe_py_tab">
                         <group>
                             <group string="Identificación ante SIFEN">
                                 <field name="fe_py_tipo_contribuyente_id" options="{'no_create': True}"/>

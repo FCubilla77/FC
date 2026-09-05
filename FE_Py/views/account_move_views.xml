@@ -11,6 +11,8 @@
                     <field name="fe_py_es_nc_nd" invisible="1"/>
                     <field name="fe_py_tipo_operacion_id"
                            invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico"/>
+                    <field name="fe_py_tipo_transaccion_id"
+                           invisible="move_type not in ('out_invoice', 'out_refund') or not fe_py_es_electronico"/>
                 </field>
             </field>
         </record>

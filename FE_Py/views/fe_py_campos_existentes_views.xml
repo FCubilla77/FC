@@ -6,7 +6,7 @@
             <field name="model">account.tax</field>
             <field name="inherit_id" ref="account.view_tax_form"/>
             <field name="arch" type="xml">
-                <field name="amount" position="after">
+                <field name="name" position="after">
                     <field name="fe_py_afectacion_iva_id" options="{'no_create': True}"/>
                 </field>
             </field>
@@ -29,7 +29,7 @@
             <field name="model">res.currency</field>
             <field name="inherit_id" ref="base.view_currency_form"/>
             <field name="arch" type="xml">
-                <field name="full_name" position="after">
+                <field name="name" position="after">
                     <field name="fe_py_descripcion"/>
                 </field>
             </field>
@@ -41,7 +41,7 @@
             <field name="model">account.payment.term</field>
             <field name="inherit_id" ref="account.view_payment_term_form"/>
             <field name="arch" type="xml">
-                <field name="note" position="before">
+                <field name="name" position="after">
                     <field name="fe_py_condicion_credito"/>
                 </field>
             </field>
@@ -53,9 +53,19 @@
             <field name="model">product.template</field>
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
-                <field name="uom_id" position="after">
-                    <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
-                </field>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Facturación Electrónica" name="fe_py_producto">
+                        <group>
+                            <group>
+                                <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                            </group>
+                        </group>
+                        <div class="text-muted">
+                            Unidad que se informa a SIFEN en cada línea de factura de este
+                            producto. Es obligatoria para poder facturarlo electrónicamente.
+                        </div>
+                    </page>
+                </xpath>
             </field>
         </record>
 
@@ -67,6 +77,29 @@
             <field name="arch" type="xml">
                 <field name="name" position="after">
                     <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+        <!-- Documentos Anulados: trazabilidad hacia el Evento de
+             Inutilización que reservó esos números -->
+        <record id="view_local_py_documento_anulado_list_fe_py" model="ir.ui.view">
+            <field name="name">local_py.documento_anulado.list.fe.py</field>
+            <field name="model">local_py.documento_anulado</field>
+            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_list"/>
+            <field name="arch" type="xml">
+                <field name="fecha_registro" position="after">
+                    <field name="fe_py_evento_id" optional="show" readonly="1"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_local_py_documento_anulado_form_fe_py" model="ir.ui.view">
+            <field name="name">local_py.documento_anulado.form.fe.py</field>
+            <field name="model">local_py.documento_anulado</field>
+            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_form"/>
+            <field name="arch" type="xml">
+                <field name="fecha_registro" position="after">
+                    <field name="fe_py_evento_id" readonly="1"/>
                 </field>
             </field>
         </record>

@@ -21,6 +21,7 @@ def migrate(cr, version):
     _asignar_descripcion_monedas(env)
     _asignar_codigos_tipo_fiscal(env)
     _asignar_codigos_tipo_identificacion(env)
+    _convertir_tipo_persona_contactos(cr, env)
     _convertir_datos_de_operaciones(cr, env)
     _logger.info("FE_Py 2026.03.001: post-migración completada.")
 
@@ -194,6 +195,29 @@ def _asignar_codigos_tipo_identificacion(env):
         registro.sudo().write(vals)
 
 
+def _convertir_tipo_persona_contactos(cr, env):
+    """El Contacto guardaba 'fisica'/'juridica' como texto; ahora apunta al
+    catálogo de Tipo de Contribuyente, donde son los códigos 1 y 2."""
+    cr.execute("""
+        SELECT 1 FROM information_schema.columns
+         WHERE table_name = 'res_partner' AND column_name = 'fe_py_tipo_persona'
+    """)
+    if not cr.fetchone():
+        return
+    Cat = env['fe_py.tipo_contribuyente_receptor'].sudo()
+    for valor, codigo in (('fisica', '1'), ('juridica', '2')):
+        registro = Cat.search([('codigo', '=', codigo)], limit=1)
+        if not registro:
+            continue
+        cr.execute("""
+            UPDATE res_partner
+               SET fe_py_tipo_contribuyente_id = %s
+             WHERE fe_py_tipo_persona = %s
+               AND fe_py_tipo_contribuyente_id IS NULL
+        """, (registro.id, valor))
+    _logger.info("FE_Py: tipo de persona de los contactos convertido al catálogo.")
+
+
 def _convertir_datos_de_operaciones(cr, env):
     """Traduce los códigos sueltos que quedaron en comprobantes ya
     cargados a los registros del catálogo correspondiente."""
@@ -204,6 +228,9 @@ def _convertir_datos_de_operaciones(cr, env):
         ('account_move', 'fe_py_motivo_emision', 'fe_py_motivo_emision_id', 'fe_py.motivo_emision'),
         ('res_partner', 'fe_py_itimp', 'fe_py_tipo_impuesto_id', 'fe_py.tipo_impuesto'),
         ('res_partner', 'fe_py_indicador_presencia', 'fe_py_indicador_presencia_id', 'fe_py.indicador_presencia'),
+        # El Documento Electrónico también guardaba códigos sueltos.
+        ('fe_py_documento_electronico', 'motivo_emision', 'motivo_emision_id', 'fe_py.motivo_emision'),
+        ('fe_py_documento_electronico', 'tipo_emision', 'tipo_emision_id', 'fe_py.tipo_emision'),
     ]
     for tabla, col_vieja, col_nueva, modelo in conversiones:
         cr.execute("""
