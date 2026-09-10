@@ -8,7 +8,7 @@
             que en los módulos l10n_XX oficiales (ej. account_account_tag_data.xml),
             para que exista ANTES de que se ejecute try_loading y la columna
             tag_ids de account.account-py.csv pueda resolverlo por su
-            external ID sin prefijo de compañía.
+            external ID completo (con prefijo de módulo).
         -->
         <record id="tag_iva_credito_fiscal" model="account.account.tag">
             <field name="name">IVA Crédito Fiscal</field>

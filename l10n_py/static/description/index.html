@@ -8,31 +8,54 @@
             <i>Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete</i>.
         </p>
     </div>
+
     <div class="oe_row oe_spaced">
         <h4>Funcionalidades incluidas</h4>
         <ul>
-            <li>Plan de cuentas: 215 cuentas imputables (<code>account.account</code>), con <code>account_type</code> asignado según norma</li>
-            <li>135 grupos de cuenta (<code>account.group</code>), incluyendo las 7 raíces de nivel 1: Activo, Pasivo, Patrimonio Neto, Ingresos, Costos, Otros Ingresos y Gastos</li>
+            <li>Plan de cuentas: cuentas imputables (<code>account.account</code>) con <code>account_type</code> asignado según norma, todas en moneda PYG</li>
+            <li>Grupos de cuenta (<code>account.group</code>), incluyendo las 7 raíces de nivel 1: Activo, Pasivo, Patrimonio Neto, Ingresos, Costos, Otros Ingresos y Gastos</li>
             <li>6 impuestos predeterminados (<code>account.tax</code>): IVA 10%, IVA 5% y Exentas, para Ventas y Compras, con líneas de reparto configuradas</li>
             <li>3 grupos de impuestos (<code>account.tax.group</code>): IVA 10%, IVA 5%, Exentas</li>
             <li>Moneda de la compañía: Guaraní (PYG)</li>
-            <li>Cuentas por defecto de compañía: Deudores (clientes), Acreedores (proveedores)</li>
-            <li>Prefijo de código para cuentas de banco y caja (auto-generación al crear nuevos diarios)</li>
+            <li>Cuentas por defecto de compañía: Deudores (clientes), Acreedores (proveedores), Ingreso/Gasto por defecto de categoría de producto</li>
+            <li>Prefijo de código para cuentas de Banco y de Caja (auto-generación al crear nuevos diarios)</li>
             <li>Cuenta de Transferencias Internas</li>
-            <li>Cuenta de diferencia de cambio (ganancia y pérdida)</li>
-            <li>Cuenta de redondeo (ganancia y pérdida)</li>
+            <li>Cuenta de diferencia de cambio — Ganancia y Pérdida en cuentas separadas</li>
+            <li>Cuenta de redondeo (ganancia y pérdida, cuenta compartida)</li>
             <li>Impuesto de venta y compra por defecto (IVA 10%)</li>
+            <li>Cuentas de descuento por pronto pago (Ganancia y Pérdida)</li>
             <li>2 posiciones fiscales (<code>account.fiscal.position</code>): Exterior y Diplomático — selección manual, reemplazan IVA 10%/5% Ventas por Exentas Ventas</li>
             <li>2 tags de cuenta (<code>account.account.tag</code>): IVA Crédito Fiscal e IVA Débito Fiscal, aplicados a sus cuentas correspondientes</li>
             <li>6 plazos de pago (<code>account.payment.term</code>): Contado, 15/30/45/60 días, y 30-60-90 días (3 cuotas)</li>
+            <li>Contabilidad Anglo-Saxon: el costo de mercadería se reconoce como activo al comprar, y pasa a Costo de Venta recién al vender</li>
+            <li>Valorización de inventario automática (perpetua) con método de costeo Promedio Ponderado (AVCO), aplicada como estándar de fábrica sobre la categoría de producto "Bienes"</li>
+            <li>Cierre periódico de ajuste de inventario físico vs. contable, con frecuencia diaria</li>
         </ul>
     </div>
+
     <div class="oe_row oe_spaced">
         <h4>Fuera de alcance de este módulo (pendiente a futuro)</h4>
         <ul>
+            <li>Tags de cuenta adicionales para reportes fiscales más allá de IVA Crédito/Débito Fiscal</li>
             <li>Datos de demostración (compañía/plan de cuentas de ejemplo) — no requeridos por el momento</li>
+            <li>Cuenta de Variación de Inventario (<code>account_stock_variation_id</code>) y Diario de Valorización de Inventario: quedan a criterio del usuario, por categoría de producto, cuando cree sus propias categorías</li>
         </ul>
     </div>
+
+    <div class="oe_row oe_spaced">
+        <h4>Guía de configuración — pasos a realizar después de instalar</h4>
+        <ol>
+            <li>Instalar el módulo y seleccionar el paquete "Paraguay - Contabilidad" en Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete (si no se aplicó automáticamente).</li>
+            <li>Actualizar manualmente el país de la compañía (<i>Ajustes generales &gt; Compañías &gt; País</i>) a Paraguay, si corresponde — este módulo solo configura el país fiscal, no el domicilio legal.</li>
+            <li>Verificar en Ajustes &gt; Facturación &gt; Impuestos que los impuestos y grupos de impuestos quedaron cargados correctamente.</li>
+            <li>Revisar los prefijos de Banco/Caja (Ajustes &gt; Facturación &gt; Impuestos) y crear los diarios de banco/caja reales de la empresa.</li>
+            <li>Crear las categorías de producto necesarias (ej. por tasa de IVA) y asignarles su propia cuenta de Valoración de Inventario, si se requiere una granularidad mayor a la categoría "Bienes" por defecto.</li>
+            <li>Revisar las posiciones fiscales Exterior/Diplomático y confirmar que se apliquen manualmente en los documentos que correspondan.</li>
+            <li>Revisar los plazos de pago predeterminados y ajustar/crear los que falten según la operación real de la empresa.</li>
+            <li>Instalar el módulo <code>local_py</code> para completar la localización (RUT, Timbrado/Nro. Documento, Tipo Fiscal, Libro Ventas/Compras, permisos contables).</li>
+        </ol>
+    </div>
+
     <div class="oe_row oe_spaced">
         <h4>Paso posterior a la instalación (manual)</h4>
         <p>
