@@ -223,3 +223,7 @@
 "py_1_01_01_01_004","CHEQUES PYG EN CARTERA","1.01.01.01.004","asset_cash","False","base.PYG",""
 "py_1_01_03_02_005","RETENCIONES DE RENTA","1.01.03.02.005","asset_current","False","base.PYG",""
 "py_1_01_03_02_006","RETENCIONES POR CONFIRMAR","1.01.03.02.006","asset_current","False","base.PYG",""
+"py_1_01_01_03_003","BANCO","1.01.01.03.003","asset_cash","False","base.PYG",""
+"py_1_01_01_03_004","CUENTA TRANSITORIA","1.01.01.03.004","asset_current","False","base.PYG",""
+"py_1_01_01_03_005","RECIBOS PENDIENTES","1.01.01.03.005","asset_current","False","base.PYG",""
+"py_1_01_01_03_006","PAGOS PENDIENTES","1.01.01.03.006","asset_current","False","base.PYG",""

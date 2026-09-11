@@ -1,0 +1,27 @@
+<odoo>
+    <data>
+        <!--
+            Odoo 19 tiene el modelo account.group y sus vistas (formulario,
+            lista, búsqueda) completas en el módulo 'account' core, pero NO
+            expone un menú de Configuración para administrarlo (solo
+            accesible vía Ajustes > Técnico > Estructura de Base de Datos,
+            en modo desarrollador). Se agrega acá un menú propio,
+            reutilizando las vistas nativas (account.view_account_group_tree/
+            form/search) — no se crean vistas nuevas.
+        -->
+        <record id="action_account_group_tree" model="ir.actions.act_window">
+            <field name="name">Grupos de Cuenta</field>
+            <field name="res_model">account.group</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="account.view_account_group_tree"/>
+            <field name="search_view_id" ref="account.view_account_group_search"/>
+        </record>
+
+        <menuitem id="menu_action_account_group_tree"
+                  name="Grupos de Cuenta"
+                  action="action_account_group_tree"
+                  parent="account.account_account_menu"
+                  groups="account.group_account_readonly"
+                  sequence="2"/>
+    </data>
+</odoo>

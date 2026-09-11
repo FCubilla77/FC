@@ -121,5 +121,39 @@ class AccountChartTemplate(models.AbstractModel):
                 # específico del cierre de Continental (no aplica con
                 # Anglo-Saxon). Ambos quedan a criterio del usuario cuando
                 # cree sus propias categorías de producto.
+
+                # Recibos/Pagos Pendientes ("Outstanding Receipts/Payments"):
+                # en Odoo 19 NO son campos directos del diario — el diario
+                # los toma de estas cuentas a nivel COMPAÑÍA, y Odoo las
+                # aplica automáticamente a las líneas de método de pago de
+                # los diarios de banco que pertenezcan a este chart_template
+                # (ver account_journal.py:_assign_outsanding_account_to_
+                # payment_method_lines, 19.0). No hay forma de fijarlas por
+                # diario individualmente en la plantilla — quedan como
+                # default de compañía, que el usuario puede cambiar por
+                # diario después si lo necesita.
+                'account_journal_payment_debit_account_id': 'py_1_01_01_03_005',
+                'account_journal_payment_credit_account_id': 'py_1_01_01_03_006',
+            },
+        }
+
+    @template('py', 'account.journal')
+    def _get_py_account_journal(self, template_code):
+        """Diario de banco de EJEMPLO — un único diario ('Banco'), con sus
+        cuentas ya asignadas, para que sirva de plantilla/patrón al crear
+        los diarios de banco reales de cada empresa (confirmado con el
+        cliente: las cuentas BANCOS 1 PYG / BANCOS 2 USD del plan son solo
+        ejemplos ilustrativos, no journals reales — cada empresa crea sus
+        propias cuentas de banco).
+        """
+        return {
+            'bank_py': {
+                'name': 'Banco',
+                'type': 'bank',
+                'default_account_id': 'py_1_01_01_03_003',
+                # Cuenta transitoria de conciliación (suspense_account_id
+                # SÍ es un campo directo del diario en Odoo 19, a diferencia
+                # de Recibos/Pagos Pendientes — ver nota en _get_py_res_company).
+                'suspense_account_id': 'py_1_01_01_03_004',
             },
         }

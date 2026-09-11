@@ -31,6 +31,8 @@
             <li>Valorización de inventario automática (perpetua) con método de costeo Promedio Ponderado (AVCO), aplicada como estándar de fábrica sobre la categoría de producto "Bienes"</li>
             <li>Cierre periódico de ajuste de inventario físico vs. contable, con frecuencia diaria</li>
             <li>Permisos contables automáticos: los usuarios con "Contabilidad / Administrador" reciben también acceso para ver y editar el plan de cuentas, los grupos de cuenta, cuentas de ingreso/gasto en productos y categorías, y cuentas por cobrar/pagar en clientes y proveedores — sin depender de que el módulo local_py esté instalado</li>
+            <li>Menú "Grupos de Cuenta" propio bajo Facturación &gt; Configuración &gt; Contabilidad (Odoo 19 no expone uno estándar para este modelo)</li>
+            <li>1 diario de banco de ejemplo ("Banco"), con cuenta por defecto, cuenta transitoria de conciliación y cuentas de Recibos/Pagos Pendientes ya asignadas — sirve de plantilla para los diarios de banco reales que cada empresa cree</li>
         </ul>
     </div>
 
@@ -49,7 +51,7 @@
             <li>Instalar el módulo y seleccionar el paquete "Paraguay - Contabilidad" en Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete (si no se aplicó automáticamente).</li>
             <li>Actualizar manualmente el país de la compañía (<i>Ajustes generales &gt; Compañías &gt; País</i>) a Paraguay, si corresponde — este módulo solo configura el país fiscal, no el domicilio legal.</li>
             <li>Verificar en Ajustes &gt; Facturación &gt; Impuestos que los impuestos y grupos de impuestos quedaron cargados correctamente.</li>
-            <li>Revisar los prefijos de Banco/Caja (Ajustes &gt; Facturación &gt; Impuestos) y crear los diarios de banco/caja reales de la empresa.</li>
+            <li>Revisar el diario "Banco" de ejemplo y crear los diarios de banco/caja reales de la empresa siguiendo ese mismo patrón (cuenta propia + cuenta transitoria). <b>Importante</b>: al crear un diario de banco/caja nuevo, Odoo genera una cuenta por defecto automáticamente y ese código no respeta el formato con puntos de este plan — corregilo a mano después (ej. <code>1.01.01.03.007</code>) o, para evitarlo directamente, creá primero la cuenta correcta desde el Plan de Cuentas (a mano, o duplicando una cuenta existente del mismo grupo) y asignásela al diario en vez de dejar que Odoo la genere. Crear cuentas nuevas a mano desde el Plan de Cuentas, o duplicando una existente, no tiene este problema.</li>
             <li>Crear las categorías de producto necesarias (ej. por tasa de IVA) y asignarles su propia cuenta de Valoración de Inventario, si se requiere una granularidad mayor a la categoría "Bienes" por defecto.</li>
             <li>Revisar las posiciones fiscales Exterior/Diplomático y confirmar que se apliquen manualmente en los documentos que correspondan.</li>
             <li>Revisar los plazos de pago predeterminados y ajustar/crear los que falten según la operación real de la empresa.</li>
