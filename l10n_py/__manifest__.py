@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0010",
+    "version": "19.0.2026.0011",
     "category": "Accounting/Localizations/Account Charts",
     "license": "LGPL-3",
     "author": "FC_Py",
     "summary": "Paquete de Localización Fiscal Paraguay: plan de cuentas, grupos, "
-               "impuestos, posiciones fiscales, plazos de pago y valores de "
-               "compañía por defecto (account.chart.template)",
+               "impuestos, posiciones fiscales, plazos de pago, permisos "
+               "contables y valores de compañía por defecto (account.chart.template)",
     "description": """
         Localización Fiscal / Paquete: Paraguay
         =========================================
@@ -23,6 +23,7 @@
     "depends": ["base", "account"],
     "data": [
         "data/account_account_tag_data.xml",
+        "data/account_groups_data.xml",
     ],
     "installable": True,
     "auto_install": False,

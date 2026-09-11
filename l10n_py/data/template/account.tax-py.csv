@@ -1,4 +1,4 @@
-"id","name","type_tax_use","amount","amount_type","price_include_override","include_base_amount","description","tax_group_id","fiscal_position_ids","replacing_tax_ids","repartition_line_ids/repartition_type","repartition_line_ids/document_type","repartition_line_ids/account_id","repartition_line_ids/factor_percent"
+"id","name","type_tax_use","amount","amount_type","price_include_override","include_base_amount","description","tax_group_id","fiscal_position_ids","original_tax_ids","repartition_line_ids/repartition_type","repartition_line_ids/document_type","repartition_line_ids/account_id","repartition_line_ids/factor_percent"
 "tax_iva_10_ventas","IVA 10% Ventas","sale","10.0","percent","tax_included","False","IVA 10% Ventas","tax_group_iva_10","","","base","invoice","","100"
 "","","","","","","","","","","","tax","invoice","py_2_01_03_01_003","100"
 "","","","","","","","","","","","base","refund","","100"

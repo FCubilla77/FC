@@ -220,3 +220,6 @@
 "py_7_03_01_01_002","OTROS INTERESES PAGADOS","7.03.01.01.002","expense","False","base.PYG",""
 "py_7_03_01_01_003","COMISIONES Y GASTOS BANCARIOS SOBRE OPERACIONES CREDITICIAS","7.03.01.01.003","expense","False","base.PYG",""
 "py_7_03_01_02_001","RESULTADO POR DIFERENCIA DE CAMBIO","7.03.01.02.001","expense","False","base.PYG",""
+"py_1_01_01_01_004","CHEQUES PYG EN CARTERA","1.01.01.01.004","asset_cash","False","base.PYG",""
+"py_1_01_03_02_005","RETENCIONES DE RENTA","1.01.03.02.005","asset_current","False","base.PYG",""
+"py_1_01_03_02_006","RETENCIONES POR CONFIRMAR","1.01.03.02.006","asset_current","False","base.PYG",""
