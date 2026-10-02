@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="paperformat_balance_general" model="report.paperformat">
+            <field name="name">Balance General x Grupos de Cuentas</field>
+            <field name="format">A4</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">15</field>
+            <field name="margin_bottom">15</field>
+            <field name="margin_left">20</field>
+            <field name="margin_right">15</field>
+            <field name="header_spacing">0</field>
+            <field name="dpi">90</field>
+        </record>
+
+        <template id="report_balance_general_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <div class="page" style="font-size: 11px;">
+                        <div style="text-align: center; margin-bottom: 10px;">
+                            <h3 t-esc="company.display_name"/>
+                            <h4>Balance General x Grupos de Cuentas</h4>
+                            <div>Al <t t-esc="fecha.strftime('%d/%m/%Y')"/></div>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #000;">
+                                    <th style="text-align: left; padding: 2px;">Código</th>
+                                    <th style="text-align: left; padding: 2px;">Cuenta</th>
+                                    <th style="text-align: right; padding: 2px;">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="rows" t-as="fila">
+                                    <tr t-att-style="'font-weight: bold;' if fila['tipo'] in ('titulo', 'especial') else ''">
+                                        <td style="padding: 2px;" t-esc="fila['code']"/>
+                                        <td t-attf-style="padding: 2px 2px 2px {{ 4 + fila['nivel'] * 12 }}px;" t-esc="fila['name']"/>
+                                        <td style="padding: 2px; text-align: right;" t-esc="fmt_pyg(fila['saldo'])"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <record id="action_report_balance_general_pdf" model="ir.actions.report">
+            <field name="name">Balance General x Grupos de Cuentas</field>
+            <field name="model">l10n_py.balance_general.wizard</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_py.report_balance_general_document</field>
+            <field name="report_file">l10n_py.report_balance_general_document</field>
+            <field name="print_report_name">'Balance General - %s' % (object.fecha)</field>
+            <field name="paperformat_id" ref="paperformat_balance_general"/>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+
+        <record id="action_report_balance_general_html" model="ir.actions.report">
+            <field name="name">Balance General x Grupos de Cuentas (vista en pantalla)</field>
+            <field name="model">l10n_py.balance_general.wizard</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">l10n_py.report_balance_general_document</field>
+            <field name="report_file">l10n_py.report_balance_general_document</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

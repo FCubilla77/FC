@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Asistente -->
+        <record id="view_l10n_py_cierre_ejercicio_wizard_form" model="ir.ui.view">
+            <field name="name">l10n_py.cierre_ejercicio.wizard.form</field>
+            <field name="model">l10n_py.cierre_ejercicio.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Cerrar Ejercicio">
+                    <div class="alert alert-warning" role="alert">
+                        Esto generará y confirmará dos asientos contables: el Asiento de
+                        Cierre (31/12 del ejercicio elegido) y el Asiento de Apertura
+                        (1/1 del ejercicio siguiente), y bloqueará la fecha contable
+                        (Bloqueo de Ejercicio Fiscal) hasta el 31/12 de ese año.
+                        <br/>
+                        Verifique que todos los asientos del ejercicio a cerrar estén
+                        confirmados (no en borrador) antes de continuar.
+                    </div>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="anio"/>
+                    </group>
+                    <footer>
+                        <button name="action_confirmar" type="object" string="Cerrar Ejercicio" class="btn-primary"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_cierre_ejercicio_wizard" model="ir.actions.act_window">
+            <field name="name">Cerrar Ejercicio</field>
+            <field name="res_model">l10n_py.cierre_ejercicio.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Historial de Cierres -->
+        <record id="view_l10n_py_cierre_ejercicio_form" model="ir.ui.view">
+            <field name="name">l10n_py.cierre_ejercicio.form</field>
+            <field name="model">l10n_py.cierre_ejercicio</field>
+            <field name="arch" type="xml">
+                <form string="Cierre de Ejercicio" create="false" edit="false">
+                    <header>
+                        <button name="action_deshacer" type="object" string="Deshacer"
+                                class="btn-danger" invisible="state == 'deshecho'"
+                                confirm="Esto revierte (anula) los asientos de Cierre y Apertura. ¿Confirma?"/>
+                        <field name="state" widget="statusbar" statusbar_visible="cerrado,deshecho"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="company_id"/>
+                                <field name="anio"/>
+                                <field name="resultado_ejercicio"/>
+                            </group>
+                            <group>
+                                <field name="fecha_cierre"/>
+                                <field name="fecha_apertura"/>
+                            </group>
+                        </group>
+                        <group>
+                            <button name="action_ver_cierre" type="object" string="Ver Asiento de Cierre"/>
+                            <button name="action_ver_apertura" type="object" string="Ver Asiento de Apertura"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_l10n_py_cierre_ejercicio_list" model="ir.ui.view">
+            <field name="name">l10n_py.cierre_ejercicio.list</field>
+            <field name="model">l10n_py.cierre_ejercicio</field>
+            <field name="arch" type="xml">
+                <list string="Cierres de Ejercicio" create="false" edit="false" delete="false">
+                    <field name="anio"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="fecha_cierre"/>
+                    <field name="fecha_apertura"/>
+                    <field name="resultado_ejercicio"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_cierre_ejercicio" model="ir.actions.act_window">
+            <field name="name">Cierres de Ejercicio</field>
+            <field name="res_model">l10n_py.cierre_ejercicio</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <menuitem id="menu_l10n_py_cierre_ejercicio_root"
+                  name="Cierre de Ejercicio"
+                  parent="account.account_closing_menu"
+                  groups="account.group_account_manager"
+                  sequence="10"/>
+
+        <menuitem id="menu_l10n_py_cierre_ejercicio_wizard"
+                  name="Cerrar Ejercicio"
+                  parent="menu_l10n_py_cierre_ejercicio_root"
+                  action="action_l10n_py_cierre_ejercicio_wizard"
+                  groups="account.group_account_manager"
+                  sequence="10"/>
+
+        <menuitem id="menu_l10n_py_cierre_ejercicio_historial"
+                  name="Historial de Cierres"
+                  parent="menu_l10n_py_cierre_ejercicio_root"
+                  action="action_l10n_py_cierre_ejercicio"
+                  groups="account.group_account_manager"
+                  sequence="20"/>
+
+    </data>
+</odoo>

@@ -33,6 +33,8 @@
             <li>Permisos contables automáticos: los usuarios con "Contabilidad / Administrador" reciben también acceso para ver y editar el plan de cuentas, los grupos de cuenta, cuentas de ingreso/gasto en productos y categorías, y cuentas por cobrar/pagar en clientes y proveedores — sin depender de que el módulo local_py esté instalado</li>
             <li>Menú "Grupos de Cuenta" propio bajo Facturación &gt; Configuración &gt; Contabilidad (Odoo 19 no expone uno estándar para este modelo)</li>
             <li>1 diario de banco de ejemplo ("Banco"), con cuenta por defecto, cuenta transitoria de conciliación y cuentas de Recibos/Pagos Pendientes ya asignadas — sirve de plantilla para los diarios de banco reales que cada empresa cree</li>
+            <li>Reporte Balance General x Grupos de Cuentas (Facturación &gt; Informes &gt; Statement Reports): Activo/Pasivo/Patrimonio agrupado jerárquicamente por Grupo de Cuentas, con línea de Resultado del Ejercicio en curso (no cerrado) — vista Pivote/Lista en pantalla, vista HTML de control y descarga en PDF (A4, márgenes estándar del proyecto), los tres a partir del mismo cálculo</li>
+            <li>Cierre y Apertura de Ejercicio (Facturación &gt; Contabilidad &gt; Cierre &gt; Cerrar Ejercicio): genera y confirma en un solo paso el Asiento de Cierre (zanja Ingresos/Costos/Gastos contra la cuenta Resultado del Ejercicio) y el Asiento de Apertura del año siguiente (reabre Activo/Pasivo/Patrimonio), bloquea la fecha contable hasta el cierre, e incluye Historial de Cierres con botón "Deshacer"</li>
         </ul>
     </div>
 

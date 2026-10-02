@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Asistente -->
+        <record id="view_l10n_py_balance_general_wizard_form" model="ir.ui.view">
+            <field name="name">l10n_py.balance_general.wizard.form</field>
+            <field name="model">l10n_py.balance_general.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Balance General x Grupos de Cuentas">
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="fecha"/>
+                    </group>
+                    <footer>
+                        <button name="action_ver" type="object" string="Ver (Pivote/Lista)" class="btn-primary"/>
+                        <button name="action_ver_html" type="object" string="Ver (HTML)" class="btn-secondary"/>
+                        <button name="action_imprimir" type="object" string="Descargar PDF" class="btn-secondary"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_balance_general_wizard" model="ir.actions.act_window">
+            <field name="name">Balance General x Grupos de Cuentas</field>
+            <field name="res_model">l10n_py.balance_general.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Vista Pivote (principal) y Lista jerárquica del reporte generado -->
+        <record id="view_l10n_py_balance_general_report_pivot" model="ir.ui.view">
+            <field name="name">l10n_py.balance_general.report.pivot</field>
+            <field name="model">l10n_py.balance_general.report</field>
+            <field name="arch" type="xml">
+                <pivot string="Balance General x Grupos de Cuentas">
+                    <field name="nivel_1" type="row"/>
+                    <field name="name" type="row"/>
+                    <field name="saldo" type="measure"/>
+                </pivot>
+            </field>
+        </record>
+
+        <record id="view_l10n_py_balance_general_report_list" model="ir.ui.view">
+            <field name="name">l10n_py.balance_general.report.list</field>
+            <field name="model">l10n_py.balance_general.report</field>
+            <field name="arch" type="xml">
+                <list string="Balance General x Grupos de Cuentas" create="false" edit="false" delete="false">
+                    <field name="code"/>
+                    <field name="name" decoration-bf="tipo != 'imputable'"/>
+                    <field name="tipo" column_invisible="1"/>
+                    <field name="nivel" column_invisible="1"/>
+                    <field name="nivel_1"/>
+                    <field name="saldo" sum="Total"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_l10n_py_balance_general_report" model="ir.actions.act_window">
+            <field name="name">Balance General x Grupos de Cuentas</field>
+            <field name="res_model">l10n_py.balance_general.report</field>
+            <field name="view_mode">pivot,list</field>
+        </record>
+
+        <menuitem id="menu_l10n_py_balance_general"
+                  name="Balance General x Grupos de Cuentas"
+                  parent="account.account_reports_legal_statements_menu"
+                  action="action_l10n_py_balance_general_wizard"
+                  groups="account.group_account_readonly"
+                  sequence="10"/>
+
+    </data>
+</odoo>
