@@ -12,6 +12,12 @@
             <field name="tipo">cancelacion</field>
             <field name="company_id" eval="False"/>
         </record>
+        <!-- Motivo usado cuando se anula la recepción de una OT que sigue En espera -->
+        <record id="motivo_cancelacion_recepcion_anulada" model="tllr_fc.motivo">
+            <field name="name">Recepción anulada</field>
+            <field name="tipo">cancelacion</field>
+            <field name="company_id" eval="False"/>
+        </record>
         <record id="motivo_cancelacion_otro" model="tllr_fc.motivo">
             <field name="name">Otro</field>
             <field name="tipo">cancelacion</field>

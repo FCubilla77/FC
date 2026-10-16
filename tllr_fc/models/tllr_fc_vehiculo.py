@@ -46,6 +46,48 @@ class TllrFcVehiculo(models.Model):
         'res.company', string="Compañía", required=True,
         default=lambda self: self.env.company)
     active = fields.Boolean(string="Activo", default=True)
+    recepcion_count = fields.Integer(
+        string="Recepciones", compute='_compute_conteos')
+    ot_count = fields.Integer(
+        string="Órdenes de trabajo", compute='_compute_conteos')
+
+    # ------------------------------------------------------------------
+    # Conteos y accesos
+    # ------------------------------------------------------------------
+    def _compute_conteos(self):
+        recepciones = {}
+        ordenes = {}
+        if self.ids:
+            for vehiculo, cantidad in self.env['tllr_fc.recepcion']._read_group(
+                    [('vehiculo_id', 'in', self.ids)], ['vehiculo_id'], ['__count']):
+                recepciones[vehiculo.id] = cantidad
+            for vehiculo, cantidad in self.env['tllr_fc.ot']._read_group(
+                    [('vehiculo_id', 'in', self.ids)], ['vehiculo_id'], ['__count']):
+                ordenes[vehiculo.id] = cantidad
+        for vehiculo in self:
+            vehiculo.recepcion_count = recepciones.get(vehiculo.id, 0)
+            vehiculo.ot_count = ordenes.get(vehiculo.id, 0)
+
+    def action_ver_recepciones(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Recepciones",
+            'res_model': 'tllr_fc.recepcion',
+            'view_mode': 'list,form',
+            'domain': [('vehiculo_id', '=', self.id)],
+            'context': {'default_vehiculo_id': self.id, 'default_partner_id': self.partner_id.id},
+        }
+
+    def action_ver_ots(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Órdenes de trabajo",
+            'res_model': 'tllr_fc.ot',
+            'view_mode': 'list,form',
+            'domain': [('vehiculo_id', '=', self.id)],
+        }
 
     # ------------------------------------------------------------------
     # Normalización

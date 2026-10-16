@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Plantilla editable: se conserva lo que el usuario modifique en cada actualización -->
+    <data noupdate="1">
+        <record id="mail_template_turno_recordatorio" model="mail.template">
+            <field name="name">Taller: Recordatorio de turno</field>
+            <field name="model_id" ref="model_tllr_fc_turno"/>
+            <field name="subject">Recordatorio de su turno {{ object.name }} - {{ object.company_id.name }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 13px;">
+    <p>Estimado/a <t t-out="object.partner_id.name or ''">Cliente</t>:</p>
+    <p>
+        Le recordamos su turno <strong t-out="object.name or ''">TUR/00001</strong>
+        para el día <strong t-out="object.fecha_hora_texto or ''">01/01/2026 08:00</strong>.
+    </p>
+    <p t-if="object.vehiculo_id">
+        Vehículo: <strong t-out="object.vehiculo_id.display_name or ''">[ABC123] Vehículo</strong>
+    </p>
+    <p>Si necesita reprogramarlo, por favor comuníquese con nosotros.</p>
+    <p>
+        Saludos cordiales,<br/>
+        <t t-out="object.company_id.name or ''">Taller</t>
+    </p>
+</div>
+            </field>
+        </record>
+    </data>
+</odoo>

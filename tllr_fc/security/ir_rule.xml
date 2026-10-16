@@ -62,5 +62,47 @@
             <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
         </record>
 
+        <record id="rule_tllr_fc_turno_company" model="ir.rule">
+            <field name="name">Taller: Turno multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_turno"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_turno_servicio_company" model="ir.rule">
+            <field name="name">Taller: Servicio del turno multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_turno_servicio"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_recepcion_company" model="ir.rule">
+            <field name="name">Taller: Recepción multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_recepcion"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_recepcion_servicio_company" model="ir.rule">
+            <field name="name">Taller: Servicio de la recepción multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_recepcion_servicio"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_recepcion_item_company" model="ir.rule">
+            <field name="name">Taller: Ítem de la recepción multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_recepcion_item"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_ot_company" model="ir.rule">
+            <field name="name">Taller: Orden de trabajo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_ot"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_ot_servicio_company" model="ir.rule">
+            <field name="name">Taller: Servicio de la OT multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_ot_servicio"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
     </data>
 </odoo>

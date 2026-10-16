@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="action_report_recepcion" model="ir.actions.report">
+            <field name="name">Comprobante de recepción</field>
+            <field name="model">tllr_fc.recepcion</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_recepcion_document</field>
+            <field name="report_file">tllr_fc.report_recepcion_document</field>
+            <field name="print_report_name">'Recepcion-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_recepcion"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_recepcion_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <div class="row">
+                                <div class="col-8">
+                                    <h2 style="margin-bottom: 0;">Comprobante de recepción</h2>
+                                    <h4 style="margin-top: 4px;">
+                                        <span t-field="o.name"/>
+                                    </h4>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <strong t-field="o.company_id.name"/><br/>
+                                    <span t-if="o.company_id.vat">RUC: <span t-field="o.company_id.vat"/><br/></span>
+                                    <span t-if="o.company_id.phone"><span t-field="o.company_id.phone"/><br/></span>
+                                    <span t-field="o.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                                </div>
+                            </div>
+                            <hr/>
+
+                            <div class="row" style="margin-bottom: 12px;">
+                                <div class="col-6">
+                                    <h5>Cliente</h5>
+                                    <div><strong t-field="o.partner_id.name"/></div>
+                                    <div t-if="o.partner_id.vat">RUC/CI: <span t-field="o.partner_id.vat"/></div>
+                                    <div t-if="o.partner_id.phone">Tel.: <span t-field="o.partner_id.phone"/></div>
+                                    <div t-if="o.partner_secundario_id" style="margin-top: 6px;">
+                                        Entregó el vehículo: <span t-field="o.partner_secundario_id.name"/>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h5>Vehículo</h5>
+                                    <div><strong>Chapa: <span t-field="o.vehiculo_id.chapa"/></strong></div>
+                                    <div>
+                                        <span t-field="o.vehiculo_id.marca_id.name"/>
+                                        <span t-field="o.vehiculo_id.modelo_id.name"/>
+                                        <span t-if="o.vehiculo_id.anio"
+                                              t-out="o.vehiculo_id.anio"/>
+                                    </div>
+                                    <div t-if="o.vehiculo_id.color">Color: <span t-field="o.vehiculo_id.color"/></div>
+                                    <div t-if="o.vehiculo_id.chasis">Chasis: <span t-field="o.vehiculo_id.chasis"/></div>
+                                    <div>Kilometraje: <span t-out="'{:,}'.format(o.kilometraje).replace(',', '.')"/></div>
+                                    <div t-if="o.combustible_nivel">
+                                        Combustible: <span t-field="o.combustible_nivel"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5>Servicios solicitados</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Observación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.servicio_ids" t-as="s">
+                                        <td><span t-field="s.product_id.display_name"/></td>
+                                        <td><span t-field="s.observacion"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h5>Inventario del vehículo</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Ítem</th>
+                                        <th style="width: 15%;">Presente</th>
+                                        <th>Observación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.item_ids" t-as="i">
+                                        <td><span t-field="i.name"/></td>
+                                        <td><span t-field="i.presente"/></td>
+                                        <td><span t-field="i.observacion"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div t-if="o.observaciones" style="margin-bottom: 12px;">
+                                <h5>Observaciones / daños visibles</h5>
+                                <div style="white-space: pre-wrap;"><span t-field="o.observaciones"/></div>
+                            </div>
+
+                            <div class="row" style="margin-top: 70px;">
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Firma del cliente
+                                    </div>
+                                    <div>Aclaración: ____________________</div>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Recepcionista
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_ot_list" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.list</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="arch" type="xml">
+                <list create="0" decoration-muted="state == 'cancelada'">
+                    <field name="name"/>
+                    <field name="fecha_ingreso"/>
+                    <field name="vehiculo_id"/>
+                    <field name="partner_id"/>
+                    <field name="tipo" optional="show"/>
+                    <field name="dias_taller" optional="show"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state in ('espera', 'proceso')"
+                           decoration-warning="state in ('calidad', 'listo')"
+                           decoration-success="state == 'entregado'"
+                           decoration-danger="state == 'cancelada'"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_ot_form" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.form</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="arch" type="xml">
+                <form create="0">
+                    <header>
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="espera,proceso,calidad,listo,entregado"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_recepcion" type="object"
+                                    class="oe_stat_button" icon="fa-clipboard">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Recepción</span>
+                                </div>
+                            </button>
+                        </div>
+                        <widget name="web_ribbon" title="Cancelada" bg_color="text-bg-danger"
+                                invisible="state != 'cancelada'"/>
+                        <div class="oe_title">
+                            <h1><field name="name"/></h1>
+                        </div>
+                        <group>
+                            <group string="Cliente y vehículo">
+                                <field name="partner_id"/>
+                                <field name="partner_secundario_id"/>
+                                <field name="vehiculo_id"/>
+                                <field name="recepcion_id"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                            <group string="Ingreso">
+                                <field name="tipo" groups="tllr_fc.group_supervisor"
+                                       readonly="state != 'espera'"/>
+                                <field name="tipo" groups="!tllr_fc.group_supervisor" readonly="1"/>
+                                <field name="fecha_ingreso"/>
+                                <field name="dias_taller"/>
+                                <field name="kilometraje_ingreso"/>
+                                <field name="combustible_ingreso"/>
+                                <field name="motivo_cancelacion_id" invisible="state != 'cancelada'"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Servicios solicitados" name="servicios">
+                                <field name="servicio_ids" readonly="1">
+                                    <list>
+                                        <field name="product_id"/>
+                                        <field name="descripcion"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_ot_search" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.search</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <field name="vehiculo_id"/>
+                    <field name="partner_id"/>
+                    <filter string="En espera" name="espera" domain="[('state', '=', 'espera')]"/>
+                    <filter string="En proceso" name="proceso" domain="[('state', '=', 'proceso')]"/>
+                    <filter string="Abiertas" name="abiertas"
+                            domain="[('state', 'in', ('espera', 'proceso', 'calidad', 'listo'))]"/>
+                    <group>
+                        <filter string="Estado" name="agrupar_estado" context="{'group_by': 'state'}"/>
+                        <filter string="Tipo" name="agrupar_tipo" context="{'group_by': 'tipo'}"/>
+                        <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_ot" model="ir.actions.act_window">
+            <field name="name">Órdenes de trabajo</field>
+            <field name="res_model">tllr_fc.ot</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_tllr_fc_ot_search"/>
+            <field name="context">{'search_default_abiertas': 1}</field>
+        </record>
+
+    </data>
+</odoo>

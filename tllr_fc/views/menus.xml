@@ -22,6 +22,28 @@
                   groups="tllr_fc.group_usuario"
                   sequence="20"/>
 
+        <!-- Operación -->
+        <menuitem id="menu_tllr_fc_turnos"
+                  name="Turnos"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_turno"
+                  groups="tllr_fc.group_usuario"
+                  sequence="10"/>
+
+        <menuitem id="menu_tllr_fc_recepciones"
+                  name="Recepciones"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_recepcion"
+                  groups="tllr_fc.group_usuario"
+                  sequence="20"/>
+
+        <menuitem id="menu_tllr_fc_ots"
+                  name="Órdenes de trabajo"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_ot"
+                  groups="tllr_fc.group_usuario"
+                  sequence="30"/>
+
         <!-- Maestros -->
         <menuitem id="menu_tllr_fc_vehiculos"
                   name="Vehículos"

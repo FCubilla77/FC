@@ -13,3 +13,11 @@ from . import tllr_fc_puesto
 from . import tllr_fc_servicio_checklist
 from . import product_template
 from . import res_partner
+from . import tllr_fc_mixin
+from . import tllr_fc_turno_servicio
+from . import tllr_fc_turno
+from . import tllr_fc_recepcion_servicio
+from . import tllr_fc_recepcion_item
+from . import tllr_fc_recepcion
+from . import tllr_fc_ot_servicio
+from . import tllr_fc_ot

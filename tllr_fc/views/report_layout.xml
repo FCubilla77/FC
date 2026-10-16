@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Diseño base de los informes del taller: sin encabezado ni pie externos,
+             para que los márgenes reales coincidan con los del formato de papel A4
+             (superior 15, inferior 15, derecho 15, izquierdo 20 mm). -->
+        <template id="report_layout">
+            <t t-if="not o" t-set="o" t-value="doc"/>
+            <div class="article"
+                 t-att-data-oe-model="o and o._name"
+                 t-att-data-oe-id="o and o.id"
+                 t-att-data-oe-lang="o and o.env.context.get('lang')">
+                <t t-out="0"/>
+            </div>
+        </template>
+    </data>
+</odoo>

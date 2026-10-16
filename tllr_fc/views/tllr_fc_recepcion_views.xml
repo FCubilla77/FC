@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_recepcion_list" model="ir.ui.view">
+            <field name="name">tllr_fc.recepcion.list</field>
+            <field name="model">tllr_fc.recepcion</field>
+            <field name="arch" type="xml">
+                <list decoration-muted="state == 'cancelada'">
+                    <field name="name"/>
+                    <field name="fecha"/>
+                    <field name="vehiculo_id"/>
+                    <field name="partner_id"/>
+                    <field name="kilometraje" optional="show"/>
+                    <field name="ot_id" optional="show"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'borrador'"
+                           decoration-success="state == 'confirmada'"
+                           decoration-danger="state == 'cancelada'"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_recepcion_form" model="ir.ui.view">
+            <field name="name">tllr_fc.recepcion.form</field>
+            <field name="model">tllr_fc.recepcion</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button name="action_confirmar" string="Confirmar" type="object"
+                                class="btn-primary" invisible="state != 'borrador'"/>
+                        <button name="action_cargar_items" string="Cargar ítems del catálogo"
+                                type="object" invisible="state != 'borrador'"/>
+                        <button name="action_imprimir" string="Imprimir comprobante" type="object"
+                                invisible="state == 'borrador'"/>
+                        <button name="action_duplicar" string="Duplicar" type="object"/>
+                        <button name="action_cancelar" string="Anular" type="object"
+                                invisible="state == 'cancelada'"
+                                confirm="¿Anular la recepción? Si la OT sigue En espera, también se cancelará."/>
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="borrador,confirmada"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_ot" type="object"
+                                    class="oe_stat_button" icon="fa-wrench"
+                                    invisible="not ot_id">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Orden de trabajo</span>
+                                </div>
+                            </button>
+                        </div>
+                        <widget name="web_ribbon" title="Anulada" bg_color="text-bg-danger"
+                                invisible="state != 'cancelada'"/>
+                        <div class="oe_title">
+                            <h1><field name="name"/></h1>
+                        </div>
+                        <div class="alert alert-info" role="alert">
+                            Las fotos del estado del vehículo se adjuntan en el chatter de esta
+                            recepción (sección de abajo). El comprobante firmado también se
+                            puede escanear y adjuntar allí.
+                        </div>
+                        <group>
+                            <group string="Vehículo y contactos">
+                                <field name="fecha" readonly="state != 'borrador'"/>
+                                <field name="vehiculo_id" readonly="state != 'borrador'"
+                                       options="{'no_quick_create': True}"/>
+                                <field name="partner_id" readonly="state != 'borrador'"/>
+                                <field name="partner_secundario_id" readonly="state != 'borrador'"/>
+                                <field name="turno_id" readonly="state != 'borrador'"
+                                       options="{'no_create': True}"/>
+                            </group>
+                            <group string="Ingreso">
+                                <field name="kilometraje" readonly="state != 'borrador'"/>
+                                <field name="combustible_nivel" readonly="state != 'borrador'"/>
+                                <field name="tipo_ot_propuesto" readonly="state != 'borrador'"/>
+                                <field name="ot_id"/>
+                                <field name="company_id" groups="base.group_multi_company"
+                                       readonly="state != 'borrador'"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Servicios solicitados" name="servicios">
+                                <field name="servicio_ids" readonly="state != 'borrador'">
+                                    <list editable="bottom">
+                                        <field name="product_id" options="{'no_create': True}"/>
+                                        <field name="observacion"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Inventario del vehículo" name="inventario">
+                                <field name="item_ids" readonly="state != 'borrador'">
+                                    <list editable="bottom">
+                                        <field name="item_id" options="{'no_create': True}"/>
+                                        <field name="name"/>
+                                        <field name="presente"/>
+                                        <field name="observacion"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Observaciones" name="observaciones">
+                                <field name="observaciones" readonly="state != 'borrador'"
+                                       placeholder="Daños visibles y estado general del vehículo"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_recepcion_search" model="ir.ui.view">
+            <field name="name">tllr_fc.recepcion.search</field>
+            <field name="model">tllr_fc.recepcion</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <field name="vehiculo_id"/>
+                    <field name="partner_id"/>
+                    <field name="ot_id"/>
+                    <filter string="Borrador" name="borrador" domain="[('state', '=', 'borrador')]"/>
+                    <filter string="Confirmadas" name="confirmadas" domain="[('state', '=', 'confirmada')]"/>
+                    <filter string="Anuladas" name="anuladas" domain="[('state', '=', 'cancelada')]"/>
+                    <group>
+                        <filter string="Estado" name="agrupar_estado" context="{'group_by': 'state'}"/>
+                        <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Vehículo" name="agrupar_vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                        <filter string="Mes" name="agrupar_mes" context="{'group_by': 'fecha:month'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_recepcion" model="ir.actions.act_window">
+            <field name="name">Recepciones</field>
+            <field name="res_model">tllr_fc.recepcion</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_tllr_fc_recepcion_search"/>
+        </record>
+
+    </data>
+</odoo>

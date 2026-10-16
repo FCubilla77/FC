@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_turno_list" model="ir.ui.view">
+            <field name="name">tllr_fc.turno.list</field>
+            <field name="model">tllr_fc.turno</field>
+            <field name="arch" type="xml">
+                <list decoration-danger="vencido"
+                      decoration-muted="state in ('cancelado', 'no_asistio')">
+                    <field name="name"/>
+                    <field name="fecha_hora"/>
+                    <field name="partner_id"/>
+                    <field name="vehiculo_id"/>
+                    <field name="puesto_id" optional="show"/>
+                    <field name="duracion" widget="float_time" optional="show"/>
+                    <field name="vencido" column_invisible="1"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'agendado'"
+                           decoration-success="state in ('confirmado', 'recibido')"
+                           decoration-warning="state == 'no_asistio'"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_turno_form" model="ir.ui.view">
+            <field name="name">tllr_fc.turno.form</field>
+            <field name="model">tllr_fc.turno</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button name="action_confirmar" string="Confirmar" type="object"
+                                class="btn-primary" invisible="state != 'agendado'"/>
+                        <button name="action_recibir" string="Recibir" type="object"
+                                class="btn-primary"
+                                invisible="state not in ('agendado', 'confirmado') or recepcion_id"/>
+                        <button name="action_no_asistio" string="Marcar no asistió" type="object"
+                                invisible="not vencido"/>
+                        <button name="action_reprogramar" string="Reprogramar" type="object"
+                                invisible="not vencido"/>
+                        <button name="action_recordatorio" string="Enviar recordatorio" type="object"
+                                invisible="state not in ('agendado', 'confirmado')"/>
+                        <button name="action_cancelar" string="Cancelar" type="object"
+                                invisible="state not in ('agendado', 'confirmado')"
+                                confirm="¿Cancelar el turno?"/>
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="agendado,confirmado,recibido"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_recepcion" type="object"
+                                    class="oe_stat_button" icon="fa-clipboard"
+                                    invisible="not recepcion_id">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Recepción</span>
+                                </div>
+                            </button>
+                        </div>
+                        <field name="vencido" invisible="1"/>
+                        <field name="recepcion_id" invisible="1"/>
+                        <widget name="web_ribbon" title="Vencido" bg_color="text-bg-danger"
+                                invisible="not vencido"/>
+                        <div class="oe_title">
+                            <h1><field name="name"/></h1>
+                        </div>
+                        <div class="alert alert-warning" role="alert"
+                             invisible="not aviso_superposicion">
+                            <field name="aviso_superposicion" nolabel="1"/>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="fecha_hora" readonly="state not in ('agendado', 'confirmado')"/>
+                                <field name="duracion" widget="float_time"
+                                       readonly="state not in ('agendado', 'confirmado')"/>
+                                <field name="puesto_id" readonly="state not in ('agendado', 'confirmado')"
+                                       options="{'no_create': True}"/>
+                            </group>
+                            <group>
+                                <field name="partner_id" readonly="state not in ('agendado', 'confirmado')"/>
+                                <field name="vehiculo_id" readonly="state not in ('agendado', 'confirmado')"
+                                       context="{'default_partner_id': partner_id}"
+                                       options="{'no_quick_create': True}"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Servicios solicitados" name="servicios">
+                                <field name="servicio_ids"
+                                       readonly="state not in ('agendado', 'confirmado')">
+                                    <list editable="bottom">
+                                        <field name="product_id" options="{'no_create': True}"/>
+                                        <field name="observacion"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_turno_calendar" model="ir.ui.view">
+            <field name="name">tllr_fc.turno.calendar</field>
+            <field name="model">tllr_fc.turno</field>
+            <field name="arch" type="xml">
+                <calendar string="Turnos" date_start="fecha_hora" date_stop="fecha_fin"
+                          color="color_calendario" mode="week" quick_create="0">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="vehiculo_id"/>
+                    <field name="state"/>
+                </calendar>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_turno_search" model="ir.ui.view">
+            <field name="name">tllr_fc.turno.search</field>
+            <field name="model">tllr_fc.turno</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="vehiculo_id"/>
+                    <field name="puesto_id"/>
+                    <filter string="Pendientes" name="pendientes"
+                            domain="[('state', 'in', ('agendado', 'confirmado'))]"/>
+                    <filter string="Pendientes vencidos" name="vencidos"
+                            domain="[('vencido', '=', True)]"/>
+                    <filter string="Ejecutados" name="ejecutados"
+                            domain="[('state', '=', 'recibido')]"/>
+                    <group>
+                        <filter string="Estado" name="agrupar_estado" context="{'group_by': 'state'}"/>
+                        <filter string="Puesto sugerido" name="agrupar_puesto" context="{'group_by': 'puesto_id'}"/>
+                        <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Día" name="agrupar_dia" context="{'group_by': 'fecha_hora:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_turno" model="ir.actions.act_window">
+            <field name="name">Turnos</field>
+            <field name="res_model">tllr_fc.turno</field>
+            <field name="view_mode">calendar,list,form</field>
+            <field name="search_view_id" ref="view_tllr_fc_turno_search"/>
+            <field name="context">{'search_default_pendientes': 1}</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_wizard_excepcion_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.excepcion.form</field>
+            <field name="model">tllr_fc.wizard.excepcion</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="res_model" invisible="1"/>
+                    <field name="res_id" invisible="1"/>
+                    <field name="accion" invisible="1"/>
+                    <field name="grupo_requerido" invisible="1"/>
+                    <div class="alert alert-warning" role="alert">
+                        Esta acción requiere la autorización de un
+                        <strong>supervisor de taller</strong>. Debe estar iniciada la sesión
+                        con un usuario que tenga ese rol.
+                    </div>
+                    <group>
+                        <field name="descripcion" force_save="1"/>
+                        <field name="motivo" placeholder="Explicá por qué se autoriza la excepción"/>
+                    </group>
+                    <footer>
+                        <button name="action_autorizar" string="Autorizar" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_wizard_confirmar_advertencia_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.confirmar_advertencia.form</field>
+            <field name="model">tllr_fc.wizard.confirmar_advertencia</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="res_model" invisible="1"/>
+                    <field name="res_id" invisible="1"/>
+                    <field name="accion" invisible="1"/>
+                    <div class="alert alert-warning" role="alert">
+                        <field name="mensaje" nolabel="1" force_save="1"/>
+                    </div>
+                    <p>¿Querés continuar de todos modos?</p>
+                    <footer>
+                        <button name="action_continuar" string="Continuar" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+    </data>
+</odoo>

@@ -26,6 +26,16 @@
             <field name="arch" type="xml">
                 <form>
                     <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_recepciones" type="object"
+                                    class="oe_stat_button" icon="fa-clipboard">
+                                <field name="recepcion_count" widget="statinfo" string="Recepciones"/>
+                            </button>
+                            <button name="action_ver_ots" type="object"
+                                    class="oe_stat_button" icon="fa-wrench">
+                                <field name="ot_count" widget="statinfo" string="Órdenes de trabajo"/>
+                            </button>
+                        </div>
                         <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger"
                                 invisible="active"/>
                         <field name="active" invisible="1"/>
