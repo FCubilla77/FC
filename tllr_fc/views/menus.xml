@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Aplicación Taller: visible solo para los usuarios del módulo -->
+        <menuitem id="menu_tllr_fc_root"
+                  name="Taller"
+                  web_icon="tllr_fc,static/description/icon.png"
+                  groups="tllr_fc.group_usuario"
+                  sequence="45"/>
+
+        <!-- Menús contenedores (se muestran cuando tienen opciones debajo) -->
+        <menuitem id="menu_tllr_fc_operacion"
+                  name="Operación"
+                  parent="menu_tllr_fc_root"
+                  groups="tllr_fc.group_usuario"
+                  sequence="10"/>
+
+        <menuitem id="menu_tllr_fc_maestros"
+                  name="Maestros"
+                  parent="menu_tllr_fc_root"
+                  groups="tllr_fc.group_usuario"
+                  sequence="20"/>
+
+        <menuitem id="menu_tllr_fc_informes"
+                  name="Informes"
+                  parent="menu_tllr_fc_root"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="30"/>
+
+        <menuitem id="menu_tllr_fc_config"
+                  name="Configuración"
+                  parent="menu_tllr_fc_root"
+                  groups="tllr_fc.group_administrador"
+                  sequence="90"/>
+
+        <menuitem id="menu_tllr_fc_ajustes"
+                  name="Ajustes"
+                  parent="menu_tllr_fc_config"
+                  action="action_tllr_fc_config_settings"
+                  groups="tllr_fc.group_administrador"
+                  sequence="10"/>
+
+    </data>
+</odoo>

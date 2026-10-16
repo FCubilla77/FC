@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="res_config_settings_view_form_tllr_fc" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.tllr_fc</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="40"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app data-string="Taller" string="Taller" name="tllr_fc"
+                         groups="tllr_fc.group_administrador">
+                        <field name="company_id" invisible="1"/>
+
+                        <block title="Control de calidad" name="tllr_fc_calidad">
+                            <setting string="Control de calidad en OT de Cliente"
+                                     help="Si está activo, las OT de tipo Cliente pasan por control de calidad antes de quedar listas.">
+                                <field name="tllr_fc_qc_cliente"/>
+                            </setting>
+                            <setting string="Control de calidad en OT Interna"
+                                     help="Si está activo, las OT de tipo Interno pasan por control de calidad.">
+                                <field name="tllr_fc_qc_interno"/>
+                            </setting>
+                            <setting string="Control de calidad en OT de Garantía"
+                                     help="Si está activo, las OT de tipo Garantía pasan por control de calidad.">
+                                <field name="tllr_fc_qc_garantia"/>
+                            </setting>
+                        </block>
+
+                        <block title="Trabajos adicionales" name="tllr_fc_adicionales">
+                            <setting string="Aprobación de trabajos adicionales"
+                                     help="Define si la aprobación del cliente es obligatoria para ejecutar un adicional (solo OT de Cliente).">
+                                <field name="tllr_fc_aprobacion_adicional"/>
+                            </setting>
+                        </block>
+
+                        <block title="Facturación" name="tllr_fc_facturacion">
+                            <setting string="Diario de factura de venta"
+                                     help="Diario de venta usado en las facturas generadas desde la OT. Es obligatorio para ejecutar 'Cerrar para facturar'.">
+                                <field name="tllr_fc_diario_venta_id"
+                                       domain="[('type', '=', 'sale'), ('company_id', '=', company_id)]"/>
+                            </setting>
+                        </block>
+
+                        <block title="Asientos contables" name="tllr_fc_asientos">
+                            <setting string="Generar asientos contables del taller"
+                                     help="Activa los asientos de reserva, consumo, OT internas, garantías y cancelaciones. Con el ajuste desactivado solo se usan los movimientos estándar de Inventario y Facturación.">
+                                <field name="tllr_fc_generar_asientos"/>
+                                <div class="content-group mt16" invisible="not tllr_fc_generar_asientos">
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_diario_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_diario_id" required="tllr_fc_generar_asientos"
+                                               domain="[('type', '=', 'general'), ('company_id', '=', company_id)]"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_wip_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_wip_id" required="tllr_fc_generar_asientos"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_gasto_interna_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_gasto_interna_id" required="tllr_fc_generar_asientos"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_gasto_garantia_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_gasto_garantia_id" required="tllr_fc_generar_asientos"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_perdida_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_perdida_id" required="tllr_fc_generar_asientos"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                </div>
+                            </setting>
+                            <setting string="Generar asiento por horas del personal"
+                                     help="Genera un asiento por el costo de las horas del personal (una línea por función). Requiere asientos contables activos."
+                                     invisible="not tllr_fc_generar_asientos">
+                                <field name="tllr_fc_asiento_horas"/>
+                                <div class="content-group mt16" invisible="not tllr_fc_asiento_horas">
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_mano_obra_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_mano_obra_id" required="tllr_fc_asiento_horas"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                </div>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_config_settings" model="ir.actions.act_window">
+            <field name="name">Ajustes</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">inline</field>
+            <field name="context">{'module': 'tllr_fc', 'bin_size': False}</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="module_category_tllr_fc" model="ir.module.category">
+            <field name="name">Taller</field>
+            <field name="sequence">45</field>
+        </record>
+
+        <record id="res_groups_privilege_tllr_fc" model="res.groups.privilege">
+            <field name="name">Taller</field>
+            <field name="category_id" ref="module_category_tllr_fc"/>
+        </record>
+
+        <record id="group_usuario" model="res.groups">
+            <field name="name">Usuario de taller</field>
+            <field name="sequence">10</field>
+            <field name="privilege_id" ref="res_groups_privilege_tllr_fc"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Crea recepciones y órdenes de trabajo, registra trabajos y horas. No ve costos.</field>
+        </record>
+
+        <record id="group_supervisor" model="res.groups">
+            <field name="name">Supervisor de taller</field>
+            <field name="sequence">20</field>
+            <field name="privilege_id" ref="res_groups_privilege_tllr_fc"/>
+            <field name="implied_ids" eval="[(4, ref('group_usuario'))]"/>
+            <field name="comment">Define puestos y personal, autoriza excepciones, precios y descuentos, compra directa, control de calidad y tablero.</field>
+        </record>
+
+        <record id="group_administrador" model="res.groups">
+            <field name="name">Administrador de taller</field>
+            <field name="sequence">30</field>
+            <field name="privilege_id" ref="res_groups_privilege_tllr_fc"/>
+            <field name="implied_ids" eval="[(4, ref('group_supervisor'))]"/>
+            <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+            <field name="comment">Maestros, ajustes, informe de rentabilidad, asientos, ajustes de costo posteriores y garantías fuera de plazo.</field>
+        </record>
+
+    </data>
+</odoo>

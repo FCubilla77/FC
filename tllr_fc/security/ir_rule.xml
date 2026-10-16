@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Las reglas de registro multiempresa (company_id in company_ids) se agregan
+        junto con cada modelo, a partir de la Fase 1.
+    -->
+</odoo>
