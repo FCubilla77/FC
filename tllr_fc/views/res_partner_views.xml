@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_partner_form_tllr_fc" model="ir.ui.view">
+            <field name="name">res.partner.form.inherit.tllr_fc</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_ver_vehiculos_tllr_fc" type="object" class="oe_stat_button"
+                            icon="fa-car" groups="tllr_fc.group_usuario"
+                            invisible="tllr_fc_vehiculo_count == 0">
+                        <field name="tllr_fc_vehiculo_count" widget="statinfo" string="Vehículos"/>
+                    </button>
+                </xpath>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Taller" name="tllr_fc" groups="tllr_fc.group_supervisor">
+                        <group>
+                            <group>
+                                <field name="tllr_fc_descuento"/>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

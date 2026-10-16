@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Pestaña "Taller" en la ficha del producto -->
+        <record id="product_template_form_view_tllr_fc" model="ir.ui.view">
+            <field name="name">product.template.form.inherit.tllr_fc</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Taller" name="tllr_fc" groups="tllr_fc.group_usuario">
+                        <group>
+                            <group string="Uso en el taller">
+                                <field name="tllr_fc_uso_taller"
+                                       invisible="type != 'consu'"/>
+                                <field name="tllr_fc_horas_estandar"
+                                       invisible="type != 'service'"/>
+                                <field name="tllr_fc_puesto_ids" widget="many2many_tags"
+                                       invisible="type != 'service'"/>
+                            </group>
+                            <group string="Garantía"
+                                   invisible="type != 'service' and tllr_fc_uso_taller not in ('repuesto', 'insumo_facturable', 'accesorio')">
+                                <field name="tllr_fc_garantia_dias"/>
+                                <field name="tllr_fc_garantia_km"/>
+                            </group>
+                        </group>
+                        <group string="Lista de verificación del control de calidad"
+                               invisible="type != 'service'">
+                            <field name="tllr_fc_checklist_ids" nolabel="1" colspan="2">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                </list>
+                            </field>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="product_template_search_view_tllr_fc" model="ir.ui.view">
+            <field name="name">product.template.search.inherit.tllr_fc</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_search_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <filter string="Uso: Repuesto" name="tllr_fc_repuesto"
+                            domain="[('tllr_fc_uso_taller', '=', 'repuesto')]"/>
+                    <filter string="Uso: Insumo" name="tllr_fc_insumo"
+                            domain="[('tllr_fc_uso_taller', 'in', ('insumo', 'insumo_facturable'))]"/>
+                    <filter string="Uso: Accesorio" name="tllr_fc_accesorio"
+                            domain="[('tllr_fc_uso_taller', '=', 'accesorio')]"/>
+                    <filter string="Uso: Herramienta" name="tllr_fc_herramienta"
+                            domain="[('tllr_fc_uso_taller', '=', 'herramienta')]"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Maestros de productos del taller -->
+        <record id="action_tllr_fc_servicios" model="ir.actions.act_window">
+            <field name="name">Servicios</field>
+            <field name="res_model">product.template</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('type', '=', 'service')]</field>
+            <field name="context">{'default_type': 'service'}</field>
+        </record>
+
+        <record id="action_tllr_fc_repuestos" model="ir.actions.act_window">
+            <field name="name">Repuestos, insumos y accesorios</field>
+            <field name="res_model">product.template</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('tllr_fc_uso_taller', 'in', ('repuesto', 'insumo', 'insumo_facturable', 'accesorio'))]</field>
+            <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_tllr_fc_uso_taller': 'repuesto'}</field>
+        </record>
+
+        <record id="action_tllr_fc_herramientas" model="ir.actions.act_window">
+            <field name="name">Herramientas</field>
+            <field name="res_model">product.template</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('tllr_fc_uso_taller', '=', 'herramienta')]</field>
+            <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_tllr_fc_uso_taller': 'herramienta'}</field>
+        </record>
+
+    </data>
+</odoo>

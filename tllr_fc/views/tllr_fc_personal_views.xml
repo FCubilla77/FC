@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_personal_list" model="ir.ui.view">
+            <field name="name">tllr_fc.personal.list</field>
+            <field name="model">tllr_fc.personal</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="codigo"/>
+                    <field name="name"/>
+                    <field name="funcion_id"/>
+                    <field name="user_id" optional="hide"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_personal_form" model="ir.ui.view">
+            <field name="name">tllr_fc.personal.form</field>
+            <field name="model">tllr_fc.personal</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger"
+                                invisible="active"/>
+                        <field name="active" invisible="1"/>
+                        <div class="oe_title">
+                            <label for="name"/>
+                            <h1>
+                                <field name="name" placeholder="Nombre de la persona"/>
+                            </h1>
+                            <h3>
+                                <field name="codigo"/>
+                            </h3>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="funcion_id"/>
+                                <field name="user_id"/>
+                            </group>
+                            <group>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_personal_search" model="ir.ui.view">
+            <field name="name">tllr_fc.personal.search</field>
+            <field name="model">tllr_fc.personal</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <field name="codigo"/>
+                    <field name="funcion_id"/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                    <group>
+                        <filter string="Función" name="agrupar_funcion" context="{'group_by': 'funcion_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_personal" model="ir.actions.act_window">
+            <field name="name">Personal de taller</field>
+            <field name="res_model">tllr_fc.personal</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+    </data>
+</odoo>

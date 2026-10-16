@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Motivos iniciales de cancelación y de detención (compartidos entre compañías) -->
+    <data noupdate="1">
+        <record id="motivo_cancelacion_rechazo_presupuesto" model="tllr_fc.motivo">
+            <field name="name">Rechazó el presupuesto</field>
+            <field name="tipo">cancelacion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="motivo_cancelacion_retiro_vehiculo" model="tllr_fc.motivo">
+            <field name="name">Retiró el vehículo</field>
+            <field name="tipo">cancelacion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="motivo_cancelacion_otro" model="tllr_fc.motivo">
+            <field name="name">Otro</field>
+            <field name="tipo">cancelacion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="motivo_detencion_repuesto" model="tllr_fc.motivo">
+            <field name="name">Esperando repuesto</field>
+            <field name="tipo">detencion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <!-- Se identifica con XML ID para relacionarlo con los trabajos adicionales -->
+        <record id="motivo_detencion_aprobacion_cliente" model="tllr_fc.motivo">
+            <field name="name">Esperando aprobación del cliente</field>
+            <field name="tipo">detencion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="motivo_detencion_proveedor_externo" model="tllr_fc.motivo">
+            <field name="name">Esperando proveedor externo</field>
+            <field name="tipo">detencion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="motivo_detencion_otro" model="tllr_fc.motivo">
+            <field name="name">Otro</field>
+            <field name="tipo">detencion</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_marca_list" model="ir.ui.view">
+            <field name="name">tllr_fc.marca.list</field>
+            <field name="model">tllr_fc.marca</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="name"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_marca_search" model="ir.ui.view">
+            <field name="name">tllr_fc.marca.search</field>
+            <field name="model">tllr_fc.marca</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Archivadas" name="inactivas" domain="[('active', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_marca" model="ir.actions.act_window">
+            <field name="name">Marcas</field>
+            <field name="res_model">tllr_fc.marca</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <!-- Modelos -->
+        <record id="view_tllr_fc_modelo_list" model="ir.ui.view">
+            <field name="name">tllr_fc.modelo.list</field>
+            <field name="model">tllr_fc.modelo</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="marca_id"/>
+                    <field name="name"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_modelo_search" model="ir.ui.view">
+            <field name="name">tllr_fc.modelo.search</field>
+            <field name="model">tllr_fc.modelo</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <field name="marca_id"/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                    <group>
+                        <filter string="Marca" name="agrupar_marca" context="{'group_by': 'marca_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_modelo" model="ir.actions.act_window">
+            <field name="name">Modelos</field>
+            <field name="res_model">tllr_fc.modelo</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <!-- Tipos de vehículo -->
+        <record id="view_tllr_fc_tipo_vehiculo_list" model="ir.ui.view">
+            <field name="name">tllr_fc.tipo_vehiculo.list</field>
+            <field name="model">tllr_fc.tipo_vehiculo</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="name"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_tipo_vehiculo_search" model="ir.ui.view">
+            <field name="name">tllr_fc.tipo_vehiculo.search</field>
+            <field name="model">tllr_fc.tipo_vehiculo</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_tipo_vehiculo" model="ir.actions.act_window">
+            <field name="name">Tipos de vehículo</field>
+            <field name="res_model">tllr_fc.tipo_vehiculo</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <!-- Ítems de inventario del vehículo -->
+        <record id="view_tllr_fc_item_inventario_list" model="ir.ui.view">
+            <field name="name">tllr_fc.item_inventario.list</field>
+            <field name="model">tllr_fc.item_inventario</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="name"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_item_inventario_search" model="ir.ui.view">
+            <field name="name">tllr_fc.item_inventario.search</field>
+            <field name="model">tllr_fc.item_inventario</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_item_inventario" model="ir.actions.act_window">
+            <field name="name">Ítems de inventario</field>
+            <field name="res_model">tllr_fc.item_inventario</field>
+            <field name="view_mode">list</field>
+        </record>
+
+        <!-- Motivos -->
+        <record id="view_tllr_fc_motivo_list" model="ir.ui.view">
+            <field name="name">tllr_fc.motivo.list</field>
+            <field name="model">tllr_fc.motivo</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="name"/>
+                    <field name="tipo"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_motivo_search" model="ir.ui.view">
+            <field name="name">tllr_fc.motivo.search</field>
+            <field name="model">tllr_fc.motivo</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Cancelación" name="cancelacion" domain="[('tipo', '=', 'cancelacion')]"/>
+                    <filter string="Detención" name="detencion" domain="[('tipo', '=', 'detencion')]"/>
+                    <separator/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                    <group>
+                        <filter string="Tipo" name="agrupar_tipo" context="{'group_by': 'tipo'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_motivo" model="ir.actions.act_window">
+            <field name="name">Motivos</field>
+            <field name="res_model">tllr_fc.motivo</field>
+            <field name="view_mode">list</field>
+        </record>
+
+    </data>
+</odoo>

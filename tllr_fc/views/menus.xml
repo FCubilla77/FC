@@ -22,6 +22,84 @@
                   groups="tllr_fc.group_usuario"
                   sequence="20"/>
 
+        <!-- Maestros -->
+        <menuitem id="menu_tllr_fc_vehiculos"
+                  name="Vehículos"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_vehiculo"
+                  groups="tllr_fc.group_usuario"
+                  sequence="10"/>
+
+        <menuitem id="menu_tllr_fc_marcas"
+                  name="Marcas"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_marca"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="20"/>
+
+        <menuitem id="menu_tllr_fc_modelos"
+                  name="Modelos"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_modelo"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="30"/>
+
+        <menuitem id="menu_tllr_fc_tipos_vehiculo"
+                  name="Tipos de vehículo"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_tipo_vehiculo"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="40"/>
+
+        <menuitem id="menu_tllr_fc_personal"
+                  name="Personal"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_personal"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="50"/>
+
+        <menuitem id="menu_tllr_fc_funciones"
+                  name="Funciones"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_funcion"
+                  groups="tllr_fc.group_administrador"
+                  sequence="60"/>
+
+        <menuitem id="menu_tllr_fc_puestos"
+                  name="Puestos"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_puesto"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="70"/>
+
+        <menuitem id="menu_tllr_fc_items_inventario"
+                  name="Ítems de inventario"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_item_inventario"
+                  groups="tllr_fc.group_administrador"
+                  sequence="80"/>
+
+        <menuitem id="menu_tllr_fc_servicios"
+                  name="Servicios"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_servicios"
+                  groups="tllr_fc.group_administrador"
+                  sequence="90"/>
+
+        <menuitem id="menu_tllr_fc_repuestos"
+                  name="Repuestos, insumos y accesorios"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_repuestos"
+                  groups="tllr_fc.group_administrador"
+                  sequence="100"/>
+
+        <menuitem id="menu_tllr_fc_herramientas"
+                  name="Herramientas"
+                  parent="menu_tllr_fc_maestros"
+                  action="action_tllr_fc_herramientas"
+                  groups="tllr_fc.group_administrador"
+                  sequence="110"/>
+
         <menuitem id="menu_tllr_fc_informes"
                   name="Informes"
                   parent="menu_tllr_fc_root"
@@ -33,6 +111,13 @@
                   parent="menu_tllr_fc_root"
                   groups="tllr_fc.group_administrador"
                   sequence="90"/>
+
+        <menuitem id="menu_tllr_fc_motivos"
+                  name="Motivos"
+                  parent="menu_tllr_fc_config"
+                  action="action_tllr_fc_motivo"
+                  groups="tllr_fc.group_administrador"
+                  sequence="20"/>
 
         <menuitem id="menu_tllr_fc_ajustes"
                   name="Ajustes"

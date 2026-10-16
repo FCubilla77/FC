@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Ítems iniciales del inventario del vehículo (compartidos entre compañías) -->
+    <data noupdate="1">
+        <record id="item_auxilio" model="tllr_fc.item_inventario">
+            <field name="name">Auxilio</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="item_gato" model="tllr_fc.item_inventario">
+            <field name="name">Gato</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="item_llave_ruedas" model="tllr_fc.item_inventario">
+            <field name="name">Llave de ruedas</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="item_documentos" model="tllr_fc.item_inventario">
+            <field name="name">Documentos</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="item_radio" model="tllr_fc.item_inventario">
+            <field name="name">Radio</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="item_alfombras" model="tllr_fc.item_inventario">
+            <field name="name">Alfombras</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

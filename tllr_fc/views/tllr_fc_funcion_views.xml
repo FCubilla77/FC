@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_funcion_list" model="ir.ui.view">
+            <field name="name">tllr_fc.funcion.list</field>
+            <field name="model">tllr_fc.funcion</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="name"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="costo_actual" groups="tllr_fc.group_supervisor"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_funcion_form" model="ir.ui.view">
+            <field name="name">tllr_fc.funcion.form</field>
+            <field name="model">tllr_fc.funcion</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <widget name="web_ribbon" title="Archivada" bg_color="text-bg-danger"
+                                invisible="active"/>
+                        <field name="active" invisible="1"/>
+                        <field name="currency_id" invisible="1"/>
+                        <div class="oe_title">
+                            <label for="name"/>
+                            <h1>
+                                <field name="name" placeholder="Ej.: Mecánico"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="costo_actual" groups="tllr_fc.group_supervisor"/>
+                        </group>
+                        <group string="Historial de costo por hora" groups="tllr_fc.group_supervisor">
+                            <field name="costo_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" delete="0">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="fecha_desde" readonly="id"/>
+                                    <field name="costo_hora" readonly="id"/>
+                                </list>
+                            </field>
+                        </group>
+                        <div class="text-muted" groups="tllr_fc.group_supervisor">
+                            Para cambiar el costo por hora agregue una nueva línea con su fecha de vigencia:
+                            las líneas existentes no se modifican ni se eliminan. Las horas se valorizan con
+                            el costo vigente en la fecha del trabajo.
+                        </div>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_funcion_search" model="ir.ui.view">
+            <field name="name">tllr_fc.funcion.search</field>
+            <field name="model">tllr_fc.funcion</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Archivadas" name="inactivas" domain="[('active', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_funcion" model="ir.actions.act_window">
+            <field name="name">Funciones</field>
+            <field name="res_model">tllr_fc.funcion</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+    </data>
+</odoo>

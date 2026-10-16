@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_vehiculo_list" model="ir.ui.view">
+            <field name="name">tllr_fc.vehiculo.list</field>
+            <field name="model">tllr_fc.vehiculo</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="codigo"/>
+                    <field name="chapa"/>
+                    <field name="name"/>
+                    <field name="marca_id"/>
+                    <field name="modelo_id"/>
+                    <field name="anio" options="{'format': false}"/>
+                    <field name="partner_id"/>
+                    <field name="kilometraje" optional="hide"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_vehiculo_form" model="ir.ui.view">
+            <field name="name">tllr_fc.vehiculo.form</field>
+            <field name="model">tllr_fc.vehiculo</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger"
+                                invisible="active"/>
+                        <field name="active" invisible="1"/>
+                        <div class="oe_title">
+                            <label for="name"/>
+                            <h1>
+                                <field name="name" placeholder="Ej.: Toyota Hilux blanca"/>
+                            </h1>
+                            <h3>
+                                <field name="codigo"/>
+                            </h3>
+                        </div>
+                        <group>
+                            <group string="Identificación">
+                                <field name="chapa"/>
+                                <field name="chasis"/>
+                                <field name="partner_id"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                            <group string="Datos del vehículo">
+                                <field name="marca_id"/>
+                                <field name="modelo_id" context="{'default_marca_id': marca_id}"/>
+                                <field name="anio" options="{'format': false}"/>
+                                <field name="tipo_id"/>
+                                <field name="color"/>
+                                <field name="combustible"/>
+                                <field name="kilometraje"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_vehiculo_search" model="ir.ui.view">
+            <field name="name">tllr_fc.vehiculo.search</field>
+            <field name="model">tllr_fc.vehiculo</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="chapa"/>
+                    <field name="name"/>
+                    <field name="chasis"/>
+                    <field name="codigo"/>
+                    <field name="partner_id"/>
+                    <field name="marca_id"/>
+                    <field name="modelo_id"/>
+                    <filter string="Archivados" name="inactivos" domain="[('active', '=', False)]"/>
+                    <group>
+                        <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Marca" name="agrupar_marca" context="{'group_by': 'marca_id'}"/>
+                        <filter string="Tipo" name="agrupar_tipo" context="{'group_by': 'tipo_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_vehiculo" model="ir.actions.act_window">
+            <field name="name">Vehículos</field>
+            <field name="res_model">tllr_fc.vehiculo</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+    </data>
+</odoo>

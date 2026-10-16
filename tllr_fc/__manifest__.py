@@ -12,13 +12,14 @@
         con trazabilidad desde la recepción hasta la entrega, incluyendo
         presupuesto, facturación, costos y rentabilidad.
 
-        Es un único módulo (tllr_fc) que se desarrolla por fases. No depende de
+        Módulo núcleo (tllr_fc). Las integraciones con Ventas y Compras se
+        incorporan mediante módulos puente opcionales. No depende de hr,
         l10n_py, local_py ni loc_fiscal_itf.
     """,
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.002",
+    "version": "2026.19.003",
     "license": "LGPL-3",
     "application": True,
     "installable": True,
@@ -29,17 +30,23 @@
         "product",
         "stock",
         "stock_account",
-        "purchase",
-        "purchase_stock",
         "account",
-        "sale",
-        "hr",
     ],
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",
         "security/ir_rule.xml",
+        "data/tllr_fc_item_data.xml",
+        "data/tllr_fc_funcion_data.xml",
+        "data/tllr_fc_motivo_data.xml",
         "views/report_paperformat.xml",
+        "views/tllr_fc_marca_views.xml",
+        "views/tllr_fc_vehiculo_views.xml",
+        "views/tllr_fc_funcion_views.xml",
+        "views/tllr_fc_personal_views.xml",
+        "views/tllr_fc_puesto_views.xml",
+        "views/product_template_views.xml",
+        "views/res_partner_views.xml",
         "views/res_config_settings_views.xml",
         "views/menus.xml",
     ],

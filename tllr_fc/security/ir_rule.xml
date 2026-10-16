@@ -1,7 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!--
-        Las reglas de registro multiempresa (company_id in company_ids) se agregan
-        junto con cada modelo, a partir de la Fase 1.
-    -->
+    <data noupdate="1">
+
+        <record id="rule_tllr_fc_marca_company" model="ir.rule">
+            <field name="name">Taller: Marca multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_marca"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_modelo_company" model="ir.rule">
+            <field name="name">Taller: Modelo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_modelo"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_tipo_vehiculo_company" model="ir.rule">
+            <field name="name">Taller: Tipo de vehículo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_tipo_vehiculo"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_vehiculo_company" model="ir.rule">
+            <field name="name">Taller: Vehículo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_vehiculo"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_personal_company" model="ir.rule">
+            <field name="name">Taller: Personal multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_personal"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_puesto_company" model="ir.rule">
+            <field name="name">Taller: Puesto multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_puesto"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_item_inventario_company" model="ir.rule">
+            <field name="name">Taller: Ítem de inventario multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_item_inventario"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_motivo_company" model="ir.rule">
+            <field name="name">Taller: Motivo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_motivo"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_funcion_company" model="ir.rule">
+            <field name="name">Taller: Función multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_funcion"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="rule_tllr_fc_funcion_costo_company" model="ir.rule">
+            <field name="name">Taller: Vigencia de costo multiempresa</field>
+            <field name="model_id" ref="model_tllr_fc_funcion_costo"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+    </data>
 </odoo>

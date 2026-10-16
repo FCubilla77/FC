@@ -102,6 +102,19 @@ class ResCompany(models.Model):
                         'company_id': compania.id,
                     })
 
+    def _tllr_fc_siguiente_codigo(self, codigo):
+        """Devuelve el próximo número de la secuencia `codigo` de esta compañía.
+
+        Si la compañía aún no tiene sus secuencias, las crea antes de consumir.
+        """
+        self.ensure_one()
+        secuencia = self.env['ir.sequence'].with_company(self)
+        numero = secuencia.next_by_code(codigo)
+        if not numero:
+            self._tllr_fc_crear_secuencias()
+            numero = secuencia.next_by_code(codigo)
+        return numero
+
     @api.model_create_multi
     def create(self, vals_list):
         companias = super().create(vals_list)
