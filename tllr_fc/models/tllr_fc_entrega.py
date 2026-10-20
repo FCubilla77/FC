@@ -136,7 +136,7 @@ class TllrFcEntrega(models.Model):
         self.ensure_one()
         ot = self.ot_id
         problemas = []
-        if ot.tipo == 'cliente':
+        if ot.requiere_factura:
             facturas = ot.sudo()._tllr_fc_facturas().filtered(
                 lambda m: m.move_type == 'out_invoice' and m.state == 'posted')
             if not facturas:

@@ -18,8 +18,10 @@ class TllrFcPuesto(models.Model):
         string="Tipos de trabajo", domain="[('type', '=', 'service')]",
         help="Servicios que se realizan en el puesto. Un servicio puede estar en varios puestos.")
     almacen_id = fields.Many2one(
-        'stock.warehouse', string="Almacén de herramientas", required=True,
-        ondelete='restrict', check_company=True)
+        'stock.warehouse', string="Almacén del puesto", required=True,
+        ondelete='restrict', check_company=True,
+        help="Almacén del puesto: guarda sus herramientas y recibe los repuestos e insumos "
+             "trasladados para las OT que pasan por el puesto.")
     color = fields.Integer(string="Color")
     company_id = fields.Many2one(
         'res.company', string="Compañía", required=True,

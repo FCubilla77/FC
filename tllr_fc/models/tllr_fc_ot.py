@@ -137,6 +137,7 @@ class TllrFcOt(models.Model):
     entrega_ids = fields.One2many('tllr_fc.entrega', 'ot_id', string="Entregas", readonly=True)
     entrega_count = fields.Integer(string="Cantidad de entregas", compute='_compute_conteos')
     garantia_ids = fields.One2many('tllr_fc.garantia', 'ot_id', string="Garantías", readonly=True)
+    traslado_count = fields.Integer(string="Traslados de stock", compute='_compute_traslado_count')
     garantia_count = fields.Integer(string="Cantidad de garantías", compute='_compute_conteos')
     descuento_cliente = fields.Float(
         string="Descuento del cliente (%)", related='partner_id.tllr_fc_descuento')
@@ -148,6 +149,33 @@ class TllrFcOt(models.Model):
     total = fields.Monetary(
         string="Total", currency_field='currency_id', compute='_compute_totales')
     horas_estandar = fields.Float(string="Horas estándar", compute='_compute_totales')
+    lineas_cobrar = fields.Integer(
+        string="Líneas a cobrar", compute='_compute_requiere_factura',
+        help="En una OT de garantía, líneas marcadas «Cobrar al cliente».")
+    requiere_factura = fields.Boolean(
+        string="Requiere factura", compute='_compute_requiere_factura',
+        help="Las OT de cliente siempre; las de garantía solo si tienen líneas a cobrar.")
+    ingreso = fields.Monetary(
+        string="Ingreso", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor')
+    costo_propio = fields.Monetary(
+        string="Costo de la OT", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor',
+        help="Repuestos, insumos y accesorios consumidos, servicios y horas. En una OT de "
+             "garantía, solo lo que se cobra al cliente.")
+    costo_garantia_absorbido = fields.Monetary(
+        string="Costo de garantía no cobrado", currency_field='currency_id',
+        compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor',
+        help="En una OT de garantía: costo que no se cobra y se suma a la OT original.")
+    costo_garantias_origen = fields.Monetary(
+        string="Costo de garantías de esta OT", currency_field='currency_id',
+        compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor',
+        help="Costo no cobrado de las OT de garantía que reclamaron sobre esta OT.")
+    margen = fields.Monetary(
+        string="Margen", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor')
+    margen_porcentaje = fields.Float(
+        string="Margen (%)", compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor')
     servicios_resumen = fields.Char(string="Servicios (resumen)", compute='_compute_resumen')
     servicios_pendientes = fields.Integer(
         string="Servicios pendientes", compute='_compute_resumen')
@@ -176,6 +204,75 @@ class TllrFcOt(models.Model):
             ot.costo_horas = sum(horas.mapped('costo'))
             avisos = [a for a in horas.mapped('aviso') if a]
             ot.aviso_horas = ' '.join(sorted(set(avisos))) if avisos else False
+
+    @api.depends('tipo', 'servicio_ids.facturable', 'producto_ids.facturable')
+    def _compute_requiere_factura(self):
+        for ot in self:
+            cobrar = 0
+            if ot.tipo == 'garantia':
+                cobrar = (len(ot.servicio_ids.filtered('facturable'))
+                          + len(ot.producto_ids.filtered('facturable')))
+            ot.lineas_cobrar = cobrar
+            ot.requiere_factura = ot.tipo == 'cliente' or (ot.tipo == 'garantia' and cobrar > 0)
+
+    def _tllr_fc_horas_reparto(self):
+        """Costo de las horas repartido: (imputable a lo cobrado, no cobrado).
+
+        - Cliente: todo a lo cobrado (se cobra la OT).
+        - Interna: todo a no cobrado (gasto interno).
+        - Garantía: en proporción a las horas estándar de los servicios cobrados.
+        """
+        self.ensure_one()
+        ot = self.sudo()
+        horas = sum(ot.hora_ids.mapped('costo'))
+        if ot.tipo == 'cliente':
+            return horas, 0.0
+        if ot.tipo == 'interno':
+            return 0.0, horas
+        servicios = ot.servicio_ids
+        total = sum(servicios.mapped('horas_estandar'))
+        cobradas = sum(servicios.filtered('facturable').mapped('horas_estandar'))
+        cobrado = horas * cobradas / total if total else 0.0
+        return cobrado, horas - cobrado
+
+    def _tllr_fc_costos(self):
+        """Reparte el costo de la OT: (propio, no cobrado de garantía)."""
+        self.ensure_one()
+        ot = self.sudo()
+        servicios = ot.servicio_ids
+        productos = ot.producto_ids
+        horas_cobradas, horas_no_cobradas = ot._tllr_fc_horas_reparto()
+        ajustes = sum(ot.ajuste_ids.mapped('monto'))
+        if ot.tipo != 'garantia':
+            propio = (sum(productos.mapped('costo')) + sum(servicios.mapped('costo_efectivo'))
+                      + horas_cobradas + horas_no_cobradas + ajustes)
+            return propio, 0.0
+        cobrados_s = servicios.filtered('facturable')
+        cobrados_p = productos.filtered('facturable')
+        propio = (sum(cobrados_p.mapped('costo')) + sum(cobrados_s.mapped('costo_efectivo'))
+                  + horas_cobradas + ajustes)
+        absorbido = (sum((productos - cobrados_p).mapped('costo'))
+                     + sum((servicios - cobrados_s).mapped('costo_efectivo'))
+                     + horas_no_cobradas)
+        return propio, absorbido
+
+    @api.depends('tipo', 'total', 'servicio_ids.costo_efectivo', 'servicio_ids.facturable',
+                 'producto_ids.costo', 'producto_ids.facturable', 'hora_ids.costo',
+                 'ajuste_ids.monto',
+                 'ot_garantia_ids.state', 'ot_garantia_ids.costo_garantia_absorbido')
+    def _compute_rentabilidad(self):
+        for ot in self:
+            propio, absorbido = ot._tllr_fc_costos()
+            origen = sum(
+                garantia._tllr_fc_costos()[1] for garantia in ot.sudo().ot_garantia_ids
+                if garantia.state != 'cancelada')
+            ingreso = ot.total if ot.tipo != 'interno' else 0.0
+            ot.ingreso = ingreso
+            ot.costo_propio = propio
+            ot.costo_garantia_absorbido = absorbido
+            ot.costo_garantias_origen = origen
+            ot.margen = ingreso - propio - origen
+            ot.margen_porcentaje = (ot.margen / ingreso) if ingreso else 0.0
 
     @api.depends('servicio_ids.state_aprobacion', 'producto_ids.state_aprobacion')
     def _compute_adicionales_pendientes(self):
@@ -211,6 +308,13 @@ class TllrFcOt(models.Model):
             else:
                 ot.estado_facturacion = 'borrador' if facturas else 'sin_facturar'
                 ot.estado_pago = 'no_pagada'
+
+    def _compute_traslado_count(self):
+        datos = self.env['stock.picking'].sudo()._read_group(
+            [('tllr_fc_ot_id', 'in', self.ids)], ['tllr_fc_ot_id'], ['__count'])
+        conteos = {ot.id: cantidad for ot, cantidad in datos}
+        for ot in self:
+            ot.traslado_count = conteos.get(ot.id, 0)
 
     @api.depends('entrega_ids', 'garantia_ids')
     def _compute_conteos(self):
@@ -672,9 +776,13 @@ class TllrFcOt(models.Model):
     # Facturación directa
     # ------------------------------------------------------------------
     def _tllr_fc_facturas(self):
-        """Facturas de cliente de la OT (gancho: Ventas agrega las del pedido)."""
+        """Facturas de cliente vigentes de la OT (gancho: Ventas agrega las del pedido).
+
+        Una factura anulada por una nota de crédito total ya no cuenta.
+        """
         self.ensure_one()
-        return self.sudo().factura_ids.filtered(lambda m: m.move_type == 'out_invoice')
+        return self.sudo().factura_ids.filtered(
+            lambda m: m.move_type == 'out_invoice' and m.payment_state != 'reversed')
 
     def _tllr_fc_lineas_factura(self, solo_realizado=False):
         """Líneas de la factura: servicios, repuestos, insumos facturables y accesorios."""
@@ -750,8 +858,12 @@ class TllrFcOt(models.Model):
         self.ensure_one()
         if not self._tllr_fc_es_supervisor():
             raise AccessError("Solo el supervisor o el administrador de taller pueden cerrar la OT para facturar.")
-        if self.tipo != 'cliente':
-            raise UserError("Solo las OT de tipo Cliente se facturan.")
+        if self.tipo == 'interno':
+            raise UserError("Las OT internas no se facturan.")
+        if self.tipo == 'garantia' and not self.lineas_cobrar:
+            raise UserError(
+                "La OT de garantía no tiene líneas marcadas «Cobrar al cliente»: no hay nada "
+                "para facturar.")
         if self.state != 'listo':
             raise UserError("Solo se cierra para facturar una OT lista para entrega.")
         if self.cerrada_facturar:
@@ -788,6 +900,8 @@ class TllrFcOt(models.Model):
                 "Reabrir la OT %s: se elimina la factura en borrador." % self.name)
         borradores = facturas.filtered(lambda m: m.state == 'draft')
         borradores.sudo().unlink()
+        # Facturas ya anuladas por nota de crédito: se revierte su asiento de costo.
+        self.sudo()._tllr_fc_revertir_asientos()
         self.write({'cerrada_facturar': False, 'fecha_cierre_facturar': False})
         self.message_post(body="Facturación reabierta. Motivo: %s" % self.env.context.get('tllr_fc_motivo', ''))
         return True
@@ -799,7 +913,7 @@ class TllrFcOt(models.Model):
             'name': "Facturas",
             'res_model': 'account.move',
             'view_mode': 'list,form',
-            'domain': [('id', 'in', self._tllr_fc_facturas().ids)],
+            'domain': [('id', 'in', self.sudo().factura_ids.ids)],
             'context': {'default_move_type': 'out_invoice'},
         }
 
@@ -836,6 +950,24 @@ class TllrFcOt(models.Model):
             'type': 'ir.actions.act_window', 'name': "Entregas", 'res_model': 'tllr_fc.entrega',
             'view_mode': 'list,form', 'domain': [('ot_id', '=', self.id)]}
 
+    def action_ver_traslados(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window', 'name': "Traslados de stock",
+            'res_model': 'stock.picking', 'view_mode': 'list,form',
+            'domain': [('tllr_fc_ot_id', '=', self.id)],
+            'context': {'create': False}}
+
+    def _tllr_fc_asignar_puesto_productos(self):
+        """Los repuestos sin puesto pasan al primer puesto de la OT."""
+        for ot in self:
+            primero = ot.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))[:1]
+            if not primero:
+                continue
+            sin_puesto = ot.producto_ids.filtered(lambda p: not p.puesto_line_id)
+            if sin_puesto:
+                sin_puesto.write({'puesto_line_id': primero.id})
+
     def action_ver_garantias(self):
         self.ensure_one()
         return {
@@ -858,6 +990,7 @@ class TllrFcOt(models.Model):
             if garantias:
                 self.message_post(body="Se registraron %s garantía(s)." % len(garantias))
         self._tllr_fc_cerrar_detencion()
+        self.sudo()._tllr_fc_asiento_entrega()
         self.message_post(body="Vehículo entregado (entrega %s)." % entrega.name)
 
     def action_avisar_cliente(self):
@@ -940,6 +1073,8 @@ class TllrFcOt(models.Model):
         })
         self.producto_ids._tllr_fc_sincronizar_stock()
         self._tllr_fc_cerrar_detencion()
+        if not liquidar:
+            self.sudo()._tllr_fc_asiento_cancelacion()
         texto = "OT cancelada (%s)." % motivo.name
         if liquidar:
             texto += " Se facturó lo realizado: %s." % (
@@ -1024,6 +1159,7 @@ class TllrFcOt(models.Model):
                 "Iniciar la OT sin el presupuesto confirmado por el cliente.")
         primera = lineas.sorted(lambda l: (l.sequence, l.id))[:1]
         ahora = fields.Datetime.now()
+        self._tllr_fc_asignar_puesto_productos()
         lineas.with_context(tllr_fc_permitir_write=True).write({'state': 'pendiente'})
         primera.with_context(tllr_fc_permitir_write=True).write(
             {'state': 'activo', 'fecha_inicio': ahora})

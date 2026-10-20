@@ -11,6 +11,8 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.tllr_fc_diario_id', readonly=False)
     tllr_fc_cuenta_wip_id = fields.Many2one(
         related='company_id.tllr_fc_cuenta_wip_id', readonly=False)
+    tllr_fc_cuenta_costo_ventas_id = fields.Many2one(
+        related='company_id.tllr_fc_cuenta_costo_ventas_id', readonly=False)
     tllr_fc_cuenta_gasto_interna_id = fields.Many2one(
         related='company_id.tllr_fc_cuenta_gasto_interna_id', readonly=False)
     tllr_fc_cuenta_gasto_garantia_id = fields.Many2one(
@@ -21,6 +23,8 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.tllr_fc_asiento_horas', readonly=False)
     tllr_fc_cuenta_mano_obra_id = fields.Many2one(
         related='company_id.tllr_fc_cuenta_mano_obra_id', readonly=False)
+    tllr_fc_almacen_principal_id = fields.Many2one(
+        related='company_id.tllr_fc_almacen_principal_id', readonly=False)
     tllr_fc_diario_venta_id = fields.Many2one(
         related='company_id.tllr_fc_diario_venta_id', readonly=False)
     tllr_fc_qc_cliente = fields.Boolean(

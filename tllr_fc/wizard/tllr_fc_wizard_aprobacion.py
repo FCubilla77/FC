@@ -74,13 +74,19 @@ class TllrFcWizardAprobacion(models.TransientModel):
                 self.persona, dict(self._fields['medio'].selection)[self.medio],
                 detalle.replace('\n', '<br/>')))
         else:
-            if (servicios.filtered(lambda s: s.estado != 'pendiente')
-                    or productos.filtered(lambda p: p.cantidad_consumida)):
+            if (servicios.filtered(lambda s: s.estado != 'pendiente' and not s.cobrar_cliente)
+                    or productos.filtered(
+                        lambda p: p.cantidad_consumida and not p.cobrar_cliente)):
                 raise UserError("No se puede rechazar: ya se ejecutó parte de los trabajos.")
-            self.ot_id.message_post(body="Adicionales RECHAZADOS por %s (%s). Se quitan de la OT.<br/>%s" % (
+            self.ot_id.message_post(body="Adicionales RECHAZADOS por %s (%s). Se quitan de la OT (las líneas a cobrar de una garantía quedan cubiertas por la garantía).<br/>%s" % (
                 self.persona, dict(self._fields['medio'].selection)[self.medio],
                 detalle.replace('\n', '<br/>')))
-            ctx_servicios = servicios.with_context(tllr_fc_permitir_write=True)
-            ctx_servicios.unlink()
-            productos.with_context(tllr_fc_permitir_write=True).unlink()
+            # En una OT de garantía, el cliente que rechaza pagar no quita la línea: queda
+            # cubierta por la garantía (se deja de cobrar).
+            cobros_s = servicios.filtered('cobrar_cliente')
+            cobros_p = productos.filtered('cobrar_cliente')
+            for lineas in (cobros_s, cobros_p):
+                lineas.with_context(tllr_fc_permitir_write=True).write({'cobrar_cliente': False})
+            (servicios - cobros_s).with_context(tllr_fc_permitir_write=True).unlink()
+            (productos - cobros_p).with_context(tllr_fc_permitir_write=True).unlink()
         return {'type': 'ir.actions.act_window_close'}

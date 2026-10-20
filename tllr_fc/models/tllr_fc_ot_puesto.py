@@ -71,6 +71,8 @@ class TllrFcOtPuesto(models.Model):
                 and s.product_id.product_tmpl_id in linea.puesto_id.servicio_ids)
             if sin_puesto:
                 sin_puesto.write({'puesto_line_id': linea.id})
+        for ot in lineas.ot_id:
+            ot._tllr_fc_asignar_puesto_productos()
         return lineas
 
     def write(self, vals):

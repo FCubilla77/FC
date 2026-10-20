@@ -23,10 +23,13 @@ from . import tllr_fc_ot_puesto
 from . import tllr_fc_ot_servicio
 from . import tllr_fc_ot_producto
 from . import stock_move
+from . import stock_picking
 from . import tllr_fc_ot_hora
 from . import tllr_fc_ot_aprobacion
 from . import tllr_fc_control_calidad
+from . import tllr_fc_ot_ajuste_costo
 from . import tllr_fc_ot
+from . import tllr_fc_asiento
 from . import account_move
 from . import tllr_fc_entrega
 from . import tllr_fc_garantia

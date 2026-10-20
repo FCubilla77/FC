@@ -24,7 +24,12 @@ class ResCompany(models.Model):
     tllr_fc_diario_id = fields.Many2one(
         'account.journal', string="Diario de asientos del taller")
     tllr_fc_cuenta_wip_id = fields.Many2one(
-        'account.account', string="Cuenta de trabajo en proceso")
+        'account.account', string="Cuenta de trabajo en proceso (en desuso)",
+        help="En desuso desde la versión 2026.19.010: el consumo no pasa por trabajo en proceso.")
+    tllr_fc_cuenta_costo_ventas_id = fields.Many2one(
+        'account.account', string="Cuenta de costo de ventas (mano de obra)",
+        help="Cuenta de débito del costo de las horas de las OT de cliente (y de la parte "
+             "cobrada de las garantías). Se usa solo con el asiento por horas activo.")
     tllr_fc_cuenta_gasto_interna_id = fields.Many2one(
         'account.account', string="Cuenta de gasto de OT internas")
     tllr_fc_cuenta_gasto_garantia_id = fields.Many2one(
@@ -54,6 +59,14 @@ class ResCompany(models.Model):
         help="Ubicación virtual a la que se envían los repuestos, insumos y accesorios "
              "consumidos por las órdenes de trabajo. Se crea sola la primera vez.")
 
+    # --- Traslados de stock a los puestos ---
+    tllr_fc_almacen_principal_id = fields.Many2one(
+        'stock.warehouse', string="Almacén principal de repuestos e insumos",
+        check_company=True,
+        help="Almacén desde el que se trasladan los repuestos e insumos a los puestos de la OT "
+             "y al que vuelven cuando el puesto termina o la OT se cancela. Si queda vacío no "
+             "se generan traslados internos.")
+
     # --- Otros ---
     tllr_fc_usa_terceros = fields.Boolean(
         string="Usa mercadería de terceros", default=False)
@@ -65,28 +78,29 @@ class ResCompany(models.Model):
         required=True)
 
     @api.constrains(
-        'tllr_fc_generar_asientos', 'tllr_fc_diario_id', 'tllr_fc_cuenta_wip_id',
+        'tllr_fc_generar_asientos', 'tllr_fc_diario_id',
         'tllr_fc_cuenta_gasto_interna_id', 'tllr_fc_cuenta_gasto_garantia_id',
         'tllr_fc_cuenta_perdida_id', 'tllr_fc_asiento_horas',
-        'tllr_fc_cuenta_mano_obra_id')
+        'tllr_fc_cuenta_mano_obra_id', 'tllr_fc_cuenta_costo_ventas_id')
     def _check_tllr_fc_asientos(self):
         for compania in self:
             if compania.tllr_fc_generar_asientos and not (
                     compania.tllr_fc_diario_id
-                    and compania.tllr_fc_cuenta_wip_id
                     and compania.tllr_fc_cuenta_gasto_interna_id
                     and compania.tllr_fc_cuenta_gasto_garantia_id
                     and compania.tllr_fc_cuenta_perdida_id):
                 raise ValidationError(
                     "Para generar asientos contables del taller debe indicar el diario "
-                    "y las cuentas de trabajo en proceso, gasto de OT internas, "
-                    "gasto de garantías y pérdida por OT cancelada.")
+                    "y las cuentas de gasto de OT internas, gasto de garantías y pérdida "
+                    "por OT cancelada.")
             if compania.tllr_fc_asiento_horas and not (
                     compania.tllr_fc_generar_asientos
-                    and compania.tllr_fc_cuenta_mano_obra_id):
+                    and compania.tllr_fc_cuenta_mano_obra_id
+                    and compania.tllr_fc_cuenta_costo_ventas_id):
                 raise ValidationError(
                     "El asiento por horas del personal requiere tener activados los "
-                    "asientos contables del taller y la cuenta de mano de obra aplicada.")
+                    "asientos contables del taller y las cuentas de mano de obra aplicada "
+                    "y de costo de ventas.")
 
     def _tllr_fc_crear_secuencias(self):
         """Crea (si faltan) las secuencias del taller de cada compañía."""

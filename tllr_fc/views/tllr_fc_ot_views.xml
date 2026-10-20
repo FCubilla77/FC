@@ -53,7 +53,7 @@
                                 invisible="state not in ('proceso', 'calidad', 'listo')"/>
                         <button name="action_cerrar_facturar" string="Cerrar para facturar"
                                 type="object" class="btn-primary" groups="tllr_fc.group_supervisor"
-                                invisible="state != 'listo' or tipo != 'cliente' or cerrada_facturar"/>
+                                invisible="state != 'listo' or not requiere_factura or cerrada_facturar"/>
                         <button name="action_reabrir_facturar" string="Reabrir facturación"
                                 type="object" groups="tllr_fc.group_supervisor"
                                 invisible="not cerrada_facturar or state != 'listo' or estado_facturacion == 'confirmada'"/>
@@ -61,7 +61,7 @@
                                 invisible="state != 'listo'"/>
                         <button name="action_entregar" string="Entregar" type="object"
                                 class="btn-primary"
-                                invisible="not (state == 'listo' or (state == 'cancelada' and liquidada)) or (tipo == 'cliente' and not cerrada_facturar and state == 'listo')"/>
+                                invisible="not (state == 'listo' or (state == 'cancelada' and liquidada)) or (requiere_factura and not cerrada_facturar and state == 'listo')"/>
                         <button name="action_reclamo_garantia" string="Reclamo de garantía"
                                 type="object" invisible="state != 'entregado' or tipo != 'cliente'"/>
                         <button name="action_cancelar" string="Cancelar OT" type="object"
@@ -97,6 +97,18 @@
                                     invisible="entrega_count == 0">
                                 <field name="entrega_count" widget="statinfo" string="Entregas"/>
                             </button>
+                            <button name="action_ver_traslados" type="object"
+                                    class="oe_stat_button" icon="fa-exchange"
+                                    groups="stock.group_stock_user"
+                                    invisible="traslado_count == 0">
+                                <field name="traslado_count" widget="statinfo" string="Traslados"/>
+                            </button>
+                            <button name="action_ver_asientos" type="object"
+                                    class="oe_stat_button" icon="fa-book"
+                                    groups="account.group_account_invoice"
+                                    invisible="asiento_count == 0">
+                                <field name="asiento_count" widget="statinfo" string="Asientos"/>
+                            </button>
                             <button name="action_ver_garantias" type="object"
                                     class="oe_stat_button" icon="fa-shield"
                                     invisible="garantia_count == 0">
@@ -115,6 +127,8 @@
                         <field name="liquidada" invisible="1"/>
                         <field name="estado_facturacion" invisible="1"/>
                         <field name="adicionales_pendientes" invisible="1"/>
+                        <field name="requiere_factura" invisible="1"/>
+                        <field name="lineas_cobrar" invisible="1"/>
                         <div class="alert alert-warning" role="alert" invisible="not detenida">
                             <strong>OT detenida:</strong>
                             <field name="motivo_detencion_id" readonly="1" nolabel="1" class="d-inline"/>
@@ -227,6 +241,8 @@
                                                readonly="1"/>
                                         <field name="no_facturar" groups="tllr_fc.group_supervisor"
                                                optional="hide"/>
+                                        <field name="cobrar_cliente" groups="tllr_fc.group_supervisor"
+                                               column_invisible="parent.tipo != 'garantia'"/>
                                         <field name="subtotal" sum="Total"/>
                                         <field name="horas_estandar" optional="show" sum="Horas"/>
                                         <field name="costo_efectivo" groups="tllr_fc.group_supervisor"
@@ -260,13 +276,16 @@
                                 <field name="producto_ids"
                                        readonly="state not in ('espera', 'proceso')"
                                        context="{'default_descuento': descuento_cliente}">
-                                    <list editable="bottom" decoration-warning="reserva_estado == 'parcial'"
+                                    <list editable="bottom" decoration-warning="reserva_estado in ('parcial', 'traslado')"
                                           decoration-danger="reserva_estado == 'sin_stock'">
                                         <field name="currency_id" column_invisible="1"/>
                                         <field name="tracking" column_invisible="1"/>
                                         <field name="product_id" options="{'no_create': True}"
                                                readonly="cantidad_consumida &gt; 0"/>
                                         <field name="uso" optional="show"/>
+                                        <field name="puesto_line_id" options="{'no_create': True}"
+                                               domain="[('ot_id', '=', parent.id)]"
+                                               readonly="cantidad_consumida &gt; 0"/>
                                         <field name="cantidad_reservada"/>
                                         <field name="cantidad_utilizada"
                                                readonly="parent.state != 'proceso'"/>
@@ -286,14 +305,23 @@
                                                optional="hide"/>
                                         <field name="provisto_cliente" groups="tllr_fc.group_supervisor"
                                                optional="hide"/>
+                                        <field name="cobrar_cliente" groups="tllr_fc.group_supervisor"
+                                               column_invisible="parent.tipo != 'garantia'"/>
                                         <field name="subtotal" sum="Total"/>
                                         <field name="costo" groups="tllr_fc.group_supervisor"
                                                optional="hide"/>
                                         <field name="adicional" optional="hide"/>
                                         <field name="reserva_estado" widget="badge"
                                                decoration-success="reserva_estado == 'ok'"
-                                               decoration-warning="reserva_estado == 'parcial'"
+                                               decoration-warning="reserva_estado in ('parcial', 'traslado')"
                                                decoration-danger="reserva_estado == 'sin_stock'"/>
+                                        <field name="cantidad_en_puesto" optional="hide"/>
+                                        <field name="traslado_requerido" column_invisible="1"/>
+                                        <field name="autorizado_sin_traslado" optional="hide"/>
+                                        <button name="action_autorizar_sin_traslado" type="object"
+                                                icon="fa-truck" title="Autorizar el uso sin traslado"
+                                                groups="tllr_fc.group_supervisor"
+                                                invisible="reserva_estado != 'traslado' or autorizado_sin_traslado or not id"/>
                                         <field name="cantidad_consumida" column_invisible="1"/>
                                         <field name="state_aprobacion" widget="badge" optional="show"
                                                decoration-warning="state_aprobacion == 'pendiente'"
@@ -404,7 +432,7 @@
                                 </field>
                             </page>
                             <page string="Facturación" name="facturacion"
-                                  invisible="tipo != 'cliente'">
+                                  invisible="not requiere_factura and not factura_ids">
                                 <group>
                                     <group>
                                         <field name="estado_facturacion"/>
@@ -446,6 +474,34 @@
                                         <field name="state"/>
                                     </list>
                                 </field>
+                            </page>
+                            <page string="Rentabilidad" name="rentabilidad"
+                                  groups="tllr_fc.group_supervisor" invisible="tipo == 'interno'">
+                                <group>
+                                    <group string="Resultado de la OT">
+                                        <field name="ingreso"/>
+                                        <field name="costo_propio"/>
+                                        <field name="costo_garantias_origen"
+                                               invisible="tipo == 'garantia'"/>
+                                        <field name="margen" class="fw-bold"/>
+                                        <field name="margen_porcentaje" widget="percentage"/>
+                                    </group>
+                                    <group string="Garantía" invisible="tipo != 'garantia'">
+                                        <field name="costo_garantia_absorbido"/>
+                                    </group>
+                                </group>
+                                <div class="text-muted" invisible="tipo != 'garantia'">
+                                    En una OT de garantía solo se cobra lo marcado «Cobrar al cliente»;
+                                    el costo no cobrado se suma al costo de garantías de la OT original.
+                                </div>
+                                <group string="Ajustes de costo" groups="tllr_fc.group_administrador"
+                                       invisible="state not in ('listo', 'entregado', 'cancelada') and not ajuste_ids">
+                                    <field name="ajuste_ids" nolabel="1" colspan="2" readonly="1"/>
+                                    <button name="%(action_tllr_fc_ajuste_costo_nuevo)d" type="action"
+                                            string="Registrar ajuste de costo" class="btn-secondary"
+                                            context="{'default_ot_id': id}"
+                                            invisible="state not in ('listo', 'entregado', 'cancelada')"/>
+                                </group>
                             </page>
                             <page string="Totales" name="totales">
                                 <group>

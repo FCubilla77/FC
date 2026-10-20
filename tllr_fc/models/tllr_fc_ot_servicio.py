@@ -2,7 +2,7 @@
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
-CAMPOS_SOLO_SUPERVISOR = ('precio_unitario', 'descuento', 'no_facturar')
+CAMPOS_SOLO_SUPERVISOR = ('precio_unitario', 'descuento', 'no_facturar', 'cobrar_cliente')
 
 
 class TllrFcOtServicio(models.Model):
@@ -44,6 +44,12 @@ class TllrFcOtServicio(models.Model):
     no_facturar = fields.Boolean(
         string="No facturar", copy=False,
         help="Cortesía: el servicio se realiza pero no se factura. Solo el supervisor.")
+    cobrar_cliente = fields.Boolean(
+        string="Cobrar al cliente", copy=False,
+        help="Solo en OT de garantía: el servicio no está cubierto por la garantía y se "
+             "factura al cliente (requiere su aprobación, como un adicional). Solo el "
+             "supervisor.")
+    ot_tipo = fields.Selection(related='ot_id.tipo', string="Tipo de OT")
     facturable = fields.Boolean(string="Facturable", compute='_compute_facturable')
     subtotal = fields.Monetary(
         string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
@@ -83,10 +89,14 @@ class TllrFcOtServicio(models.Model):
     # ------------------------------------------------------------------
     # Cálculos
     # ------------------------------------------------------------------
-    @api.depends('no_facturar', 'estado')
+    @api.depends('no_facturar', 'estado', 'cobrar_cliente', 'ot_id.tipo')
     def _compute_facturable(self):
         for servicio in self:
-            servicio.facturable = not servicio.no_facturar and servicio.estado != 'no_realizado'
+            facturable = not servicio.no_facturar and servicio.estado != 'no_realizado'
+            if servicio.ot_id.tipo == 'garantia':
+                # En una OT de garantía solo se factura lo marcado «Cobrar al cliente».
+                facturable = facturable and servicio.cobrar_cliente
+            servicio.facturable = facturable
 
     @api.depends('cantidad', 'precio_unitario', 'descuento', 'facturable')
     def _compute_subtotal(self):
@@ -133,6 +143,24 @@ class TllrFcOtServicio(models.Model):
                 raise ValidationError("El descuento debe estar entre 0 y 100.")
             if servicio.precio_unitario < 0:
                 raise ValidationError("El precio no puede ser negativo.")
+
+    @api.constrains('cobrar_cliente', 'ot_id')
+    def _check_cobrar_cliente(self):
+        for servicio in self:
+            if servicio.cobrar_cliente and servicio.ot_id.tipo != 'garantia':
+                raise ValidationError("«Cobrar al cliente» solo aplica a las OT de garantía.")
+
+    def _tllr_fc_sincronizar_cobro(self):
+        """Marcar «Cobrar al cliente» exige la aprobación del cliente (como un adicional)."""
+        for servicio in self.filtered(lambda s: s.ot_id.tipo == 'garantia'):
+            ctx = servicio.with_context(tllr_fc_permitir_write=True)
+            if servicio.cobrar_cliente:
+                if servicio.state_aprobacion == 'no_requiere':
+                    ctx.write({'state_aprobacion': 'pendiente'})
+                if not servicio.precio_unitario:
+                    ctx.write({'precio_unitario': servicio.product_id.list_price})
+            elif servicio.state_aprobacion != 'no_requiere':
+                ctx.write({'state_aprobacion': 'no_requiere', 'aprobacion_id': False})
 
     @api.constrains('puesto_line_id', 'ot_id')
     def _check_puesto_de_la_ot(self):
@@ -198,6 +226,8 @@ class TllrFcOtServicio(models.Model):
             if ot.state != 'espera':
                 vals['adicional'] = True
                 vals['state_aprobacion'] = 'pendiente' if ot.tipo == 'cliente' else 'no_requiere'
+            if vals.get('cobrar_cliente') and ot.tipo == 'garantia':
+                vals['state_aprobacion'] = 'pendiente'
         servicios = super().create(vals_list)
         servicios._tllr_fc_asignar_puesto_automatico()
         servicios._tllr_fc_verificar_pertenencia()
@@ -225,6 +255,12 @@ class TllrFcOtServicio(models.Model):
         resultado = super().write(vals)
         if 'puesto_line_id' in vals:
             self._tllr_fc_verificar_pertenencia()
+        if 'cobrar_cliente' in vals:
+            self._tllr_fc_sincronizar_cobro()
+            for servicio in self:
+                servicio.ot_id.message_post(body="%s: «Cobrar al cliente» %s por %s." % (
+                    servicio.product_id.display_name,
+                    "activado" if servicio.cobrar_cliente else "desactivado", self.env.user.name))
         if 'no_facturar' in vals:
             for servicio in self:
                 servicio.ot_id.message_post(body="%s: «No facturar» %s por %s." % (

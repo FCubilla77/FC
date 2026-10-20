@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_ajuste_costo_list" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.ajuste_costo.list</field>
+            <field name="model">tllr_fc.ot.ajuste_costo</field>
+            <field name="arch" type="xml">
+                <list create="0" delete="0">
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="fecha"/>
+                    <field name="monto" sum="Total"/>
+                    <field name="motivo"/>
+                    <field name="usuario_id"/>
+                    <field name="asiento_id" groups="account.group_account_invoice"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_ajuste_costo_form" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.ajuste_costo.form</field>
+            <field name="model">tllr_fc.ot.ajuste_costo</field>
+            <field name="arch" type="xml">
+                <form string="Ajuste de costo de la OT">
+                    <sheet>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="asientos_activos" invisible="1"/>
+                        <div class="alert alert-info" role="alert">
+                            Corrige el costo de una OT ya terminada (no el precio de venta). Positivo
+                            aumenta el costo; negativo lo disminuye. El ajuste no se modifica ni se
+                            elimina: para corregirlo se registra otro con el monto inverso.
+                        </div>
+                        <group>
+                            <group>
+                                <field name="ot_id" readonly="id" options="{'no_create': True}"/>
+                                <field name="fecha" readonly="id"/>
+                                <field name="monto" readonly="id"/>
+                            </group>
+                            <group invisible="not asientos_activos">
+                                <field name="cuenta_debe_id" readonly="id"
+                                       required="asientos_activos"/>
+                                <field name="cuenta_haber_id" readonly="id"
+                                       required="asientos_activos"/>
+                                <field name="asiento_id" invisible="not id"
+                                       groups="account.group_account_invoice"/>
+                            </group>
+                        </group>
+                        <group>
+                            <field name="motivo" readonly="id"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_ajuste_costo_nuevo" model="ir.actions.act_window">
+            <field name="name">Ajuste de costo</field>
+            <field name="res_model">tllr_fc.ot.ajuste_costo</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+    </data>
+</odoo>

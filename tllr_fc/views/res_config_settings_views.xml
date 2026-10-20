@@ -35,6 +35,14 @@
                             </setting>
                         </block>
 
+                        <block title="Traslados de stock" name="tllr_fc_traslados">
+                            <setting string="Almacén principal de repuestos e insumos"
+                                     help="Los repuestos e insumos de cada puesto de la OT se trasladan desde este almacén al almacén del puesto mediante un traslado interno en borrador, que confirma el encargado de almacén. Al terminar el puesto o cancelar la OT se genera la devolución. Vacío = sin traslados.">
+                                <field name="tllr_fc_almacen_principal_id"
+                                       domain="[('company_id', '=', company_id)]"/>
+                            </setting>
+                        </block>
+
                         <block title="Facturación" name="tllr_fc_facturacion">
                             <setting string="Diario de factura de venta"
                                      help="Diario de venta usado en las facturas generadas desde la OT. Es obligatorio para ejecutar 'Cerrar para facturar'.">
@@ -45,18 +53,13 @@
 
                         <block title="Asientos contables" name="tllr_fc_asientos">
                             <setting string="Generar asientos contables del taller"
-                                     help="Activa los asientos de reserva, consumo, OT internas, garantías y cancelaciones. Con el ajuste desactivado solo se usan los movimientos estándar de Inventario y Facturación.">
+                                     help="Activa los asientos propios del taller: costo de los repuestos e insumos no facturados, OT internas, garantías, cancelaciones y ajustes de costo. El costo de lo facturado lo genera la factura (asiento estándar de Odoo). Con el ajuste desactivado solo se usan los movimientos estándar de Inventario y Facturación.">
                                 <field name="tllr_fc_generar_asientos"/>
                                 <div class="content-group mt16" invisible="not tllr_fc_generar_asientos">
                                     <div class="row mt8">
                                         <label for="tllr_fc_diario_id" class="col-lg-4 o_light_label"/>
                                         <field name="tllr_fc_diario_id" required="tllr_fc_generar_asientos"
                                                domain="[('type', '=', 'general'), ('company_id', '=', company_id)]"/>
-                                    </div>
-                                    <div class="row mt8">
-                                        <label for="tllr_fc_cuenta_wip_id" class="col-lg-4 o_light_label"/>
-                                        <field name="tllr_fc_cuenta_wip_id" required="tllr_fc_generar_asientos"
-                                               domain="[('company_ids', 'in', [company_id])]"/>
                                     </div>
                                     <div class="row mt8">
                                         <label for="tllr_fc_cuenta_gasto_interna_id" class="col-lg-4 o_light_label"/>
@@ -76,13 +79,18 @@
                                 </div>
                             </setting>
                             <setting string="Generar asiento por horas del personal"
-                                     help="Genera un asiento por el costo de las horas del personal (una línea por función). Requiere asientos contables activos."
+                                     help="Contabiliza el costo de las horas del personal (horas × costo/hora de la función): OT de cliente al confirmar la factura; OT internas y garantías al entregar. Desactivado, el costo de la mano de obra solo se ve en la rentabilidad de la OT. Requiere asientos contables activos."
                                      invisible="not tllr_fc_generar_asientos">
                                 <field name="tllr_fc_asiento_horas"/>
                                 <div class="content-group mt16" invisible="not tllr_fc_asiento_horas">
                                     <div class="row mt8">
                                         <label for="tllr_fc_cuenta_mano_obra_id" class="col-lg-4 o_light_label"/>
                                         <field name="tllr_fc_cuenta_mano_obra_id" required="tllr_fc_asiento_horas"
+                                               domain="[('company_ids', 'in', [company_id])]"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="tllr_fc_cuenta_costo_ventas_id" class="col-lg-4 o_light_label"/>
+                                        <field name="tllr_fc_cuenta_costo_ventas_id" required="tllr_fc_asiento_horas"
                                                domain="[('company_ids', 'in', [company_id])]"/>
                                     </div>
                                 </div>
