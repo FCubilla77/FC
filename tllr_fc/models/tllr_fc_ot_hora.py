@@ -73,7 +73,7 @@ class TllrFcOtHora(models.Model):
     # ------------------------------------------------------------------
     def _tllr_fc_verificar(self, ots):
         for ot in ots:
-            if ot.state not in ('espera', 'proceso'):
+            if ot.state not in ('espera', 'proceso', 'calidad'):
                 raise UserError(
                     "La OT %s está en estado «%s»: ya no se pueden modificar las horas." % (
                         ot.name, dict(ot._fields['state'].selection)[ot.state]))
@@ -83,6 +83,14 @@ class TllrFcOtHora(models.Model):
         if self.env.user.has_group('tllr_fc.group_supervisor'):
             return
         for hora in self:
+            if hora.ot_id.state == 'calidad':
+                if hora.personal_id not in hora.ot_id.personal_horas_ids:
+                    raise ValidationError(
+                        "En control de calidad solo el responsable del control (%s) puede "
+                        "registrar horas en la OT %s." % (
+                            ', '.join(hora.ot_id.personal_horas_ids.mapped('name')) or '-',
+                            hora.ot_id.name))
+                continue
             if hora.personal_id not in hora.ot_id.personal_ids:
                 raise ValidationError(
                     "%s no está asignado a ningún puesto de la OT %s: solo el personal "

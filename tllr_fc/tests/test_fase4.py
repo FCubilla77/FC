@@ -100,6 +100,16 @@ class TestFase4(TallerCommon):
             'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
         self._llegar_a_calidad(ot)
         self.assertEqual(ot.state, 'calidad')
+        # En calidad solo carga horas el responsable del control (o el supervisor).
+        with self.assertRaises(ValidationError):
+            self.env['tllr_fc.ot.hora'].with_user(self.usuario_taller).create({
+                'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+        propia = self.env['tllr_fc.ot.hora'].create({
+            'ot_id': ot.id, 'personal_id': ot.control_ids.responsable_id.id, 'horas': 1})
+        self.assertTrue(propia)
+        ot.control_ids.action_aprobar_todas()
+        ot.control_ids.action_confirmar()
+        self.assertEqual(ot.state, 'listo')
         with self.assertRaises(UserError):
             hora.horas = 2
         with self.assertRaises(UserError):

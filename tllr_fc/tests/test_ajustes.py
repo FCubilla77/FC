@@ -61,3 +61,42 @@ class TestAjustes(_Base):
         ot = self._llegar_a_calidad()
         with self.assertRaises(AccessError):
             ot.with_user(self.usuario_taller).action_volver_estado()
+
+    def test_calidad_es_una_columna_del_tablero(self):
+        ot = self._llegar_a_calidad()
+        calidad = ot.company_id._tllr_fc_puesto_calidad()
+        self.assertTrue(calidad.es_calidad)
+        self.assertEqual(ot.puesto_activo_id, calidad)
+        columnas = ot._read_group_puesto_activo_id(self.env['tllr_fc.puesto'], [])
+        self.assertEqual(columnas[-1], calidad)
+        self.assertEqual(ot.servicio_ids[:1].display_name,
+                         ot.servicio_ids[:1].product_id.display_name)
+
+    def test_arrastre_a_y_desde_calidad(self):
+        ot = self._ot_planificada()
+        ot.requiere_qc = True
+        ot.action_iniciar()
+        calidad = ot.company_id._tllr_fc_puesto_calidad()
+        # Con puestos pendientes no se puede saltar a calidad.
+        if len(ot.puesto_line_ids) > 1:
+            with self.assertRaises(UserError):
+                ot.puesto_activo_id = calidad
+        for linea in ot.puesto_line_ids.sorted('sequence'):
+            if linea.state == 'activo':
+                linea.servicio_ids.filtered(lambda s: s.estado == 'pendiente').action_terminar()
+                if linea != ot.puesto_line_ids.sorted('sequence')[-1]:
+                    ot.action_terminar_puesto()
+        ot.puesto_activo_id = calidad
+        self.assertEqual(ot.state, 'calidad')
+        self.assertEqual(len(ot.control_ids), 1)
+        ultimo = ot.puesto_line_ids.sorted('sequence')[-1].puesto_id
+        ot.puesto_activo_id = ultimo
+        self.assertEqual(ot.state, 'proceso')
+
+    def test_horas_en_calidad_solo_responsable(self):
+        ot = self._llegar_a_calidad()
+        responsable = ot.control_ids.responsable_id
+        self.assertEqual(ot.personal_horas_ids, responsable)
+        hora = self.env['tllr_fc.ot.hora'].create({
+            'ot_id': ot.id, 'personal_id': responsable.id, 'horas': 1.5})
+        self.assertEqual(hora.horas, 1.5)

@@ -120,6 +120,19 @@ class ResCompany(models.Model):
             self.sudo().tllr_fc_ubicacion_consumo_id = ubicacion
         return self.tllr_fc_ubicacion_consumo_id.sudo()
 
+    def _tllr_fc_puesto_calidad(self):
+        """Devuelve (y crea si falta) el puesto de sistema «Control de calidad»."""
+        self.ensure_one()
+        Puesto = self.env['tllr_fc.puesto'].sudo().with_context(active_test=False)
+        puesto = Puesto.search([('es_calidad', '=', True), ('company_id', '=', self.id)], limit=1)
+        if not puesto:
+            almacen = self.env['stock.warehouse'].sudo().search(
+                [('company_id', '=', self.id)], limit=1)
+            puesto = Puesto.create({
+                'name': "Control de calidad", 'codigo': 'QC', 'es_calidad': True,
+                'company_id': self.id, 'almacen_id': almacen.id, 'color': 2})
+        return puesto
+
     def _tllr_fc_siguiente_codigo(self, codigo):
         """Devuelve el próximo número de la secuencia `codigo` de esta compañía.
 

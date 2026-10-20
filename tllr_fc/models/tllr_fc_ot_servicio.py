@@ -23,6 +23,11 @@ class TllrFcOtServicio(models.Model):
         'product.product', string="Servicio", required=True,
         domain="[('type', '=', 'service')]", ondelete='restrict')
     descripcion = fields.Char(string="Observación")
+    @api.depends('product_id')
+    def _compute_display_name(self):
+        for servicio in self:
+            servicio.display_name = servicio.product_id.display_name or ''
+
     informe = fields.Text(
         string="Informe del servicio",
         help="Informe de los trabajos realizados en este servicio.")

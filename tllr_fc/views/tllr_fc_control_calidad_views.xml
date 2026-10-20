@@ -61,14 +61,14 @@
                             <list editable="bottom" create="0" delete="0"
                                   decoration-success="resultado == 'aprobado'"
                                   decoration-danger="resultado == 'rechazado'">
-                                <field name="ot_servicio_id" readonly="1"/>
+                                <field name="ot_servicio_id" readonly="1" force_save="1"/>
                                 <field name="informe" optional="show"/>
                                 <field name="resultado_texto"/>
                                 <field name="resultado"/>
                             </list>
                             <form>
                                 <group>
-                                    <field name="ot_servicio_id" readonly="1"/>
+                                    <field name="ot_servicio_id" readonly="1" force_save="1"/>
                                     <field name="informe"/>
                                     <field name="resultado"/>
                                     <field name="resultado_texto"/>

@@ -136,6 +136,7 @@
                                           decoration-info="state == 'activo'">
                                         <field name="sequence" widget="handle"/>
                                         <field name="puesto_id" options="{'no_create': True}"
+                                               domain="[('es_calidad', '=', False)]"
                                                readonly="state != 'pendiente'"/>
                                         <field name="personal_ids" widget="many2many_tags"
                                                options="{'no_create': True}"/>
@@ -278,21 +279,21 @@
                                     </field>
                                 </group>
                                 <div class="alert alert-info" role="alert"
-                                     invisible="state in ('proceso', 'espera') and not detenida">
-                                    Las horas solo se cargan con la OT en espera o en proceso y no detenida.
+                                     invisible="state in ('proceso', 'espera', 'calidad') and not detenida">
+                                    Las horas solo se cargan con la OT en espera, en proceso o en control de calidad, y no detenida.
                                 </div>
                                 <div class="alert alert-info" role="alert"
-                                     invisible="state not in ('espera', 'proceso') or detenida or personal_ids">
-                                    Para cargar horas, asigná primero el personal a los puestos de la OT.
+                                     invisible="state not in ('espera', 'proceso', 'calidad') or detenida or personal_horas_ids">
+                                    Para cargar horas, asigná personal a los puestos de la OT (en control de calidad, las carga el responsable del control).
                                 </div>
                                 <group string="Horas trabajadas">
                                     <field name="hora_ids" nolabel="1" colspan="2"
-                                           readonly="state not in ('espera', 'proceso') or detenida">
+                                           readonly="state not in ('espera', 'proceso', 'calidad') or detenida">
                                         <list editable="bottom" decoration-warning="aviso">
                                             <field name="currency_id" column_invisible="1"/>
                                             <field name="aviso" column_invisible="1"/>
                                             <field name="personal_id" options="{'no_create': True}"
-                                                   domain="[('id', 'in', parent.personal_ids)]"/>
+                                                   domain="[('id', 'in', parent.personal_horas_ids)]"/>
                                             <field name="funcion_id" optional="show"/>
                                             <field name="fecha"/>
                                             <field name="horas" widget="float_time" sum="Total"/>

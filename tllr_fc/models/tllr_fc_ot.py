@@ -167,11 +167,27 @@ class TllrFcOt(models.Model):
                 actual = (ahora - ot.detenida_desde).total_seconds() / 86400.0
             ot.dias_detenida_total = ot.dias_detenida + actual
 
-    @api.depends('puesto_line_ids.state', 'puesto_line_ids.puesto_id')
+    @api.depends('puesto_line_ids.state', 'puesto_line_ids.puesto_id', 'state')
     def _compute_puesto_activo(self):
         for ot in self:
+            if ot.state == 'calidad':
+                ot.puesto_activo_id = ot.company_id._tllr_fc_puesto_calidad()
+                continue
             activa = ot.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
             ot.puesto_activo_id = activa.puesto_id
+
+    personal_horas_ids = fields.Many2many(
+        'tllr_fc.personal', string="Personal que puede cargar horas",
+        compute='_compute_personal_horas')
+
+    @api.depends('state', 'personal_ids', 'control_ids.responsable_id', 'control_ids.state')
+    def _compute_personal_horas(self):
+        for ot in self:
+            if ot.state == 'calidad':
+                ot.personal_horas_ids = ot.control_ids.filtered(
+                    lambda c: c.state == 'borrador').responsable_id
+            else:
+                ot.personal_horas_ids = ot.personal_ids
 
     @api.depends('puesto_line_ids.personal_ids')
     def _compute_personal(self):
@@ -202,8 +218,12 @@ class TllrFcOt(models.Model):
     @api.model
     def _read_group_puesto_activo_id(self, puestos, domain):
         """El tablero muestra todos los puestos activos como columnas."""
-        return self.env['tllr_fc.puesto'].search(
-            [('company_id', 'in', self.env.companies.ids)])
+        normales = self.env['tllr_fc.puesto'].search(
+            [('company_id', 'in', self.env.companies.ids), ('es_calidad', '=', False)])
+        calidad = self.env['tllr_fc.puesto']
+        for compania in self.env.companies:
+            calidad |= compania._tllr_fc_puesto_calidad()
+        return normales | calidad
 
     # ------------------------------------------------------------------
     # Tablero: arrastre de tarjetas
@@ -218,12 +238,40 @@ class TllrFcOt(models.Model):
         for ot in self:
             actual = ot.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
             destino_puesto = ot.puesto_activo_id
-            if destino_puesto == actual.puesto_id:
+            if ot.state == 'calidad':
+                if destino_puesto.es_calidad:
+                    continue
+            elif destino_puesto == actual.puesto_id:
                 continue
             if not self.env.user.has_group('tllr_fc.group_supervisor'):
                 raise AccessError(
                     "Solo el supervisor o el administrador de taller pueden mover las OT "
                     "entre puestos.")
+            if ot.state == 'calidad':
+                # De «Control de calidad» hacia atrás: solo al último puesto.
+                ultimo = ot.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))[-1:]
+                if not destino_puesto or destino_puesto != ultimo.puesto_id:
+                    raise UserError(
+                        "La OT %s solo puede volver al último puesto de su recorrido (%s)." % (
+                            ot.name, ultimo.puesto_id.name or "ninguno"))
+                ot.with_context(tllr_fc_excepcion=True)._tllr_fc_ejecutar_volver_estado(
+                    "Movida en el tablero")
+                continue
+            if destino_puesto.es_calidad:
+                if ot.state != 'proceso':
+                    raise UserError(
+                        "La OT %s no está en proceso: no se puede pasar a control de calidad." % ot.name)
+                if ot.puesto_line_ids.filtered(lambda l: l.state == 'pendiente'):
+                    raise UserError(
+                        "La OT %s todavía tiene puestos pendientes: solo se pasa a control de "
+                        "calidad desde el último puesto." % ot.name)
+                if not ot._tllr_fc_exige_qc():
+                    raise UserError(
+                        "La OT %s no requiere control de calidad (activá «Requiere control de "
+                        "calidad» en la OT)." % ot.name)
+                ot._tllr_fc_verificar_puesto_terminable()
+                ot._tllr_fc_avanzar_puesto()
+                continue
             if ot.state != 'proceso':
                 raise UserError(
                     "La OT %s no está en proceso: no se puede mover entre puestos." % ot.name)
@@ -386,6 +434,11 @@ class TllrFcOt(models.Model):
                 'action_volver_estado', 'supervisor',
                 "Volver la OT de «%s» a «%s»." % (
                     etiquetas[self.state], etiquetas[destinos[self.state]]))
+        return self._tllr_fc_ejecutar_volver_estado(self.env.context.get('tllr_fc_motivo', ''))
+
+    def _tllr_fc_ejecutar_volver_estado(self, motivo):
+        self.ensure_one()
+        etiquetas = dict(self._fields['state'].selection)
         origen = self.state
         if origen == 'calidad':
             borradores = self.control_ids.filtered(lambda c: c.state == 'borrador')
@@ -406,7 +459,7 @@ class TllrFcOt(models.Model):
             self.state = 'espera'
             self.producto_ids._tllr_fc_sincronizar_stock()
         self.message_post(body="La OT volvió de «%s» a «%s». Motivo: %s" % (
-            etiquetas[origen], etiquetas[self.state], self.env.context.get('tllr_fc_motivo', '')))
+            etiquetas[origen], etiquetas[self.state], motivo))
         return True
 
     def _tllr_fc_verificar_puede_volver_a_espera(self):
