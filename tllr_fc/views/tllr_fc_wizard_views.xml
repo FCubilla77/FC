@@ -52,5 +52,67 @@
             </field>
         </record>
 
+        <record id="view_tllr_fc_wizard_detener_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.detener.form</field>
+            <field name="model">tllr_fc.wizard.detener</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="ot_id" invisible="1"/>
+                    <group>
+                        <field name="motivo_id" options="{'no_create': True}"/>
+                        <field name="fecha_estimada"/>
+                    </group>
+                    <footer>
+                        <button name="action_detener" string="Detener OT" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_wizard_aprobacion_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.aprobacion.form</field>
+            <field name="model">tllr_fc.wizard.aprobacion</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="ot_id" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="estado"/>
+                            <field name="persona" placeholder="Quién respondió por el cliente"/>
+                        </group>
+                        <group>
+                            <field name="medio"/>
+                            <field name="fecha"/>
+                        </group>
+                    </group>
+                    <group string="Servicios adicionales">
+                        <field name="servicio_ids" nolabel="1" colspan="2"
+                               domain="[('ot_id', '=', ot_id), ('state_aprobacion', '=', 'pendiente')]">
+                            <list><field name="product_id"/><field name="subtotal"/></list>
+                        </field>
+                    </group>
+                    <group string="Repuestos, insumos y accesorios adicionales">
+                        <field name="producto_ids" nolabel="1" colspan="2"
+                               domain="[('ot_id', '=', ot_id), ('state_aprobacion', '=', 'pendiente')]">
+                            <list><field name="product_id"/><field name="cantidad_reservada"/><field name="subtotal"/></list>
+                        </field>
+                    </group>
+                    <group><field name="notas"/></group>
+                    <div class="alert alert-warning" role="alert" invisible="estado != 'rechazado'">
+                        Si el cliente rechaza, las líneas se quitan de la OT (queda constancia en el historial).
+                    </div>
+                    <footer>
+                        <button name="action_registrar" string="Registrar" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
     </data>
 </odoo>

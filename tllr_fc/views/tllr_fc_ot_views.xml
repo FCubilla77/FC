@@ -15,6 +15,7 @@
                     <field name="puesto_activo_id" optional="show"/>
                     <field name="responsable_id" optional="show"/>
                     <field name="total" optional="hide"/>
+                    <field name="detenida" optional="show" widget="boolean"/>
                     <field name="dias_taller" optional="show"/>
                     <field name="state" widget="badge"
                            decoration-info="state in ('espera', 'proceso')"
@@ -40,11 +41,28 @@
                         <button name="action_retroceder_puesto" string="Retroceder puesto"
                                 type="object" groups="tllr_fc.group_supervisor"
                                 invisible="state != 'proceso'"/>
+                        <button name="action_abrir_control" string="Control de calidad" type="object"
+                                class="btn-primary" groups="tllr_fc.group_supervisor"
+                                invisible="state != 'calidad'"/>
+                        <button name="action_registrar_aprobacion" string="Registrar aprobación"
+                                type="object" groups="tllr_fc.group_supervisor"
+                                invisible="adicionales_pendientes == 0 or state not in ('espera', 'proceso')"/>
+                        <button name="action_detener" string="Detener OT" type="object"
+                                groups="tllr_fc.group_supervisor"
+                                invisible="detenida or state not in ('espera', 'proceso')"/>
+                        <button name="action_reanudar" string="Reanudar OT" type="object"
+                                class="btn-primary" groups="tllr_fc.group_supervisor"
+                                invisible="not detenida"/>
                         <field name="state" widget="statusbar"
                                statusbar_visible="espera,proceso,calidad,listo,entregado"/>
                     </header>
                     <sheet>
                         <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_controles" type="object"
+                                    class="oe_stat_button" icon="fa-check-square-o"
+                                    invisible="control_count == 0">
+                                <field name="control_count" widget="statinfo" string="Controles"/>
+                            </button>
                             <button name="action_ver_recepcion" type="object"
                                     class="oe_stat_button" icon="fa-clipboard">
                                 <div class="o_stat_info">
@@ -53,6 +71,23 @@
                             </button>
                         </div>
                         <field name="descuento_cliente" invisible="1"/>
+                        <field name="detenida" invisible="1"/>
+                        <field name="adicionales_pendientes" invisible="1"/>
+                        <div class="alert alert-warning" role="alert" invisible="not detenida">
+                            <strong>OT detenida:</strong>
+                            <field name="motivo_detencion_id" readonly="1" nolabel="1" class="d-inline"/>
+                            · <field name="dias_detenida_total" readonly="1" nolabel="1" class="d-inline"/> días.
+                            <span invisible="not fecha_reanudacion_estimada">
+                                Reanudación estimada: <field name="fecha_reanudacion_estimada" readonly="1" nolabel="1" class="d-inline"/>
+                            </span>
+                        </div>
+                        <div class="alert alert-warning" role="alert" invisible="not aviso_horas">
+                            <field name="aviso_horas" readonly="1" nolabel="1" class="d-inline"/>
+                        </div>
+                        <div class="alert alert-info" role="alert" invisible="adicionales_pendientes == 0">
+                            Hay <field name="adicionales_pendientes" readonly="1" nolabel="1" class="d-inline"/>
+                            trabajo(s) adicional(es) pendiente(s) de aprobación del cliente.
+                        </div>
                         <field name="currency_id" invisible="1"/>
                         <widget name="web_ribbon" title="Cancelada" bg_color="text-bg-danger"
                                 invisible="state != 'cancelada'"/>
@@ -151,6 +186,13 @@
                                                decoration-muted="estado == 'no_realizado'"
                                                decoration-warning="estado == 'pendiente'"/>
                                         <field name="motivo_no_realizado" optional="hide"/>
+                                        <field name="state_aprobacion" widget="badge" optional="show"
+                                               decoration-warning="state_aprobacion == 'pendiente'"
+                                               decoration-success="state_aprobacion in ('aprobado', 'autorizado')"/>
+                                        <button name="action_autorizar_sin_aprobacion" type="object"
+                                                icon="fa-unlock" title="Autorizar sin aprobación del cliente"
+                                                groups="tllr_fc.group_supervisor"
+                                                invisible="state_aprobacion != 'pendiente' or not id"/>
                                         <button name="action_terminar" type="object" icon="fa-check"
                                                 title="Terminar servicio"
                                                 invisible="estado != 'pendiente' or parent.state != 'proceso' or not id"/>
@@ -200,6 +242,88 @@
                                                decoration-warning="reserva_estado == 'parcial'"
                                                decoration-danger="reserva_estado == 'sin_stock'"/>
                                         <field name="cantidad_consumida" column_invisible="1"/>
+                                        <field name="state_aprobacion" widget="badge" optional="show"
+                                               decoration-warning="state_aprobacion == 'pendiente'"
+                                               decoration-success="state_aprobacion in ('aprobado', 'autorizado')"/>
+                                        <button name="action_autorizar_sin_aprobacion" type="object"
+                                                icon="fa-unlock" title="Autorizar sin aprobación del cliente"
+                                                groups="tllr_fc.group_supervisor"
+                                                invisible="state_aprobacion != 'pendiente' or not id"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Resultado" name="resultado">
+                                <group string="Trabajos realizados">
+                                    <field name="descripcion_trabajos" nolabel="1" colspan="2"
+                                           readonly="state in ('entregado', 'cancelada')"
+                                           placeholder="Descripción de los trabajos realizados"/>
+                                </group>
+                                <group string="Horas trabajadas">
+                                    <field name="hora_ids" nolabel="1" colspan="2"
+                                           readonly="state not in ('espera', 'proceso') or detenida">
+                                        <list editable="bottom" decoration-warning="aviso">
+                                            <field name="currency_id" column_invisible="1"/>
+                                            <field name="aviso" column_invisible="1"/>
+                                            <field name="personal_id" options="{'no_create': True}"
+                                                   domain="[('id', 'in', parent.personal_ids)]"/>
+                                            <field name="funcion_id" optional="show"/>
+                                            <field name="fecha"/>
+                                            <field name="horas" widget="float_time" sum="Total"/>
+                                            <field name="horas_dia_persona" widget="float_time"
+                                                   optional="show"/>
+                                            <field name="costo_hora" groups="tllr_fc.group_supervisor"
+                                                   optional="hide"/>
+                                            <field name="costo" groups="tllr_fc.group_supervisor"
+                                                   optional="hide" sum="Costo"/>
+                                        </list>
+                                    </field>
+                                </group>
+                                <group>
+                                    <group>
+                                        <field name="horas_estandar" widget="float_time"/>
+                                        <field name="horas_reales" widget="float_time"/>
+                                    </group>
+                                    <group>
+                                        <field name="costo_horas" groups="tllr_fc.group_supervisor"/>
+                                    </group>
+                                </group>
+                                <group string="Herramientas dañadas">
+                                    <field name="herramienta_danada_ids" nolabel="1" colspan="2"
+                                           readonly="state in ('entregado', 'cancelada')">
+                                        <list editable="bottom">
+                                            <field name="product_id" options="{'no_create': True}"/>
+                                            <field name="cantidad"/>
+                                            <field name="personal_id" options="{'no_create': True}"
+                                                   domain="[('id', 'in', parent.personal_ids)]"/>
+                                            <field name="motivo"/>
+                                        </list>
+                                    </field>
+                                </group>
+                            </page>
+                            <page string="Control de calidad" name="calidad">
+                                <field name="control_ids" readonly="1">
+                                    <list decoration-success="state == 'aprobado'"
+                                          decoration-danger="state == 'rechazado'">
+                                        <field name="name"/>
+                                        <field name="fecha"/>
+                                        <field name="responsable_id"/>
+                                        <field name="state" widget="badge"
+                                               decoration-success="state == 'aprobado'"
+                                               decoration-danger="state == 'rechazado'"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Aprobaciones" name="aprobaciones" invisible="not aprobacion_ids">
+                                <field name="aprobacion_ids" readonly="1">
+                                    <list>
+                                        <field name="fecha"/>
+                                        <field name="medio"/>
+                                        <field name="persona"/>
+                                        <field name="estado" widget="badge"
+                                               decoration-success="estado == 'aprobado'"
+                                               decoration-danger="estado == 'rechazado'"/>
+                                        <field name="detalle"/>
+                                        <field name="notas" optional="hide"/>
                                     </list>
                                 </field>
                             </page>
@@ -238,6 +362,9 @@
                     <separator/>
                     <filter string="En espera" name="espera" domain="[('state', '=', 'espera')]"/>
                     <filter string="En proceso" name="proceso" domain="[('state', '=', 'proceso')]"/>
+                    <filter string="Detenidas" name="detenidas" domain="[('detenida', '=', True)]"/>
+                    <filter string="Con adicionales pendientes" name="adicionales_pendientes"
+                            domain="[('adicionales_pendientes', '>', 0)]"/>
                     <filter string="En control de calidad" name="calidad"
                             domain="[('state', '=', 'calidad')]"/>
                     <filter string="Listas para entrega" name="listo" domain="[('state', '=', 'listo')]"/>
@@ -268,6 +395,8 @@
                     <field name="state"/>
                     <field name="tipo"/>
                     <field name="tiene_adicionales"/>
+                    <field name="detenida"/>
+                    <field name="adicionales_pendientes"/>
                     <templates>
                         <t t-name="card">
                             <main t-attf-class="tllr_fc_tarjeta tllr_fc_state_#{record.state.raw_value}">
@@ -288,11 +417,18 @@
                                     <field name="responsable_id"/>
                                 </div>
                                 <div><field name="personal_ids" widget="many2many_tags"/></div>
+                                <div t-if="record.detenida.raw_value" class="small text-danger fw-bold">
+                                    <i class="fa fa-pause-circle me-1"/>Detenida:
+                                    <field name="motivo_detencion_id"/>
+                                    (<field name="dias_detenida_total"/> d)
+                                </div>
                                 <div class="d-flex justify-content-between align-items-center small text-muted">
                                     <span>
                                         <field name="tipo"/>
                                         <span t-if="record.tiene_adicionales.raw_value"
                                               class="badge text-bg-warning ms-1">Adicionales</span>
+                                        <span t-if="record.adicionales_pendientes.raw_value > 0"
+                                              class="badge text-bg-danger ms-1">Sin aprobar</span>
                                     </span>
                                     <span><field name="dias_taller"/> d</span>
                                 </div>

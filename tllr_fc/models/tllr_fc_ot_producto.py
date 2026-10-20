@@ -17,6 +17,7 @@ class TllrFcOtProducto(models.Model):
     """
     _name = 'tllr_fc.ot.producto'
     _description = "Repuesto, insumo o accesorio de la orden de trabajo"
+    _inherit = ['tllr_fc.mixin.wizard']
     _order = 'ot_id, id'
 
     ot_id = fields.Many2one(
@@ -52,6 +53,17 @@ class TllrFcOtProducto(models.Model):
     subtotal = fields.Monetary(
         string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
     adicional = fields.Boolean(string="Adicional", readonly=True, copy=False)
+    state_aprobacion = fields.Selection(
+        [
+        ('no_requiere', "No requiere"),
+        ('pendiente', "Pendiente de aprobación"),
+        ('aprobado', "Aprobado"),
+        ('autorizado', "Autorizado sin aprobación"),
+    ], string="Aprobación", required=True, default='no_requiere', copy=False,
+        index=True)
+    aprobacion_id = fields.Many2one(
+        'tllr_fc.ot.aprobacion', string="Aprobación del cliente", readonly=True,
+        copy=False, ondelete='set null')
     move_ids = fields.One2many(
         'stock.move', 'tllr_fc_ot_producto_id', string="Movimientos de stock", copy=False)
     reserva_estado = fields.Selection([
@@ -299,13 +311,48 @@ class TllrFcOtProducto(models.Model):
                 vals['descuento'] = ot.partner_id.tllr_fc_descuento
             if ot.state != 'espera':
                 vals['adicional'] = True
+                vals['state_aprobacion'] = 'pendiente' if ot.tipo == 'cliente' else 'no_requiere'
             if vals.get('cantidad_utilizada') and ot.state != 'proceso':
                 raise UserError("Solo se registra lo utilizado con la OT en proceso.")
         lineas = super().create(vals_list)
+        for linea, vals in zip(lineas, vals_list):
+            if vals.get('cantidad_utilizada'):
+                linea._tllr_fc_verificar_aprobacion()
         lineas._tllr_fc_sincronizar_stock()
         return lineas
 
+    def _tllr_fc_verificar_aprobacion(self):
+        """Un adicional pendiente de aprobación no se consume si la aprobación es obligatoria."""
+        self.ensure_one()
+        if (self.state_aprobacion == 'pendiente'
+                and self.company_id.tllr_fc_aprobacion_adicional == 'obligatoria'):
+            raise UserError(
+                "«%s» es un trabajo adicional pendiente de aprobación del cliente. El "
+                "supervisor debe registrar la aprobación o autorizar el uso sin ella."
+                % self.product_id.display_name)
+
+    def action_autorizar_sin_aprobacion(self):
+        """El supervisor autoriza usar el adicional sin la aprobación del cliente."""
+        if not self._es_supervisor():
+            raise AccessError("Solo el supervisor puede autorizar el uso sin aprobación.")
+        self.ensure_one()
+        if self.state_aprobacion != 'pendiente':
+            raise UserError("La línea no está pendiente de aprobación.")
+        if not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_autorizar_sin_aprobacion', 'supervisor',
+                "Usar «%s» sin la aprobación del cliente." % self.product_id.display_name)
+        self.with_context(tllr_fc_permitir_write=True).state_aprobacion = 'autorizado'
+        return True
+
     def write(self, vals):
+        if not self.env.context.get('tllr_fc_permitir_write') and (
+                {'state_aprobacion', 'aprobacion_id', 'adicional'} & set(vals)):
+            raise UserError("La aprobación de un adicional se registra con el botón de la OT.")
+        if vals.get('cantidad_utilizada'):
+            for linea in self:
+                if vals['cantidad_utilizada'] > linea.cantidad_utilizada:
+                    linea._tllr_fc_verificar_aprobacion()
         if any(campo in vals for campo in CAMPOS_SOLO_SUPERVISOR) and not self._es_supervisor():
             raise AccessError(
                 "Solo el supervisor o el administrador de taller pueden cambiar el precio, el "

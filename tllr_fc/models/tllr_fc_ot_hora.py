@@ -1,0 +1,169 @@
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
+
+LIMITE_HORAS_DIA = 12.0
+
+
+class TllrFcOtHora(models.Model):
+    """Horas trabajadas por una persona en la OT (total por persona y día)."""
+    _name = 'tllr_fc.ot.hora'
+    _description = "Horas trabajadas en la orden de trabajo"
+    _order = 'fecha desc, id desc'
+
+    ot_id = fields.Many2one(
+        'tllr_fc.ot', string="OT", required=True, ondelete='cascade', index=True)
+    company_id = fields.Many2one(
+        'res.company', string="Compañía", related='ot_id.company_id',
+        store=True, index=True)
+    currency_id = fields.Many2one(
+        'res.currency', related='ot_id.company_id.currency_id', string="Moneda")
+    personal_id = fields.Many2one(
+        'tllr_fc.personal', string="Personal", required=True, ondelete='restrict')
+    funcion_id = fields.Many2one(
+        'tllr_fc.funcion', string="Función", readonly=True, ondelete='restrict',
+        help="Se copia del personal al cargar las horas y no se recalcula: un cambio "
+             "posterior de función no altera los costos de la OT.")
+    fecha = fields.Date(string="Fecha", required=True, default=fields.Date.context_today)
+    horas = fields.Float(string="Horas", required=True)
+    costo_hora = fields.Monetary(
+        string="Costo por hora", currency_field='currency_id',
+        compute='_compute_costo', groups='tllr_fc.group_supervisor')
+    costo = fields.Monetary(
+        string="Costo", currency_field='currency_id',
+        compute='_compute_costo', groups='tllr_fc.group_supervisor')
+    horas_dia_persona = fields.Float(
+        string="Horas del día (persona)", compute='_compute_horas_dia_persona')
+    aviso = fields.Char(string="Aviso", compute='_compute_horas_dia_persona')
+
+    @api.depends('funcion_id', 'fecha', 'horas')
+    def _compute_costo(self):
+        for hora in self:
+            costo_hora = hora.funcion_id._costo_a_fecha(hora.fecha) if (
+                hora.funcion_id and hora.fecha) else 0.0
+            hora.costo_hora = costo_hora
+            hora.costo = costo_hora * hora.horas
+
+    @api.depends('personal_id', 'fecha', 'horas')
+    def _compute_horas_dia_persona(self):
+        personal = self.mapped('personal_id').ids
+        fechas = self.mapped('fecha')
+        totales = {}
+        if personal and fechas:
+            datos = self.env['tllr_fc.ot.hora'].sudo()._read_group(
+                [('personal_id', 'in', personal), ('fecha', 'in', fechas)],
+                ['personal_id', 'fecha:day'], ['horas:sum'])
+            totales = {(p.id, f): total for p, f, total in datos}
+        for hora in self:
+            total = totales.get((hora.personal_id.id, hora.fecha), 0.0)
+            if not hora.id:  # línea nueva, todavía sin guardar
+                total += hora.horas
+            hora.horas_dia_persona = total
+            hora.aviso = (
+                "%s suma %.2f h el %s (más de %s h)." % (
+                    hora.personal_id.name, total, hora.fecha, int(LIMITE_HORAS_DIA))
+                if total > LIMITE_HORAS_DIA else False)
+
+    @api.constrains('horas')
+    def _check_horas(self):
+        for hora in self:
+            if hora.horas <= 0 or hora.horas > 24:
+                raise ValidationError("Las horas deben ser mayores que cero y no más de 24 por línea.")
+
+    # ------------------------------------------------------------------
+    def _tllr_fc_verificar(self, ots):
+        for ot in ots:
+            if ot.state not in ('espera', 'proceso'):
+                raise UserError(
+                    "La OT %s está en estado «%s»: ya no se pueden modificar las horas." % (
+                        ot.name, dict(ot._fields['state'].selection)[ot.state]))
+            ot._tllr_fc_verificar_no_detenida("cargar horas")
+
+    def _tllr_fc_verificar_personal(self):
+        if self.env.user.has_group('tllr_fc.group_supervisor'):
+            return
+        for hora in self:
+            if hora.personal_id not in hora.ot_id.personal_ids:
+                raise ValidationError(
+                    "%s no está asignado a ningún puesto de la OT %s: solo el personal "
+                    "asignado puede registrar horas." % (hora.personal_id.name, hora.ot_id.name))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        ots = self.env['tllr_fc.ot'].browse([v['ot_id'] for v in vals_list if v.get('ot_id')])
+        self._tllr_fc_verificar(ots)
+        for vals in vals_list:
+            personal = self.env['tllr_fc.personal'].browse(vals.get('personal_id'))
+            vals['funcion_id'] = personal.funcion_id.id
+        horas = super().create(vals_list)
+        horas._tllr_fc_verificar_personal()
+        return horas
+
+    def write(self, vals):
+        if 'funcion_id' in vals or 'ot_id' in vals:
+            raise UserError("La función y la OT de una línea de horas no se modifican.")
+        self._tllr_fc_verificar(self.ot_id)
+        if 'personal_id' in vals:
+            vals = dict(vals, funcion_id=self.env['tllr_fc.personal'].browse(
+                vals['personal_id']).funcion_id.id)
+        resultado = super().write(vals)
+        if 'personal_id' in vals:
+            self._tllr_fc_verificar_personal()
+        return resultado
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_validar(self):
+        self._tllr_fc_verificar(self.ot_id)
+
+
+class TllrFcOtHerramientaDanada(models.Model):
+    """Herramienta dañada durante la OT. Solo registro: no mueve inventario."""
+    _name = 'tllr_fc.ot.herramienta_danada'
+    _description = "Herramienta dañada en la orden de trabajo"
+    _order = 'id desc'
+
+    ot_id = fields.Many2one(
+        'tllr_fc.ot', string="OT", required=True, ondelete='cascade', index=True)
+    company_id = fields.Many2one(
+        'res.company', string="Compañía", related='ot_id.company_id',
+        store=True, index=True)
+    product_id = fields.Many2one(
+        'product.product', string="Herramienta", required=True, ondelete='restrict',
+        domain="[('tllr_fc_uso_taller', '=', 'herramienta')]")
+    cantidad = fields.Float(string="Cantidad", default=1.0)
+    motivo = fields.Text(string="Motivo", required=True)
+    personal_id = fields.Many2one(
+        'tllr_fc.personal', string="Personal", ondelete='restrict')
+
+    @api.constrains('cantidad', 'product_id')
+    def _check_valores(self):
+        for linea in self:
+            if linea.cantidad <= 0:
+                raise ValidationError("La cantidad de herramientas dañadas debe ser mayor que cero.")
+            if linea.product_id.tllr_fc_uso_taller != 'herramienta':
+                raise ValidationError(
+                    "«%s» no es una herramienta (revisá el uso en taller de su ficha)."
+                    % linea.product_id.display_name)
+
+    def _tllr_fc_verificar(self, ots):
+        for ot in ots:
+            if ot.state in ('entregado', 'cancelada'):
+                raise UserError("La OT %s ya está cerrada." % ot.name)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._tllr_fc_verificar(
+            self.env['tllr_fc.ot'].browse([v['ot_id'] for v in vals_list if v.get('ot_id')]))
+        lineas = super().create(vals_list)
+        for linea in lineas:
+            linea.ot_id.message_post(body="Herramienta dañada: %s × %s. %s" % (
+                linea.product_id.display_name, linea.cantidad, linea.motivo or ''))
+        return lineas
+
+    def write(self, vals):
+        self._tllr_fc_verificar(self.ot_id)
+        return super().write(vals)
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_validar(self):
+        self._tllr_fc_verificar(self.ot_id)

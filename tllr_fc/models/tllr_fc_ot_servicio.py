@@ -56,6 +56,17 @@ class TllrFcOtServicio(models.Model):
     adicional = fields.Boolean(
         string="Adicional", readonly=True, copy=False,
         help="Agregado después de iniciar la OT.")
+    state_aprobacion = fields.Selection(
+        [
+        ('no_requiere', "No requiere"),
+        ('pendiente', "Pendiente de aprobación"),
+        ('aprobado', "Aprobado"),
+        ('autorizado', "Autorizado sin aprobación"),
+    ], string="Aprobación", required=True, default='no_requiere', copy=False,
+        index=True)
+    aprobacion_id = fields.Many2one(
+        'tllr_fc.ot.aprobacion', string="Aprobación del cliente", readonly=True,
+        copy=False, ondelete='set null')
 
     # ------------------------------------------------------------------
     # Cálculos
@@ -174,6 +185,7 @@ class TllrFcOtServicio(models.Model):
                 vals['descuento'] = ot.partner_id.tllr_fc_descuento
             if ot.state != 'espera':
                 vals['adicional'] = True
+                vals['state_aprobacion'] = 'pendiente' if ot.tipo == 'cliente' else 'no_requiere'
         servicios = super().create(vals_list)
         servicios._tllr_fc_asignar_puesto_automatico()
         servicios._tllr_fc_verificar_pertenencia()
@@ -186,7 +198,8 @@ class TllrFcOtServicio(models.Model):
                     "Solo el supervisor o el administrador de taller pueden cambiar el precio, "
                     "el descuento o marcar «No facturar».")
             for campo in ('estado', 'terminado_por_id', 'fecha_terminado',
-                          'motivo_no_realizado', 'adicional'):
+                          'motivo_no_realizado', 'adicional', 'state_aprobacion',
+                          'aprobacion_id'):
                 if campo in vals:
                     raise UserError(
                         "El estado del servicio se cambia con los botones de la OT.")
@@ -221,6 +234,8 @@ class TllrFcOtServicio(models.Model):
                 raise UserError("Solo se pueden terminar servicios de una OT en proceso.")
             if servicio.estado == 'terminado':
                 continue
+            ot._tllr_fc_verificar_no_detenida("terminar servicios")
+            servicio._tllr_fc_verificar_aprobacion()
             linea = servicio.puesto_line_id
             if not linea or linea.state != 'activo':
                 raise UserError(
@@ -238,6 +253,30 @@ class TllrFcOtServicio(models.Model):
             })
             ot.message_post(body="Servicio terminado: %s (%s)." % (
                 servicio.product_id.display_name, self.env.user.name))
+        return True
+
+    def _tllr_fc_verificar_aprobacion(self):
+        """Un adicional pendiente de aprobación no se ejecuta si la aprobación es obligatoria."""
+        self.ensure_one()
+        if (self.state_aprobacion == 'pendiente'
+                and self.company_id.tllr_fc_aprobacion_adicional == 'obligatoria'):
+            raise UserError(
+                "«%s» es un trabajo adicional pendiente de aprobación del cliente. El "
+                "supervisor debe registrar la aprobación o autorizar la ejecución sin ella."
+                % self.product_id.display_name)
+
+    def action_autorizar_sin_aprobacion(self):
+        """El supervisor autoriza ejecutar el adicional sin la aprobación del cliente."""
+        if not self._es_supervisor():
+            raise AccessError("Solo el supervisor puede autorizar la ejecución sin aprobación.")
+        self.ensure_one()
+        if self.state_aprobacion != 'pendiente':
+            raise UserError("La línea no está pendiente de aprobación.")
+        if not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_autorizar_sin_aprobacion', 'supervisor',
+                "Ejecutar «%s» sin la aprobación del cliente." % self.product_id.display_name)
+        self.with_context(tllr_fc_permitir_write=True).state_aprobacion = 'autorizado'
         return True
 
     def action_no_realizado(self):

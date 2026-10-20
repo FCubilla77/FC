@@ -84,6 +84,34 @@ class TllrFcOt(models.Model):
         store=True)
     producto_ids = fields.One2many(
         'tllr_fc.ot.producto', 'ot_id', string="Repuestos, insumos y accesorios", copy=False)
+    descripcion_trabajos = fields.Text(string="Trabajos realizados")
+    hora_ids = fields.One2many('tllr_fc.ot.hora', 'ot_id', string="Horas trabajadas", copy=False)
+    herramienta_danada_ids = fields.One2many(
+        'tllr_fc.ot.herramienta_danada', 'ot_id', string="Herramientas dañadas", copy=False)
+    aprobacion_ids = fields.One2many(
+        'tllr_fc.ot.aprobacion', 'ot_id', string="Aprobaciones de adicionales", copy=False)
+    control_ids = fields.One2many(
+        'tllr_fc.control_calidad', 'ot_id', string="Controles de calidad", copy=False)
+    control_count = fields.Integer(string="Controles", compute='_compute_control_count')
+    horas_reales = fields.Float(string="Horas reales", compute='_compute_horas')
+    costo_horas = fields.Monetary(
+        string="Costo de horas", currency_field='currency_id', compute='_compute_horas',
+        groups='tllr_fc.group_supervisor')
+    aviso_horas = fields.Char(string="Aviso de horas", compute='_compute_horas')
+    adicionales_pendientes = fields.Integer(
+        string="Adicionales pendientes de aprobación", compute='_compute_adicionales_pendientes',
+        store=True)
+    detenida = fields.Boolean(string="Detenida", readonly=True, copy=False, tracking=True)
+    motivo_detencion_id = fields.Many2one(
+        'tllr_fc.motivo', string="Motivo de detención", readonly=True, copy=False,
+        domain="[('tipo', '=', 'detencion')]", ondelete='restrict')
+    fecha_reanudacion_estimada = fields.Date(
+        string="Reanudación estimada", readonly=True, copy=False)
+    detenida_desde = fields.Datetime(string="Detenida desde", readonly=True, copy=False)
+    dias_detenida = fields.Float(
+        string="Días detenida (acumulado)", readonly=True, copy=False, digits=(16, 2))
+    dias_detenida_total = fields.Float(
+        string="Días detenida", compute='_compute_dias_detenida_total', digits=(16, 2))
     descuento_cliente = fields.Float(
         string="Descuento del cliente (%)", related='partner_id.tllr_fc_descuento')
     total_servicios = fields.Monetary(
@@ -108,6 +136,36 @@ class TllrFcOt(models.Model):
                 continue
             fin = ot.fecha_entrega or ahora
             ot.dias_taller = max((fin - ot.fecha_ingreso).days, 0)
+
+    @api.depends('control_ids')
+    def _compute_control_count(self):
+        for ot in self:
+            ot.control_count = len(ot.control_ids)
+
+    @api.depends('hora_ids.horas', 'hora_ids.fecha', 'hora_ids.personal_id', 'hora_ids.aviso')
+    def _compute_horas(self):
+        for ot in self:
+            horas = ot.hora_ids.sudo()
+            ot.horas_reales = sum(horas.mapped('horas'))
+            ot.costo_horas = sum(horas.mapped('costo'))
+            avisos = [a for a in horas.mapped('aviso') if a]
+            ot.aviso_horas = ' '.join(sorted(set(avisos))) if avisos else False
+
+    @api.depends('servicio_ids.state_aprobacion', 'producto_ids.state_aprobacion')
+    def _compute_adicionales_pendientes(self):
+        for ot in self:
+            ot.adicionales_pendientes = (
+                len(ot.servicio_ids.filtered(lambda s: s.state_aprobacion == 'pendiente'))
+                + len(ot.producto_ids.filtered(lambda p: p.state_aprobacion == 'pendiente')))
+
+    @api.depends('detenida', 'detenida_desde', 'dias_detenida')
+    def _compute_dias_detenida_total(self):
+        ahora = fields.Datetime.now()
+        for ot in self:
+            actual = 0.0
+            if ot.detenida and ot.detenida_desde:
+                actual = (ahora - ot.detenida_desde).total_seconds() / 86400.0
+            ot.dias_detenida_total = ot.dias_detenida + actual
 
     @api.depends('puesto_line_ids.state', 'puesto_line_ids.puesto_id')
     def _compute_puesto_activo(self):
@@ -188,6 +246,13 @@ class TllrFcOt(models.Model):
     def _tllr_fc_es_supervisor(self):
         return self.env.user.has_group('tllr_fc.group_supervisor')
 
+    def _tllr_fc_verificar_no_detenida(self, accion="continuar"):
+        self.ensure_one()
+        if self.detenida:
+            raise UserError(
+                "La OT %s está detenida (%s): no se puede %s hasta reanudarla." % (
+                    self.name, self.motivo_detencion_id.name or '', accion))
+
     def _tllr_fc_verificar_puesto_terminable(self):
         self.ensure_one()
         actual = self.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
@@ -206,6 +271,7 @@ class TllrFcOt(models.Model):
         Si era el último y `avanzar_ot`, la OT sale de proceso.
         """
         self.ensure_one()
+        self._tllr_fc_verificar_no_detenida("avanzar de puesto")
         ahora = fields.Datetime.now()
         actual = self.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
         siguiente = self.puesto_line_ids.filtered(lambda l: l.state == 'pendiente')[:1]
@@ -240,9 +306,159 @@ class TllrFcOt(models.Model):
         self.state = 'calidad' if self._tllr_fc_exige_qc() else 'listo'
         self.producto_ids._tllr_fc_sincronizar_stock()
         if self.state == 'calidad':
-            self.message_post(body="Todos los puestos terminaron: la OT pasa a control de calidad.")
+            control = self._tllr_fc_crear_control()
+            self.message_post(body="Todos los puestos terminaron: la OT pasa a control de calidad (%s)."
+                              % control.name)
         else:
             self.message_post(body="Todos los puestos terminaron: la OT está lista para entrega.")
+
+    # ------------------------------------------------------------------
+    # Control de calidad
+    # ------------------------------------------------------------------
+    def _tllr_fc_lineas_de_control(self):
+        """Comandos para las líneas de un control: un servicio terminado por línea."""
+        self.ensure_one()
+        comandos = []
+        for servicio in self.servicio_ids.filtered(lambda s: s.estado == 'terminado'):
+            checks = [(0, 0, {'name': punto.name})
+                      for punto in servicio.product_id.product_tmpl_id.sudo().tllr_fc_checklist_ids]
+            comandos.append((0, 0, {'ot_servicio_id': servicio.id, 'check_ids': checks}))
+        return comandos
+
+    def _tllr_fc_crear_control(self):
+        """Devuelve el control en borrador de la OT, creándolo si no existe."""
+        self.ensure_one()
+        borrador = self.control_ids.filtered(lambda c: c.state == 'borrador')[:1]
+        if borrador:
+            return borrador
+        return self.env['tllr_fc.control_calidad'].sudo().create({
+            'ot_id': self.id,
+            'responsable_id': self.responsable_id.id,
+        })
+
+    def _tllr_fc_devolver_a_proceso(self, servicios):
+        """Un control rechazado devuelve la OT a proceso.
+
+        Los servicios rechazados vuelven a pendiente y se reactiva el primer puesto
+        que los realiza; los puestos siguientes vuelven a pendiente para repetir el
+        recorrido (sus servicios ya terminados no se tocan).
+        """
+        self.ensure_one()
+        lineas = self.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))
+        con_rechazo = (servicios.puesto_line_id & lineas).sorted(lambda l: (l.sequence, l.id))
+        destino = con_rechazo[:1] or lineas[-1:]
+        for servicio in servicios:
+            servicio.with_context(tllr_fc_permitir_write=True).write({
+                'estado': 'pendiente', 'terminado_por_id': False, 'fecha_terminado': False})
+        posicion = list(lineas.ids).index(destino.id) if destino else 0
+        for indice, linea in enumerate(lineas):
+            ctx = linea.with_context(tllr_fc_permitir_write=True)
+            if indice == posicion:
+                ctx.write({'state': 'activo', 'fecha_fin': False})
+            elif indice > posicion:
+                ctx.write({'state': 'pendiente', 'fecha_inicio': False, 'fecha_fin': False})
+        self.state = 'proceso'
+        self.producto_ids._tllr_fc_sincronizar_stock()
+
+    def action_ver_controles(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Controles de calidad",
+            'res_model': 'tllr_fc.control_calidad',
+            'view_mode': 'list,form',
+            'domain': [('ot_id', '=', self.id)],
+        }
+
+    def action_abrir_control(self):
+        """Abre el control en borrador de la OT (lo crea si falta)."""
+        self.ensure_one()
+        if self.state != 'calidad':
+            raise UserError("La OT no está en control de calidad.")
+        control = self._tllr_fc_crear_control()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'tllr_fc.control_calidad',
+            'res_id': control.id,
+            'view_mode': 'form',
+        }
+
+    # ------------------------------------------------------------------
+    # OT detenida
+    # ------------------------------------------------------------------
+    def action_detener(self):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden detener una OT.")
+        if self.state not in ('espera', 'proceso'):
+            raise UserError("Solo se puede detener una OT en espera o en proceso.")
+        if self.detenida:
+            raise UserError("La OT ya está detenida.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Detener OT",
+            'res_model': 'tllr_fc.wizard.detener',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_ot_id': self.id},
+        }
+
+    def _tllr_fc_detener(self, motivo, fecha_estimada):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden detener una OT.")
+        if self.state not in ('espera', 'proceso') or self.detenida:
+            raise UserError("La OT no se puede detener en su estado actual.")
+        self.write({
+            'detenida': True,
+            'motivo_detencion_id': motivo.id,
+            'fecha_reanudacion_estimada': fecha_estimada,
+            'detenida_desde': fields.Datetime.now(),
+        })
+        self.message_post(body="OT detenida: %s%s." % (
+            motivo.name,
+            (" (reanudación estimada %s)" % fecha_estimada) if fecha_estimada else ''))
+
+    def _tllr_fc_cerrar_detencion(self):
+        """Suma el tramo detenido al acumulado y deja la OT en marcha."""
+        for ot in self.filtered('detenida'):
+            tramo = 0.0
+            if ot.detenida_desde:
+                tramo = (fields.Datetime.now() - ot.detenida_desde).total_seconds() / 86400.0
+            ot.write({
+                'detenida': False,
+                'dias_detenida': ot.dias_detenida + tramo,
+                'detenida_desde': False,
+                'fecha_reanudacion_estimada': False,
+            })
+
+    def action_reanudar(self):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden reanudar una OT.")
+        if not self.detenida:
+            raise UserError("La OT no está detenida.")
+        self._tllr_fc_cerrar_detencion()
+        self.message_post(body="OT reanudada. Días detenida acumulados: %.2f." % self.dias_detenida)
+        return True
+
+    # ------------------------------------------------------------------
+    # Trabajos adicionales
+    # ------------------------------------------------------------------
+    def action_registrar_aprobacion(self):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller registran aprobaciones.")
+        if not self.adicionales_pendientes:
+            raise UserError("La OT no tiene adicionales pendientes de aprobación.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Registrar aprobación",
+            'res_model': 'tllr_fc.wizard.aprobacion',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_ot_id': self.id},
+        }
 
     # ------------------------------------------------------------------
     # Ganchos para los módulos puente (Ventas / Compras)
@@ -291,6 +507,7 @@ class TllrFcOt(models.Model):
             raise AccessError("Solo el supervisor o el administrador de taller pueden iniciar la OT.")
         if self.state != 'espera':
             raise UserError("Solo se puede iniciar una OT que está en espera.")
+        self._tllr_fc_verificar_no_detenida("iniciar")
         if not self.responsable_id:
             raise UserError("Indicá el responsable de la OT antes de iniciarla.")
         lineas = self.puesto_line_ids
@@ -377,6 +594,7 @@ class TllrFcOt(models.Model):
                 'motivo_cancelacion_id': motivo.id if motivo else False,
             })
             ot.producto_ids._tllr_fc_sincronizar_stock()
+            ot._tllr_fc_cerrar_detencion()
             ot.message_post(body="OT cancelada porque se anuló su recepción (sin liquidación).")
 
     def action_ver_recepcion(self):
