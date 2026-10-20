@@ -47,6 +47,10 @@
                         <button name="action_registrar_aprobacion" string="Registrar aprobación"
                                 type="object" groups="tllr_fc.group_supervisor"
                                 invisible="adicionales_pendientes == 0 or state not in ('espera', 'proceso')"/>
+                        <button name="action_volver_estado" string="Volver atrás" type="object"
+                                groups="tllr_fc.group_supervisor"
+                                confirm="¿Volver la OT al estado anterior? Se pedirá un motivo."
+                                invisible="state not in ('proceso', 'calidad', 'listo')"/>
                         <button name="action_detener" string="Detener OT" type="object"
                                 groups="tllr_fc.group_supervisor"
                                 invisible="detenida or state not in ('espera', 'proceso')"/>
@@ -258,6 +262,29 @@
                                            readonly="state in ('entregado', 'cancelada')"
                                            placeholder="Descripción de los trabajos realizados"/>
                                 </group>
+                                <group string="Informe por servicio">
+                                    <field name="servicio_ids" nolabel="1" colspan="2"
+                                           readonly="state in ('entregado', 'cancelada')">
+                                        <list editable="bottom" create="0" delete="0">
+                                            <field name="product_id" readonly="1"/>
+                                            <field name="puesto_line_id" readonly="1" optional="show"/>
+                                            <field name="estado" widget="badge" readonly="1"
+                                                   decoration-success="estado == 'terminado'"
+                                                   decoration-muted="estado == 'no_realizado'"
+                                                   decoration-warning="estado == 'pendiente'"/>
+                                            <field name="informe" widget="text"
+                                                   placeholder="Informe de los trabajos realizados"/>
+                                        </list>
+                                    </field>
+                                </group>
+                                <div class="alert alert-info" role="alert"
+                                     invisible="state in ('proceso', 'espera') and not detenida">
+                                    Las horas solo se cargan con la OT en espera o en proceso y no detenida.
+                                </div>
+                                <div class="alert alert-info" role="alert"
+                                     invisible="state not in ('espera', 'proceso') or detenida or personal_ids">
+                                    Para cargar horas, asigná primero el personal a los puestos de la OT.
+                                </div>
                                 <group string="Horas trabajadas">
                                     <field name="hora_ids" nolabel="1" colspan="2"
                                            readonly="state not in ('espera', 'proceso') or detenida">

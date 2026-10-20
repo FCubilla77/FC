@@ -6,7 +6,7 @@
             <field name="name">tllr_fc.control_calidad.list</field>
             <field name="model">tllr_fc.control_calidad</field>
             <field name="arch" type="xml">
-                <list create="0" decoration-success="state == 'aprobado'"
+                <list decoration-success="state == 'aprobado'"
                       decoration-danger="state == 'rechazado'">
                     <field name="name"/>
                     <field name="fecha"/>
@@ -27,7 +27,7 @@
             <field name="name">tllr_fc.control_calidad.form</field>
             <field name="model">tllr_fc.control_calidad</field>
             <field name="arch" type="xml">
-                <form create="0">
+                <form>
                     <header>
                         <button name="action_aprobar_todas" string="Aprobar todas" type="object"
                                 invisible="state != 'borrador'"/>
@@ -44,7 +44,9 @@
                         </div>
                         <group>
                             <group>
-                                <field name="ot_id"/>
+                                <field name="ot_id" readonly="id"
+                                       domain="[('state', '=', 'calidad')]"
+                                       options="{'no_create': True}"/>
                                 <field name="vehiculo_id"/>
                                 <field name="partner_id"/>
                             </group>
@@ -60,12 +62,14 @@
                                   decoration-success="resultado == 'aprobado'"
                                   decoration-danger="resultado == 'rechazado'">
                                 <field name="ot_servicio_id" readonly="1"/>
+                                <field name="informe" optional="show"/>
                                 <field name="resultado_texto"/>
                                 <field name="resultado"/>
                             </list>
                             <form>
                                 <group>
                                     <field name="ot_servicio_id" readonly="1"/>
+                                    <field name="informe"/>
                                     <field name="resultado"/>
                                     <field name="resultado_texto"/>
                                 </group>

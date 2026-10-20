@@ -360,6 +360,63 @@ class TllrFcOt(models.Model):
         self.state = 'proceso'
         self.producto_ids._tllr_fc_sincronizar_stock()
 
+    # ------------------------------------------------------------------
+    # Volver atrás en los estados de la OT
+    # ------------------------------------------------------------------
+    def action_volver_estado(self):
+        """Vuelve la OT un estado atrás (supervisor, con motivo).
+
+        - En control de calidad → En proceso (el último puesto vuelve a activo).
+        - Listo para entrega → En control de calidad (nuevo control en borrador).
+        - En proceso → En espera, solo si todavía no se ejecutó nada.
+        Entregada y cancelada no se reabren.
+        """
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden volver atrás el estado de la OT.")
+        destinos = {'calidad': 'proceso', 'listo': 'calidad', 'proceso': 'espera'}
+        if self.state not in destinos:
+            raise UserError("Una OT %s no se puede reabrir." % (
+                "entregada" if self.state == 'entregado' else "cancelada"))
+        if self.state == 'proceso':
+            self._tllr_fc_verificar_puede_volver_a_espera()
+        etiquetas = dict(self._fields['state'].selection)
+        if not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_volver_estado', 'supervisor',
+                "Volver la OT de «%s» a «%s»." % (
+                    etiquetas[self.state], etiquetas[destinos[self.state]]))
+        origen = self.state
+        if origen == 'calidad':
+            borradores = self.control_ids.filtered(lambda c: c.state == 'borrador')
+            borradores.sudo().unlink()
+            lineas = self.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))
+            if lineas:
+                lineas[-1].with_context(tllr_fc_permitir_write=True).write(
+                    {'state': 'activo', 'fecha_fin': False})
+            self.state = 'proceso'
+            self.producto_ids._tllr_fc_sincronizar_stock()
+        elif origen == 'listo':
+            self.state = 'calidad'
+            self.producto_ids._tllr_fc_sincronizar_stock()
+            self._tllr_fc_crear_control()
+        else:
+            self.puesto_line_ids.with_context(tllr_fc_permitir_write=True).write(
+                {'state': 'pendiente', 'fecha_inicio': False, 'fecha_fin': False})
+            self.state = 'espera'
+            self.producto_ids._tllr_fc_sincronizar_stock()
+        self.message_post(body="La OT volvió de «%s» a «%s». Motivo: %s" % (
+            etiquetas[origen], etiquetas[self.state], self.env.context.get('tllr_fc_motivo', '')))
+        return True
+
+    def _tllr_fc_verificar_puede_volver_a_espera(self):
+        self.ensure_one()
+        if (self.servicio_ids.filtered(lambda s: s.estado != 'pendiente')
+                or self.hora_ids or self.producto_ids.filtered('cantidad_consumida')):
+            raise UserError(
+                "No se puede volver a «En espera»: ya hay servicios terminados, horas cargadas "
+                "o repuestos consumidos. Usá «Retroceder puesto» para un retrabajo.")
+
     def action_ver_controles(self):
         self.ensure_one()
         return {

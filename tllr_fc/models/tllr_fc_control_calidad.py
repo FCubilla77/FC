@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
 
@@ -32,6 +32,13 @@ class TllrFcControlCalidad(models.Model):
         ('aprobado', "Aprobado"),
         ('rechazado', "Rechazado"),
     ], string="Estado", required=True, default='borrador', copy=False, tracking=True, index=True)
+
+    @api.onchange('ot_id')
+    def _onchange_ot_id(self):
+        if self.ot_id and not self._origin.id:
+            self.responsable_id = self.ot_id.responsable_id
+            self.linea_ids = [Command.clear()] + [
+                Command.create(vals) for _c, _i, vals in self.ot_id._tllr_fc_lineas_de_control()]
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -121,6 +128,7 @@ class TllrFcControlCalidadLinea(models.Model):
         'res.company', related='control_id.company_id', store=True, index=True)
     ot_servicio_id = fields.Many2one(
         'tllr_fc.ot.servicio', string="Servicio", required=True, ondelete='restrict')
+    informe = fields.Text(related='ot_servicio_id.informe', string="Informe del servicio")
     resultado_texto = fields.Text(string="Observaciones del control")
     resultado = fields.Selection([
         ('aprobado', "Aprobado"),

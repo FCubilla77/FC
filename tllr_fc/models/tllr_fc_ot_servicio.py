@@ -23,6 +23,9 @@ class TllrFcOtServicio(models.Model):
         'product.product', string="Servicio", required=True,
         domain="[('type', '=', 'service')]", ondelete='restrict')
     descripcion = fields.Char(string="Observación")
+    informe = fields.Text(
+        string="Informe del servicio",
+        help="Informe de los trabajos realizados en este servicio.")
     puesto_line_id = fields.Many2one(
         'tllr_fc.ot.puesto', string="Puesto", domain="[('ot_id', '=', ot_id)]",
         ondelete='set null', index=True)
@@ -203,7 +206,13 @@ class TllrFcOtServicio(models.Model):
                 if campo in vals:
                     raise UserError(
                         "El estado del servicio se cambia con los botones de la OT.")
-            self._tllr_fc_verificar_ot_editable(self.ot_id)
+            if set(vals) <= {'informe'}:
+                # El informe se puede completar hasta la entrega.
+                for ot in self.ot_id:
+                    if ot.state in ('entregado', 'cancelada'):
+                        raise UserError("La OT %s ya está cerrada." % ot.name)
+            else:
+                self._tllr_fc_verificar_ot_editable(self.ot_id)
         resultado = super().write(vals)
         if 'puesto_line_id' in vals:
             self._tllr_fc_verificar_pertenencia()
