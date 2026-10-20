@@ -56,6 +56,11 @@ class TllrFcRecepcion(models.Model):
         ('garantia', "Garantía"),
     ], string="Tipo de OT propuesto", default='cliente',
         help="Lo confirma el supervisor en la OT.")
+    ot_origen_id = fields.Many2one(
+        'tllr_fc.ot', string="OT original (garantía)", readonly=True, copy=False,
+        ondelete='restrict', help="Se completa cuando la recepción nace de un reclamo de garantía.")
+    garantia_reclamo_ids = fields.One2many(
+        'tllr_fc.garantia', 'reclamo_recepcion_id', string="Garantías reclamadas", readonly=True)
     ot_id = fields.Many2one(
         'tllr_fc.ot', string="Orden de trabajo", readonly=True, copy=False,
         ondelete='restrict')
@@ -268,6 +273,7 @@ class TllrFcRecepcion(models.Model):
             'recepcion_id': self.id,
             'company_id': self.company_id.id,
             'tipo': self.tipo_ot_propuesto or 'cliente',
+            'ot_origen_id': self.ot_origen_id.id,
             'vehiculo_id': self.vehiculo_id.id,
             'partner_id': self.partner_id.id,
             'partner_secundario_id': self.partner_secundario_id.id,
@@ -288,6 +294,8 @@ class TllrFcRecepcion(models.Model):
             'state': 'confirmada',
             'ot_id': ot.id,
         })
+        if self.garantia_reclamo_ids:
+            self.garantia_reclamo_ids.sudo().write({'reclamo_ot_id': ot.id})
         if self.turno_id:
             self.turno_id.write({'state': 'recibido'})
             self.turno_id.message_post(

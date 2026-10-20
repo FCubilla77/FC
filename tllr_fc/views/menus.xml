@@ -58,6 +58,20 @@
                   groups="tllr_fc.group_supervisor"
                   sequence="40"/>
 
+        <menuitem id="menu_tllr_fc_entregas"
+                  name="Entregas"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_entrega"
+                  groups="tllr_fc.group_usuario"
+                  sequence="50"/>
+
+        <menuitem id="menu_tllr_fc_garantias"
+                  name="Garantías"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_garantia"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="60"/>
+
         <!-- Maestros: Vehículos / RRHH / Productos -->
         <menuitem id="menu_tllr_fc_maestros_vehiculos"
                   name="Vehículos"

@@ -114,5 +114,54 @@
             </field>
         </record>
 
+        <record id="view_tllr_fc_wizard_cancelar_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.cancelar.form</field>
+            <field name="model">tllr_fc.wizard.cancelar</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="trabajo_realizado" invisible="1"/>
+                    <field name="puede_liquidar" invisible="1"/>
+                    <group>
+                        <field name="ot_id"/>
+                        <field name="motivo_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="liquidar" invisible="not puede_liquidar"/>
+                    </group>
+                    <field name="vista_previa" readonly="1"/>
+                    <group>
+                        <field name="confirmo"/>
+                    </group>
+                    <footer>
+                        <button name="action_confirmar" string="Cancelar la OT" type="object"
+                                class="btn-danger" data-hotkey="q"/>
+                        <button string="Volver" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_wizard_reclamo_garantia_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.reclamo_garantia.form</field>
+            <field name="model">tllr_fc.wizard.reclamo_garantia</field>
+            <field name="arch" type="xml">
+                <form>
+                    <div class="alert alert-warning" role="alert" invisible="not aviso">
+                        <field name="aviso" readonly="1" nolabel="1"/>
+                    </div>
+                    <group>
+                        <field name="ot_id"/>
+                        <field name="garantia_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                        <field name="kilometraje_actual"/>
+                        <field name="descripcion" placeholder="Qué problema presenta el vehículo"/>
+                    </group>
+                    <footer>
+                        <button name="action_reclamar" string="Generar recepción de garantía"
+                                type="object" class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
     </data>
 </odoo>

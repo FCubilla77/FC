@@ -68,7 +68,7 @@ class TestAjustes(_Base):
         self.assertTrue(calidad.es_calidad)
         self.assertEqual(ot.puesto_activo_id, calidad)
         columnas = ot._read_group_puesto_activo_id(self.env['tllr_fc.puesto'], [])
-        self.assertEqual(columnas[-1], calidad)
+        self.assertEqual(columnas[-2], calidad)
         self.assertEqual(ot.servicio_ids[:1].display_name,
                          ot.servicio_ids[:1].product_id.display_name)
 

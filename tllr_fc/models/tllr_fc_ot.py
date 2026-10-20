@@ -112,6 +112,32 @@ class TllrFcOt(models.Model):
         string="Días detenida (acumulado)", readonly=True, copy=False, digits=(16, 2))
     dias_detenida_total = fields.Float(
         string="Días detenida", compute='_compute_dias_detenida_total', digits=(16, 2))
+    ot_origen_id = fields.Many2one(
+        'tllr_fc.ot', string="OT original", readonly=True, copy=False, ondelete='restrict',
+        help="En una OT de garantía, la OT que originó el reclamo.")
+    ot_garantia_ids = fields.One2many(
+        'tllr_fc.ot', 'ot_origen_id', string="OT de garantía", readonly=True)
+    cerrada_facturar = fields.Boolean(
+        string="Cerrada para facturar", readonly=True, copy=False, tracking=True)
+    fecha_cierre_facturar = fields.Datetime(
+        string="Fecha de cierre para facturar", readonly=True, copy=False)
+    liquidada = fields.Boolean(
+        string="Cancelada con liquidación", readonly=True, copy=False, tracking=True)
+    kilometraje_salida = fields.Integer(string="Kilometraje de salida", readonly=True, copy=False)
+    factura_ids = fields.One2many(
+        'account.move', 'tllr_fc_ot_id', string="Facturas",
+        domain=[('move_type', 'in', ('out_invoice', 'out_refund'))], readonly=True)
+    estado_facturacion = fields.Selection(
+        [('sin_facturar', "Sin facturar"), ('borrador', "Factura en borrador"),
+         ('confirmada', "Factura confirmada")],
+        string="Facturación", compute='_compute_estado_facturacion')
+    estado_pago = fields.Selection(
+        [('no_pagada', "No pagada"), ('parcial', "Pago parcial"), ('pagada', "Pagada")],
+        string="Pago", compute='_compute_estado_facturacion')
+    entrega_ids = fields.One2many('tllr_fc.entrega', 'ot_id', string="Entregas", readonly=True)
+    entrega_count = fields.Integer(string="Cantidad de entregas", compute='_compute_conteos')
+    garantia_ids = fields.One2many('tllr_fc.garantia', 'ot_id', string="Garantías", readonly=True)
+    garantia_count = fields.Integer(string="Cantidad de garantías", compute='_compute_conteos')
     descuento_cliente = fields.Float(
         string="Descuento del cliente (%)", related='partner_id.tllr_fc_descuento')
     total_servicios = fields.Monetary(
@@ -167,11 +193,36 @@ class TllrFcOt(models.Model):
                 actual = (ahora - ot.detenida_desde).total_seconds() / 86400.0
             ot.dias_detenida_total = ot.dias_detenida + actual
 
+    @api.depends('factura_ids.state', 'factura_ids.payment_state')
+    def _compute_estado_facturacion(self):
+        for ot in self:
+            facturas = ot.sudo()._tllr_fc_facturas().filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state != 'cancel')
+            confirmadas = facturas.filtered(lambda m: m.state == 'posted')
+            if confirmadas:
+                ot.estado_facturacion = 'confirmada'
+                pagos = confirmadas.mapped('payment_state')
+                if all(p in ('paid', 'in_payment') for p in pagos):
+                    ot.estado_pago = 'pagada'
+                elif any(p in ('paid', 'in_payment', 'partial') for p in pagos):
+                    ot.estado_pago = 'parcial'
+                else:
+                    ot.estado_pago = 'no_pagada'
+            else:
+                ot.estado_facturacion = 'borrador' if facturas else 'sin_facturar'
+                ot.estado_pago = 'no_pagada'
+
+    @api.depends('entrega_ids', 'garantia_ids')
+    def _compute_conteos(self):
+        for ot in self:
+            ot.entrega_count = len(ot.entrega_ids)
+            ot.garantia_count = len(ot.garantia_ids)
+
     @api.depends('puesto_line_ids.state', 'puesto_line_ids.puesto_id', 'state')
     def _compute_puesto_activo(self):
         for ot in self:
-            if ot.state == 'calidad':
-                ot.puesto_activo_id = ot.company_id._tllr_fc_puesto_calidad()
+            if ot.state in ('espera', 'calidad', 'listo'):
+                ot.puesto_activo_id = ot.company_id._tllr_fc_puesto_sistema(ot.state)
                 continue
             activa = ot.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
             ot.puesto_activo_id = activa.puesto_id
@@ -219,11 +270,14 @@ class TllrFcOt(models.Model):
     def _read_group_puesto_activo_id(self, puestos, domain):
         """El tablero muestra todos los puestos activos como columnas."""
         normales = self.env['tllr_fc.puesto'].search(
-            [('company_id', 'in', self.env.companies.ids), ('es_calidad', '=', False)])
-        calidad = self.env['tllr_fc.puesto']
+            [('company_id', 'in', self.env.companies.ids),
+             ('es_calidad', '=', False), ('sistema', '=', False)])
+        espera = calidad = listo = self.env['tllr_fc.puesto']
         for compania in self.env.companies:
-            calidad |= compania._tllr_fc_puesto_calidad()
-        return normales | calidad
+            espera |= compania._tllr_fc_puesto_sistema('espera')
+            calidad |= compania._tllr_fc_puesto_sistema('calidad')
+            listo |= compania._tllr_fc_puesto_sistema('listo')
+        return espera | normales | calidad | listo
 
     # ------------------------------------------------------------------
     # Tablero: arrastre de tarjetas
@@ -231,62 +285,100 @@ class TllrFcOt(models.Model):
     def _inverse_puesto_activo(self):
         """Arrastrar una tarjeta a otra columna del tablero.
 
-        Solo el supervisor, solo con la OT en proceso, solo hacia el puesto que
-        sigue y con los servicios del puesto actual terminados. No cambia el
-        estado de la OT. Cualquier incumplimiento revierte el movimiento.
+        Las columnas son En espera, los puestos reales, Control de calidad y Listo
+        para entrega. Solo el supervisor mueve tarjetas y solo entre columnas
+        contiguas del recorrido de la OT; cualquier incumplimiento revierte el
+        movimiento:
+        - En espera → primer puesto: inicia la OT.
+        - Puesto → puesto siguiente: termina el puesto activo.
+        - Último puesto → Control de calidad (o Listo si la OT no exige control).
+        - Control de calidad → último puesto / Listo → Control de calidad /
+          primer puesto → En espera: vuelven un estado atrás (con la nota
+          «Movida en el tablero»).
         """
         for ot in self:
+            destino = ot.puesto_activo_id
             actual = ot.puesto_line_ids.filtered(lambda l: l.state == 'activo')[:1]
-            destino_puesto = ot.puesto_activo_id
-            if ot.state == 'calidad':
-                if destino_puesto.es_calidad:
-                    continue
-            elif destino_puesto == actual.puesto_id:
+            if ot.state in ('espera', 'calidad', 'listo'):
+                origen = ot.company_id._tllr_fc_puesto_sistema(ot.state)
+            else:
+                origen = actual.puesto_id
+            if destino == origen:
                 continue
-            if not self.env.user.has_group('tllr_fc.group_supervisor'):
+            if not self._tllr_fc_es_supervisor():
                 raise AccessError(
                     "Solo el supervisor o el administrador de taller pueden mover las OT "
                     "entre puestos.")
-            if ot.state == 'calidad':
-                # De «Control de calidad» hacia atrás: solo al último puesto.
-                ultimo = ot.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))[-1:]
-                if not destino_puesto or destino_puesto != ultimo.puesto_id:
+            if ot.state in ('entregado', 'cancelada'):
+                raise UserError("La OT %s está cerrada: no se puede mover." % ot.name)
+            if not destino:
+                raise UserError(
+                    "La OT %s no puede quedar «Sin puesto»: usá una de las columnas." % ot.name)
+            lineas = ot.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))
+            ultimo = lineas[-1:].puesto_id
+            primero = lineas[:1].puesto_id
+            ctx = ot.with_context(tllr_fc_excepcion=True)
+            sistema = destino.sistema or ('calidad' if destino.es_calidad else False)
+            if sistema == 'espera':
+                if ot.state != 'proceso' or actual.puesto_id != primero:
                     raise UserError(
-                        "La OT %s solo puede volver al último puesto de su recorrido (%s)." % (
-                            ot.name, ultimo.puesto_id.name or "ninguno"))
-                ot.with_context(tllr_fc_excepcion=True)._tllr_fc_ejecutar_volver_estado(
-                    "Movida en el tablero")
-                continue
-            if destino_puesto.es_calidad:
+                        "La OT %s solo vuelve a «En espera» desde su primer puesto. Para otros "
+                        "retrocesos usá «Retroceder puesto» o «Volver atrás»." % ot.name)
+                ctx._tllr_fc_ejecutar_volver_estado("Movida en el tablero")
+            elif sistema == 'calidad':
+                if ot.state == 'listo':
+                    ctx._tllr_fc_ejecutar_volver_estado("Movida en el tablero")
+                    continue
                 if ot.state != 'proceso':
                     raise UserError(
                         "La OT %s no está en proceso: no se puede pasar a control de calidad." % ot.name)
-                if ot.puesto_line_ids.filtered(lambda l: l.state == 'pendiente'):
+                if lineas.filtered(lambda l: l.state == 'pendiente'):
                     raise UserError(
                         "La OT %s todavía tiene puestos pendientes: solo se pasa a control de "
                         "calidad desde el último puesto." % ot.name)
                 if not ot._tllr_fc_exige_qc():
                     raise UserError(
                         "La OT %s no requiere control de calidad (activá «Requiere control de "
-                        "calidad» en la OT)." % ot.name)
+                        "calidad» en la OT) o pasala a «Listo para entrega»." % ot.name)
                 ot._tllr_fc_verificar_puesto_terminable()
                 ot._tllr_fc_avanzar_puesto()
-                continue
-            if ot.state != 'proceso':
-                raise UserError(
-                    "La OT %s no está en proceso: no se puede mover entre puestos." % ot.name)
-            if not destino_puesto:
-                raise UserError(
-                    "La OT %s no puede quedar «Sin puesto». Para volver al puesto anterior "
-                    "usá el botón «Retroceder puesto» del formulario de la OT." % ot.name)
-            siguiente = ot.puesto_line_ids.filtered(lambda l: l.state == 'pendiente')[:1]
-            if not siguiente or siguiente.puesto_id != destino_puesto:
-                raise UserError(
-                    "La OT %s solo puede pasar al puesto que sigue en su recorrido (%s). "
-                    "Para volver a un puesto anterior usá «Retroceder puesto»." % (
-                        ot.name, siguiente.puesto_id.name or "ninguno"))
-            ot._tllr_fc_verificar_puesto_terminable()
-            ot._tllr_fc_avanzar_puesto(avanzar_ot=False)
+            elif sistema == 'listo':
+                if (ot.state != 'proceso' or lineas.filtered(lambda l: l.state == 'pendiente')
+                        or ot._tllr_fc_exige_qc()):
+                    raise UserError(
+                        "La OT %s solo pasa a «Listo para entrega» desde el último puesto y si no "
+                        "exige control de calidad; si lo exige, confirmá el control." % ot.name)
+                ot._tllr_fc_verificar_puesto_terminable()
+                ot._tllr_fc_avanzar_puesto()
+            else:
+                # Destino: un puesto real.
+                if ot.state == 'espera':
+                    if destino != primero:
+                        raise UserError(
+                            "La OT %s se inicia en su primer puesto (%s)." % (ot.name, primero.name))
+                    resultado = ot.action_iniciar()
+                    if isinstance(resultado, dict):
+                        raise UserError(
+                            "La OT %s necesita una autorización para iniciarse: iniciala desde "
+                            "el formulario de la OT." % ot.name)
+                elif ot.state == 'calidad':
+                    if destino != ultimo:
+                        raise UserError(
+                            "La OT %s solo puede volver al último puesto de su recorrido (%s)." % (
+                                ot.name, ultimo.name or "ninguno"))
+                    ctx._tllr_fc_ejecutar_volver_estado("Movida en el tablero")
+                elif ot.state == 'proceso':
+                    siguiente = lineas.filtered(lambda l: l.state == 'pendiente')[:1]
+                    if not siguiente or siguiente.puesto_id != destino:
+                        raise UserError(
+                            "La OT %s solo puede pasar al puesto que sigue en su recorrido (%s). "
+                            "Para volver a un puesto anterior usá «Retroceder puesto»." % (
+                                ot.name, siguiente.puesto_id.name or "ninguno"))
+                    ot._tllr_fc_verificar_puesto_terminable()
+                    ot._tllr_fc_avanzar_puesto(avanzar_ot=False)
+                else:
+                    raise UserError(
+                        "La OT %s está «Lista para entrega»: usá «Volver atrás» para reabrirla." % ot.name)
 
     # ------------------------------------------------------------------
     # Recorrido por los puestos
@@ -440,7 +532,13 @@ class TllrFcOt(models.Model):
         self.ensure_one()
         etiquetas = dict(self._fields['state'].selection)
         origen = self.state
-        if origen == 'calidad':
+        if origen == 'proceso':
+            self._tllr_fc_verificar_puede_volver_a_espera()
+        if origen == 'listo' and (self.cerrada_facturar or self._tllr_fc_facturas()):
+            raise UserError(
+                "La OT %s ya fue cerrada para facturar: reabrí primero la facturación "
+                "(o emití la nota de crédito si la factura está confirmada)." % self.name)
+        if origen == 'calidad' or (origen == 'listo' and not self._tllr_fc_exige_qc()):
             borradores = self.control_ids.filtered(lambda c: c.state == 'borrador')
             borradores.sudo().unlink()
             lineas = self.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))
@@ -569,6 +667,280 @@ class TllrFcOt(models.Model):
             'target': 'new',
             'context': {'default_ot_id': self.id},
         }
+
+    # ------------------------------------------------------------------
+    # Facturación directa
+    # ------------------------------------------------------------------
+    def _tllr_fc_facturas(self):
+        """Facturas de cliente de la OT (gancho: Ventas agrega las del pedido)."""
+        self.ensure_one()
+        return self.sudo().factura_ids.filtered(lambda m: m.move_type == 'out_invoice')
+
+    def _tllr_fc_lineas_factura(self, solo_realizado=False):
+        """Líneas de la factura: servicios, repuestos, insumos facturables y accesorios."""
+        self.ensure_one()
+        lineas = []
+        for servicio in self.servicio_ids.filtered(
+                lambda s: s.facturable and (s.estado == 'terminado' or not solo_realizado)
+                and s.estado != 'no_realizado'):
+            if solo_realizado and servicio.estado != 'terminado':
+                continue
+            lineas.append((0, 0, {
+                'product_id': servicio.product_id.id,
+                'name': servicio.descripcion or servicio.product_id.display_name,
+                'quantity': servicio.cantidad,
+                'price_unit': servicio.precio_unitario,
+                'discount': servicio.descuento,
+            }))
+        for linea in self.producto_ids.filtered('facturable'):
+            cantidad = linea.cantidad_consumida if solo_realizado else linea.cantidad_utilizada
+            if cantidad <= 0:
+                continue
+            lineas.append((0, 0, {
+                'product_id': linea.product_id.id,
+                'name': linea.descripcion or linea.product_id.display_name,
+                'quantity': cantidad,
+                'price_unit': linea.precio_unitario,
+                'discount': linea.descuento,
+            }))
+        return lineas
+
+    def _tllr_fc_verificar_precios(self, solo_realizado=False):
+        self.ensure_one()
+        sin_precio = []
+        for servicio in self.servicio_ids.filtered(
+                lambda s: s.facturable and (s.estado == 'terminado' or not solo_realizado)):
+            if not servicio.precio_unitario:
+                sin_precio.append(servicio.product_id.display_name)
+        for linea in self.producto_ids.filtered('facturable'):
+            cantidad = linea.cantidad_consumida if solo_realizado else linea.cantidad_utilizada
+            if cantidad > 0 and not linea.precio_unitario:
+                sin_precio.append(linea.product_id.display_name)
+        if sin_precio:
+            raise UserError(
+                "No se puede facturar la OT %s: faltan precios de venta en %s. Cargá el precio "
+                "en la ficha del producto o en la línea (supervisor)." % (
+                    self.name, ', '.join(sin_precio)))
+
+    def _tllr_fc_generar_documento_venta(self, solo_realizado=False):
+        """Crea la factura de cliente directa en borrador (gancho para Ventas)."""
+        self.ensure_one()
+        compania = self.company_id
+        if not compania.tllr_fc_diario_venta_id:
+            raise UserError(
+                "Definí el «Diario de factura de venta» en Taller › Configuración › Ajustes "
+                "antes de cerrar la OT para facturar.")
+        lineas = self._tllr_fc_lineas_factura(solo_realizado)
+        if not lineas:
+            raise UserError("La OT %s no tiene líneas para facturar." % self.name)
+        factura = self.env['account.move'].sudo().with_company(compania).create({
+            'move_type': 'out_invoice',
+            'partner_id': self.partner_id.id,
+            'journal_id': compania.tllr_fc_diario_venta_id.id,
+            'invoice_origin': self.name,
+            'ref': self.name,
+            'tllr_fc_ot_id': self.id,
+            'company_id': compania.id,
+            'invoice_line_ids': lineas,
+        })
+        return factura
+
+    def action_cerrar_facturar(self):
+        """Estado «Listo»: genera la factura (o el documento de venta) y bloquea la OT."""
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden cerrar la OT para facturar.")
+        if self.tipo != 'cliente':
+            raise UserError("Solo las OT de tipo Cliente se facturan.")
+        if self.state != 'listo':
+            raise UserError("Solo se cierra para facturar una OT lista para entrega.")
+        if self.cerrada_facturar:
+            raise UserError("La OT ya fue cerrada para facturar.")
+        self._tllr_fc_verificar_precios()
+        if self.adicionales_pendientes and not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_cerrar_facturar', 'supervisor',
+                "Cerrar para facturar con %s adicional(es) sin aprobación del cliente." %
+                self.adicionales_pendientes)
+        documento = self._tllr_fc_generar_documento_venta()
+        self.write({
+            'cerrada_facturar': True,
+            'fecha_cierre_facturar': fields.Datetime.now(),
+        })
+        self.message_post(body="OT cerrada para facturar. Se generó %s." % (
+            documento._get_html_link() if hasattr(documento, '_get_html_link') else documento.display_name))
+        return True
+
+    def action_reabrir_facturar(self):
+        """Reabre la OT cerrada para facturar (solo sin factura confirmada)."""
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden reabrir la facturación.")
+        if not self.cerrada_facturar:
+            raise UserError("La OT no está cerrada para facturar.")
+        facturas = self._tllr_fc_facturas()
+        if facturas.filtered(lambda m: m.state == 'posted'):
+            raise UserError(
+                "La OT tiene una factura confirmada: emití primero la nota de crédito en Contabilidad.")
+        if not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_reabrir_facturar', 'supervisor',
+                "Reabrir la OT %s: se elimina la factura en borrador." % self.name)
+        borradores = facturas.filtered(lambda m: m.state == 'draft')
+        borradores.sudo().unlink()
+        self.write({'cerrada_facturar': False, 'fecha_cierre_facturar': False})
+        self.message_post(body="Facturación reabierta. Motivo: %s" % self.env.context.get('tllr_fc_motivo', ''))
+        return True
+
+    def action_ver_facturas(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Facturas",
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self._tllr_fc_facturas().ids)],
+            'context': {'default_move_type': 'out_invoice'},
+        }
+
+    # ------------------------------------------------------------------
+    # Entrega
+    # ------------------------------------------------------------------
+    def _tllr_fc_lineas_de_entrega(self):
+        """Valores de las líneas de revisión: inventario de la recepción y repuestos del cliente."""
+        self.ensure_one()
+        lineas = []
+        for item in self.recepcion_id.item_ids.filtered(lambda i: i.presente == 'si'):
+            lineas.append({'origen': 'recepcion', 'name': item.name, 'presente_recepcion': True})
+        for linea in self.producto_ids.filtered('provisto_cliente'):
+            lineas.append({
+                'origen': 'repuesto_cliente', 'name': linea.product_id.display_name,
+                'presente_recepcion': True, 'entregado': True})
+        return lineas
+
+    def action_entregar(self):
+        """Crea (o abre) la entrega en borrador de la OT."""
+        self.ensure_one()
+        if not (self.state == 'listo' or (self.state == 'cancelada' and self.liquidada)):
+            raise UserError("Solo se entrega una OT lista o cancelada con liquidación.")
+        entrega = self.entrega_ids.filtered(lambda e: e.state == 'borrador')[:1]
+        if not entrega:
+            entrega = self.env['tllr_fc.entrega'].create({'ot_id': self.id})
+        return {
+            'type': 'ir.actions.act_window', 'res_model': 'tllr_fc.entrega',
+            'res_id': entrega.id, 'view_mode': 'form', 'target': 'current'}
+
+    def action_ver_entregas(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window', 'name': "Entregas", 'res_model': 'tllr_fc.entrega',
+            'view_mode': 'list,form', 'domain': [('ot_id', '=', self.id)]}
+
+    def action_ver_garantias(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window', 'name': "Garantías", 'res_model': 'tllr_fc.garantia',
+            'view_mode': 'list,form', 'domain': [('ot_id', '=', self.id)]}
+
+    def _tllr_fc_aplicar_entrega(self, entrega):
+        """Efectos de confirmar la entrega sobre la OT, el vehículo y las garantías."""
+        self.ensure_one()
+        ahora = entrega.fecha or fields.Datetime.now()
+        vals = {'fecha_entrega': ahora, 'kilometraje_salida': entrega.kilometraje_salida}
+        if self.state == 'listo':
+            vals['state'] = 'entregado'
+        self.write(vals)
+        if entrega.kilometraje_salida > self.vehiculo_id.kilometraje:
+            self.vehiculo_id.write({'kilometraje': entrega.kilometraje_salida})
+        if self.tipo == 'cliente':
+            garantias = self.env['tllr_fc.garantia']._tllr_fc_crear_de_entrega(
+                self, ahora, entrega.kilometraje_salida)
+            if garantias:
+                self.message_post(body="Se registraron %s garantía(s)." % len(garantias))
+        self._tllr_fc_cerrar_detencion()
+        self.message_post(body="Vehículo entregado (entrega %s)." % entrega.name)
+
+    def action_avisar_cliente(self):
+        """Envía al contacto principal el aviso de vehículo listo (manual)."""
+        self.ensure_one()
+        if self.state != 'listo':
+            raise UserError("El aviso se envía cuando la OT está lista para entrega.")
+        if not self.partner_id.email:
+            raise UserError("El cliente %s no tiene correo electrónico." % self.partner_id.name)
+        plantilla = self.env.ref('tllr_fc.mail_template_ot_aviso')
+        plantilla.send_mail(self.id, force_send=False)
+        self.message_post(body="Aviso de vehículo listo enviado a %s." % self.partner_id.name)
+        return True
+
+    def action_reclamo_garantia(self):
+        self.ensure_one()
+        if self.state != 'entregado' or not self.garantia_ids:
+            raise UserError("Solo se reclama sobre una OT entregada que tenga garantías.")
+        return {
+            'type': 'ir.actions.act_window', 'name': "Reclamo de garantía",
+            'res_model': 'tllr_fc.wizard.reclamo_garantia', 'view_mode': 'form',
+            'target': 'new', 'context': {'default_ot_id': self.id}}
+
+    # ------------------------------------------------------------------
+    # Cancelación
+    # ------------------------------------------------------------------
+    def _tllr_fc_trabajo_realizado(self):
+        self.ensure_one()
+        return bool(
+            self.servicio_ids.filtered(lambda s: s.estado == 'terminado')
+            or self.producto_ids.filtered('cantidad_consumida')
+            or self.hora_ids)
+
+    def action_cancelar(self):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden cancelar la OT.")
+        if self.state not in ('espera', 'proceso', 'calidad', 'listo'):
+            raise UserError("La OT ya está cerrada.")
+        return {
+            'type': 'ir.actions.act_window', 'name': "Cancelar OT",
+            'res_model': 'tllr_fc.wizard.cancelar', 'view_mode': 'form',
+            'target': 'new', 'context': {'default_ot_id': self.id}}
+
+    def _tllr_fc_cancelar(self, motivo, liquidar):
+        """Cancela la OT: con liquidación factura lo realizado; siempre libera reservas."""
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden cancelar la OT.")
+        if self.state not in ('espera', 'proceso', 'calidad', 'listo'):
+            raise UserError("La OT ya está cerrada.")
+        facturas = self._tllr_fc_facturas()
+        if facturas.filtered(lambda m: m.state == 'posted'):
+            raise UserError(
+                "La OT %s tiene una factura confirmada: emití primero la nota de crédito en "
+                "Contabilidad." % self.name)
+        if liquidar:
+            if self.tipo != 'cliente' or not self._tllr_fc_trabajo_realizado():
+                raise UserError("Solo se liquida una OT de cliente con trabajo realizado.")
+            self._tllr_fc_verificar_precios(solo_realizado=True)
+        facturas.filtered(lambda m: m.state == 'draft').sudo().unlink()
+        for control in self.control_ids.filtered(lambda c: c.state == 'borrador'):
+            control.sudo().unlink()
+        documento = False
+        if liquidar:
+            documento = self._tllr_fc_generar_documento_venta(solo_realizado=True)
+        self.write({
+            'state': 'cancelada',
+            'motivo_cancelacion_id': motivo.id,
+            'liquidada': bool(liquidar),
+            'cerrada_facturar': bool(liquidar),
+            'fecha_cierre_facturar': fields.Datetime.now() if liquidar else False,
+        })
+        self.producto_ids._tllr_fc_sincronizar_stock()
+        self._tllr_fc_cerrar_detencion()
+        texto = "OT cancelada (%s)." % motivo.name
+        if liquidar:
+            texto += " Se facturó lo realizado: %s." % (
+                documento._get_html_link() if hasattr(documento, '_get_html_link') else documento.display_name)
+        elif self._tllr_fc_trabajo_realizado():
+            texto += " Cancelada sin liquidar lo ejecutado. Motivo: %s" % self.env.context.get('tllr_fc_motivo', '')
+        self.message_post(body=texto)
+        return True
 
     # ------------------------------------------------------------------
     # Ganchos para los módulos puente (Ventas / Compras)

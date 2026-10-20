@@ -75,6 +75,7 @@
                                 <field name="kilometraje" readonly="state != 'borrador'"/>
                                 <field name="combustible_nivel" readonly="state != 'borrador'"/>
                                 <field name="tipo_ot_propuesto" readonly="state != 'borrador'"/>
+                                <field name="ot_origen_id" invisible="not ot_origen_id"/>
                                 <field name="ot_id"/>
                                 <field name="company_id" groups="base.group_multi_company"
                                        readonly="state != 'borrador'"/>

@@ -27,3 +27,6 @@ from . import tllr_fc_ot_hora
 from . import tllr_fc_ot_aprobacion
 from . import tllr_fc_control_calidad
 from . import tllr_fc_ot
+from . import account_move
+from . import tllr_fc_entrega
+from . import tllr_fc_garantia

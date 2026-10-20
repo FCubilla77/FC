@@ -120,18 +120,35 @@ class ResCompany(models.Model):
             self.sudo().tllr_fc_ubicacion_consumo_id = ubicacion
         return self.tllr_fc_ubicacion_consumo_id.sudo()
 
-    def _tllr_fc_puesto_calidad(self):
-        """Devuelve (y crea si falta) el puesto de sistema «Control de calidad»."""
+    def _tllr_fc_puesto_sistema(self, tipo):
+        """Devuelve (y crea si falta) un puesto de sistema: espera, calidad o listo."""
         self.ensure_one()
         Puesto = self.env['tllr_fc.puesto'].sudo().with_context(active_test=False)
-        puesto = Puesto.search([('es_calidad', '=', True), ('company_id', '=', self.id)], limit=1)
-        if not puesto:
-            almacen = self.env['stock.warehouse'].sudo().search(
-                [('company_id', '=', self.id)], limit=1)
-            puesto = Puesto.create({
-                'name': "Control de calidad", 'codigo': 'QC', 'es_calidad': True,
-                'company_id': self.id, 'almacen_id': almacen.id, 'color': 2})
-        return puesto
+        dominio = [('company_id', '=', self.id)]
+        if tipo == 'calidad':
+            dominio += ['|', ('sistema', '=', 'calidad'), ('es_calidad', '=', True)]
+        else:
+            dominio += [('sistema', '=', tipo)]
+        puesto = Puesto.search(dominio, limit=1)
+        if puesto:
+            if puesto.sistema != tipo:
+                puesto.sistema = tipo
+            return puesto
+        nombres = {
+            'espera': ("En espera", 'ESP', 1),
+            'calidad': ("Control de calidad", 'QC', 2),
+            'listo': ("Listo para entrega", 'LISTO', 10),
+        }
+        nombre, codigo, color = nombres[tipo]
+        almacen = self.env['stock.warehouse'].sudo().search(
+            [('company_id', '=', self.id)], limit=1)
+        return Puesto.create({
+            'name': nombre, 'codigo': codigo, 'sistema': tipo,
+            'es_calidad': tipo == 'calidad', 'company_id': self.id,
+            'almacen_id': almacen.id, 'color': color})
+
+    def _tllr_fc_puesto_calidad(self):
+        return self._tllr_fc_puesto_sistema('calidad')
 
     def _tllr_fc_siguiente_codigo(self, codigo):
         """Devuelve el próximo número de la secuencia `codigo` de esta compañía.

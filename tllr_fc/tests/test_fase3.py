@@ -105,7 +105,7 @@ class TestFase3(TallerCommon):
         self._terminar_servicios(l2)
         ot.action_terminar_puesto()
         self.assertEqual(ot.state, 'listo')
-        self.assertFalse(ot.puesto_activo_id)
+        self.assertEqual(ot.puesto_activo_id.sistema, 'listo')
 
     def test_control_de_calidad_segun_ajuste_o_marca(self):
         ot = self._ot_planificada()

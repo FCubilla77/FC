@@ -25,13 +25,18 @@ class TllrFcPuesto(models.Model):
         'res.company', string="Compañía", required=True,
         default=lambda self: self.env.company)
     active = fields.Boolean(string="Activo", default=True)
+    sistema = fields.Selection(
+        [('espera', "En espera"), ('calidad', "Control de calidad"),
+         ('listo', "Listo para entrega")],
+        string="Puesto de sistema", readonly=True, copy=False,
+        help="Puestos del sistema: agrupan en el tablero las OT según su estado.")
     es_calidad = fields.Boolean(
         string="Puesto de control de calidad", readonly=True, copy=False,
         help="Puesto del sistema: agrupa en el tablero las OT en control de calidad.")
 
     @api.constrains('servicio_ids')
     def _check_servicios(self):
-        for puesto in self.filtered(lambda p: not p.es_calidad):
+        for puesto in self.filtered(lambda p: not p.es_calidad and not p.sistema):
             if not puesto.servicio_ids:
                 raise ValidationError(
                     "El puesto %s debe realizar al menos un tipo de trabajo (servicio)." % puesto.name)
@@ -43,8 +48,8 @@ class TllrFcPuesto(models.Model):
 
     @api.ondelete(at_uninstall=False)
     def _unlink_no_calidad(self):
-        if self.filtered('es_calidad'):
-            raise ValidationError("El puesto de control de calidad es del sistema y no se elimina.")
+        if self.filtered(lambda p: p.es_calidad or p.sistema):
+            raise ValidationError("Los puestos de sistema (En espera, Control de calidad, Listo para entrega) no se eliminan.")
 
     @api.model_create_multi
     def create(self, vals_list):

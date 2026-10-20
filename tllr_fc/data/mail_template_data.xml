@@ -26,5 +26,27 @@
 </div>
             </field>
         </record>
+        <record id="mail_template_ot_aviso" model="mail.template">
+            <field name="name">Taller: Aviso de vehículo listo</field>
+            <field name="model_id" ref="model_tllr_fc_ot"/>
+            <field name="subject">Su vehículo está listo - {{ object.name }} - {{ object.company_id.name }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 13px;">
+    <p>Estimado/a <t t-out="object.partner_id.name or ''">Cliente</t>:</p>
+    <p>
+        Le informamos que su vehículo
+        <strong t-out="object.vehiculo_id.display_name or ''">[ABC123] Vehículo</strong>
+        (orden de trabajo <strong t-out="object.name or ''">OT/00001</strong>)
+        está listo para ser retirado.
+    </p>
+    <p>
+        Saludos cordiales,<br/>
+        <t t-out="object.company_id.name or ''">Taller</t>
+    </p>
+</div>
+            </field>
+        </record>
     </data>
 </odoo>

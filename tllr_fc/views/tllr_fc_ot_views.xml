@@ -51,6 +51,22 @@
                                 groups="tllr_fc.group_supervisor"
                                 confirm="¿Volver la OT al estado anterior? Se pedirá un motivo."
                                 invisible="state not in ('proceso', 'calidad', 'listo')"/>
+                        <button name="action_cerrar_facturar" string="Cerrar para facturar"
+                                type="object" class="btn-primary" groups="tllr_fc.group_supervisor"
+                                invisible="state != 'listo' or tipo != 'cliente' or cerrada_facturar"/>
+                        <button name="action_reabrir_facturar" string="Reabrir facturación"
+                                type="object" groups="tllr_fc.group_supervisor"
+                                invisible="not cerrada_facturar or state != 'listo' or estado_facturacion == 'confirmada'"/>
+                        <button name="action_avisar_cliente" string="Avisar al cliente" type="object"
+                                invisible="state != 'listo'"/>
+                        <button name="action_entregar" string="Entregar" type="object"
+                                class="btn-primary"
+                                invisible="not (state == 'listo' or (state == 'cancelada' and liquidada)) or (tipo == 'cliente' and not cerrada_facturar and state == 'listo')"/>
+                        <button name="action_reclamo_garantia" string="Reclamo de garantía"
+                                type="object" invisible="state != 'entregado' or garantia_count == 0"/>
+                        <button name="action_cancelar" string="Cancelar OT" type="object"
+                                groups="tllr_fc.group_supervisor"
+                                invisible="state not in ('espera', 'proceso', 'calidad', 'listo')"/>
                         <button name="action_detener" string="Detener OT" type="object"
                                 groups="tllr_fc.group_supervisor"
                                 invisible="detenida or state not in ('espera', 'proceso')"/>
@@ -67,6 +83,25 @@
                                     invisible="control_count == 0">
                                 <field name="control_count" widget="statinfo" string="Controles"/>
                             </button>
+                            <button name="action_ver_facturas" type="object"
+                                    class="oe_stat_button" icon="fa-file-text-o"
+                                    groups="account.group_account_invoice"
+                                    invisible="estado_facturacion == 'sin_facturar'">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Factura</span>
+                                    <field name="estado_facturacion" readonly="1"/>
+                                </div>
+                            </button>
+                            <button name="action_ver_entregas" type="object"
+                                    class="oe_stat_button" icon="fa-truck"
+                                    invisible="entrega_count == 0">
+                                <field name="entrega_count" widget="statinfo" string="Entregas"/>
+                            </button>
+                            <button name="action_ver_garantias" type="object"
+                                    class="oe_stat_button" icon="fa-shield"
+                                    invisible="garantia_count == 0">
+                                <field name="garantia_count" widget="statinfo" string="Garantías"/>
+                            </button>
                             <button name="action_ver_recepcion" type="object"
                                     class="oe_stat_button" icon="fa-clipboard">
                                 <div class="o_stat_info">
@@ -76,6 +111,9 @@
                         </div>
                         <field name="descuento_cliente" invisible="1"/>
                         <field name="detenida" invisible="1"/>
+                        <field name="cerrada_facturar" invisible="1"/>
+                        <field name="liquidada" invisible="1"/>
+                        <field name="estado_facturacion" invisible="1"/>
                         <field name="adicionales_pendientes" invisible="1"/>
                         <div class="alert alert-warning" role="alert" invisible="not detenida">
                             <strong>OT detenida:</strong>
@@ -94,7 +132,10 @@
                         </div>
                         <field name="currency_id" invisible="1"/>
                         <widget name="web_ribbon" title="Cancelada" bg_color="text-bg-danger"
-                                invisible="state != 'cancelada'"/>
+                                invisible="state != 'cancelada' or liquidada"/>
+                        <widget name="web_ribbon" title="Cancelada con liquidación"
+                                bg_color="text-bg-warning"
+                                invisible="state != 'cancelada' or not liquidada"/>
                         <div class="oe_title">
                             <h1><field name="name"/></h1>
                         </div>
@@ -115,6 +156,9 @@
                                 <field name="kilometraje_ingreso"/>
                                 <field name="combustible_ingreso"/>
                                 <field name="motivo_cancelacion_id" invisible="state != 'cancelada'"/>
+                                <field name="ot_origen_id" invisible="not ot_origen_id"/>
+                                <field name="fecha_entrega" invisible="not fecha_entrega"/>
+                                <field name="kilometraje_salida" invisible="not kilometraje_salida"/>
                             </group>
                             <group string="Responsable">
                                 <field name="responsable_id" groups="tllr_fc.group_supervisor"
@@ -136,7 +180,7 @@
                                           decoration-info="state == 'activo'">
                                         <field name="sequence" widget="handle"/>
                                         <field name="puesto_id" options="{'no_create': True}"
-                                               domain="[('es_calidad', '=', False)]"
+                                               domain="[('es_calidad', '=', False), ('sistema', '=', False)]"
                                                readonly="state != 'pendiente'"/>
                                         <field name="personal_ids" widget="many2many_tags"
                                                options="{'no_create': True}"/>
@@ -352,6 +396,50 @@
                                                decoration-danger="estado == 'rechazado'"/>
                                         <field name="detalle"/>
                                         <field name="notas" optional="hide"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Facturación" name="facturacion"
+                                  invisible="tipo != 'cliente'">
+                                <group>
+                                    <group>
+                                        <field name="estado_facturacion"/>
+                                        <field name="estado_pago"/>
+                                    </group>
+                                    <group>
+                                        <field name="cerrada_facturar"/>
+                                        <field name="fecha_cierre_facturar"/>
+                                    </group>
+                                </group>
+                                <field name="factura_ids" groups="account.group_account_invoice"
+                                       readonly="1">
+                                    <list>
+                                        <field name="name"/>
+                                        <field name="invoice_date"/>
+                                        <field name="invoice_date_due"/>
+                                        <field name="amount_total_signed" string="Total"/>
+                                        <field name="state" widget="badge"/>
+                                        <field name="payment_state" widget="badge"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Garantías" name="garantias" invisible="not garantia_ids and not ot_garantia_ids">
+                                <field name="garantia_ids" readonly="1">
+                                    <list>
+                                        <field name="product_id"/>
+                                        <field name="fecha_entrega"/>
+                                        <field name="fecha_limite"/>
+                                        <field name="km_limite"/>
+                                        <field name="state" widget="badge"
+                                               decoration-success="state == 'vigente'"
+                                               decoration-danger="state != 'vigente'"/>
+                                        <field name="reclamo_ot_id"/>
+                                    </list>
+                                </field>
+                                <field name="ot_garantia_ids" readonly="1" invisible="not ot_garantia_ids">
+                                    <list>
+                                        <field name="name"/>
+                                        <field name="state"/>
                                     </list>
                                 </field>
                             </page>

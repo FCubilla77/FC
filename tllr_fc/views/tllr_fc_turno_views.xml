@@ -74,6 +74,7 @@
                                 <field name="duracion" widget="float_time"
                                        readonly="state not in ('agendado', 'confirmado')"/>
                                 <field name="puesto_id" readonly="state not in ('agendado', 'confirmado')"
+                                       domain="[('es_calidad', '=', False), ('sistema', '=', False)]"
                                        options="{'no_create': True}"/>
                             </group>
                             <group>

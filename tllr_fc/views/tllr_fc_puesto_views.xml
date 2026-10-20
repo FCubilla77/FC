@@ -70,7 +70,7 @@
         <record id="action_tllr_fc_puesto" model="ir.actions.act_window">
             <field name="name">Puestos de trabajo</field>
             <field name="res_model">tllr_fc.puesto</field>
-            <field name="domain">[('es_calidad', '=', False)]</field>
+            <field name="domain">[('es_calidad', '=', False), ('sistema', '=', False)]</field>
             <field name="view_mode">list,form</field>
         </record>
 
