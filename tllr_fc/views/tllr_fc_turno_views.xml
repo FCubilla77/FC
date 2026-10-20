@@ -106,8 +106,10 @@
             <field name="model">tllr_fc.turno</field>
             <field name="arch" type="xml">
                 <calendar string="Turnos" date_start="fecha_hora" date_stop="fecha_fin"
-                          color="color_calendario" mode="week" quick_create="0">
+                          color="color_calendario" mode="week" quick_create="0"
+                          js_class="tllr_fc_turno_calendar">
                     <field name="name"/>
+                    <field name="vencido" invisible="1"/>
                     <field name="partner_id"/>
                     <field name="vehiculo_id"/>
                     <field name="state"/>

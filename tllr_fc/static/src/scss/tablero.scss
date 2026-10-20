@@ -1,0 +1,33 @@
+// Tablero de órdenes de trabajo: color de la tarjeta según el estado de la OT.
+.o_tllr_fc_tablero {
+    .tllr_fc_tarjeta {
+        border-left: 6px solid var(--tllr-fc-color, #adb5bd);
+        padding-left: 0.5rem;
+        background-color: var(--tllr-fc-fondo, transparent);
+        border-radius: 0.25rem;
+    }
+    .tllr_fc_state_espera {
+        --tllr-fc-color: #8f959e;      // gris
+        --tllr-fc-fondo: rgba(143, 149, 158, 0.12);
+    }
+    .tllr_fc_state_proceso {
+        --tllr-fc-color: #2b7de9;      // azul
+        --tllr-fc-fondo: rgba(43, 125, 233, 0.12);
+    }
+    .tllr_fc_state_calidad {
+        --tllr-fc-color: #f08c00;      // naranja
+        --tllr-fc-fondo: rgba(240, 140, 0, 0.14);
+    }
+    .tllr_fc_state_listo {
+        --tllr-fc-color: #2f9e44;      // verde
+        --tllr-fc-fondo: rgba(47, 158, 68, 0.14);
+    }
+    .tllr_fc_state_entregado {
+        --tllr-fc-color: #5c7080;
+        --tllr-fc-fondo: rgba(92, 112, 128, 0.10);
+    }
+    .tllr_fc_state_cancelada {
+        --tllr-fc-color: #e03131;      // rojo
+        --tllr-fc-fondo: rgba(224, 49, 49, 0.12);
+    }
+}

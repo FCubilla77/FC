@@ -210,6 +210,7 @@ class TllrFcTurno(models.Model):
             'turno_id': self.id,
             'vehiculo_id': self.vehiculo_id.id,
             'partner_id': self.partner_id.id,
+            'kilometraje': self.vehiculo_id.kilometraje,
             'company_id': self.company_id.id,
             'servicio_ids': [(0, 0, {
                 'product_id': linea.product_id.id,

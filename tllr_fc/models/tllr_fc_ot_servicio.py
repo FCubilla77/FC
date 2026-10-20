@@ -1,25 +1,286 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import AccessError, UserError, ValidationError
+
+CAMPOS_SOLO_SUPERVISOR = ('precio_unitario', 'descuento', 'no_facturar')
 
 
 class TllrFcOtServicio(models.Model):
-    """Servicio de la OT.
-
-    En la Fase 2 solo guarda los servicios solicitados en la recepción, como
-    referencia. La planificación, los precios y el estado de cada servicio se
-    agregan en la Fase 3.
-    """
+    """Servicio de la orden de trabajo: planificación, precio y estado."""
     _name = 'tllr_fc.ot.servicio'
     _description = "Servicio de la orden de trabajo"
-    _order = 'id'
+    _inherit = ['tllr_fc.mixin.wizard']
+    _order = 'ot_id, id'
 
     ot_id = fields.Many2one(
         'tllr_fc.ot', string="OT", required=True, ondelete='cascade', index=True)
+    company_id = fields.Many2one(
+        'res.company', string="Compañía", related='ot_id.company_id',
+        store=True, index=True)
+    currency_id = fields.Many2one(
+        'res.currency', related='ot_id.company_id.currency_id', string="Moneda")
     product_id = fields.Many2one(
         'product.product', string="Servicio", required=True,
         domain="[('type', '=', 'service')]", ondelete='restrict')
     descripcion = fields.Char(string="Observación")
+    puesto_line_id = fields.Many2one(
+        'tllr_fc.ot.puesto', string="Puesto", domain="[('ot_id', '=', ot_id)]",
+        ondelete='set null', index=True)
     cantidad = fields.Float(string="Cantidad", default=1.0)
-    company_id = fields.Many2one(
-        'res.company', string="Compañía", related='ot_id.company_id',
-        store=True, index=True)
+    precio_unitario = fields.Monetary(string="Precio unitario", currency_field='currency_id')
+    descuento = fields.Float(string="Desc. (%)")
+    no_facturar = fields.Boolean(
+        string="No facturar", copy=False,
+        help="Cortesía: el servicio se realiza pero no se factura. Solo el supervisor.")
+    facturable = fields.Boolean(string="Facturable", compute='_compute_facturable')
+    subtotal = fields.Monetary(
+        string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
+    horas_estandar = fields.Float(
+        string="Horas estándar", compute='_compute_horas_estandar')
+    costo_estandar = fields.Monetary(
+        string="Costo estándar", currency_field='currency_id',
+        compute='_compute_costos', groups='tllr_fc.group_supervisor')
+    costo_efectivo = fields.Monetary(
+        string="Costo efectivo", currency_field='currency_id',
+        compute='_compute_costos', groups='tllr_fc.group_supervisor')
+    estado = fields.Selection([
+        ('pendiente', "Pendiente"),
+        ('terminado', "Terminado"),
+        ('no_realizado', "No realizado"),
+    ], string="Estado", required=True, default='pendiente', copy=False,
+        index=True)
+    terminado_por_id = fields.Many2one(
+        'res.users', string="Terminado por", readonly=True, copy=False)
+    fecha_terminado = fields.Datetime(string="Fecha de término", readonly=True, copy=False)
+    motivo_no_realizado = fields.Char(string="Motivo (no realizado)", readonly=True, copy=False)
+    adicional = fields.Boolean(
+        string="Adicional", readonly=True, copy=False,
+        help="Agregado después de iniciar la OT.")
+
+    # ------------------------------------------------------------------
+    # Cálculos
+    # ------------------------------------------------------------------
+    @api.depends('no_facturar', 'estado')
+    def _compute_facturable(self):
+        for servicio in self:
+            servicio.facturable = not servicio.no_facturar and servicio.estado != 'no_realizado'
+
+    @api.depends('cantidad', 'precio_unitario', 'descuento', 'facturable')
+    def _compute_subtotal(self):
+        for servicio in self:
+            if servicio.facturable:
+                servicio.subtotal = servicio.cantidad * servicio.precio_unitario * (
+                    1 - servicio.descuento / 100.0)
+            else:
+                servicio.subtotal = 0.0
+
+    @api.depends('product_id.tllr_fc_horas_estandar', 'cantidad', 'estado')
+    def _compute_horas_estandar(self):
+        for servicio in self:
+            if servicio.estado == 'no_realizado':
+                servicio.horas_estandar = 0.0
+            else:
+                servicio.horas_estandar = (
+                    servicio.product_id.tllr_fc_horas_estandar * servicio.cantidad)
+
+    def _tllr_fc_costo_estandar_valor(self):
+        self.ensure_one()
+        if self.estado == 'no_realizado':
+            return 0.0
+        return self.product_id.sudo().standard_price * self.cantidad
+
+    def _tllr_fc_costo_efectivo_servicio(self):
+        """Costo efectivo del servicio. El puente de Compras lo reemplaza por el
+        costo real de la compra confirmada (servicios tercerizados)."""
+        self.ensure_one()
+        return self._tllr_fc_costo_estandar_valor()
+
+    @api.depends('product_id', 'cantidad', 'estado')
+    def _compute_costos(self):
+        for servicio in self:
+            servicio.costo_estandar = servicio._tllr_fc_costo_estandar_valor()
+            servicio.costo_efectivo = servicio._tllr_fc_costo_efectivo_servicio()
+
+    @api.constrains('cantidad', 'descuento', 'precio_unitario')
+    def _check_valores(self):
+        for servicio in self:
+            if servicio.cantidad <= 0:
+                raise ValidationError("La cantidad del servicio debe ser mayor que cero.")
+            if not 0 <= servicio.descuento <= 100:
+                raise ValidationError("El descuento debe estar entre 0 y 100.")
+            if servicio.precio_unitario < 0:
+                raise ValidationError("El precio no puede ser negativo.")
+
+    @api.constrains('puesto_line_id', 'ot_id')
+    def _check_puesto_de_la_ot(self):
+        for servicio in self:
+            if servicio.puesto_line_id and servicio.puesto_line_id.ot_id != servicio.ot_id:
+                raise ValidationError("El puesto del servicio debe pertenecer a la misma OT.")
+
+    # ------------------------------------------------------------------
+    # Utilidades
+    # ------------------------------------------------------------------
+    def _es_supervisor(self):
+        return self.env.user.has_group('tllr_fc.group_supervisor')
+
+    def _tllr_fc_verificar_ot_editable(self, ots):
+        for ot in ots:
+            if ot.state not in ('espera', 'proceso'):
+                raise UserError(
+                    "La OT %s está en estado «%s»: ya no se pueden modificar sus servicios."
+                    % (ot.name, dict(ot._fields['state'].selection)[ot.state]))
+
+    def _tllr_fc_verificar_pertenencia(self):
+        """El servicio debe figurar entre los trabajos del puesto asignado."""
+        for servicio in self.filtered('puesto_line_id'):
+            puesto = servicio.puesto_line_id.puesto_id
+            if servicio.product_id.product_tmpl_id in puesto.servicio_ids:
+                continue
+            if not self._es_supervisor():
+                raise ValidationError(
+                    "El puesto «%s» no realiza el servicio «%s». Elegí otro puesto o pedile "
+                    "al supervisor que lo autorice." % (puesto.name, servicio.product_id.display_name))
+            servicio.ot_id.message_post(body=(
+                "El supervisor %s asignó el servicio «%s» al puesto «%s», que no lo tiene "
+                "entre sus tipos de trabajo." % (
+                    self.env.user.name, servicio.product_id.display_name, puesto.name)))
+
+    def _tllr_fc_asignar_puesto_automatico(self):
+        """Asocia al primer puesto de la OT que realiza el servicio (si no tiene uno)."""
+        for servicio in self.filtered(lambda s: not s.puesto_line_id):
+            for linea in servicio.ot_id.puesto_line_ids:
+                if servicio.product_id.product_tmpl_id in linea.puesto_id.servicio_ids:
+                    servicio.puesto_line_id = linea
+                    break
+
+    # ------------------------------------------------------------------
+    # ORM
+    # ------------------------------------------------------------------
+    @api.model_create_multi
+    def create(self, vals_list):
+        es_supervisor = self._es_supervisor()
+        ots = self.env['tllr_fc.ot'].browse([v['ot_id'] for v in vals_list if v.get('ot_id')])
+        self._tllr_fc_verificar_ot_editable(ots)
+        productos = self.env['product.product']
+        for vals in vals_list:
+            ot = self.env['tllr_fc.ot'].browse(vals.get('ot_id'))
+            producto = productos.browse(vals.get('product_id'))
+            if not es_supervisor:
+                for campo in CAMPOS_SOLO_SUPERVISOR:
+                    vals.pop(campo, None)
+            if 'precio_unitario' not in vals:
+                vals['precio_unitario'] = producto.list_price
+            if 'descuento' not in vals:
+                vals['descuento'] = ot.partner_id.tllr_fc_descuento
+            if ot.state != 'espera':
+                vals['adicional'] = True
+        servicios = super().create(vals_list)
+        servicios._tllr_fc_asignar_puesto_automatico()
+        servicios._tllr_fc_verificar_pertenencia()
+        return servicios
+
+    def write(self, vals):
+        if not self.env.context.get('tllr_fc_permitir_write'):
+            if any(campo in vals for campo in CAMPOS_SOLO_SUPERVISOR) and not self._es_supervisor():
+                raise AccessError(
+                    "Solo el supervisor o el administrador de taller pueden cambiar el precio, "
+                    "el descuento o marcar «No facturar».")
+            for campo in ('estado', 'terminado_por_id', 'fecha_terminado',
+                          'motivo_no_realizado', 'adicional'):
+                if campo in vals:
+                    raise UserError(
+                        "El estado del servicio se cambia con los botones de la OT.")
+            self._tllr_fc_verificar_ot_editable(self.ot_id)
+        resultado = super().write(vals)
+        if 'puesto_line_id' in vals:
+            self._tllr_fc_verificar_pertenencia()
+        if 'no_facturar' in vals:
+            for servicio in self:
+                servicio.ot_id.message_post(body="%s: «No facturar» %s por %s." % (
+                    servicio.product_id.display_name,
+                    "activado" if servicio.no_facturar else "desactivado", self.env.user.name))
+        return resultado
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_validar(self):
+        self._tllr_fc_verificar_ot_editable(self.ot_id)
+        for servicio in self:
+            if servicio.estado == 'terminado':
+                raise UserError(
+                    "No se puede eliminar el servicio «%s» porque ya está terminado."
+                    % servicio.product_id.display_name)
+
+    # ------------------------------------------------------------------
+    # Acciones de estado
+    # ------------------------------------------------------------------
+    def action_terminar(self):
+        ahora = fields.Datetime.now()
+        for servicio in self:
+            ot = servicio.ot_id
+            if ot.state != 'proceso':
+                raise UserError("Solo se pueden terminar servicios de una OT en proceso.")
+            if servicio.estado == 'terminado':
+                continue
+            linea = servicio.puesto_line_id
+            if not linea or linea.state != 'activo':
+                raise UserError(
+                    "El servicio «%s» no pertenece al puesto activo de la OT."
+                    % servicio.product_id.display_name)
+            if not linea._tllr_fc_usuario_puede_operar():
+                raise AccessError(
+                    "Solo el supervisor o el personal asignado al puesto activo pueden "
+                    "terminar sus servicios.")
+            servicio.with_context(tllr_fc_permitir_write=True).write({
+                'estado': 'terminado',
+                'terminado_por_id': self.env.user.id,
+                'fecha_terminado': ahora,
+                'motivo_no_realizado': False,
+            })
+            ot.message_post(body="Servicio terminado: %s (%s)." % (
+                servicio.product_id.display_name, self.env.user.name))
+        return True
+
+    def action_no_realizado(self):
+        if not self._es_supervisor():
+            raise AccessError("Solo el supervisor puede marcar un servicio como no realizado.")
+        if len(self) == 1 and not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_no_realizado', 'supervisor',
+                "Marcar el servicio «%s» como NO realizado (no se factura)."
+                % self.product_id.display_name)
+        motivo = (self.env.context.get('tllr_fc_motivo') or '').strip()
+        if not motivo:
+            raise UserError("Indicá el motivo por el que el servicio no se realizó.")
+        for servicio in self:
+            if servicio.ot_id.state not in ('espera', 'proceso'):
+                raise UserError("La OT ya no admite cambios en sus servicios.")
+            servicio.with_context(tllr_fc_permitir_write=True).write({
+                'estado': 'no_realizado',
+                'motivo_no_realizado': motivo,
+                'terminado_por_id': False,
+                'fecha_terminado': False,
+            })
+            servicio.ot_id.message_post(body="Servicio NO realizado: %s. Motivo: %s" % (
+                servicio.product_id.display_name, motivo))
+        return True
+
+    def action_reabrir(self):
+        """Devuelve el servicio a Pendiente (solo supervisor, con la OT sin controlar)."""
+        if not self._es_supervisor():
+            raise AccessError("Solo el supervisor puede volver un servicio a pendiente.")
+        for servicio in self:
+            if servicio.ot_id.state not in ('espera', 'proceso'):
+                raise UserError("La OT ya no admite cambios en sus servicios.")
+            if servicio.puesto_line_id.state == 'terminado':
+                raise UserError(
+                    "El puesto del servicio ya terminó. Para un retrabajo usá «Retroceder "
+                    "puesto» en la OT.")
+            servicio.with_context(tllr_fc_permitir_write=True).write({
+                'estado': 'pendiente',
+                'terminado_por_id': False,
+                'fecha_terminado': False,
+                'motivo_no_realizado': False,
+            })
+            servicio.ot_id.message_post(body="Servicio vuelto a pendiente: %s (%s)." % (
+                servicio.product_id.display_name, self.env.user.name))
+        return True

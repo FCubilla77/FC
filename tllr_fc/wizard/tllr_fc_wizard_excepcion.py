@@ -41,11 +41,15 @@ class TllrFcWizardExcepcion(models.TransientModel):
             raise UserError("El registro ya no existe.")
         if not (self.motivo or '').strip():
             raise UserError("Indicá el motivo de la excepción.")
-        registro.message_post(body="Excepción autorizada por %s.<br/>%s<br/>Motivo: %s" % (
-            self.env.user.name, self.descripcion or '', self.motivo))
+        # El registro puede no tener chatter (p. ej. una línea): se deja en la OT.
+        hilo = registro if hasattr(registro, 'message_post') else getattr(registro, 'ot_id', False)
+        if hilo:
+            hilo.message_post(body="Excepción autorizada por %s.<br/>%s<br/>Motivo: %s" % (
+                self.env.user.name, self.descripcion or '', self.motivo))
         banderas = {
             clave: valor for clave, valor in self.env.context.items()
             if clave.startswith('tllr_fc_')
         }
         banderas['tllr_fc_excepcion'] = True
+        banderas['tllr_fc_motivo'] = self.motivo
         return getattr(registro.with_context(**banderas), self.accion)()

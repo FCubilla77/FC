@@ -75,10 +75,17 @@ class TestFase1(TransactionCase):
 
     def test_cambio_de_propietario_queda_en_el_chatter(self):
         vehiculo = self._vehiculo()
+        # Odoo no sigue los cambios de un registro creado en la misma transacción:
+        # se cierra la creación antes de modificarlo.
+        self.env.cr.precommit.run()
         nuevo = self.env['res.partner'].create({'name': 'Nuevo propietario'})
         vehiculo.write({'partner_id': nuevo.id})
-        seguimiento = vehiculo.message_ids.tracking_value_ids.filtered(
-            lambda t: t.field_id.name == 'partner_id')
+        self.env.cr.precommit.run()
+        seguimiento = self.env['mail.tracking.value'].search([
+            ('mail_message_id.model', '=', 'tllr_fc.vehiculo'),
+            ('mail_message_id.res_id', '=', vehiculo.id),
+            ('field_id.name', '=', 'partner_id'),
+        ])
         self.assertTrue(seguimiento)
 
     def test_contacto_cuenta_vehiculos(self):

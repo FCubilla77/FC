@@ -39,7 +39,7 @@ class TllrFcRecepcion(models.Model):
     servicio_ids = fields.One2many(
         'tllr_fc.recepcion.servicio', 'recepcion_id', string="Servicios solicitados",
         copy=False)
-    kilometraje = fields.Integer(string="Kilometraje", required=True, copy=True)
+    kilometraje = fields.Integer(string="Kilometraje", required=True, default=0, copy=True)
     combustible_nivel = fields.Selection([
         ('reserva', "Reserva"),
         ('1_4', "1/4"),
@@ -141,6 +141,8 @@ class TllrFcRecepcion(models.Model):
     def _onchange_vehiculo_id(self):
         if self.vehiculo_id:
             self.partner_id = self.vehiculo_id.partner_id
+            if not self.kilometraje:
+                self.kilometraje = self.vehiculo_id.kilometraje
             if self.turno_id and self.turno_id.partner_id != self.partner_id:
                 self.turno_id = False
 

@@ -19,5 +19,8 @@ from . import tllr_fc_turno
 from . import tllr_fc_recepcion_servicio
 from . import tllr_fc_recepcion_item
 from . import tllr_fc_recepcion
+from . import tllr_fc_ot_puesto
 from . import tllr_fc_ot_servicio
+from . import tllr_fc_ot_producto
+from . import stock_move
 from . import tllr_fc_ot

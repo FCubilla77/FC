@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="tllr_fc.TurnoCalendarPopover.footer"
+       t-inherit="web.CalendarCommonPopover.footer" t-inherit-mode="primary">
+        <xpath expr="//t[@t-if='isEventDeletable']" position="before">
+            <t t-if="esVencido">
+                <a href="#" class="btn btn-secondary o_tllr_fc_no_asistio"
+                   t-on-click.prevent="onNoAsistio">Marcar no asistió</a>
+                <a href="#" class="btn btn-secondary o_tllr_fc_reprogramar"
+                   t-on-click.prevent="onReprogramar">Reprogramar</a>
+            </t>
+        </xpath>
+    </t>
+
+</templates>

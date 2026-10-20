@@ -48,6 +48,12 @@ class ResCompany(models.Model):
     tllr_fc_qc_garantia = fields.Boolean(
         string="Control de calidad en OT de Garantía", default=False)
 
+    # --- Consumo de stock de las OT ---
+    tllr_fc_ubicacion_consumo_id = fields.Many2one(
+        'stock.location', string="Ubicación de consumo en taller", copy=False,
+        help="Ubicación virtual a la que se envían los repuestos, insumos y accesorios "
+             "consumidos por las órdenes de trabajo. Se crea sola la primera vez.")
+
     # --- Otros ---
     tllr_fc_usa_terceros = fields.Boolean(
         string="Usa mercadería de terceros", default=False)
@@ -101,6 +107,18 @@ class ResCompany(models.Model):
                         'number_increment': 1,
                         'company_id': compania.id,
                     })
+
+    def _tllr_fc_ubicacion_consumo(self):
+        """Devuelve (y crea si falta) la ubicación virtual «Consumo en taller»."""
+        self.ensure_one()
+        if not self.tllr_fc_ubicacion_consumo_id:
+            ubicacion = self.env['stock.location'].sudo().create({
+                'name': "Consumo en taller",
+                'usage': 'production',
+                'company_id': self.id,
+            })
+            self.sudo().tllr_fc_ubicacion_consumo_id = ubicacion
+        return self.tllr_fc_ubicacion_consumo_id.sudo()
 
     def _tllr_fc_siguiente_codigo(self, codigo):
         """Devuelve el próximo número de la secuencia `codigo` de esta compañía.

@@ -13,7 +13,7 @@ class ResPartner(models.Model):
     tllr_fc_vehiculo_ids = fields.One2many(
         'tllr_fc.vehiculo', 'partner_id', string="Vehículos")
     tllr_fc_vehiculo_count = fields.Integer(
-        string="Vehículos", compute='_compute_tllr_fc_vehiculo_count')
+        string="Cantidad de vehículos", compute='_compute_tllr_fc_vehiculo_count')
 
     @api.constrains('tllr_fc_descuento')
     def _check_tllr_fc_descuento(self):

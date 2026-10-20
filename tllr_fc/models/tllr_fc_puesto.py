@@ -45,4 +45,7 @@ class TllrFcPuesto(models.Model):
                 compania = self.env['res.company'].browse(
                     vals.get('company_id') or self.env.company.id)
                 vals['codigo'] = compania._tllr_fc_siguiente_codigo('tllr_fc.puesto')
-        return super().create(vals_list)
+        puestos = super().create(vals_list)
+        # El constrains solo se dispara si se informa el campo: se valida siempre al crear.
+        puestos._check_servicios()
+        return puestos

@@ -9,6 +9,13 @@
                   groups="tllr_fc.group_usuario"
                   sequence="45"/>
 
+        <menuitem id="menu_tllr_fc_tablero"
+                  name="Tablero"
+                  parent="menu_tllr_fc_root"
+                  action="action_tllr_fc_ot_tablero"
+                  groups="tllr_fc.group_usuario"
+                  sequence="5"/>
+
         <!-- Menús contenedores (se muestran cuando tienen opciones debajo) -->
         <menuitem id="menu_tllr_fc_operacion"
                   name="Operación"

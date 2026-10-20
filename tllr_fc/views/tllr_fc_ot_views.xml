@@ -12,6 +12,9 @@
                     <field name="vehiculo_id"/>
                     <field name="partner_id"/>
                     <field name="tipo" optional="show"/>
+                    <field name="puesto_activo_id" optional="show"/>
+                    <field name="responsable_id" optional="show"/>
+                    <field name="total" optional="hide"/>
                     <field name="dias_taller" optional="show"/>
                     <field name="state" widget="badge"
                            decoration-info="state in ('espera', 'proceso')"
@@ -29,6 +32,14 @@
             <field name="arch" type="xml">
                 <form create="0">
                     <header>
+                        <button name="action_iniciar" string="Iniciar OT" type="object"
+                                class="btn-primary" groups="tllr_fc.group_supervisor"
+                                invisible="state != 'espera'"/>
+                        <button name="action_terminar_puesto" string="Terminar puesto" type="object"
+                                class="btn-primary" invisible="state != 'proceso'"/>
+                        <button name="action_retroceder_puesto" string="Retroceder puesto"
+                                type="object" groups="tllr_fc.group_supervisor"
+                                invisible="state != 'proceso'"/>
                         <field name="state" widget="statusbar"
                                statusbar_visible="espera,proceso,calidad,listo,entregado"/>
                     </header>
@@ -41,6 +52,8 @@
                                 </div>
                             </button>
                         </div>
+                        <field name="descuento_cliente" invisible="1"/>
+                        <field name="currency_id" invisible="1"/>
                         <widget name="web_ribbon" title="Cancelada" bg_color="text-bg-danger"
                                 invisible="state != 'cancelada'"/>
                         <div class="oe_title">
@@ -64,15 +77,144 @@
                                 <field name="combustible_ingreso"/>
                                 <field name="motivo_cancelacion_id" invisible="state != 'cancelada'"/>
                             </group>
+                            <group string="Responsable">
+                                <field name="responsable_id" groups="tllr_fc.group_supervisor"
+                                       readonly="state != 'espera'" options="{'no_create': True}"/>
+                                <field name="responsable_id" groups="!tllr_fc.group_supervisor"
+                                       readonly="1"/>
+                                <field name="requiere_qc" groups="tllr_fc.group_supervisor"
+                                       readonly="state not in ('espera', 'proceso')"/>
+                                <field name="puesto_activo_id" readonly="1"/>
+                                <field name="personal_ids" widget="many2many_tags" readonly="1"/>
+                            </group>
                         </group>
                         <notebook>
-                            <page string="Servicios solicitados" name="servicios">
-                                <field name="servicio_ids" readonly="1">
-                                    <list>
-                                        <field name="product_id"/>
-                                        <field name="descripcion"/>
+                            <page string="Puestos y personal" name="puestos">
+                                <field name="puesto_line_ids" groups="tllr_fc.group_supervisor"
+                                       readonly="state not in ('espera', 'proceso')">
+                                    <list editable="bottom"
+                                          decoration-success="state == 'terminado'"
+                                          decoration-info="state == 'activo'">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="puesto_id" options="{'no_create': True}"
+                                               readonly="state != 'pendiente'"/>
+                                        <field name="personal_ids" widget="many2many_tags"
+                                               options="{'no_create': True}"/>
+                                        <field name="state" widget="badge"
+                                               decoration-info="state == 'activo'"
+                                               decoration-success="state == 'terminado'"/>
+                                        <field name="fecha_inicio" optional="hide"/>
+                                        <field name="fecha_fin" optional="hide"/>
                                     </list>
                                 </field>
+                                <field name="puesto_line_ids" groups="!tllr_fc.group_supervisor"
+                                       readonly="1">
+                                    <list>
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="puesto_id"/>
+                                        <field name="personal_ids" widget="many2many_tags"/>
+                                        <field name="state" widget="badge"
+                                               decoration-info="state == 'activo'"
+                                               decoration-success="state == 'terminado'"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Servicios" name="servicios">
+                                <field name="servicio_ids"
+                                       readonly="state not in ('espera', 'proceso')"
+                                       context="{'default_descuento': descuento_cliente}">
+                                    <list editable="bottom"
+                                          decoration-success="estado == 'terminado'"
+                                          decoration-muted="estado == 'no_realizado'">
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="product_id" options="{'no_create': True}"
+                                               readonly="estado != 'pendiente'"/>
+                                        <field name="descripcion"/>
+                                        <field name="puesto_line_id" options="{'no_create': True}"
+                                               domain="[('ot_id', '=', parent.id)]"/>
+                                        <field name="cantidad" sum="Total"/>
+                                        <field name="precio_unitario" groups="tllr_fc.group_supervisor"/>
+                                        <field name="precio_unitario" groups="!tllr_fc.group_supervisor"
+                                               readonly="1"/>
+                                        <field name="descuento" groups="tllr_fc.group_supervisor"/>
+                                        <field name="descuento" groups="!tllr_fc.group_supervisor"
+                                               readonly="1"/>
+                                        <field name="no_facturar" groups="tllr_fc.group_supervisor"
+                                               optional="hide"/>
+                                        <field name="subtotal" sum="Total"/>
+                                        <field name="horas_estandar" optional="show" sum="Horas"/>
+                                        <field name="costo_efectivo" groups="tllr_fc.group_supervisor"
+                                               optional="hide"/>
+                                        <field name="adicional" optional="hide"/>
+                                        <field name="estado" widget="badge"
+                                               decoration-success="estado == 'terminado'"
+                                               decoration-muted="estado == 'no_realizado'"
+                                               decoration-warning="estado == 'pendiente'"/>
+                                        <field name="motivo_no_realizado" optional="hide"/>
+                                        <button name="action_terminar" type="object" icon="fa-check"
+                                                title="Terminar servicio"
+                                                invisible="estado != 'pendiente' or parent.state != 'proceso' or not id"/>
+                                        <button name="action_no_realizado" type="object" icon="fa-ban"
+                                                title="No realizado" groups="tllr_fc.group_supervisor"
+                                                invisible="estado != 'pendiente' or not id"/>
+                                        <button name="action_reabrir" type="object" icon="fa-undo"
+                                                title="Volver a pendiente" groups="tllr_fc.group_supervisor"
+                                                invisible="estado == 'pendiente' or not id"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Repuestos, insumos y accesorios" name="productos">
+                                <field name="producto_ids"
+                                       readonly="state not in ('espera', 'proceso')"
+                                       context="{'default_descuento': descuento_cliente}">
+                                    <list editable="bottom" decoration-warning="reserva_estado == 'parcial'"
+                                          decoration-danger="reserva_estado == 'sin_stock'">
+                                        <field name="currency_id" column_invisible="1"/>
+                                        <field name="tracking" column_invisible="1"/>
+                                        <field name="product_id" options="{'no_create': True}"
+                                               readonly="cantidad_consumida &gt; 0"/>
+                                        <field name="uso" optional="show"/>
+                                        <field name="cantidad_reservada"/>
+                                        <field name="cantidad_utilizada"
+                                               readonly="parent.state != 'proceso'"/>
+                                        <field name="uom_id" optional="show"/>
+                                        <field name="lote_id" options="{'no_create': True}"
+                                               invisible="tracking == 'none'"
+                                               readonly="cantidad_consumida &gt; 0"/>
+                                        <field name="precio_unitario" groups="tllr_fc.group_supervisor"/>
+                                        <field name="precio_unitario" groups="!tllr_fc.group_supervisor"
+                                               readonly="1"/>
+                                        <field name="descuento" groups="tllr_fc.group_supervisor"/>
+                                        <field name="descuento" groups="!tllr_fc.group_supervisor"
+                                               readonly="1"/>
+                                        <field name="no_facturar" groups="tllr_fc.group_supervisor"
+                                               optional="hide"/>
+                                        <field name="provisto_cliente" groups="tllr_fc.group_supervisor"
+                                               optional="hide"/>
+                                        <field name="subtotal" sum="Total"/>
+                                        <field name="costo" groups="tllr_fc.group_supervisor"
+                                               optional="hide"/>
+                                        <field name="adicional" optional="hide"/>
+                                        <field name="reserva_estado" widget="badge"
+                                               decoration-success="reserva_estado == 'ok'"
+                                               decoration-warning="reserva_estado == 'parcial'"
+                                               decoration-danger="reserva_estado == 'sin_stock'"/>
+                                        <field name="cantidad_consumida" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Totales" name="totales">
+                                <group>
+                                    <group>
+                                        <field name="total_servicios"/>
+                                        <field name="total_productos"/>
+                                        <field name="total" class="fw-bold"/>
+                                    </group>
+                                    <group>
+                                        <field name="horas_estandar" widget="float_time"/>
+                                        <field name="servicios_pendientes"/>
+                                    </group>
+                                </group>
                             </page>
                         </notebook>
                     </sheet>
@@ -89,17 +231,84 @@
                     <field name="name"/>
                     <field name="vehiculo_id"/>
                     <field name="partner_id"/>
+                    <field name="responsable_id"/>
+                    <field name="puesto_activo_id"/>
+                    <filter string="Mis OT" name="mis_ot"
+                            domain="['|', ('responsable_id.user_id', '=', uid), ('personal_ids.user_id', '=', uid)]"/>
+                    <separator/>
                     <filter string="En espera" name="espera" domain="[('state', '=', 'espera')]"/>
                     <filter string="En proceso" name="proceso" domain="[('state', '=', 'proceso')]"/>
+                    <filter string="En control de calidad" name="calidad"
+                            domain="[('state', '=', 'calidad')]"/>
+                    <filter string="Listas para entrega" name="listo" domain="[('state', '=', 'listo')]"/>
                     <filter string="Abiertas" name="abiertas"
                             domain="[('state', 'in', ('espera', 'proceso', 'calidad', 'listo'))]"/>
+                    <separator/>
+                    <filter string="Cliente" name="tipo_cliente" domain="[('tipo', '=', 'cliente')]"/>
+                    <filter string="Interna" name="tipo_interno" domain="[('tipo', '=', 'interno')]"/>
+                    <filter string="Garantía" name="tipo_garantia" domain="[('tipo', '=', 'garantia')]"/>
                     <group>
                         <filter string="Estado" name="agrupar_estado" context="{'group_by': 'state'}"/>
                         <filter string="Tipo" name="agrupar_tipo" context="{'group_by': 'tipo'}"/>
                         <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Puesto activo" name="agrupar_puesto" context="{'group_by': 'puesto_activo_id'}"/>
+                        <filter string="Responsable" name="agrupar_responsable" context="{'group_by': 'responsable_id'}"/>
                     </group>
                 </search>
             </field>
+        </record>
+
+        <record id="view_tllr_fc_ot_kanban" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.kanban</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="puesto_activo_id" records_draggable="1"
+                        group_create="0" group_edit="0" group_delete="0"
+                        quick_create="0" create="0" class="o_tllr_fc_tablero">
+                    <field name="state"/>
+                    <field name="tipo"/>
+                    <field name="tiene_adicionales"/>
+                    <templates>
+                        <t t-name="card">
+                            <main t-attf-class="tllr_fc_tarjeta tllr_fc_state_#{record.state.raw_value}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <field name="name" class="fw-bold fs-5"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state in ('espera', 'proceso')"
+                                           decoration-warning="state in ('calidad', 'listo')"/>
+                                </div>
+                                <div class="fw-bold"><field name="vehiculo_id"/></div>
+                                <div class="text-muted"><field name="partner_id"/></div>
+                                <div t-if="record.servicios_resumen.raw_value" class="small">
+                                    <i class="fa fa-wrench me-1" title="Servicios"/>
+                                    <field name="servicios_resumen"/>
+                                </div>
+                                <div class="small" t-if="record.responsable_id.raw_value">
+                                    <i class="fa fa-user me-1" title="Responsable"/>
+                                    <field name="responsable_id"/>
+                                </div>
+                                <div><field name="personal_ids" widget="many2many_tags"/></div>
+                                <div class="d-flex justify-content-between align-items-center small text-muted">
+                                    <span>
+                                        <field name="tipo"/>
+                                        <span t-if="record.tiene_adicionales.raw_value"
+                                              class="badge text-bg-warning ms-1">Adicionales</span>
+                                    </span>
+                                    <span><field name="dias_taller"/> d</span>
+                                </div>
+                            </main>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_ot_tablero" model="ir.actions.act_window">
+            <field name="name">Tablero</field>
+            <field name="res_model">tllr_fc.ot</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="search_view_id" ref="view_tllr_fc_ot_search"/>
+            <field name="context">{'search_default_abiertas': 1}</field>
         </record>
 
         <record id="action_tllr_fc_ot" model="ir.actions.act_window">

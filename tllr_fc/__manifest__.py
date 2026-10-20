@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.003",
+    "version": "2026.19.004",
     "license": "LGPL-3",
     "application": True,
     "installable": True,
@@ -57,6 +57,13 @@
         "views/res_config_settings_views.xml",
         "views/menus.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "tllr_fc/static/src/scss/tablero.scss",
+            "tllr_fc/static/src/views/turno_calendar/turno_calendar.js",
+            "tllr_fc/static/src/views/turno_calendar/turno_calendar.xml",
+        ],
+    },
     "post_init_hook": "post_init_hook",
     "catalogo_tipo": "P",
     "catalogo_superior": "",
