@@ -57,8 +57,9 @@ class TllrFcRecepcion(models.Model):
     ], string="Tipo de OT propuesto", default='cliente',
         help="Lo confirma el supervisor en la OT.")
     ot_origen_id = fields.Many2one(
-        'tllr_fc.ot', string="OT original (garantía)", readonly=True, copy=False,
-        ondelete='restrict', help="Se completa cuando la recepción nace de un reclamo de garantía.")
+        'tllr_fc.ot', string="OT original (garantía)", copy=False, ondelete='restrict',
+        domain="[('state', '=', 'entregado'), ('tipo', '=', 'cliente'), ('vehiculo_id', '=', vehiculo_id)]",
+        help="OT de cliente entregada que originó el reclamo de garantía.")
     garantia_reclamo_ids = fields.One2many(
         'tllr_fc.garantia', 'reclamo_recepcion_id', string="Garantías reclamadas", readonly=True)
     ot_id = fields.Many2one(
@@ -142,6 +143,25 @@ class TllrFcRecepcion(models.Model):
     # ------------------------------------------------------------------
     # Onchange
     # ------------------------------------------------------------------
+    @api.onchange('tipo_ot_propuesto')
+    def _onchange_tipo_ot_propuesto(self):
+        if self.tipo_ot_propuesto != 'garantia':
+            self.ot_origen_id = False
+
+    @api.constrains('ot_origen_id', 'tipo_ot_propuesto', 'vehiculo_id')
+    def _check_ot_origen(self):
+        for recepcion in self.filtered('ot_origen_id'):
+            origen = recepcion.ot_origen_id
+            if recepcion.tipo_ot_propuesto != 'garantia':
+                raise ValidationError(
+                    "La OT original solo se indica en recepciones de tipo Garantía.")
+            if origen.tipo != 'cliente' or origen.state != 'entregado':
+                raise ValidationError(
+                    "La OT original %s debe ser una OT de cliente entregada." % origen.name)
+            if origen.vehiculo_id != recepcion.vehiculo_id:
+                raise ValidationError(
+                    "La OT original %s corresponde a otro vehículo." % origen.name)
+
     @api.onchange('vehiculo_id')
     def _onchange_vehiculo_id(self):
         if self.vehiculo_id:
@@ -273,7 +293,7 @@ class TllrFcRecepcion(models.Model):
             'recepcion_id': self.id,
             'company_id': self.company_id.id,
             'tipo': self.tipo_ot_propuesto or 'cliente',
-            'ot_origen_id': self.ot_origen_id.id,
+            'ot_origen_id': self.ot_origen_id.id if self.tipo_ot_propuesto == 'garantia' else False,
             'vehiculo_id': self.vehiculo_id.id,
             'partner_id': self.partner_id.id,
             'partner_secundario_id': self.partner_secundario_id.id,

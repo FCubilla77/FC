@@ -63,7 +63,7 @@
                                 class="btn-primary"
                                 invisible="not (state == 'listo' or (state == 'cancelada' and liquidada)) or (tipo == 'cliente' and not cerrada_facturar and state == 'listo')"/>
                         <button name="action_reclamo_garantia" string="Reclamo de garantía"
-                                type="object" invisible="state != 'entregado' or garantia_count == 0"/>
+                                type="object" invisible="state != 'entregado' or tipo != 'cliente'"/>
                         <button name="action_cancelar" string="Cancelar OT" type="object"
                                 groups="tllr_fc.group_supervisor"
                                 invisible="state not in ('espera', 'proceso', 'calidad', 'listo')"/>
@@ -217,6 +217,8 @@
                                         <field name="puesto_line_id" options="{'no_create': True}"
                                                domain="[('ot_id', '=', parent.id)]"/>
                                         <field name="cantidad" sum="Total"/>
+                                        <field name="garantia_dias" optional="show"/>
+                                        <field name="garantia_km" optional="show"/>
                                         <field name="precio_unitario" groups="tllr_fc.group_supervisor"/>
                                         <field name="precio_unitario" groups="!tllr_fc.group_supervisor"
                                                readonly="1"/>
@@ -272,6 +274,8 @@
                                         <field name="lote_id" options="{'no_create': True}"
                                                invisible="tracking == 'none'"
                                                readonly="cantidad_consumida &gt; 0"/>
+                                        <field name="garantia_dias" optional="show"/>
+                                        <field name="garantia_km" optional="show"/>
                                         <field name="precio_unitario" groups="tllr_fc.group_supervisor"/>
                                         <field name="precio_unitario" groups="!tllr_fc.group_supervisor"
                                                readonly="1"/>

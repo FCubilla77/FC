@@ -20,6 +20,14 @@ class TllrFcWizardReclamoGarantia(models.TransientModel):
     @api.model
     def default_get(self, campos):
         valores = super().default_get(campos)
+        contexto = self.env.context
+        if contexto.get('active_model') == 'tllr_fc.garantia' and contexto.get('active_ids'):
+            garantias = self.env['tllr_fc.garantia'].browse(contexto['active_ids'])
+            if len(garantias.ot_id) != 1:
+                raise UserError("Elegí garantías de una sola OT para reclamar juntas.")
+            valores['ot_id'] = garantias.ot_id.id
+            valores['garantia_ids'] = [Command.set(garantias.filtered(
+                lambda g: not g.reclamo_ot_id).ids)]
         ot = self.env['tllr_fc.ot'].browse(valores.get('ot_id') or self.env.context.get('default_ot_id'))
         if ot:
             valores['kilometraje_actual'] = max(

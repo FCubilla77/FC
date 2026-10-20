@@ -31,6 +31,10 @@ class TllrFcOtServicio(models.Model):
     informe = fields.Text(
         string="Informe del servicio",
         help="Informe de los trabajos realizados en este servicio.")
+    garantia_dias = fields.Integer(
+        string="Garantía (días)", related='product_id.product_tmpl_id.tllr_fc_garantia_dias')
+    garantia_km = fields.Integer(
+        string="Garantía (km)", related='product_id.product_tmpl_id.tllr_fc_garantia_km')
     puesto_line_id = fields.Many2one(
         'tllr_fc.ot.puesto', string="Puesto", domain="[('ot_id', '=', ot_id)]",
         ondelete='set null', index=True)

@@ -34,6 +34,10 @@ class TllrFcOtProducto(models.Model):
         related='product_id.tllr_fc_uso_taller', string="Uso", store=True, readonly=True)
     tracking = fields.Selection(related='product_id.tracking')
     descripcion = fields.Char(string="Observación")
+    garantia_dias = fields.Integer(
+        string="Garantía (días)", related='product_id.product_tmpl_id.tllr_fc_garantia_dias')
+    garantia_km = fields.Integer(
+        string="Garantía (km)", related='product_id.product_tmpl_id.tllr_fc_garantia_km')
     cantidad_reservada = fields.Float(string="Reservado", default=1.0, digits='Product Unit')
     cantidad_utilizada = fields.Float(string="Utilizado", digits='Product Unit')
     uom_id = fields.Many2one('uom.uom', related='product_id.uom_id', string="Unidad")

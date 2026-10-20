@@ -874,8 +874,15 @@ class TllrFcOt(models.Model):
 
     def action_reclamo_garantia(self):
         self.ensure_one()
-        if self.state != 'entregado' or not self.garantia_ids:
-            raise UserError("Solo se reclama sobre una OT entregada que tenga garantías.")
+        if self.state != 'entregado' or self.tipo != 'cliente':
+            raise UserError("Solo se reclama sobre una OT de cliente entregada.")
+        if not self.garantia_ids.filtered(lambda g: not g.reclamo_ot_id):
+            raise UserError(
+                "La OT %s no tiene garantías disponibles para reclamar. Las garantías se crean "
+                "al entregar, según los días de garantía de la ficha de cada producto; para una OT "
+                "entregada antes, el administrador de taller puede cargarla en Operación › "
+                "Garantías, o podés generar una recepción de tipo Garantía eligiendo la OT original."
+                % self.name)
         return {
             'type': 'ir.actions.act_window', 'name': "Reclamo de garantía",
             'res_model': 'tllr_fc.wizard.reclamo_garantia', 'view_mode': 'form',

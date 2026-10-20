@@ -353,3 +353,86 @@ class TestFase5(TallerCommon):
             ot.action_avisar_cliente()
         self.cliente.email = 'cliente@example.com'
         self.assertTrue(ot.action_avisar_cliente())
+
+    # ---------------- Ajustes 2026.19.009 ----------------
+    def _ot_entregada(self):
+        ot = self._ot_lista()
+        self._facturar(ot)
+        entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
+        entrega.linea_ids.write({'entregado': True})
+        entrega.action_confirmar()
+        return ot
+
+    def test_plazo_de_garantia_visible_en_las_lineas(self):
+        ot = self._ot_planificada()
+        self.assertEqual(ot.servicio_ids.filtered(lambda s: s.product_id == self.s1).garantia_dias, 30)
+        self.assertEqual(ot.servicio_ids.filtered(lambda s: s.product_id == self.s1).garantia_km, 1000)
+        linea = self.env['tllr_fc.ot.producto'].create({
+            'ot_id': ot.id, 'product_id': self.repuesto.id, 'cantidad_reservada': 1})
+        self.assertEqual(linea.garantia_dias, 90)
+
+    def test_reclamo_sin_garantias_explica_que_hacer(self):
+        ot = self._ot_lista()
+        self._facturar(ot)
+        entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
+        entrega.linea_ids.write({'entregado': True})
+        entrega.action_confirmar()
+        ot.garantia_ids.sudo().unlink()
+        with self.assertRaises(UserError) as error:
+            ot.action_reclamo_garantia()
+        self.assertIn('Garantías', error.exception.args[0])
+
+    def test_recepcion_de_garantia_con_ot_original_elegida(self):
+        ot = self._ot_entregada()
+        recepcion = self.env['tllr_fc.recepcion'].create({
+            'vehiculo_id': self.vehiculo.id, 'partner_id': self.cliente.id,
+            'kilometraje': 3000, 'tipo_ot_propuesto': 'garantia', 'ot_origen_id': ot.id,
+            'servicio_ids': [Command.create({'product_id': self.s1.id})]})
+        recepcion.action_cargar_items()
+        recepcion.item_ids.write({'presente': 'si'})
+        resultado = recepcion.action_confirmar()
+        if isinstance(resultado, dict):
+            self.env['tllr_fc.wizard.confirmar_advertencia'].create({
+                'res_model': 'tllr_fc.recepcion', 'res_id': recepcion.id,
+                'accion': 'action_confirmar', 'mensaje': 'x'}).action_continuar()
+        self.assertEqual(recepcion.ot_id.ot_origen_id, ot)
+        self.assertIn(recepcion.ot_id, ot.ot_garantia_ids)
+        # La OT original solo vale en recepciones de garantía.
+        with self.assertRaises(Exception):
+            self.env['tllr_fc.recepcion'].create({
+                'vehiculo_id': self.vehiculo.id, 'partner_id': self.cliente.id,
+                'kilometraje': 3000, 'tipo_ot_propuesto': 'cliente', 'ot_origen_id': ot.id,
+                'servicio_ids': [Command.create({'product_id': self.s1.id})]})
+
+    def test_garantia_manual_solo_administrador(self):
+        ot = self._ot_entregada()
+        ot.garantia_ids.sudo().unlink()
+        supervisor = self.env['res.users'].create({
+            'name': 'Supervisor F5', 'login': 'sup_f5',
+            'group_ids': [Command.link(self.env.ref('tllr_fc.group_supervisor').id)]})
+        with self.assertRaises(AccessError):
+            self.env['tllr_fc.garantia'].with_user(supervisor).create({
+                'ot_id': ot.id, 'product_id': self.s1.id,
+                'fecha_entrega': fields.Date.today(), 'fecha_limite': fields.Date.today()})
+        garantia = self.env['tllr_fc.garantia'].new({'ot_id': ot.id, 'product_id': self.s1.id})
+        garantia._onchange_ot_id()
+        garantia._onchange_plazos()
+        self.assertEqual(garantia.dias, 30)
+        self.assertTrue(garantia.fecha_limite)
+        creada = self.env['tllr_fc.garantia'].create({
+            'ot_id': ot.id, 'product_id': self.s1.id, 'fecha_entrega': garantia.fecha_entrega,
+            'dias': garantia.dias, 'fecha_limite': garantia.fecha_limite})
+        self.assertEqual(creada.ot_id, ot)
+
+    def test_reclamo_desde_el_listado_de_garantias(self):
+        ot = self._ot_entregada()
+        asistente = self.env['tllr_fc.wizard.reclamo_garantia'].with_context(
+            active_model='tllr_fc.garantia', active_ids=ot.garantia_ids.ids).create(
+            {'ot_id': ot.id, 'garantia_ids': [Command.set(ot.garantia_ids.ids)],
+             'kilometraje_actual': 2600, 'descripcion': 'x'})
+        valores = self.env['tllr_fc.wizard.reclamo_garantia'].with_context(
+            active_model='tllr_fc.garantia', active_ids=ot.garantia_ids.ids).default_get(
+            ['ot_id', 'garantia_ids'])
+        self.assertEqual(valores['ot_id'], ot.id)
+        self.assertEqual(len(valores['garantia_ids'][0][2]), len(ot.garantia_ids))
+        self.assertTrue(asistente)
