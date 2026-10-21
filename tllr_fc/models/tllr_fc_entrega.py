@@ -219,6 +219,7 @@ class TllrFcEntregaLinea(models.Model):
     entregado = fields.Selection(
         [('si', "Sí"), ('no', "No")], string="Entregado",
         help="Se elige Sí o No en cada línea; no hay valor por defecto.")
+    observacion_recepcion = fields.Char(string="Observación al ingreso", readonly=True)
     observacion = fields.Char(string="Observación")
     diferencia = fields.Boolean(
         string="Diferencia", compute='_compute_diferencia', store=True)

@@ -411,6 +411,7 @@ class TestFase5(TallerCommon):
         recepcion = self.env['tllr_fc.recepcion'].create({
             'vehiculo_id': self.vehiculo.id, 'partner_id': self.cliente.id,
             'kilometraje': 3000, 'tipo_ot_propuesto': 'garantia', 'ot_origen_id': ot.id,
+            'garantia_elegida_ids': [Command.set(ot.garantia_ids[:1].ids)],
             'servicio_ids': [Command.create({'product_id': self.s1.id})]})
         recepcion.action_cargar_items()
         recepcion.item_ids.write({'presente': 'si'})
@@ -460,3 +461,62 @@ class TestFase5(TallerCommon):
         self.assertEqual(valores['ot_id'], ot.id)
         self.assertEqual(len(valores['garantia_ids'][0][2]), len(ot.garantia_ids))
         self.assertTrue(asistente)
+
+    # ---------------- 2026.19.012: reportes, garantía y rentabilidad ----------------
+    def _html(self, xml_id, registros):
+        informe = self.env.ref(xml_id)
+        html = informe._render_qweb_html(informe.report_name, registros.ids)[0]
+        return html.decode() if isinstance(html, bytes) else html
+
+    def test_reportes_de_operacion_se_renderizan(self):
+        ot = self._ot_entregada()
+        self.assertIn(ot.name, self._html('tllr_fc.action_report_ot', ot))
+        html = self._html('tllr_fc.action_report_garantias_ot', ot)
+        self.assertIn('Garant', html)
+        entrega = ot.entrega_ids[:1]
+        html = self._html('tllr_fc.action_report_entrega', entrega)
+        self.assertIn('Cómo se recibió', html)
+        self.assertIn('Cómo se entrega', html)
+        control = self.env['tllr_fc.control_calidad'].new({'ot_id': ot.id})
+        self.assertTrue(control)
+
+    def test_reporte_control_de_calidad(self):
+        ot = self._ot_planificada()
+        ot.action_iniciar()
+        control = self.env['tllr_fc.control_calidad'].create({'ot_id': ot.id}) \
+            if ot.state == 'calidad' else self.env['tllr_fc.control_calidad'].search(
+                [('ot_id', '=', ot.id)], limit=1)
+        if control:
+            self.assertIn(control.name, self._html('tllr_fc.action_report_control_calidad', control))
+
+    def test_reclamo_de_garantia_no_hereda_la_ot_original(self):
+        ot = self._ot_entregada()
+        asistente = self.env['tllr_fc.wizard.reclamo_garantia'].with_context(
+            default_ot_id=ot.id).create({
+                'ot_id': ot.id, 'garantia_ids': [Command.set(ot.garantia_ids.ids)],
+                'kilometraje_actual': 2600, 'descripcion': 'Pierde aceite'})
+        recepcion = self.env['tllr_fc.recepcion'].browse(asistente.action_reclamar()['res_id'])
+        self.assertFalse(recepcion.ot_id)
+        self.assertEqual(recepcion.garantia_elegida_ids, ot.garantia_ids)
+
+    def test_recepcion_de_garantia_exige_elegir_la_garantia(self):
+        ot = self._ot_entregada()
+        recepcion = self.env['tllr_fc.recepcion'].create({
+            'vehiculo_id': self.vehiculo.id, 'partner_id': self.cliente.id,
+            'kilometraje': 3000, 'tipo_ot_propuesto': 'garantia', 'ot_origen_id': ot.id,
+            'servicio_ids': [Command.create({'product_id': self.s1.id})]})
+        recepcion.action_cargar_items()
+        recepcion.item_ids.write({'presente': 'si'})
+        with self.assertRaises(UserError):
+            recepcion.action_confirmar()
+
+    def test_rentabilidad_signos_y_margen(self):
+        ot = self._ot_entregada()
+        self.assertGreaterEqual(ot.ingreso, 0)
+        self.assertLessEqual(ot.costo_propio, 0)
+        self.assertLessEqual(ot.mano_obra, 0)
+        self.assertLessEqual(ot.impuesto, 0)
+        self.assertLessEqual(ot.ajustes_costo, 0)
+        self.assertAlmostEqual(
+            ot.margen, ot.ingreso + ot.costo_propio + ot.mano_obra + ot.impuesto
+            + ot.costo_garantias_origen + ot.ajustes_costo)

@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Reportes de operación (2026.19.012). Formato A4: márgenes 15/15/15/20 mm. -->
+
+        <!-- Cabecera común: título, empresa, cliente y vehículo de la OT -->
+        <template id="report_cabecera_ot">
+            <div class="row">
+                <div class="col-8">
+                    <h2 style="margin-bottom: 0;"><t t-out="titulo"/></h2>
+                    <h4 style="margin-top: 4px;"><t t-out="numero"/></h4>
+                </div>
+                <div class="col-4 text-end">
+                    <strong t-field="ot.company_id.name"/><br/>
+                    <span t-if="ot.company_id.vat">RUC: <span t-field="ot.company_id.vat"/><br/></span>
+                    <span t-out="datetime.date.today().strftime('%d/%m/%Y')"/>
+                </div>
+            </div>
+            <hr/>
+            <div class="row" style="margin-bottom: 12px;">
+                <div class="col-6">
+                    <h5>Cliente</h5>
+                    <div><strong t-field="ot.partner_id.name"/></div>
+                    <div t-if="ot.partner_id.vat">RUC/CI: <span t-field="ot.partner_id.vat"/></div>
+                    <div>OT: <strong t-field="ot.name"/> · <span t-field="ot.tipo"/> · <span t-field="ot.state"/></div>
+                </div>
+                <div class="col-6">
+                    <h5>Vehículo</h5>
+                    <div><strong>Chapa: <span t-field="ot.vehiculo_id.chapa"/></strong></div>
+                    <div>
+                        <span t-field="ot.vehiculo_id.marca_id.name"/>
+                        <span t-field="ot.vehiculo_id.modelo_id.name"/>
+                        <span t-if="ot.vehiculo_id.anio" t-out="ot.vehiculo_id.anio"/>
+                    </div>
+                    <div t-if="ot.vehiculo_id.chasis">Chasis: <span t-field="ot.vehiculo_id.chasis"/></div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ============ 02. Reporte de la OT ============ -->
+        <record id="action_report_ot" model="ir.actions.report">
+            <field name="name">Reporte de la OT</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_ot_document</field>
+            <field name="report_file">tllr_fc.report_ot_document</field>
+            <field name="print_report_name">'OT-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_ot"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_ot_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <t t-call="tllr_fc.report_cabecera_ot">
+                                <t t-set="ot" t-value="o"/>
+                                <t t-set="titulo">Reporte de la orden de trabajo</t>
+                                <t t-set="numero" t-value="o.name"/>
+                            </t>
+
+                            <!-- 1. Recepción -->
+                            <h4>1. Recepción</h4>
+                            <t t-set="r" t-value="o.recepcion_id"/>
+                            <div>
+                                Recepción <strong t-field="r.name"/> del
+                                <span t-field="r.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                                · Km: <span t-out="'{:,}'.format(o.kilometraje_ingreso).replace(',', '.')"/>
+                                · Combustible: <span t-field="o.combustible_ingreso"/>
+                                <span t-if="r.partner_secundario_id"> · Entregó: <span t-field="r.partner_secundario_id.name"/></span>
+                            </div>
+                            <table class="table table-sm" style="margin-top: 6px;">
+                                <thead>
+                                    <tr><th>Servicio solicitado</th><th>Observación</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="r.servicio_ids" t-as="s">
+                                        <td><span t-field="s.product_id.display_name"/></td>
+                                        <td><span t-field="s.observacion"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <table class="table table-sm" t-if="r.item_ids">
+                                <thead>
+                                    <tr><th>Inventario del vehículo</th><th style="width: 12%;">Presente</th><th>Observación</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="r.item_ids" t-as="i">
+                                        <td><span t-field="i.name"/></td>
+                                        <td><span t-field="i.presente"/></td>
+                                        <td><span t-field="i.observacion"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-if="r.observaciones" style="white-space: pre-wrap;"><strong>Observaciones: </strong><span t-field="r.observaciones"/></div>
+
+                            <!-- 2. OT -->
+                            <h4 style="margin-top: 16px;">2. Orden de trabajo</h4>
+                            <h5>Servicios, personal e informe</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th style="width: 15%;">Puesto</th>
+                                        <th style="width: 20%;">Personal</th>
+                                        <th>Informe del servicio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.servicio_ids" t-as="s">
+                                        <td><span t-field="s.product_id.display_name"/></td>
+                                        <td><span t-field="s.puesto_line_id.name"/></td>
+                                        <td><span t-out="', '.join(s.puesto_line_id.personal_ids.mapped('name'))"/></td>
+                                        <td style="white-space: pre-wrap;"><span t-field="s.informe"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <h5>Repuestos e insumos</h5>
+                            <table class="table table-sm" t-if="o.producto_ids">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th style="width: 14%;">Uso</th>
+                                        <th style="width: 12%;" class="text-end">Reservado</th>
+                                        <th style="width: 12%;" class="text-end">Utilizado</th>
+                                        <th style="width: 13%;" class="text-end">No utilizado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.producto_ids" t-as="p">
+                                        <td>
+                                            <span t-field="p.product_id.display_name"/>
+                                            <span t-if="p.provisto_cliente"> (del cliente)</span>
+                                        </td>
+                                        <td><span t-field="p.uso"/></td>
+                                        <td class="text-end"><span t-field="p.cantidad_reservada"/></td>
+                                        <td class="text-end"><span t-field="p.cantidad_utilizada"/></td>
+                                        <td class="text-end"><span t-field="p.cantidad_no_utilizada"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin repuestos ni insumos.</div>
+                            <h5 style="margin-top: 8px;">Horas trabajadas</h5>
+                            <table class="table table-sm" t-if="o.hora_ids">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 13%;">Fecha</th>
+                                        <th>Persona</th>
+                                        <th>Puesto</th>
+                                        <th>Servicio</th>
+                                        <th style="width: 10%;" class="text-end">Horas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.hora_ids.sorted(lambda h: (h.fecha, h.id))" t-as="h">
+                                        <td><span t-field="h.fecha"/></td>
+                                        <td><span t-field="h.personal_id.name"/></td>
+                                        <td><span t-field="h.puesto_line_id.name"/></td>
+                                        <td><span t-field="h.servicio_id.product_id.display_name"/></td>
+                                        <td class="text-end"><span t-field="h.horas"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="text-end"><strong>Total horas</strong></td>
+                                        <td class="text-end"><strong t-out="'%.2f' % sum(o.hora_ids.mapped('horas'))"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin horas cargadas.</div>
+
+                            <!-- 3. Resultados -->
+                            <h4 style="margin-top: 16px;">3. Resultados</h4>
+                            <t t-set="entrega" t-value="o.entrega_ids.filtered(lambda e: e.state == 'confirmada')[:1]"/>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th style="width: 14%;">Resultado</th>
+                                        <th style="width: 22%;">Terminado por</th>
+                                        <th style="width: 17%;">Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.servicio_ids" t-as="s">
+                                        <td>
+                                            <span t-field="s.product_id.display_name"/>
+                                            <div t-if="s.motivo_no_realizado" class="text-muted">
+                                                Motivo: <span t-field="s.motivo_no_realizado"/>
+                                            </div>
+                                        </td>
+                                        <td><span t-field="s.estado"/></td>
+                                        <td><span t-field="s.terminado_por_id.name"/></td>
+                                        <td><span t-field="s.fecha_terminado" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div>
+                                Ingreso: <span t-field="o.fecha_ingreso" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                                · Entrega: <span t-if="o.fecha_entrega" t-field="o.fecha_entrega" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/><span t-else="">pendiente</span>
+                                · Días en taller: <span t-field="o.dias_taller"/>
+                            </div>
+                            <div>
+                                Km ingreso: <span t-out="'{:,}'.format(o.kilometraje_ingreso).replace(',', '.')"/>
+                                <span t-if="entrega"> · Km salida: <span t-out="'{:,}'.format(entrega.kilometraje_salida).replace(',', '.')"/></span>
+                                · Combustible ingreso: <span t-field="o.combustible_ingreso"/>
+                                <span t-if="entrega"> · salida: <span t-field="entrega.combustible_salida"/></span>
+                            </div>
+
+                            <!-- 4. Control de calidad -->
+                            <h4 style="margin-top: 16px;">4. Control de calidad</h4>
+                            <table class="table table-sm" t-if="o.control_ids">
+                                <thead>
+                                    <tr><th>Control</th><th>Fecha</th><th>Responsable</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.control_ids" t-as="c">
+                                        <td><span t-field="c.name"/></td>
+                                        <td><span t-field="c.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/></td>
+                                        <td><span t-field="c.responsable_id.name"/></td>
+                                        <td><span t-field="c.state"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin control de calidad.</div>
+
+                            <!-- 5. Factura -->
+                            <h4 style="margin-top: 16px;">5. Factura</h4>
+                            <t t-set="facturas" t-value="o.sudo().factura_ids.filtered(lambda m: m.state != 'cancel')"/>
+                            <table class="table table-sm" t-if="facturas">
+                                <thead>
+                                    <tr><th>Documento</th><th>Fecha</th><th>Estado</th><th class="text-end">Total</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="facturas" t-as="f">
+                                        <td><span t-field="f.name"/> <span t-if="f.move_type == 'out_refund'">(nota de crédito)</span></td>
+                                        <td><span t-field="f.invoice_date"/></td>
+                                        <td><span t-field="f.state"/></td>
+                                        <td class="text-end"><span t-field="f.amount_total"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin facturas.</div>
+
+                            <!-- 6. Traslados y devoluciones -->
+                            <h4 style="margin-top: 16px;">6. Traslados y devoluciones</h4>
+                            <t t-set="traslados" t-value="env['stock.picking'].sudo().search([('tllr_fc_ot_id', '=', o.id)], order='id')"/>
+                            <table class="table table-sm" t-if="traslados">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 18%;">Traslado</th>
+                                        <th style="width: 12%;">Sentido</th>
+                                        <th>Producto</th>
+                                        <th style="width: 12%;" class="text-end">Cantidad</th>
+                                        <th style="width: 14%;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="traslados" t-as="t">
+                                        <tr t-foreach="t.move_ids" t-as="m">
+                                            <td><span t-field="t.name"/></td>
+                                            <td><span t-field="t.tllr_fc_sentido"/></td>
+                                            <td><span t-field="m.product_id.display_name"/></td>
+                                            <td class="text-end"><span t-out="m.quantity or m.product_uom_qty"/></td>
+                                            <td><span t-field="m.state"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin traslados.</div>
+                            <t t-set="devueltos" t-value="o.producto_ids.sudo().move_ids.filtered(lambda m: m.tllr_fc_devolucion_de_id and m.state == 'done')"/>
+                            <table class="table table-sm" t-if="devueltos">
+                                <thead>
+                                    <tr><th>Devolución de consumo</th><th style="width: 12%;" class="text-end">Cantidad</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="devueltos" t-as="m">
+                                        <td><span t-field="m.product_id.display_name"/></td>
+                                        <td class="text-end"><span t-field="m.quantity"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- 7. Garantías generadas -->
+                            <h4 style="margin-top: 16px;">7. Garantías generadas</h4>
+                            <table class="table table-sm" t-if="o.garantia_ids">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio / producto</th>
+                                        <th style="width: 14%;">Vence</th>
+                                        <th style="width: 16%;">Estado</th>
+                                        <th style="width: 18%;">Reclamo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.garantia_ids" t-as="g">
+                                        <td><span t-field="g.product_id.display_name"/></td>
+                                        <td><span t-field="g.fecha_limite"/></td>
+                                        <td><span t-field="g.state"/></td>
+                                        <td><span t-field="g.reclamo_ot_id.name"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="text-muted">Sin garantías generadas.</div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- ============ 03. Control de calidad ============ -->
+        <record id="action_report_control_calidad" model="ir.actions.report">
+            <field name="name">Control de calidad</field>
+            <field name="model">tllr_fc.control_calidad</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_control_calidad_document</field>
+            <field name="report_file">tllr_fc.report_control_calidad_document</field>
+            <field name="print_report_name">'Control-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_control_calidad"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_control_calidad_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <t t-call="tllr_fc.report_cabecera_ot">
+                                <t t-set="ot" t-value="o.ot_id"/>
+                                <t t-set="titulo">Control de calidad</t>
+                                <t t-set="numero" t-value="o.name"/>
+                            </t>
+                            <t t-set="en_blanco" t-value="o.state == 'borrador'"/>
+                            <div style="margin-bottom: 10px;">
+                                Fecha: <span t-field="o.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                                · Estado: <strong t-field="o.state"/>
+                                <span t-if="o.responsable_id"> · Responsable: <span t-field="o.responsable_id.name"/></span>
+                            </div>
+                            <h5>Servicios controlados</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Informe del servicio</th>
+                                        <th style="width: 14%;">Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.linea_ids" t-as="l">
+                                        <td><span t-field="l.ot_servicio_id.product_id.display_name"/></td>
+                                        <td style="white-space: pre-wrap;"><span t-field="l.informe"/></td>
+                                        <td>
+                                            <span t-if="en_blanco or not l.resultado">☐ Aprobado<br/>☐ Rechazado</span>
+                                            <span t-else="" t-field="l.resultado"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <h5>Lista a validar</h5>
+                            <t t-foreach="o.linea_ids" t-as="l">
+                                <table class="table table-sm" t-if="l.check_ids">
+                                    <thead>
+                                        <tr>
+                                            <th><span t-field="l.ot_servicio_id.product_id.display_name"/> – punto a verificar</th>
+                                            <th style="width: 16%;" class="text-center">Cumple</th>
+                                            <th style="width: 30%;">Comentario</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="l.check_ids" t-as="c">
+                                            <td><span t-field="c.name"/></td>
+                                            <td class="text-center">
+                                                <span t-if="en_blanco">☐ Sí &#160; ☐ No</span>
+                                                <span t-else="" t-out="'Sí' if c.cumple else 'No'"/>
+                                            </td>
+                                            <td>
+                                                <span t-if="en_blanco">&#160;</span>
+                                                <span t-else="" t-field="c.comentario"/>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div t-if="l.resultado_texto and not en_blanco" style="margin-bottom: 8px;">
+                                    <strong>Observaciones: </strong><span t-field="l.resultado_texto"/>
+                                </div>
+                            </t>
+                            <div t-if="o.comentarios and not en_blanco" style="margin-bottom: 12px;">
+                                <h5>Comentarios</h5>
+                                <div style="white-space: pre-wrap;"><span t-field="o.comentarios"/></div>
+                            </div>
+                            <div class="row" style="margin-top: 70px;">
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Responsable del control
+                                    </div>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Supervisor
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- ============ 05. Garantías de la OT ============ -->
+        <record id="action_report_garantias_ot" model="ir.actions.report">
+            <field name="name">Garantías de la OT</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_garantias_ot_document</field>
+            <field name="report_file">tllr_fc.report_garantias_ot_document</field>
+            <field name="print_report_name">'Garantias-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_ot"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_garantias_ot_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <t t-call="tllr_fc.report_cabecera_ot">
+                                <t t-set="ot" t-value="o"/>
+                                <t t-set="titulo">Garantías de la orden de trabajo</t>
+                                <t t-set="numero" t-value="o.name"/>
+                            </t>
+                            <div style="margin-bottom: 10px;">
+                                Fecha de entrega:
+                                <span t-if="o.fecha_entrega" t-field="o.fecha_entrega" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/>
+                                <span t-else="">pendiente</span>
+                                · Kilometraje de salida:
+                                <span t-out="'{:,}'.format(o.entrega_ids.filtered(lambda e: e.state == 'confirmada')[:1].kilometraje_salida or 0).replace(',', '.')"/>
+                            </div>
+                            <table class="table table-sm" t-if="o.garantia_ids">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio / producto</th>
+                                        <th style="width: 11%;">Entrega</th>
+                                        <th style="width: 8%;" class="text-end">Días</th>
+                                        <th style="width: 9%;" class="text-end">Km</th>
+                                        <th style="width: 11%;">Vence el</th>
+                                        <th style="width: 10%;" class="text-end">Km límite</th>
+                                        <th style="width: 14%;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.garantia_ids.sorted(lambda g: (g.fecha_limite, g.id))" t-as="g">
+                                        <td>
+                                            <span t-field="g.product_id.display_name"/>
+                                            <div t-if="g.reclamo_ot_id" class="text-muted">Reclamada: <span t-field="g.reclamo_ot_id.name"/></div>
+                                        </td>
+                                        <td><span t-field="g.fecha_entrega"/></td>
+                                        <td class="text-end"><span t-out="g.dias or '-'"/></td>
+                                        <td class="text-end"><span t-out="g.km or '-'"/></td>
+                                        <td><span t-field="g.fecha_limite"/></td>
+                                        <td class="text-end"><span t-out="g.km_limite or '-'"/></td>
+                                        <td><span t-field="g.state"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="alert alert-info">
+                                Esta orden de trabajo no tiene garantías registradas.
+                            </div>
+                            <div class="row" style="margin-top: 70px;">
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Firma del cliente
+                                    </div>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">
+                                        Taller
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

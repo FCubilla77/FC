@@ -79,6 +79,11 @@
                                        invisible="tipo_ot_propuesto != 'garantia'"
                                        readonly="state != 'borrador'"
                                        options="{'no_create': True}"/>
+                                <field name="garantia_elegida_ids" widget="many2many_tags"
+                                       invisible="tipo_ot_propuesto != 'garantia' or not ot_origen_id"
+                                       required="tipo_ot_propuesto == 'garantia' and ot_origen_id"
+                                       readonly="state != 'borrador'"
+                                       options="{'no_create': True}"/>
                                 <field name="ot_id"/>
                                 <field name="company_id" groups="base.group_multi_company"
                                        readonly="state != 'borrador'"/>

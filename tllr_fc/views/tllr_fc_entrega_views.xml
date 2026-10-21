@@ -259,16 +259,24 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Descripción</th>
-                                        <th style="width: 22%;">Origen</th>
-                                        <th style="width: 12%;">Entregado</th>
-                                        <th>Observación</th>
+                                        <th rowspan="2" style="vertical-align: middle;">Descripción</th>
+                                        <th rowspan="2" style="width: 16%; vertical-align: middle;">Origen</th>
+                                        <th colspan="2" class="text-center">Cómo se recibió</th>
+                                        <th colspan="2" class="text-center">Cómo se entrega</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="width: 9%;">Presente</th>
+                                        <th style="width: 17%;">Observación</th>
+                                        <th style="width: 10%;">Entregado</th>
+                                        <th style="width: 17%;">Observación</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr t-foreach="o.linea_ids" t-as="l">
                                         <td><span t-field="l.name"/></td>
                                         <td><span t-field="l.origen"/></td>
+                                        <td><span t-out="'Sí' if l.presente_recepcion else 'No'"/></td>
+                                        <td><span t-field="l.observacion_recepcion"/></td>
                                         <td><span t-out="'Sí' if l.entregado == 'si' else 'No'"/></td>
                                         <td><span t-field="l.observacion"/></td>
                                     </tr>

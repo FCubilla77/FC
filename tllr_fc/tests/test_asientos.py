@@ -229,7 +229,8 @@ class TestAsientos(TallerCommon):
             'cuenta_debe_id': self.gasto_interna.id, 'cuenta_haber_id': self.inventario.id})
         self.assertTrue(ajuste.asiento_id)
         self.assertAlmostEqual(self._saldo(ajuste.asiento_id, self.gasto_interna), 5000)
-        self.assertAlmostEqual(ot.costo_propio, costo_antes + 5000)
+        self.assertAlmostEqual(ot.ajustes_costo, -5000)
+        self.assertAlmostEqual(ot.costo_propio, costo_antes)
         with self.assertRaises(UserError):
             ajuste.motivo = 'otro'
         with self.assertRaises(UserError):

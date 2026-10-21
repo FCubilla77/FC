@@ -60,6 +60,11 @@ class TllrFcRecepcion(models.Model):
         'tllr_fc.ot', string="OT original (garantía)", copy=False, ondelete='restrict',
         domain="[('state', '=', 'entregado'), ('tipo', '=', 'cliente'), ('vehiculo_id', '=', vehiculo_id)]",
         help="OT de cliente entregada que originó el reclamo de garantía.")
+    garantia_elegida_ids = fields.Many2many(
+        'tllr_fc.garantia', 'tllr_fc_recepcion_garantia_rel', 'recepcion_id', 'garantia_id',
+        string="Garantías reclamadas (ítems)", copy=False,
+        domain="[('ot_id', '=', ot_origen_id), ('reclamo_ot_id', '=', False)]",
+        help="Servicios o productos de la OT original por los que se reclama la garantía.")
     garantia_reclamo_ids = fields.One2many(
         'tllr_fc.garantia', 'reclamo_recepcion_id', string="Garantías reclamadas", readonly=True)
     ot_id = fields.Many2one(
@@ -147,6 +152,33 @@ class TllrFcRecepcion(models.Model):
     def _onchange_tipo_ot_propuesto(self):
         if self.tipo_ot_propuesto != 'garantia':
             self.ot_origen_id = False
+            self.garantia_elegida_ids = False
+
+    @api.onchange('ot_origen_id')
+    def _onchange_ot_origen_id(self):
+        self.garantia_elegida_ids = self.garantia_elegida_ids.filtered(
+            lambda g: g.ot_id == self.ot_origen_id)
+
+    @api.onchange('garantia_elegida_ids')
+    def _onchange_garantia_elegida_ids(self):
+        """Los servicios a repetir salen de las garantías elegidas."""
+        if not self.garantia_elegida_ids:
+            return
+        servicios = self.garantia_elegida_ids.product_id.filtered(lambda p: p.type == 'service')
+        if not servicios:
+            servicios = self.ot_origen_id.servicio_ids.filtered(
+                lambda s: s.estado == 'terminado').product_id
+        self.servicio_ids = [Command.clear()] + [Command.create({
+            'product_id': p.id,
+            'observacion': "Garantía de %s" % self.ot_origen_id.name}) for p in servicios]
+
+    @api.constrains('garantia_elegida_ids', 'ot_origen_id')
+    def _check_garantia_elegida(self):
+        for recepcion in self.filtered('garantia_elegida_ids'):
+            if recepcion.garantia_elegida_ids.filtered(
+                    lambda g: g.ot_id != recepcion.ot_origen_id):
+                raise ValidationError(
+                    "Las garantías elegidas deben pertenecer a la OT original.")
 
     @api.constrains('ot_origen_id', 'tipo_ot_propuesto', 'vehiculo_id')
     def _check_ot_origen(self):
@@ -245,6 +277,11 @@ class TllrFcRecepcion(models.Model):
             raise UserError(
                 "Cargá el inventario del vehículo (botón «Cargar ítems del catálogo») "
                 "y confirmá cada ítem.")
+        if (self.tipo_ot_propuesto == 'garantia' and self.ot_origen_id
+                and not (self.garantia_elegida_ids | self.garantia_reclamo_ids)):
+            raise UserError(
+                "Elegí el servicio o producto de la OT %s por el que se reclama la garantía."
+                % self.ot_origen_id.name)
         sin_confirmar = self.item_ids.filtered(lambda i: not i.presente)
         if sin_confirmar:
             raise UserError(
@@ -314,8 +351,9 @@ class TllrFcRecepcion(models.Model):
             'state': 'confirmada',
             'ot_id': ot.id,
         })
-        if self.garantia_reclamo_ids:
-            self.garantia_reclamo_ids.sudo().write({'reclamo_ot_id': ot.id})
+        garantias = (self.garantia_elegida_ids | self.garantia_reclamo_ids).sudo()
+        if garantias:
+            garantias.write({'reclamo_recepcion_id': self.id, 'reclamo_ot_id': ot.id})
         if self.turno_id:
             self.turno_id.write({'state': 'recibido'})
             self.turno_id.message_post(

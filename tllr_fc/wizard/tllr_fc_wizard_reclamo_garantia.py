@@ -68,13 +68,16 @@ class TllrFcWizardReclamoGarantia(models.TransientModel):
             servicios = ot.servicio_ids.filtered(lambda s: s.estado == 'terminado').product_id
         if not servicios:
             raise UserError("No hay servicios de la OT original para repetir en la garantía.")
-        recepcion = self.env['tllr_fc.recepcion'].create({
+        # El contexto del botón trae default_ot_id (la OT original): no debe heredarlo la recepción.
+        contexto = {k: v for k, v in self.env.context.items() if not k.startswith('default_')}
+        recepcion = self.env['tllr_fc.recepcion'].with_context(contexto).create({
             'company_id': ot.company_id.id,
             'vehiculo_id': ot.vehiculo_id.id,
             'partner_id': ot.partner_id.id,
             'kilometraje': self.kilometraje_actual,
             'tipo_ot_propuesto': 'garantia',
             'ot_origen_id': ot.id,
+            'garantia_elegida_ids': [Command.set(self.garantia_ids.ids)],
             'observaciones': "Reclamo de garantía de %s:\n%s" % (ot.name, self.descripcion),
             'servicio_ids': [Command.create({
                 'product_id': p.id, 'observacion': "Garantía de %s" % ot.name}) for p in servicios],

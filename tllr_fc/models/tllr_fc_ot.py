@@ -160,12 +160,25 @@ class TllrFcOt(models.Model):
         help="Las OT de cliente siempre; las de garantía solo si tienen líneas a cobrar.")
     ingreso = fields.Monetary(
         string="Ingreso", currency_field='currency_id', compute='_compute_rentabilidad',
-        groups='tllr_fc.group_supervisor')
+        groups='tllr_fc.group_supervisor',
+        help="Total facturado (impuesto incluido); estimado desde la OT hasta que se confirme la factura.")
     costo_propio = fields.Monetary(
         string="Costo de la OT", currency_field='currency_id', compute='_compute_rentabilidad',
         groups='tllr_fc.group_supervisor',
-        help="Repuestos, insumos y accesorios consumidos, servicios y horas. En una OT de "
-             "garantía, solo lo que se cobra al cliente.")
+        help="Repuestos, insumos y accesorios consumidos y costo de los servicios, en negativo. "
+             "En una OT de garantía, solo lo que se cobra al cliente.")
+    mano_obra = fields.Monetary(
+        string="Mano de obra", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor',
+        help="Costo de las horas trabajadas (en negativo).")
+    impuesto = fields.Monetary(
+        string="Impuesto", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor',
+        help="Impuesto total de las facturas confirmadas (estimado si aún no hay factura), en negativo.")
+    ajustes_costo = fields.Monetary(
+        string="Ajustes de costo", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor',
+        help="Suma de los ajustes de costo de la OT, en negativo.")
     costo_garantia_absorbido = fields.Monetary(
         string="Costo de garantía no cobrado", currency_field='currency_id',
         compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor',
@@ -238,8 +251,12 @@ class TllrFcOt(models.Model):
         cobrado = horas * cobradas / total if total else 0.0
         return cobrado, horas - cobrado
 
-    def _tllr_fc_costos(self):
-        """Reparte el costo de la OT: (propio, no cobrado de garantía)."""
+    def _tllr_fc_desglose_costos(self):
+        """Costo de la OT desglosado: materiales y servicios, mano de obra, ajustes, no cobrado.
+
+        Valores positivos. En una OT de garantía, materiales y mano de obra son solo lo que se
+        cobra al cliente; el resto es el costo absorbido.
+        """
         self.ensure_one()
         ot = self.sudo()
         servicios = ot.servicio_ids
@@ -247,34 +264,74 @@ class TllrFcOt(models.Model):
         horas_cobradas, horas_no_cobradas = ot._tllr_fc_horas_reparto()
         ajustes = sum(ot.ajuste_ids.mapped('monto'))
         if ot.tipo != 'garantia':
-            propio = (sum(productos.mapped('costo')) + sum(servicios.mapped('costo_efectivo'))
-                      + horas_cobradas + horas_no_cobradas + ajustes)
-            return propio, 0.0
+            materiales = sum(productos.mapped('costo')) + sum(servicios.mapped('costo_efectivo'))
+            return {'materiales': materiales, 'mano_obra': horas_cobradas + horas_no_cobradas,
+                    'ajustes': ajustes, 'absorbido': 0.0}
         cobrados_s = servicios.filtered('facturable')
         cobrados_p = productos.filtered('facturable')
-        propio = (sum(cobrados_p.mapped('costo')) + sum(cobrados_s.mapped('costo_efectivo'))
-                  + horas_cobradas + ajustes)
-        absorbido = (sum((productos - cobrados_p).mapped('costo'))
-                     + sum((servicios - cobrados_s).mapped('costo_efectivo'))
-                     + horas_no_cobradas)
-        return propio, absorbido
+        return {
+            'materiales': sum(cobrados_p.mapped('costo')) + sum(cobrados_s.mapped('costo_efectivo')),
+            'mano_obra': horas_cobradas,
+            'ajustes': ajustes,
+            'absorbido': (sum((productos - cobrados_p).mapped('costo'))
+                          + sum((servicios - cobrados_s).mapped('costo_efectivo'))
+                          + horas_no_cobradas),
+        }
+
+    def _tllr_fc_costos(self):
+        """Reparte el costo de la OT: (propio, no cobrado de garantía)."""
+        self.ensure_one()
+        d = self._tllr_fc_desglose_costos()
+        return d['materiales'] + d['mano_obra'] + d['ajustes'], d['absorbido']
+
+    def _tllr_fc_ingreso_impuesto(self):
+        """(ingreso, impuesto): total e impuesto de las facturas confirmadas de la OT.
+
+        Sin factura confirmada se estiman con los precios de la OT y los impuestos de venta
+        de cada producto.
+        """
+        self.ensure_one()
+        ot = self.sudo()
+        if ot.tipo == 'interno':
+            return 0.0, 0.0
+        confirmadas = ot._tllr_fc_facturas().filtered(lambda m: m.state == 'posted')
+        if confirmadas:
+            return (sum(confirmadas.mapped('amount_total_signed')),
+                    sum(confirmadas.mapped('amount_tax_signed')))
+        impuesto = 0.0
+        for linea in list(ot.servicio_ids) + list(ot.producto_ids):
+            if not linea.subtotal:
+                continue
+            impuestos = linea.product_id.taxes_id.filtered(
+                lambda t: t.company_id == ot.company_id)
+            if impuestos:
+                calculo = impuestos.compute_all(linea.subtotal, currency=ot.currency_id)
+                impuesto += sum(t['amount'] for t in calculo['taxes'])
+        return ot.total + impuesto, impuesto
 
     @api.depends('tipo', 'total', 'servicio_ids.costo_efectivo', 'servicio_ids.facturable',
+                 'servicio_ids.subtotal', 'producto_ids.subtotal',
                  'producto_ids.costo', 'producto_ids.facturable', 'hora_ids.costo',
-                 'ajuste_ids.monto',
+                 'ajuste_ids.monto', 'factura_ids.state', 'factura_ids.amount_total_signed',
+                 'factura_ids.amount_tax_signed', 'factura_ids.payment_state',
                  'ot_garantia_ids.state', 'ot_garantia_ids.costo_garantia_absorbido')
     def _compute_rentabilidad(self):
         for ot in self:
-            propio, absorbido = ot._tllr_fc_costos()
+            d = ot._tllr_fc_desglose_costos()
             origen = sum(
                 garantia._tllr_fc_costos()[1] for garantia in ot.sudo().ot_garantia_ids
                 if garantia.state != 'cancelada')
-            ingreso = ot.total if ot.tipo != 'interno' else 0.0
+            ingreso, impuesto = ot._tllr_fc_ingreso_impuesto()
+            # Ingreso en positivo; todos los costos en negativo.
             ot.ingreso = ingreso
-            ot.costo_propio = propio
-            ot.costo_garantia_absorbido = absorbido
-            ot.costo_garantias_origen = origen
-            ot.margen = ingreso - propio - origen
+            ot.costo_propio = -d['materiales']
+            ot.mano_obra = -d['mano_obra']
+            ot.impuesto = -impuesto
+            ot.ajustes_costo = -d['ajustes']
+            ot.costo_garantia_absorbido = d['absorbido']
+            ot.costo_garantias_origen = -origen
+            ot.margen = (ingreso - d['materiales'] - d['mano_obra'] - impuesto
+                         - origen - d['ajustes'])
             ot.margen_porcentaje = (ot.margen / ingreso) if ingreso else 0.0
 
     @api.depends('servicio_ids.state_aprobacion', 'producto_ids.state_aprobacion')
@@ -970,11 +1027,14 @@ class TllrFcOt(models.Model):
         self.ensure_one()
         lineas = []
         for item in self.recepcion_id.item_ids.filtered(lambda i: i.presente == 'si'):
-            lineas.append({'origen': 'recepcion', 'name': item.name, 'presente_recepcion': True})
+            lineas.append({
+                'origen': 'recepcion', 'name': item.name, 'presente_recepcion': True,
+                'observacion_recepcion': item.observacion})
         for linea in self.producto_ids.filtered('provisto_cliente'):
             lineas.append({
                 'origen': 'repuesto_cliente', 'name': linea.product_id.display_name,
-                'presente_recepcion': True, 'entregado': 'si'})
+                'presente_recepcion': True, 'entregado': 'si',
+                'observacion_recepcion': linea.descripcion})
         return lineas
 
     def action_entregar(self):

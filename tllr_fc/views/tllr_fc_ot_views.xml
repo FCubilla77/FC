@@ -497,6 +497,9 @@
                                     <group string="Resultado de la OT">
                                         <field name="ingreso"/>
                                         <field name="costo_propio"/>
+                                        <field name="mano_obra"/>
+                                        <field name="impuesto"/>
+                                        <field name="ajustes_costo"/>
                                         <field name="costo_garantias_origen"
                                                invisible="tipo == 'garantia'"/>
                                         <field name="margen" class="fw-bold"/>

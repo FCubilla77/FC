@@ -132,8 +132,10 @@ class TestCobroGarantia(TallerCommon):
         insumo = self.env['tllr_fc.ot.producto'].create({
             'ot_id': garantia.id, 'product_id': self.insumo.id, 'cantidad_reservada': 1})
         insumo.cantidad_utilizada = 1
-        self.assertAlmostEqual(garantia.ingreso, 2 * 30000 * 0.9)
-        self.assertAlmostEqual(garantia.costo_propio, 2 * 12000)
+        base = 2 * 30000 * 0.9
+        self.assertAlmostEqual(garantia.ingreso, base - garantia.impuesto)
+        self.assertAlmostEqual(garantia.ingreso + garantia.impuesto, base)
+        self.assertAlmostEqual(garantia.costo_propio, -2 * 12000)
         self.assertAlmostEqual(garantia.costo_garantia_absorbido, 8000)
-        self.assertAlmostEqual(garantia.margen, 2 * 30000 * 0.9 - 2 * 12000)
-        self.assertAlmostEqual(original.costo_garantias_origen, 8000)
+        self.assertAlmostEqual(garantia.margen, base - 2 * 12000)
+        self.assertAlmostEqual(original.costo_garantias_origen, -8000)
