@@ -163,7 +163,7 @@
                                     </tr>
                                     <tr>
                                         <td colspan="4" class="text-end"><strong>Total horas</strong></td>
-                                        <td class="text-end"><strong t-out="'%.2f' % sum(o.hora_ids.mapped('horas'))"/></td>
+                                        <td class="text-end"><strong t-out="o.env['ir.qweb.field.float'].value_to_html(sum(o.hora_ids.mapped('horas')), {'precision': 2})"/></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -261,7 +261,7 @@
                                             <td><span t-field="t.name"/></td>
                                             <td><span t-field="t.tllr_fc_sentido"/></td>
                                             <td><span t-field="m.product_id.display_name"/></td>
-                                            <td class="text-end"><span t-out="m.quantity or m.product_uom_qty"/></td>
+                                            <td class="text-end"><span t-field="m.quantity"/></td>
                                             <td><span t-field="m.state"/></td>
                                         </tr>
                                     </t>
@@ -456,10 +456,10 @@
                                             <div t-if="g.reclamo_ot_id" class="text-muted">Reclamada: <span t-field="g.reclamo_ot_id.name"/></div>
                                         </td>
                                         <td><span t-field="g.fecha_entrega"/></td>
-                                        <td class="text-end"><span t-out="g.dias or '-'"/></td>
-                                        <td class="text-end"><span t-out="g.km or '-'"/></td>
+                                        <td class="text-end"><span t-field="g.dias"/></td>
+                                        <td class="text-end"><span t-field="g.km"/></td>
                                         <td><span t-field="g.fecha_limite"/></td>
-                                        <td class="text-end"><span t-out="g.km_limite or '-'"/></td>
+                                        <td class="text-end"><span t-field="g.km_limite"/></td>
                                         <td><span t-field="g.state"/></td>
                                     </tr>
                                 </tbody>

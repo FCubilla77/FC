@@ -10,6 +10,17 @@
                  t-att-data-oe-model="o and o._name"
                  t-att-data-oe-id="o and o.id"
                  t-att-data-oe-lang="o and o.env.context.get('lang')">
+                <style>
+                    .article { font-size: 10px; }
+                    .article h2 { font-size: 17px; }
+                    .article h3 { font-size: 14px; }
+                    .article h4 { font-size: 12px; }
+                    .article h5 { font-size: 11px; }
+                    .article table, .article td, .article th, .article div, .article span { font-size: 10px; }
+                    .article h2 span, .article h4 span { font-size: inherit; }
+                    .article th { text-align: center !important; vertical-align: middle !important; }
+                    .article td.text-end, .article td.tllr-num { text-align: right !important; }
+                </style>
                 <t t-out="0"/>
             </div>
         </template>

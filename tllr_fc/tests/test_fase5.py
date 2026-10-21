@@ -470,7 +470,10 @@ class TestFase5(TallerCommon):
 
     def test_reportes_de_operacion_se_renderizan(self):
         ot = self._ot_entregada()
-        self.assertIn(ot.name, self._html('tllr_fc.action_report_ot', ot))
+        html_ot = self._html('tllr_fc.action_report_ot', ot)
+        self.assertIn(ot.name, html_ot)
+        self.assertIn('font-size: 10px', html_ot)
+        self.assertIn('text-align: center !important', html_ot)
         html = self._html('tllr_fc.action_report_garantias_ot', ot)
         self.assertIn('Garant', html)
         entrega = ot.entrega_ids[:1]
