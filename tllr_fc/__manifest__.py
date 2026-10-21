@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.010",
+    "version": "2026.19.011",
     "license": "LGPL-3",
     "application": True,
     "installable": True,
@@ -58,6 +58,7 @@
         "views/tllr_fc_entrega_views.xml",
         "views/tllr_fc_wizard_views.xml",
         "views/res_config_settings_views.xml",
+        "views/account_stock_views.xml",
         "views/menus.xml",
     ],
     "assets": {

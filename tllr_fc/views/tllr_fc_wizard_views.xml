@@ -163,5 +163,57 @@
             </field>
         </record>
 
+
+        <record id="view_tllr_fc_wizard_refacturar_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.refacturar.form</field>
+            <field name="model">tllr_fc.wizard.refacturar</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="ot_id" invisible="1"/>
+                    <div class="alert alert-info" role="alert">
+                        La factura anterior fue anulada con una nota de crédito total. Dejá tildado
+                        lo que se factura; lo que destildes queda con «No facturar» (conserva su
+                        costo en la OT).
+                    </div>
+                    <group><field name="motivo"/></group>
+                    <field name="linea_ids" nolabel="1">
+                        <list editable="bottom" create="0" delete="0">
+                            <field name="name"/>
+                            <field name="cantidad"/>
+                            <field name="importe"/>
+                            <field name="facturar"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_refacturar" string="Refacturar" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_wizard_devolver_consumo_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.devolver_consumo.form</field>
+            <field name="model">tllr_fc.wizard.devolver_consumo</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="producto_id" invisible="1"/>
+                    <group>
+                        <field name="consumido"/>
+                        <field name="cantidad"/>
+                        <field name="motivo"/>
+                    </group>
+                    <footer>
+                        <button name="action_devolver" string="Devolver a stock" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
     </data>
 </odoo>

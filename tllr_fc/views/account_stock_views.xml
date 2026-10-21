@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Contabilidad: se identifica la OT de taller en asientos y facturas -->
+        <record id="view_tllr_fc_account_move_list" model="ir.ui.view">
+            <field name="name">tllr_fc.account.move.list</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list" position="inside">
+                    <field name="tllr_fc_ot_id" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_account_invoice_list" model="ir.ui.view">
+            <field name="name">tllr_fc.account.invoice.list</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_invoice_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list" position="inside">
+                    <field name="tllr_fc_ot_id" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_account_move_form" model="ir.ui.view">
+            <field name="name">tllr_fc.account.move.form</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="before">
+                    <group invisible="not tllr_fc_ot_id">
+                        <field name="tllr_fc_ot_id"/>
+                        <field name="tllr_fc_tipo_asiento"
+                               invisible="not tllr_fc_tipo_asiento"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_account_move_search" model="ir.ui.view">
+            <field name="name">tllr_fc.account.move.search</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_account_move_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <field name="tllr_fc_ot_id"/>
+                    <filter string="De una OT de taller" name="tllr_fc_con_ot"
+                            domain="[('tllr_fc_ot_id', '!=', False)]"/>
+                    <filter string="OT de taller" name="tllr_fc_agrupar_ot"
+                            context="{'group_by': 'tllr_fc_ot_id'}"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Inventario: se identifica la OT de taller en los traslados -->
+        <record id="view_tllr_fc_picking_list" model="ir.ui.view">
+            <field name="name">tllr_fc.stock.picking.list</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.vpicktree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list" position="inside">
+                    <field name="tllr_fc_ot_id" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_picking_form" model="ir.ui.view">
+            <field name="name">tllr_fc.stock.picking.form</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='origin']" position="after">
+                    <field name="tllr_fc_ot_id" invisible="not tllr_fc_ot_id"/>
+                    <field name="tllr_fc_sentido" invisible="not tllr_fc_ot_id"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_picking_search" model="ir.ui.view">
+            <field name="name">tllr_fc.stock.picking.search</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <field name="tllr_fc_ot_id"/>
+                    <filter string="De una OT de taller" name="tllr_fc_con_ot"
+                            domain="[('tllr_fc_ot_id', '!=', False)]"/>
+                    <filter string="OT de taller" name="tllr_fc_agrupar_ot"
+                            context="{'group_by': 'tllr_fc_ot_id'}"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

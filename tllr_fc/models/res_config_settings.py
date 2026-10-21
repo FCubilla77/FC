@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class ResConfigSettings(models.TransientModel):
@@ -35,3 +35,19 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.tllr_fc_qc_garantia', readonly=False)
     tllr_fc_aprobacion_adicional = fields.Selection(
         related='company_id.tllr_fc_aprobacion_adicional', readonly=False)
+
+    # Ajustes graba los campos relacionados de a uno en la compañía; la validación
+    # de los asientos se difiere hasta que están todos guardados.
+    @api.model_create_multi
+    def create(self, vals_list):
+        registros = super(ResConfigSettings, self.with_context(
+            tllr_fc_diferir_validacion=True)).create(vals_list)
+        registros = registros.with_env(self.env)
+        registros.company_id._tllr_fc_validar_asientos()
+        return registros
+
+    def write(self, vals):
+        resultado = super(ResConfigSettings, self.with_context(
+            tllr_fc_diferir_validacion=True)).write(vals)
+        self.company_id._tllr_fc_validar_asientos()
+        return resultado

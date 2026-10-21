@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
+from odoo.tools import float_compare
 from odoo.exceptions import UserError, ValidationError
 
 
@@ -44,6 +45,51 @@ class TllrFcOtPuesto(models.Model):
                     "La OT %s no puede tener más de un puesto activo a la vez." % ot.name)
 
     # ------------------------------------------------------------------
+    def _tllr_fc_validar_cierre(self):
+        """Controles para terminar el puesto (sin excepción).
+
+        - Los servicios del puesto están Terminados (o No realizados) y tienen informe.
+        - Cada servicio terminado tiene horas cargadas.
+        - Las funciones de quien cargó horas en el puesto tienen costo por hora vigente.
+        - Repuestos, insumos y accesorios del puesto: Utilizado + No utilizado = Reservado.
+        """
+        self.ensure_one()
+        errores = []
+        terminados = self.servicio_ids.filtered(lambda s: s.estado == 'terminado')
+        sin_informe = terminados.filtered(lambda s: not (s.informe or '').strip())
+        if sin_informe:
+            errores.append("Falta el informe del servicio: %s." % ', '.join(
+                sin_informe.mapped('product_id.name')))
+        horas = self.ot_id.hora_ids.sudo()
+        sin_horas = terminados.filtered(
+            lambda s: not horas.filtered(lambda h: h.servicio_id == s))
+        if sin_horas:
+            errores.append("Faltan las horas trabajadas de: %s." % ', '.join(
+                sin_horas.mapped('product_id.name')))
+        horas_puesto = horas.filtered(lambda h: h.puesto_line_id == self)
+        for funcion in horas_puesto.funcion_id:
+            fechas = horas_puesto.filtered(lambda h: h.funcion_id == funcion).mapped('fecha')
+            if any(not funcion._tiene_costo_a_fecha(fecha) for fecha in fechas):
+                errores.append(
+                    "La función «%s» no tiene costo por hora vigente asignado." % funcion.name)
+        sin_funcion = horas_puesto.filtered(lambda h: not h.funcion_id).personal_id
+        if sin_funcion:
+            errores.append("Sin función asignada: %s." % ', '.join(sin_funcion.mapped('name')))
+        productos = self.ot_id.producto_ids.sudo().filtered(
+            lambda p: p.puesto_line_id == self and not p.provisto_cliente
+            and p._tllr_fc_mueve_stock())
+        for producto in productos:
+            suma = producto.cantidad_utilizada + producto.cantidad_no_utilizada
+            if float_compare(suma, producto.cantidad_reservada,
+                             precision_rounding=producto.uom_id.rounding or 0.001) != 0:
+                errores.append(
+                    "«%s»: Utilizado (%s) + No utilizado (%s) debe ser igual a lo reservado (%s)."
+                    % (producto.product_id.display_name, producto.cantidad_utilizada,
+                       producto.cantidad_no_utilizada, producto.cantidad_reservada))
+        if errores:
+            raise UserError(
+                "No se puede terminar el puesto «%s»:\n- %s" % (self.name, '\n- '.join(errores)))
+
     def _tllr_fc_usuario_puede_operar(self):
         """Supervisor o personal asignado al puesto (por su usuario)."""
         self.ensure_one()

@@ -154,8 +154,18 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         accion = ot.action_entregar()
         entrega = self.env['tllr_fc.entrega'].browse(accion['res_id'])
-        self.assertEqual(entrega.retira_id, self.cliente)
+        self.assertFalse(entrega.retira_id)
+        self.assertFalse(entrega.combustible_salida)
         self.assertTrue(entrega.linea_ids)
+        with self.assertRaises(UserError):  # falta quién retira
+            entrega.action_confirmar()
+        entrega.write({'retira_id': entrega.partner_id.id})
+        with self.assertRaises(UserError):  # falta el combustible de salida
+            entrega.action_confirmar()
+        entrega.write({'combustible_salida': 'lleno'})
+        with self.assertRaises(UserError):  # falta contestar Sí/No en la revisión
+            entrega.action_confirmar()
+        entrega.linea_ids.write({'entregado': 'si'})
         resultado = entrega.action_confirmar()
         self.assertEqual(resultado['res_model'], 'tllr_fc.wizard.excepcion')
         self.assertEqual(entrega.state, 'borrador')
@@ -168,7 +178,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.kilometraje_salida = 2100
         self.assertTrue(entrega.action_confirmar() is True)
         self.assertEqual(ot.state, 'entregado')
@@ -180,17 +191,22 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot, plazo=False)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertIsInstance(entrega.action_confirmar(), dict)
 
     def test_diferencias_de_inventario_exigen_excepcion(self):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
+        self.assertFalse(entrega.linea_ids.filtered('diferencia'))  # sin contestar
+        entrega.linea_ids.write({'entregado': 'no'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertTrue(entrega.linea_ids.filtered('diferencia'))
         self.assertTrue(entrega.hay_diferencias)
         self.assertIsInstance(entrega.action_confirmar(), dict)
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertTrue(entrega.action_confirmar() is True)
 
     def test_combustible_de_salida_menor_alerta_sin_bloquear(self):
@@ -198,7 +214,8 @@ class TestFase5(TallerCommon):
         ot.combustible_ingreso = 'lleno'
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.combustible_salida = '1_4'
         self.assertTrue(entrega.alerta_combustible)
         self.assertTrue(entrega.action_confirmar() is True)
@@ -208,7 +225,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         ot.tipo = 'interno'
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertTrue(entrega.action_confirmar() is True)
         self.assertEqual(ot.state, 'entregado')
         self.assertFalse(ot.garantia_ids)  # solo las OT de cliente generan garantías
@@ -218,7 +236,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.kilometraje_salida = 2500
         entrega.action_confirmar()
         garantias = ot.garantia_ids
@@ -232,7 +251,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.action_confirmar()
         asistente = self.env['tllr_fc.wizard.reclamo_garantia'].create({
             'ot_id': ot.id, 'garantia_ids': [Command.set(ot.garantia_ids.ids)],
@@ -257,7 +277,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.action_confirmar()
         ot.garantia_ids.sudo().write({'fecha_limite': fields.Date.today() - timedelta(days=1)})
         self.assertEqual(ot.garantia_ids[:1].state, 'vencida_fecha')
@@ -313,7 +334,8 @@ class TestFase5(TallerCommon):
         factura.invoice_payment_term_id = self.plazo30
         factura.action_post()
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertTrue(entrega.action_confirmar() is True)
         self.assertEqual(ot.state, 'cancelada')
         self.assertTrue(ot.fecha_entrega)
@@ -359,7 +381,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.action_confirmar()
         return ot
 
@@ -375,7 +398,8 @@ class TestFase5(TallerCommon):
         ot = self._ot_lista()
         self._facturar(ot)
         entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.action_confirmar()
         ot.garantia_ids.sudo().unlink()
         with self.assertRaises(UserError) as error:

@@ -65,7 +65,8 @@ class TestCobroGarantia(TallerCommon):
         self.assertEqual(factura.invoice_line_ids.product_id, self.repuesto)
         # La entrega exige la factura confirmada.
         entrega = self.env['tllr_fc.entrega'].create({'ot_id': ot.id})
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         self.assertTrue(any('factura confirmada' in p for p in entrega._tllr_fc_problemas()))
         factura.invoice_payment_term_id = self.env['account.payment.term'].create({
             'name': '30 días cobro', 'line_ids': [Command.create({
@@ -86,7 +87,8 @@ class TestCobroGarantia(TallerCommon):
         with self.assertRaises(UserError):
             ot.action_cerrar_facturar()
         entrega = self.env['tllr_fc.entrega'].create({'ot_id': ot.id})
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.kilometraje_salida = 2500
         self.assertFalse(entrega._tllr_fc_problemas())
 

@@ -38,8 +38,9 @@ class TllrFcEntrega(models.Model):
     partner_id = fields.Many2one(
         'res.partner', string="Cliente", related='ot_id.partner_id', store=True)
     retira_id = fields.Many2one(
-        'res.partner', string="Retira", required=True, ondelete='restrict', tracking=True,
-        help="Persona que retira el vehículo; puede ser distinta del contacto principal.")
+        'res.partner', string="Retira", ondelete='restrict', tracking=True,
+        help="Persona que retira el vehículo; se elige a mano (obligatoria para confirmar). "
+             "Puede ser distinta del contacto principal.")
     linea_ids = fields.One2many(
         'tllr_fc.entrega.linea', 'entrega_id', string="Revisión de inventario", copy=False)
     kilometraje_ingreso = fields.Integer(
@@ -48,7 +49,8 @@ class TllrFcEntrega(models.Model):
     combustible_ingreso = fields.Selection(
         related='ot_id.combustible_ingreso', string="Combustible al ingreso")
     combustible_salida = fields.Selection(
-        NIVELES_COMBUSTIBLE, string="Combustible a la salida")
+        NIVELES_COMBUSTIBLE, string="Combustible a la salida",
+        help="Obligatorio para confirmar la entrega, también en las OT internas.")
     alerta_combustible = fields.Char(
         string="Alerta de combustible", compute='_compute_alerta_combustible')
     comentarios = fields.Text(string="Comentarios")
@@ -98,9 +100,7 @@ class TllrFcEntrega(models.Model):
     @api.onchange('ot_id')
     def _onchange_ot_id(self):
         if self.ot_id and not self._origin.id:
-            self.retira_id = self.ot_id.partner_id
             self.kilometraje_salida = self.ot_id.kilometraje_ingreso
-            self.combustible_salida = self.ot_id.combustible_ingreso
             self.linea_ids = [(5, 0, 0)] + [
                 (0, 0, vals) for vals in self.ot_id._tllr_fc_lineas_de_entrega()]
 
@@ -113,7 +113,6 @@ class TllrFcEntrega(models.Model):
                     vals.get('company_id') or ot.company_id.id or self.env.company.id)
                 vals['name'] = compania._tllr_fc_siguiente_codigo('tllr_fc.entrega')
             if ot:
-                vals.setdefault('retira_id', ot.partner_id.id)
                 vals.setdefault('kilometraje_salida', ot.kilometraje_ingreso)
                 if 'linea_ids' not in vals:
                     vals['linea_ids'] = [(0, 0, v) for v in ot._tllr_fc_lineas_de_entrega()]
@@ -165,8 +164,17 @@ class TllrFcEntrega(models.Model):
             raise UserError(
                 "La OT %s no está lista para entrega (estado «%s»)." % (
                     ot.name, dict(ot._fields['state'].selection)[ot.state]))
+        if not self.retira_id:
+            raise UserError("Indicá quién retira el vehículo.")
+        if not self.combustible_salida:
+            raise UserError("Indicá el nivel de combustible a la salida.")
         if not self.kilometraje_salida:
             raise UserError("Indicá el kilometraje de salida.")
+        sin_revisar = self.linea_ids.filtered(lambda l: not l.entregado)
+        if sin_revisar:
+            raise UserError(
+                "Indicá Sí o No en la revisión de inventario. Faltan: %s." % ', '.join(
+                    sin_revisar.mapped('name')))
         if self.search_count([('ot_id', '=', ot.id), ('state', '=', 'confirmada')]):
             raise UserError("La OT %s ya tiene una entrega confirmada." % ot.name)
         problemas = self._tllr_fc_problemas()
@@ -208,7 +216,9 @@ class TllrFcEntregaLinea(models.Model):
         string="Origen", required=True, default='recepcion')
     name = fields.Char(string="Descripción", required=True)
     presente_recepcion = fields.Boolean(string="Estaba presente al ingreso", default=True)
-    entregado = fields.Boolean(string="Entregado")
+    entregado = fields.Selection(
+        [('si', "Sí"), ('no', "No")], string="Entregado",
+        help="Se elige Sí o No en cada línea; no hay valor por defecto.")
     observacion = fields.Char(string="Observación")
     diferencia = fields.Boolean(
         string="Diferencia", compute='_compute_diferencia', store=True)
@@ -217,4 +227,5 @@ class TllrFcEntregaLinea(models.Model):
     def _compute_diferencia(self):
         for linea in self:
             linea.diferencia = (
-                linea.origen == 'recepcion' and linea.presente_recepcion and not linea.entregado)
+                linea.origen == 'recepcion' and linea.presente_recepcion
+                and linea.entregado == 'no')

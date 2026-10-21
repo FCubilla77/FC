@@ -41,6 +41,14 @@ class TllrFcOtProducto(models.Model):
         string="Garantía (km)", related='product_id.product_tmpl_id.tllr_fc_garantia_km')
     cantidad_reservada = fields.Float(string="Reservado", default=1.0, digits='Product Unit')
     cantidad_utilizada = fields.Float(string="Utilizado", digits='Product Unit')
+    cantidad_no_utilizada = fields.Float(
+        string="No utilizado", digits='Product Unit',
+        help="Parte de lo reservado que no se usó. Utilizado + No utilizado debe igualar lo "
+             "reservado para poder terminar el puesto. Lo no utilizado se libera y, con "
+             "traslados activos, vuelve al almacén principal en un traslado en borrador.")
+    cantidad_requerida = fields.Float(
+        string="Requerido", digits='Product Unit', compute='_compute_cantidad_requerida',
+        help="Reservado menos lo declarado como no utilizado.")
     uom_id = fields.Many2one('uom.uom', related='product_id.uom_id', string="Unidad")
     lote_id = fields.Many2one(
         'stock.lot', string="Lote", domain="[('product_id', '=', product_id)]",
@@ -120,13 +128,19 @@ class TllrFcOtProducto(models.Model):
                 facturable = facturable and linea.cobrar_cliente
             linea.facturable = facturable
 
-    @api.depends('cantidad_utilizada', 'cantidad_reservada', 'precio_unitario',
+    @api.depends('cantidad_reservada', 'cantidad_no_utilizada')
+    def _compute_cantidad_requerida(self):
+        for linea in self:
+            linea.cantidad_requerida = max(
+                linea.cantidad_reservada - linea.cantidad_no_utilizada, 0.0)
+
+    @api.depends('cantidad_utilizada', 'cantidad_requerida', 'precio_unitario',
                  'descuento', 'facturable')
     def _compute_subtotal(self):
         for linea in self:
             if linea.facturable:
                 # Se factura lo utilizado; mientras no se use nada, lo reservado (estimado).
-                cantidad = linea.cantidad_utilizada or linea.cantidad_reservada
+                cantidad = linea.cantidad_utilizada or linea.cantidad_requerida
                 linea.subtotal = cantidad * linea.precio_unitario * (1 - linea.descuento / 100.0)
             else:
                 linea.subtotal = 0.0
@@ -135,7 +149,8 @@ class TllrFcOtProducto(models.Model):
     def _compute_cantidad_consumida(self):
         for linea in self:
             linea.cantidad_consumida = sum(
-                m.quantity for m in linea.sudo().move_ids if m.state == 'done')
+                -m.quantity if m.tllr_fc_devolucion_de_id else m.quantity
+                for m in linea.sudo().move_ids if m.state == 'done')
 
     @api.depends('puesto_line_id', 'product_id', 'provisto_cliente', 'ot_id.state',
                  'company_id.tllr_fc_almacen_principal_id',
@@ -152,14 +167,14 @@ class TllrFcOtProducto(models.Model):
 
     @api.depends('move_ids.state', 'move_ids.quantity', 'move_ids.product_uom_qty',
                  'traslado_move_ids.state', 'traslado_move_ids.quantity',
-                 'cantidad_reservada', 'cantidad_utilizada', 'puesto_line_id',
-                 'company_id.tllr_fc_almacen_principal_id')
+                 'cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',
+                 'puesto_line_id', 'company_id.tllr_fc_almacen_principal_id')
     def _compute_reserva_estado(self):
         for linea in self:
             linea = linea.sudo()
             if linea._tllr_fc_requiere_traslado() and not linea.autorizado_sin_traslado:
                 consumido = linea.cantidad_consumida
-                pendiente = linea.cantidad_reservada - max(consumido, linea.cantidad_utilizada)
+                pendiente = linea.cantidad_requerida - max(consumido, linea.cantidad_utilizada)
                 if (pendiente > 0 and linea.ot_id.state in ('espera', 'proceso')
                         and linea._tllr_fc_cantidad_en_puesto() <= 0):
                     linea.reserva_estado = 'traslado'
@@ -183,7 +198,8 @@ class TllrFcOtProducto(models.Model):
             hechos = linea.sudo().move_ids.filtered(lambda m: m.state == 'done')
             linea.costo = abs(sum(hechos.mapped('value')))
 
-    @api.constrains('cantidad_reservada', 'cantidad_utilizada', 'descuento', 'precio_unitario')
+    @api.constrains('cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',
+                    'descuento', 'precio_unitario')
     def _check_cantidades(self):
         for linea in self:
             if linea.cantidad_reservada <= 0:
@@ -196,6 +212,14 @@ class TllrFcOtProducto(models.Model):
                 raise ValidationError(
                     "No se puede utilizar más de lo reservado de «%s». Aumentá primero la "
                     "cantidad reservada." % linea.product_id.display_name)
+            if linea.cantidad_no_utilizada < 0:
+                raise ValidationError("La cantidad no utilizada no puede ser negativa.")
+            if float_compare(linea.cantidad_utilizada + linea.cantidad_no_utilizada,
+                             linea.cantidad_reservada,
+                             precision_rounding=linea.uom_id.rounding or 0.001) > 0:
+                raise ValidationError(
+                    "Utilizado + No utilizado de «%s» no puede superar lo reservado (%s)."
+                    % (linea.product_id.display_name, linea.cantidad_reservada))
             if not 0 <= linea.descuento <= 100:
                 raise ValidationError("El descuento debe estar entre 0 y 100.")
             if linea.precio_unitario < 0:
@@ -292,6 +316,83 @@ class TllrFcOtProducto(models.Model):
             'tllr_fc_ot_producto_id': self.id,
         }
 
+    def action_devolver_consumo(self):
+        """Abre el asistente para devolver a stock lo consumido (supervisor, con motivo)."""
+        self.ensure_one()
+        if not self._es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden devolver consumos.")
+        return {
+            'type': 'ir.actions.act_window', 'name': "Devolver consumo",
+            'res_model': 'tllr_fc.wizard.devolver_consumo', 'view_mode': 'form',
+            'target': 'new', 'context': {'default_producto_id': self.id},
+        }
+
+    def _tllr_fc_devolver_consumo(self, cantidad, motivo):
+        """Deshace parte de lo consumido: lo devuelve al lugar de origen y baja lo utilizado."""
+        self.ensure_one()
+        ot = self.ot_id
+        redondeo = self.uom_id.rounding or 0.001
+        if ot.state not in ('proceso', 'calidad', 'listo') or ot.cerrada_facturar \
+                or ot._tllr_fc_facturas():
+            raise UserError(
+                "No se puede devolver el consumo de «%s»: la OT %s no admite cambios de "
+                "consumo (estado o facturación)." % (self.product_id.display_name, ot.name))
+        if float_compare(cantidad, 0, precision_rounding=redondeo) <= 0:
+            raise UserError("Indicá una cantidad a devolver mayor que cero.")
+        if float_compare(cantidad, self.cantidad_consumida, precision_rounding=redondeo) > 0:
+            raise UserError(
+                "Solo se puede devolver hasta lo consumido de «%s» (%s)." % (
+                    self.product_id.display_name, self.cantidad_consumida))
+        resto = cantidad
+        consumo = ot.company_id._tllr_fc_ubicacion_consumo()
+        Movimiento = self.env['stock.move'].sudo()
+        consumos = self.sudo().move_ids.filtered(
+            lambda m: m.state == 'done' and not m.tllr_fc_devolucion_de_id
+            and m.location_dest_id == consumo).sorted('id', reverse=True)
+        for original in consumos:
+            devuelto = sum(Movimiento.search([
+                ('tllr_fc_devolucion_de_id', '=', original.id), ('state', '=', 'done')
+            ]).mapped('quantity'))
+            disponible = original.quantity - devuelto
+            parte = min(resto, disponible)
+            if float_compare(parte, 0, precision_rounding=redondeo) <= 0:
+                continue
+            valores = {
+                'product_id': self.product_id.id,
+                'product_uom': self.product_id.uom_id.id,
+                'product_uom_qty': parte,
+                'location_id': consumo.id,
+                'location_dest_id': original.location_id.id,
+                'company_id': ot.company_id.id,
+                'origin': "Devolución %s" % ot.name,
+                'reference': "Devolución %s" % ot.name,
+                'tllr_fc_ot_id': ot.id,
+                'tllr_fc_ot_producto_id': self.id,
+                'tllr_fc_devolucion_de_id': original.id,
+            }
+            movimiento = Movimiento.create(valores)
+            movimiento._action_confirm()
+            self.env['stock.move.line'].sudo().create({
+                'move_id': movimiento.id,
+                'product_id': self.product_id.id,
+                'product_uom_id': self.product_id.uom_id.id,
+                'lot_id': self.lote_id.id or False,
+                'quantity': parte,
+                'location_id': consumo.id,
+                'location_dest_id': original.location_id.id,
+            })
+            movimiento.picked = True
+            movimiento._action_done()
+            resto -= parte
+            if float_compare(resto, 0, precision_rounding=redondeo) <= 0:
+                break
+        # Baja lo utilizado sin pasar por los controles de la edición normal.
+        super(TllrFcOtProducto, self).write({
+            'cantidad_utilizada': max(self.cantidad_utilizada - cantidad, 0.0)})
+        self._tllr_fc_sincronizar_stock()
+        ot.message_post(body="Devolución de consumo: %s × %s por %s. Motivo: %s" % (
+            self.product_id.display_name, cantidad, self.env.user.name, motivo))
+
     def _tllr_fc_movimientos_abiertos(self):
         return self.sudo().move_ids.filtered(
             lambda m: m.state not in ('done', 'cancel'))
@@ -329,9 +430,15 @@ class TllrFcOtProducto(models.Model):
 
     def _tllr_fc_consumido_en(self, ubicacion):
         self.ensure_one()
-        return sum(
+        consumos = sum(
             m.quantity for m in self.sudo().move_ids
-            if m.state == 'done' and m.location_id == ubicacion)
+            if m.state == 'done' and m.location_id == ubicacion
+            and not m.tllr_fc_devolucion_de_id)
+        devoluciones = sum(
+            m.quantity for m in self.sudo().move_ids
+            if m.state == 'done' and m.tllr_fc_devolucion_de_id
+            and m.location_dest_id == ubicacion)
+        return consumos - devoluciones
 
     def _tllr_fc_cantidad_en_puesto(self):
         """Stock trasladado y todavía no consumido en el almacén del puesto."""
@@ -354,7 +461,7 @@ class TllrFcOtProducto(models.Model):
                 or self.autorizado_sin_traslado):
             return consumido_puesto
         consumido_principal = self._tllr_fc_consumido_en(self._tllr_fc_ubicacion_principal())
-        return max(self.cantidad_reservada - consumido_principal, consumido_puesto)
+        return max(self.cantidad_requerida - consumido_principal, consumido_puesto)
 
     def _tllr_fc_picking_traslado(self, sentido):
         """Picking en borrador de la OT y del puesto (se crea si falta)."""
@@ -592,7 +699,7 @@ class TllrFcOtProducto(models.Model):
                     consumido += delta
             linea._tllr_fc_sincronizar_traslados()
             if estado in ('espera', 'proceso'):
-                pendiente = linea.cantidad_reservada - max(consumido, linea.cantidad_utilizada)
+                pendiente = linea.cantidad_requerida - max(consumido, linea.cantidad_utilizada)
                 if linea._tllr_fc_requiere_traslado():
                     pendiente = min(pendiente, max(linea._tllr_fc_cantidad_en_puesto(), 0.0))
                 if float_compare(pendiente, 0, precision_rounding=redondeo) > 0:
@@ -634,7 +741,8 @@ class TllrFcOtProducto(models.Model):
                 vals['puesto_line_id'] = (
                     lineas_puesto.filtered(lambda l: l.state == 'activo')[:1]
                     or lineas_puesto[:1]).id
-            if vals.get('cantidad_utilizada') and ot.state != 'proceso':
+            if (vals.get('cantidad_utilizada') or vals.get('cantidad_no_utilizada')) \
+                    and ot.state != 'proceso':
                 raise UserError("Solo se registra lo utilizado con la OT en proceso.")
         lineas = super().create(vals_list)
         for linea, vals in zip(lineas, vals_list):
@@ -691,7 +799,13 @@ class TllrFcOtProducto(models.Model):
             raise AccessError(
                 "Solo el supervisor o el administrador de taller pueden cambiar el precio, el "
                 "descuento, «No facturar» o «Provisto por el cliente».")
-        self._tllr_fc_verificar_ot_editable(self.ot_id)
+        if not (self.env.context.get('tllr_fc_refacturando') and set(vals) <= {'no_facturar'}):
+            self._tllr_fc_verificar_ot_editable(self.ot_id)
+        if 'cantidad_no_utilizada' in vals:
+            for linea in self:
+                if linea.ot_id.state != 'proceso' and (
+                        vals['cantidad_no_utilizada'] != linea.cantidad_no_utilizada):
+                    raise UserError("Solo se registra lo no utilizado con la OT en proceso.")
         if 'cantidad_utilizada' in vals:
             for linea in self:
                 if linea.ot_id.state != 'proceso' and vals['cantidad_utilizada'] != linea.cantidad_utilizada:
@@ -710,8 +824,8 @@ class TllrFcOtProducto(models.Model):
                         "No se puede cambiar el producto ni el lote de «%s»: ya se consumió stock."
                         % linea.product_id.display_name)
         resultado = super().write(vals)
-        if {'product_id', 'cantidad_reservada', 'cantidad_utilizada', 'lote_id',
-                'provisto_cliente', 'puesto_line_id'} & set(vals):
+        if {'product_id', 'cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',
+                'lote_id', 'provisto_cliente', 'puesto_line_id'} & set(vals):
             self._tllr_fc_sincronizar_stock()
         if 'cobrar_cliente' in vals:
             self._tllr_fc_sincronizar_cobro()

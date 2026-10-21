@@ -48,7 +48,7 @@ class TestFase4(TallerCommon):
         self.personal1.funcion_id = funcion
         ot = self._ot_en_proceso()
         hora = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 2.5})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 2.5})
         self.assertEqual(hora.funcion_id, funcion)
         self.assertAlmostEqual(hora.costo, 50000)
         self.assertAlmostEqual(ot.horas_reales, 2.5)
@@ -66,27 +66,27 @@ class TestFase4(TallerCommon):
             'name': 'Ajeno F4', 'funcion_id': self.personal1.funcion_id.id})
         with self.assertRaises(ValidationError):
             self.env['tllr_fc.ot.hora'].with_user(self.usuario_taller).create({
-                'ot_id': ot.id, 'personal_id': ajeno.id, 'horas': 1})
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': ajeno.id, 'horas': 1})
         propia = self.env['tllr_fc.ot.hora'].with_user(self.usuario_taller).create({
-            'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 1})
         self.assertTrue(propia)
         # El supervisor puede cargar horas de cualquiera.
         self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': ajeno.id, 'horas': 1})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': ajeno.id, 'horas': 1})
 
     def test_horas_mas_de_12_en_el_dia_avisa_sin_bloquear(self):
         ot = self._ot_en_proceso()
         hora = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 8})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 8})
         self.assertFalse(hora.aviso)
         segunda = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 6})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 6})
         self.assertAlmostEqual(segunda.horas_dia_persona, 14)
         self.assertIn('14.00', segunda.aviso)
         self.assertTrue(ot.aviso_horas)
         with self.assertRaises(ValidationError):
             self.env['tllr_fc.ot.hora'].create({
-                'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 0})
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 0})
 
     def test_horas_bloqueadas_en_calidad_y_con_ot_detenida(self):
         ot = self._ot_en_proceso()
@@ -94,18 +94,18 @@ class TestFase4(TallerCommon):
         ot._tllr_fc_detener(motivo, False)
         with self.assertRaises(UserError):
             self.env['tllr_fc.ot.hora'].create({
-                'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 1})
         ot.action_reanudar()
         hora = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 1})
         self._llegar_a_calidad(ot)
         self.assertEqual(ot.state, 'calidad')
         # En calidad solo carga horas el responsable del control (o el supervisor).
         with self.assertRaises(ValidationError):
             self.env['tllr_fc.ot.hora'].with_user(self.usuario_taller).create({
-                'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 1})
         propia = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': ot.control_ids.responsable_id.id, 'horas': 1})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': ot.control_ids.responsable_id.id, 'horas': 1})
         self.assertTrue(propia)
         ot.control_ids.action_aprobar_todas()
         ot.control_ids.action_confirmar()

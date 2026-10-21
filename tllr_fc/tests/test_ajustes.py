@@ -98,5 +98,5 @@ class TestAjustes(_Base):
         responsable = ot.control_ids.responsable_id
         self.assertEqual(ot.personal_horas_ids, responsable)
         hora = self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, 'personal_id': responsable.id, 'horas': 1.5})
+            'ot_id': ot.id, **self._sv(ot), 'personal_id': responsable.id, 'horas': 1.5})
         self.assertEqual(hora.horas, 1.5)

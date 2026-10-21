@@ -124,6 +124,9 @@ class TllrFcOt(models.Model):
     liquidada = fields.Boolean(
         string="Cancelada con liquidación", readonly=True, copy=False, tracking=True)
     kilometraje_salida = fields.Integer(string="Kilometraje de salida", readonly=True, copy=False)
+    puede_refacturar = fields.Boolean(
+        string="Puede refacturarse", compute='_compute_puede_refacturar',
+        help="La factura de la OT fue anulada con una nota de crédito total y no hay otra activa.")
     factura_ids = fields.One2many(
         'account.move', 'tllr_fc_ot_id', string="Facturas",
         domain=[('move_type', 'in', ('out_invoice', 'out_refund'))], readonly=True)
@@ -335,14 +338,15 @@ class TllrFcOt(models.Model):
         'tllr_fc.personal', string="Personal que puede cargar horas",
         compute='_compute_personal_horas')
 
-    @api.depends('state', 'personal_ids', 'control_ids.responsable_id', 'control_ids.state')
+    @api.depends('state', 'personal_ids', 'responsable_id',
+                 'control_ids.responsable_id', 'control_ids.state')
     def _compute_personal_horas(self):
         for ot in self:
             if ot.state == 'calidad':
                 ot.personal_horas_ids = ot.control_ids.filtered(
                     lambda c: c.state == 'borrador').responsable_id
             else:
-                ot.personal_horas_ids = ot.personal_ids
+                ot.personal_horas_ids = ot.personal_ids | ot.responsable_id
 
     @api.depends('puesto_line_ids.personal_ids')
     def _compute_personal(self):
@@ -507,6 +511,7 @@ class TllrFcOt(models.Model):
             raise UserError(
                 "Faltan servicios por terminar en el puesto «%s»: %s." % (
                     actual.name, ', '.join(pendientes.mapped('product_id.name'))))
+        actual._tllr_fc_validar_cierre()
         return actual
 
     def _tllr_fc_avanzar_puesto(self, avanzar_ot=True):
@@ -782,7 +787,31 @@ class TllrFcOt(models.Model):
         """
         self.ensure_one()
         return self.sudo().factura_ids.filtered(
-            lambda m: m.move_type == 'out_invoice' and m.payment_state != 'reversed')
+            lambda m: m.move_type == 'out_invoice' and m.payment_state != 'reversed'
+            and not m.reversal_move_ids.filtered(lambda r: r.state == 'posted'))
+
+    def _compute_puede_refacturar(self):
+        for ot in self:
+            facturas = ot.sudo().factura_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state == 'posted')
+            ot.puede_refacturar = bool(
+                ot.tipo in ('cliente', 'garantia')
+                and (ot.state in ('listo', 'entregado') or (ot.state == 'cancelada' and ot.liquidada))
+                and facturas and not ot._tllr_fc_facturas()
+                and not ot.cerrada_facturar
+                and (ot.tipo == 'cliente' or ot.lineas_cobrar))
+
+    def _tllr_fc_nota_credito_total(self, nota):
+        """Una nota de crédito total deja la OT sin factura activa y lista para refacturar."""
+        self.ensure_one()
+        factura = nota.reversed_entry_id
+        self._tllr_fc_revertir_asientos(origen=factura)
+        if self.cerrada_facturar:
+            self.sudo().write({'cerrada_facturar': False, 'fecha_cierre_facturar': False})
+        self.message_post(body=(
+            "Nota de crédito %s por el total de la factura %s. La OT queda sin factura "
+            "activa: el supervisor puede volver a facturarla con «Refacturar».") % (
+                nota._get_html_link(), factura._get_html_link()))
 
     def _tllr_fc_lineas_factura(self, solo_realizado=False):
         """Líneas de la factura: servicios, repuestos, insumos facturables y accesorios."""
@@ -864,7 +893,8 @@ class TllrFcOt(models.Model):
             raise UserError(
                 "La OT de garantía no tiene líneas marcadas «Cobrar al cliente»: no hay nada "
                 "para facturar.")
-        if self.state != 'listo':
+        refacturando = bool(self.env.context.get('tllr_fc_refacturando')) and self.puede_refacturar
+        if self.state != 'listo' and not refacturando:
             raise UserError("Solo se cierra para facturar una OT lista para entrega.")
         if self.cerrada_facturar:
             raise UserError("La OT ya fue cerrada para facturar.")
@@ -899,12 +929,27 @@ class TllrFcOt(models.Model):
                 'action_reabrir_facturar', 'supervisor',
                 "Reabrir la OT %s: se elimina la factura en borrador." % self.name)
         borradores = facturas.filtered(lambda m: m.state == 'draft')
-        borradores.sudo().unlink()
+        borradores.sudo().with_context(tllr_fc_permitir_write=True).unlink()
         # Facturas ya anuladas por nota de crédito: se revierte su asiento de costo.
         self.sudo()._tllr_fc_revertir_asientos()
         self.write({'cerrada_facturar': False, 'fecha_cierre_facturar': False})
         self.message_post(body="Facturación reabierta. Motivo: %s" % self.env.context.get('tllr_fc_motivo', ''))
         return True
+
+    def action_refacturar(self):
+        """Abre el asistente para volver a facturar una OT cuya factura fue anulada."""
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden refacturar.")
+        if not self.puede_refacturar:
+            raise UserError(
+                "La OT no se puede refacturar: necesita una factura anulada con una nota de "
+                "crédito total y ninguna otra factura activa.")
+        return {
+            'type': 'ir.actions.act_window', 'name': "Refacturar la OT",
+            'res_model': 'tllr_fc.wizard.refacturar', 'view_mode': 'form', 'target': 'new',
+            'context': {'default_ot_id': self.id},
+        }
 
     def action_ver_facturas(self):
         self.ensure_one()
@@ -929,7 +974,7 @@ class TllrFcOt(models.Model):
         for linea in self.producto_ids.filtered('provisto_cliente'):
             lineas.append({
                 'origen': 'repuesto_cliente', 'name': linea.product_id.display_name,
-                'presente_recepcion': True, 'entregado': True})
+                'presente_recepcion': True, 'entregado': 'si'})
         return lineas
 
     def action_entregar(self):

@@ -20,6 +20,14 @@ class TllrFcOtHora(models.Model):
         'res.currency', related='ot_id.company_id.currency_id', string="Moneda")
     personal_id = fields.Many2one(
         'tllr_fc.personal', string="Personal", required=True, ondelete='restrict')
+    puesto_line_id = fields.Many2one(
+        'tllr_fc.ot.puesto', string="Puesto", ondelete='restrict', index=True,
+        domain="[('ot_id', '=', ot_id)]",
+        help="Puesto de la OT en el que se trabajaron las horas.")
+    servicio_id = fields.Many2one(
+        'tllr_fc.ot.servicio', string="Servicio", ondelete='restrict', index=True,
+        domain="[('ot_id', '=', ot_id), ('puesto_line_id', '=', puesto_line_id)]",
+        help="Servicio de la OT al que corresponden las horas.")
     funcion_id = fields.Many2one(
         'tllr_fc.funcion', string="Función", readonly=True, ondelete='restrict',
         help="Se copia del personal al cargar las horas y no se recalcula: un cambio "
@@ -64,6 +72,29 @@ class TllrFcOtHora(models.Model):
                     hora.personal_id.name, total, hora.fecha, int(LIMITE_HORAS_DIA))
                 if total > LIMITE_HORAS_DIA else False)
 
+    @api.onchange('puesto_line_id')
+    def _onchange_puesto_line_id(self):
+        if self.servicio_id and self.servicio_id.puesto_line_id != self.puesto_line_id:
+            self.servicio_id = False
+
+    @api.onchange('servicio_id')
+    def _onchange_servicio_id(self):
+        if self.servicio_id and not self.puesto_line_id:
+            self.puesto_line_id = self.servicio_id.puesto_line_id
+
+    @api.constrains('servicio_id', 'puesto_line_id', 'ot_id')
+    def _check_servicio_puesto(self):
+        for hora in self:
+            if hora.servicio_id and hora.servicio_id.ot_id != hora.ot_id:
+                raise ValidationError("El servicio de las horas no pertenece a la OT.")
+            if hora.puesto_line_id and hora.puesto_line_id.ot_id != hora.ot_id:
+                raise ValidationError("El puesto de las horas no pertenece a la OT.")
+            if (hora.servicio_id and hora.puesto_line_id
+                    and hora.servicio_id.puesto_line_id != hora.puesto_line_id):
+                raise ValidationError(
+                    "El servicio «%s» no pertenece al puesto «%s»." % (
+                        hora.servicio_id.display_name, hora.puesto_line_id.name))
+
     @api.constrains('horas')
     def _check_horas(self):
         for hora in self:
@@ -91,7 +122,7 @@ class TllrFcOtHora(models.Model):
                             ', '.join(hora.ot_id.personal_horas_ids.mapped('name')) or '-',
                             hora.ot_id.name))
                 continue
-            if hora.personal_id not in hora.ot_id.personal_ids:
+            if hora.personal_id not in (hora.ot_id.personal_ids | hora.ot_id.responsable_id):
                 raise ValidationError(
                     "%s no está asignado a ningún puesto de la OT %s: solo el personal "
                     "asignado puede registrar horas." % (hora.personal_id.name, hora.ot_id.name))
@@ -103,6 +134,13 @@ class TllrFcOtHora(models.Model):
         for vals in vals_list:
             personal = self.env['tllr_fc.personal'].browse(vals.get('personal_id'))
             vals['funcion_id'] = personal.funcion_id.id
+            if vals.get('servicio_id') and not vals.get('puesto_line_id'):
+                vals['puesto_line_id'] = self.env['tllr_fc.ot.servicio'].browse(
+                    vals['servicio_id']).puesto_line_id.id
+            if not vals.get('servicio_id') and not self.env.context.get('tllr_fc_sin_servicio'):
+                raise UserError("Indicá el servicio al que corresponden las horas.")
+            if not vals.get('puesto_line_id') and not self.env.context.get('tllr_fc_sin_servicio'):
+                raise UserError("Indicá el puesto en el que se trabajaron las horas.")
         horas = super().create(vals_list)
         horas._tllr_fc_verificar_personal()
         return horas

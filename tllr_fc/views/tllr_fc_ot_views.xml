@@ -54,6 +54,10 @@
                         <button name="action_cerrar_facturar" string="Cerrar para facturar"
                                 type="object" class="btn-primary" groups="tllr_fc.group_supervisor"
                                 invisible="state != 'listo' or not requiere_factura or cerrada_facturar"/>
+                        <button name="action_refacturar" string="Refacturar" type="object"
+                                class="btn-primary" groups="tllr_fc.group_supervisor"
+                                invisible="not puede_refacturar"/>
+                        <field name="puede_refacturar" invisible="1"/>
                         <button name="action_reabrir_facturar" string="Reabrir facturación"
                                 type="object" groups="tllr_fc.group_supervisor"
                                 invisible="not cerrada_facturar or state != 'listo' or estado_facturacion == 'confirmada'"/>
@@ -289,6 +293,8 @@
                                         <field name="cantidad_reservada"/>
                                         <field name="cantidad_utilizada"
                                                readonly="parent.state != 'proceso'"/>
+                                        <field name="cantidad_no_utilizada"
+                                               readonly="parent.state != 'proceso'"/>
                                         <field name="uom_id" optional="show"/>
                                         <field name="lote_id" options="{'no_create': True}"
                                                invisible="tracking == 'none'"
@@ -323,6 +329,10 @@
                                                 groups="tllr_fc.group_supervisor"
                                                 invisible="reserva_estado != 'traslado' or autorizado_sin_traslado or not id"/>
                                         <field name="cantidad_consumida" column_invisible="1"/>
+                                        <button name="action_devolver_consumo" type="object"
+                                                icon="fa-undo" title="Devolver lo consumido a stock"
+                                                groups="tllr_fc.group_supervisor"
+                                                invisible="cantidad_consumida &lt;= 0 or parent.state not in ('proceso', 'calidad', 'listo') or parent.cerrada_facturar or not id"/>
                                         <field name="state_aprobacion" widget="badge" optional="show"
                                                decoration-warning="state_aprobacion == 'pendiente'"
                                                decoration-success="state_aprobacion in ('aprobado', 'autorizado')"/>
@@ -370,6 +380,12 @@
                                             <field name="aviso" column_invisible="1"/>
                                             <field name="personal_id" options="{'no_create': True}"
                                                    domain="[('id', 'in', parent.personal_horas_ids)]"/>
+                                            <field name="puesto_line_id" options="{'no_create': True}"
+                                                   domain="[('ot_id', '=', parent.id)]"
+                                                   required="1"/>
+                                            <field name="servicio_id" options="{'no_create': True}"
+                                                   domain="[('ot_id', '=', parent.id), ('puesto_line_id', '=', puesto_line_id), ('estado', '!=', 'no_realizado')]"
+                                                   required="1"/>
                                             <field name="funcion_id" optional="show"/>
                                             <field name="fecha"/>
                                             <field name="horas" widget="float_time" sum="Total"/>

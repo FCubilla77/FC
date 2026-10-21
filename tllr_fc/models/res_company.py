@@ -83,6 +83,12 @@ class ResCompany(models.Model):
         'tllr_fc_cuenta_perdida_id', 'tllr_fc_asiento_horas',
         'tllr_fc_cuenta_mano_obra_id', 'tllr_fc_cuenta_costo_ventas_id')
     def _check_tllr_fc_asientos(self):
+        # Ajustes graba los campos de a uno; allí la validación se hace al terminar.
+        if self.env.context.get('tllr_fc_diferir_validacion'):
+            return
+        self._tllr_fc_validar_asientos()
+
+    def _tllr_fc_validar_asientos(self):
         for compania in self:
             if compania.tllr_fc_generar_asientos and not (
                     compania.tllr_fc_diario_id

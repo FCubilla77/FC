@@ -65,7 +65,7 @@ class TestAsientos(TallerCommon):
             linea.cantidad_utilizada = linea.cantidad_reservada
         if horas:
             self.env['tllr_fc.ot.hora'].create({
-                'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': horas})
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': horas})
         for puesto in ot.puesto_line_ids.sorted('sequence'):
             if puesto.state == 'activo':
                 puesto.servicio_ids.filtered(lambda s: s.estado == 'pendiente').action_terminar()
@@ -87,7 +87,8 @@ class TestAsientos(TallerCommon):
 
     def _entregar(self, ot):
         entrega = self.env['tllr_fc.entrega'].create({'ot_id': ot.id})
-        entrega.linea_ids.write({'entregado': True})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
         entrega.kilometraje_salida = 3000
         entrega.action_confirmar()
         self.assertEqual(ot.state, 'entregado')
@@ -118,12 +119,14 @@ class TestAsientos(TallerCommon):
         self.assertAlmostEqual(self._saldo(asiento, self.inventario), -9000)
         analiticas = asiento.line_ids.filtered(lambda l: l.account_id == self.costo_ventas)
         self.assertTrue(analiticas.analytic_distribution)
-        # Si la factura vuelve a borrador, se revierte; al confirmar de nuevo se regenera.
-        factura.button_draft()
+        # La factura de una OT no vuelve a borrador (2026.19.011): se corrige con nota de crédito total.
+        with self.assertRaises(UserError):
+            factura.button_draft()
+        nota = factura._reverse_moves(cancel=True)
+        self.assertEqual(nota.tllr_fc_ot_id, ot)
         self.assertFalse(self._asientos(ot, 'factura').filtered(lambda m: not m.reversal_move_ids))
-        factura.action_post()
-        vigente = self._asientos(ot, 'factura').filtered(lambda m: not m.reversal_move_ids)
-        self.assertEqual(len(vigente), 1)
+        self.assertFalse(ot.cerrada_facturar)
+        self.assertTrue(ot.puede_refacturar)
 
     def test_linea_no_facturar_lleva_costo_sin_ingreso(self):
         ot = self._ot_lista(productos=[

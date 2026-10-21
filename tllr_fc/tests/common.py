@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from unittest.mock import patch
+
 from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
@@ -7,9 +9,24 @@ from odoo.tests import TransactionCase, tagged
 class TallerCommon(TransactionCase):
     """Datos y auxiliares compartidos por las pruebas de las fases 3 y 4."""
 
+    # Las pruebas de las fases anteriores no cargan informe, horas ni «No utilizado»:
+    # el control de cierre del puesto (2026.19.011) se prueba en test_cierre_puesto.
+    parchear_cierre = True
+
+    def _sv(self, ot):
+        """Servicio y puesto del primer servicio de la OT (para cargar horas)."""
+        servicio = ot.servicio_ids[:1]
+        return {'servicio_id': servicio.id, 'puesto_line_id': servicio.puesto_line_id.id}
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if cls.parchear_cierre:
+            parche = patch.object(
+                type(cls.env['tllr_fc.ot.puesto']), '_tllr_fc_validar_cierre',
+                lambda self: None)
+            parche.start()
+            cls.addClassCleanup(parche.stop)
         marca = cls.env['tllr_fc.marca'].create({'name': 'Toyota F3'})
         modelo = cls.env['tllr_fc.modelo'].create({'name': 'Hilux F3', 'marca_id': marca.id})
         tipo = cls.env['tllr_fc.tipo_vehiculo'].create({'name': 'Camioneta F3'})
