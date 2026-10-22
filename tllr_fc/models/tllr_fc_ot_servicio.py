@@ -120,6 +120,9 @@ class TllrFcOtServicio(models.Model):
         self.ensure_one()
         if self.estado == 'no_realizado':
             return 0.0
+        # En una OT cancelada solo cuesta lo que se llegó a ejecutar.
+        if self.ot_id.state == 'cancelada' and self.estado != 'terminado':
+            return 0.0
         return self.product_id.sudo().standard_price * self.cantidad
 
     def _tllr_fc_costo_efectivo_servicio(self):
@@ -128,7 +131,7 @@ class TllrFcOtServicio(models.Model):
         self.ensure_one()
         return self._tllr_fc_costo_estandar_valor()
 
-    @api.depends('product_id', 'cantidad', 'estado')
+    @api.depends('product_id', 'cantidad', 'estado', 'ot_id.state')
     def _compute_costos(self):
         for servicio in self:
             servicio.costo_estandar = servicio._tllr_fc_costo_estandar_valor()

@@ -30,7 +30,7 @@ class TllrFcEntrega(models.Model):
     ot_id = fields.Many2one(
         'tllr_fc.ot', string="OT", required=True, ondelete='restrict', index=True,
         check_company=True, tracking=True,
-        domain="[('state', '=', 'listo')]")
+        domain="['|', ('state', '=', 'listo'), '&', ('state', '=', 'cancelada'), ('entrega_habilitada', '=', True)]")
     ot_tipo = fields.Selection(related='ot_id.tipo', string="Tipo de OT")
     ot_state = fields.Selection(related='ot_id.state', string="Estado de la OT")
     vehiculo_id = fields.Many2one(
@@ -92,9 +92,10 @@ class TllrFcEntrega(models.Model):
         for entrega in self:
             ot = entrega.ot_id
             if entrega.state == 'borrador' and not (
-                    ot.state == 'listo' or (ot.state == 'cancelada' and ot.liquidada)):
+                    ot.state == 'listo' or (ot.state == 'cancelada' and ot.entrega_habilitada)):
                 raise ValidationError(
-                    "Solo se entregan OT listas para entrega o canceladas con liquidación (%s)." % ot.name)
+                    "Solo se entregan OT listas para entrega o canceladas con la entrega "
+                    "habilitada (%s)." % ot.name)
 
     # ------------------------------------------------------------------
     @api.onchange('ot_id')
@@ -135,7 +136,8 @@ class TllrFcEntrega(models.Model):
         self.ensure_one()
         ot = self.ot_id
         problemas = []
-        if ot.requiere_factura:
+        # Una OT cancelada sin liquidar no tiene factura: no se la exige.
+        if ot.requiere_factura and (ot.state != 'cancelada' or ot.liquidada):
             facturas = ot.sudo()._tllr_fc_facturas().filtered(
                 lambda m: m.move_type == 'out_invoice' and m.state == 'posted')
             if not facturas:
@@ -160,7 +162,7 @@ class TllrFcEntrega(models.Model):
         ot = self.ot_id
         if self.state != 'borrador':
             raise UserError("La entrega ya está confirmada.")
-        if not (ot.state == 'listo' or (ot.state == 'cancelada' and ot.liquidada)):
+        if not ot._tllr_fc_entregable():
             raise UserError(
                 "La OT %s no está lista para entrega (estado «%s»)." % (
                     ot.name, dict(ot._fields['state'].selection)[ot.state]))

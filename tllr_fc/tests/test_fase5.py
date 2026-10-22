@@ -330,6 +330,11 @@ class TestFase5(TallerCommon):
         self.assertTrue(ot.liquidada)
         factura = ot._tllr_fc_facturas()
         self.assertEqual(factura.invoice_line_ids.product_id, self.s1)
+        # La entrega se habilita al responder «Sí» a la pregunta posterior a la cancelación.
+        with self.assertRaises(UserError):
+            ot.action_entregar()
+        self.env['tllr_fc.wizard.entrega_cancelada'].create({'ot_id': ot.id}).action_si()
+        self.assertTrue(ot.entrega_habilitada)
         # La OT cancelada con liquidación se entrega con su factura confirmada.
         factura.invoice_payment_term_id = self.plazo30
         factura.action_post()
@@ -635,3 +640,75 @@ class TestFase5(TallerCommon):
         hijos = informes.child_id
         self.assertIn(self.env.ref('tllr_fc.menu_tllr_fc_rep_rentabilidad'), hijos)
         self.assertIn(self.env.ref('tllr_fc.menu_tllr_fc_rep_existencia'), hijos)
+
+    # ---------------- 2026.19.017: entrega de OT canceladas ----------------
+    def _ot_cancelada_sin_liquidar(self):
+        ot = self._ot_planificada()
+        ot.action_iniciar()
+        asistente = self.env['tllr_fc.wizard.cancelar'].create({
+            'ot_id': ot.id, 'motivo_id': self.env.ref('tllr_fc.motivo_cancelacion_otro').id,
+            'confirmo': True})
+        accion = asistente.action_confirmar()
+        self.assertEqual(accion['res_model'], 'tllr_fc.wizard.entrega_cancelada')
+        return ot
+
+    def test_cancelada_responder_no_no_habilita_la_entrega(self):
+        ot = self._ot_cancelada_sin_liquidar()
+        self.env['tllr_fc.wizard.entrega_cancelada'].create({'ot_id': ot.id}).action_no()
+        self.assertFalse(ot.entrega_habilitada)
+        with self.assertRaises(UserError):
+            ot.action_entregar()
+        # El supervisor la puede habilitar después, con motivo.
+        accion = ot.action_habilitar_entrega()
+        self.assertEqual(accion['res_model'], 'tllr_fc.wizard.excepcion')
+        self._autorizar(ot, 'action_habilitar_entrega', 'El cliente retira el vehículo')
+        self.assertTrue(ot.entrega_habilitada)
+
+    def test_cancelada_sin_liquidar_se_entrega_sin_factura_ni_garantias(self):
+        ot = self._ot_cancelada_sin_liquidar()
+        self.env['tllr_fc.wizard.entrega_cancelada'].create({'ot_id': ot.id}).action_si()
+        self.assertTrue(ot.entrega_habilitada)
+        entrega = self.env['tllr_fc.entrega'].browse(ot.action_entregar()['res_id'])
+        self.assertEqual(entrega._tllr_fc_problemas(), [])
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
+        self.assertTrue(entrega.action_confirmar() is True)
+        self.assertEqual(ot.state, 'cancelada')
+        self.assertTrue(ot.fecha_entrega)
+        self.assertFalse(ot.garantia_ids)
+        self.assertIn('OT cancelada', self._html('tllr_fc.action_report_entrega', entrega))
+        # Ya entregada: no vuelve a entregarse.
+        with self.assertRaises(UserError):
+            ot.action_entregar()
+
+    # ---------------- 2026.19.018: OT canceladas en la rentabilidad ----------------
+    def test_rentabilidad_de_canceladas_solo_con_factura_o_costos(self):
+        motivo = self.env.ref('tllr_fc.motivo_cancelacion_otro')
+        vacia = self._ot_planificada()
+        vacia._tllr_fc_cancelar(motivo, False)
+        self.assertAlmostEqual(vacia.ingreso, 0)
+        self.assertAlmostEqual(vacia.costo_propio, 0)
+        con_costo = self._ot_planificada()
+        linea = self.env['tllr_fc.ot.producto'].create({
+            'ot_id': con_costo.id, 'product_id': self.repuesto.id, 'cantidad_reservada': 2})
+        con_costo.action_iniciar()
+        linea.cantidad_utilizada = 2
+        con_costo._tllr_fc_cancelar(motivo, False)
+        self.assertAlmostEqual(con_costo.ingreso, 0)
+        self.assertAlmostEqual(con_costo.costo_propio, -2 * 12000)
+        liquidada = self._ot_planificada()
+        liquidada.action_iniciar()
+        liquidada.puesto_line_ids.sorted('sequence')[0].servicio_ids.action_terminar()
+        liquidada._tllr_fc_cancelar(motivo, True)
+        factura = liquidada._tllr_fc_facturas()
+        factura.invoice_payment_term_id = self.plazo30
+        factura.action_post()
+        self.assertGreater(liquidada.ingreso, 0)
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        asistente = self.env['tllr_fc.wizard.rep_rentabilidad'].create({
+            'fecha_desde': hoy - timedelta(days=1), 'fecha_hasta': hoy + timedelta(days=1)})
+        asistente.action_ver()
+        ots = asistente.linea_ids.ot_id
+        self.assertNotIn(vacia, ots)
+        self.assertIn(con_costo, ots)
+        self.assertIn(liquidada, ots)

@@ -46,7 +46,7 @@
                             <group>
                                 <field name="ot_id" readonly="state != 'borrador'"
                                        options="{'no_create': True}"
-                                       domain="['|', ('state', '=', 'listo'), '&amp;', ('state', '=', 'cancelada'), ('liquidada', '=', True)]"/>
+                                       domain="['|', ('state', '=', 'listo'), '&amp;', ('state', '=', 'cancelada'), ('entrega_habilitada', '=', True)]"/>
                                 <field name="vehiculo_id"/>
                                 <field name="partner_id"/>
                                 <field name="retira_id" readonly="state != 'borrador'"
@@ -229,6 +229,11 @@
                                 </div>
                             </div>
                             <hr/>
+                            <div t-if="o.ot_id.state == 'cancelada'" class="alert alert-warning">
+                                <strong>OT cancelada</strong>
+                                <span t-if="o.ot_id.liquidada"> con liquidación de lo realizado.</span>
+                                <span t-else=""> sin liquidación.</span>
+                            </div>
                             <div class="row" style="margin-bottom: 12px;">
                                 <div class="col-6">
                                     <h5>Cliente</h5>

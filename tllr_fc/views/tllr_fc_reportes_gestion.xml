@@ -15,7 +15,7 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                     </group>
                     <div class="text-muted">
-                        Incluye las OT, sin las canceladas, cuya fecha de ingreso está en el rango, agrupadas por tipo.
+                        Incluye las OT cuya fecha de ingreso está en el rango, agrupadas por tipo. Las canceladas solo aparecen si tienen factura o costos.
                     </div>
                     <footer>
                         <button name="action_ver" string="Ver en pantalla" type="object"
@@ -162,7 +162,7 @@
                                 </tbody>
                             </table>
                             <div class="text-muted">
-                                No incluye OT canceladas. Los costos se muestran en negativo, igual que en la pestaña Rentabilidad de la OT.
+                                Las OT canceladas solo se incluyen si tienen factura o costos. Los costos se muestran en negativo, igual que en la pestaña Rentabilidad de la OT.
                                 Margen = valor de la factura + total de costos. Margen % = margen ÷ valor de la factura.
                             </div>
                         </div>

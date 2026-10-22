@@ -76,4 +76,36 @@ class TllrFcWizardCancelar(models.TransientModel):
                 'action_confirmar', 'supervisor',
                 "Cancelar la OT %s sin liquidar lo ejecutado." % self.ot_id.name)
         self.ot_id._tllr_fc_cancelar(self.motivo_id, self.liquidar)
+        # Tras cancelar se pregunta si el vehículo se entrega al cliente.
+        return {
+            'type': 'ir.actions.act_window', 'name': "Entrega del vehículo",
+            'res_model': 'tllr_fc.wizard.entrega_cancelada', 'view_mode': 'form',
+            'target': 'new', 'context': {'default_ot_id': self.ot_id.id}}
+
+
+class TllrFcWizardEntregaCancelada(models.TransientModel):
+    """Pregunta, al cancelar una OT, si se entrega el vehículo al cliente."""
+    _name = 'tllr_fc.wizard.entrega_cancelada'
+    _description = "Entrega del vehículo de una OT cancelada"
+
+    ot_id = fields.Many2one('tllr_fc.ot', string="OT", required=True, readonly=True)
+
+    def _responder(self, entregar):
+        self.ensure_one()
+        ot = self.ot_id
+        if not self.env.user.has_group('tllr_fc.group_supervisor'):
+            raise AccessError("Solo el supervisor o el administrador de taller pueden decidir la entrega.")
+        if ot.state != 'cancelada':
+            raise UserError("La OT no está cancelada.")
+        if entregar:
+            ot.write({'entrega_habilitada': True})
+            ot.message_post(body="Se habilitó la entrega del vehículo al cliente.")
+        else:
+            ot.message_post(body="Se decidió no entregar el vehículo por ahora (entrega no habilitada).")
         return {'type': 'ir.actions.act_window_close'}
+
+    def action_si(self):
+        return self._responder(True)
+
+    def action_no(self):
+        return self._responder(False)

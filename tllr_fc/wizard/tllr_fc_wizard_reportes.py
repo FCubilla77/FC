@@ -10,7 +10,10 @@ CLAVES_IMPORTE = ('ingreso', 'costo_propio', 'mano_obra', 'impuesto', 'ajustes_c
 
 
 class TllrFcWizardRepRentabilidad(models.TransientModel):
-    """Reporte de rentabilidad de las OT por rango de fecha de ingreso (sin canceladas)."""
+    """Reporte de rentabilidad de las OT por rango de fecha de ingreso.
+
+    Las canceladas solo aparecen si tienen factura (ingreso) o costos.
+    """
     _name = 'tllr_fc.wizard.rep_rentabilidad'
     _description = "Reporte de rentabilidad de OT"
 
@@ -33,12 +36,18 @@ class TllrFcWizardRepRentabilidad(models.TransientModel):
         inicio = datetime.combine(self.fecha_desde, time.min)
         fin = datetime.combine(self.fecha_hasta, time.max)
         ots = self.env['tllr_fc.ot'].sudo().search([
-            ('company_id', '=', self.company_id.id), ('state', '!=', 'cancelada'),
+            ('company_id', '=', self.company_id.id),
             ('fecha_ingreso', '>=', inicio), ('fecha_ingreso', '<=', fin),
         ], order='name')
         valores = []
+        moneda = self.company_id.currency_id
         for tipo in TIPOS_ORDEN:
             for ot in ots.filtered(lambda o: o.tipo == tipo):
+                # Una OT cancelada solo sale si tiene factura (ingreso) o costos.
+                if ot.state == 'cancelada' and all(moneda.is_zero(v) for v in (
+                        ot.ingreso, ot.costo_propio, ot.mano_obra, ot.ajustes_costo,
+                        ot.costo_garantias_origen)):
+                    continue
                 costos = (ot.costo_propio + ot.mano_obra + ot.impuesto
                           + ot.ajustes_costo + ot.costo_garantias_origen)
                 valores.append({

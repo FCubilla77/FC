@@ -123,6 +123,10 @@ class TllrFcOt(models.Model):
         string="Fecha de cierre para facturar", readonly=True, copy=False)
     liquidada = fields.Boolean(
         string="Cancelada con liquidación", readonly=True, copy=False, tracking=True)
+    entrega_habilitada = fields.Boolean(
+        string="Entrega habilitada", readonly=True, copy=False, tracking=True,
+        help="En una OT cancelada: se eligió entregar el vehículo al cliente. "
+             "Se responde al cancelar y un supervisor puede habilitarla después.")
     kilometraje_salida = fields.Integer(string="Kilometraje de salida", readonly=True, copy=False)
     puede_refacturar = fields.Boolean(
         string="Puede refacturarse", compute='_compute_puede_refacturar',
@@ -298,6 +302,9 @@ class TllrFcOt(models.Model):
         if confirmadas:
             return (sum(confirmadas.mapped('amount_total_signed')),
                     sum(confirmadas.mapped('amount_tax_signed')))
+        if ot.state == 'cancelada':
+            # Una OT cancelada no estima ingreso: solo cuenta lo realmente facturado.
+            return 0.0, 0.0
         impuesto = 0.0
         for linea in list(ot.servicio_ids) + list(ot.producto_ids):
             if not linea.subtotal:
@@ -309,7 +316,7 @@ class TllrFcOt(models.Model):
                 impuesto += sum(t['amount'] for t in calculo['taxes'])
         return ot.total + impuesto, impuesto
 
-    @api.depends('tipo', 'total', 'servicio_ids.costo_efectivo', 'servicio_ids.facturable',
+    @api.depends('tipo', 'state', 'total', 'servicio_ids.costo_efectivo', 'servicio_ids.facturable',
                  'servicio_ids.subtotal', 'producto_ids.subtotal',
                  'producto_ids.costo', 'producto_ids.facturable', 'hora_ids.costo',
                  'ajuste_ids.monto', 'factura_ids.state', 'factura_ids.amount_total_signed',
@@ -1037,11 +1044,34 @@ class TllrFcOt(models.Model):
                 'observacion_recepcion': linea.descripcion})
         return lineas
 
+    def _tllr_fc_entregable(self):
+        """OT lista, u OT cancelada cuyo vehículo se decidió entregar y aún no se entregó."""
+        self.ensure_one()
+        return self.state == 'listo' or (
+            self.state == 'cancelada' and self.entrega_habilitada and not self.fecha_entrega)
+
+    def action_habilitar_entrega(self):
+        """El supervisor habilita después la entrega de una OT cancelada (con motivo)."""
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller pueden habilitar la entrega.")
+        if self.state != 'cancelada' or self.entrega_habilitada or self.fecha_entrega:
+            raise UserError("La entrega no se puede habilitar en esta OT.")
+        if not self.env.context.get('tllr_fc_excepcion'):
+            return self._tllr_fc_abrir_excepcion(
+                'action_habilitar_entrega', 'supervisor',
+                "Habilitar la entrega del vehículo de la OT cancelada %s." % self.name)
+        self.write({'entrega_habilitada': True})
+        self.message_post(body="Entrega del vehículo habilitada. Motivo: %s" % self.env.context.get(
+            'tllr_fc_motivo', ''))
+        return True
+
     def action_entregar(self):
         """Crea (o abre) la entrega en borrador de la OT."""
         self.ensure_one()
-        if not (self.state == 'listo' or (self.state == 'cancelada' and self.liquidada)):
-            raise UserError("Solo se entrega una OT lista o cancelada con liquidación.")
+        if not self._tllr_fc_entregable():
+            raise UserError(
+                "Solo se entrega una OT lista o una OT cancelada con la entrega habilitada.")
         entrega = self.entrega_ids.filtered(lambda e: e.state == 'borrador')[:1]
         if not entrega:
             entrega = self.env['tllr_fc.entrega'].create({'ot_id': self.id})
@@ -1089,13 +1119,15 @@ class TllrFcOt(models.Model):
         self.write(vals)
         if entrega.kilometraje_salida > self.vehiculo_id.kilometraje:
             self.vehiculo_id.write({'kilometraje': entrega.kilometraje_salida})
-        if self.tipo == 'cliente':
+        # Una OT cancelada sin liquidar no cobró nada: no genera garantías ni asiento de entrega.
+        if self.tipo == 'cliente' and (self.state != 'cancelada' or self.liquidada):
             garantias = self.env['tllr_fc.garantia']._tllr_fc_crear_de_entrega(
                 self, ahora, entrega.kilometraje_salida)
             if garantias:
                 self.message_post(body="Se registraron %s garantía(s)." % len(garantias))
         self._tllr_fc_cerrar_detencion()
-        self.sudo()._tllr_fc_asiento_entrega()
+        if self.state != 'cancelada':
+            self.sudo()._tllr_fc_asiento_entrega()
         self.message_post(body="Vehículo entregado (entrega %s)." % entrega.name)
 
     def action_avisar_cliente(self):

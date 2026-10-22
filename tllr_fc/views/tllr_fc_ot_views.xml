@@ -65,7 +65,10 @@
                                 invisible="state != 'listo'"/>
                         <button name="action_entregar" string="Entregar" type="object"
                                 class="btn-primary"
-                                invisible="not (state == 'listo' or (state == 'cancelada' and liquidada)) or (requiere_factura and not cerrada_facturar and state == 'listo')"/>
+                                invisible="not ((state == 'listo' and not (requiere_factura and not cerrada_facturar)) or (state == 'cancelada' and entrega_habilitada and not fecha_entrega))"/>
+                        <button name="action_habilitar_entrega" string="Habilitar entrega" type="object"
+                                invisible="state != 'cancelada' or entrega_habilitada or fecha_entrega"
+                                groups="tllr_fc.group_supervisor"/>
                         <button name="action_reclamo_garantia" string="Reclamo de garantía"
                                 type="object" invisible="state != 'entregado' or tipo != 'cliente'"/>
                         <button name="action_cancelar" string="Cancelar OT" type="object"
@@ -176,6 +179,7 @@
                                 <field name="motivo_cancelacion_id" invisible="state != 'cancelada'"/>
                                 <field name="ot_origen_id" invisible="not ot_origen_id"/>
                                 <field name="fecha_entrega" invisible="not fecha_entrega"/>
+                                <field name="entrega_habilitada" invisible="state != 'cancelada'"/>
                                 <field name="kilometraje_salida" invisible="not kilometraje_salida"/>
                             </group>
                             <group string="Responsable">

@@ -139,6 +139,27 @@
             </field>
         </record>
 
+        <record id="view_tllr_fc_wizard_entrega_cancelada_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.entrega_cancelada.form</field>
+            <field name="model">tllr_fc.wizard.entrega_cancelada</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="ot_id" invisible="1"/>
+                    <div class="alert alert-info" role="alert">
+                        La OT fue cancelada. ¿Desea entregar el vehículo al cliente? Con «Sí» se
+                        habilita el botón Entregar de la OT; con «No», la entrega queda sin habilitar
+                        (un supervisor puede habilitarla después).
+                    </div>
+                    <footer>
+                        <button name="action_si" string="Sí, entregar el vehículo" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button name="action_no" string="No" type="object"
+                                class="btn-secondary" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
         <record id="view_tllr_fc_wizard_reclamo_garantia_form" model="ir.ui.view">
             <field name="name">tllr_fc.wizard.reclamo_garantia.form</field>
             <field name="model">tllr_fc.wizard.reclamo_garantia</field>
