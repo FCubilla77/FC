@@ -258,3 +258,40 @@ class TestAsientos(TallerCommon):
         compania = self.env.company
         with self.assertRaises(ValidationError):
             compania.tllr_fc_cuenta_perdida_id = False
+
+    # ---------------- 2026.19.020: nota de crédito parcial ----------------
+    def test_nota_credito_parcial_resta_ingreso_y_queda_relacionada(self):
+        ot = self._ot_lista(productos=[(self.repuesto, 2, {})])
+        ot.action_cerrar_facturar()
+        factura = ot._tllr_fc_facturas()
+        factura.invoice_payment_term_id = self.plazo
+        factura.action_post()
+        ingreso_antes = ot.ingreso
+        impuesto_antes = ot.impuesto
+        self.assertAlmostEqual(ingreso_antes, factura.amount_total_signed)
+        # Nota de crédito parcial: solo 1 de los 2 repuestos.
+        nota = factura._reverse_moves()
+        repuesto = nota.invoice_line_ids.filtered(lambda l: l.product_id == self.repuesto)
+        (nota.invoice_line_ids - repuesto).unlink()
+        repuesto.quantity = 1
+        nota.action_post()
+        self.assertEqual(nota.state, 'posted')
+        self.assertEqual(nota.tllr_fc_ot_id, ot)
+        # La factura sigue vigente; la OT no se reabre ni se puede refacturar.
+        self.assertEqual(ot._tllr_fc_facturas(), factura)
+        self.assertTrue(ot.cerrada_facturar)
+        self.assertFalse(ot.puede_refacturar)
+        # El ingreso y el impuesto de la OT se reducen con la nota.
+        self.assertLess(nota.amount_total_signed, 0)
+        self.assertAlmostEqual(ot.ingreso, ingreso_antes + nota.amount_total_signed)
+        self.assertAlmostEqual(ot.notas_credito, nota.amount_total_signed)
+        self.assertAlmostEqual(
+            ot.impuesto, impuesto_antes - nota.amount_tax_signed)
+        self.assertEqual(ot.nota_credito_count, 1)
+        self.assertEqual(ot._tllr_fc_notas_credito(), nota)
+        self.assertEqual(ot.action_ver_notas_credito()['res_model'], 'account.move')
+        self.assertTrue(any('Nota de crédito parcial' in (m.body or '') for m in ot.message_ids))
+        # Otra nota que supere lo que queda por acreditar se rechaza.
+        exceso = factura._reverse_moves()
+        with self.assertRaises(UserError):
+            exceso.action_post()

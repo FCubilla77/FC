@@ -715,6 +715,17 @@ class TllrFcOtProducto(models.Model):
                     "La OT %s está en estado «%s»: ya no se pueden modificar sus repuestos e insumos."
                     % (ot.name, dict(ot._fields['state'].selection)[ot.state]))
 
+    def _tllr_fc_cobro_en_listo(self, vals):
+        """«Cobrar al cliente» también se marca con la OT de garantía lista para entrega,
+        mientras no se haya cerrado para facturar."""
+        permitidos = {'cobrar_cliente'}
+        if self.env.context.get('tllr_fc_permitir_write'):
+            # Ajustes internos que acompañan al marcado (aprobación pendiente y precio).
+            permitidos |= {'state_aprobacion', 'aprobacion_id', 'precio_unitario'}
+        return set(vals) <= permitidos and all(
+            linea.ot_id.tipo == 'garantia' and linea.ot_id.state == 'listo'
+            and not linea.ot_id.cerrada_facturar for linea in self)
+
     @api.model_create_multi
     def create(self, vals_list):
         es_supervisor = self._es_supervisor()
@@ -799,7 +810,8 @@ class TllrFcOtProducto(models.Model):
             raise AccessError(
                 "Solo el supervisor o el administrador de taller pueden cambiar el precio, el "
                 "descuento, «No facturar» o «Provisto por el cliente».")
-        if not (self.env.context.get('tllr_fc_refacturando') and set(vals) <= {'no_facturar'}):
+        if not (self.env.context.get('tllr_fc_refacturando') and set(vals) <= {'no_facturar'}) \
+                and not self._tllr_fc_cobro_en_listo(vals):
             self._tllr_fc_verificar_ot_editable(self.ot_id)
         if 'cantidad_no_utilizada' in vals:
             for linea in self:

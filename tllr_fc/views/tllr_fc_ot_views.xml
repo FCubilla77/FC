@@ -46,7 +46,13 @@
                                 invisible="state != 'calidad'"/>
                         <button name="action_registrar_aprobacion" string="Registrar aprobación"
                                 type="object" groups="tllr_fc.group_supervisor"
-                                invisible="adicionales_pendientes == 0 or state not in ('espera', 'proceso')"/>
+                                invisible="adicionales_pendientes == 0 or (state not in ('espera', 'proceso') and not (state == 'listo' and tipo == 'garantia' and not cerrada_facturar))"/>
+                        <button name="action_cobro_servicios" string="Servicios a cobrar" type="object"
+                                groups="tllr_fc.group_supervisor"
+                                invisible="state != 'listo' or tipo != 'garantia' or cerrada_facturar"/>
+                        <button name="action_cobro_productos" string="Repuestos a cobrar" type="object"
+                                groups="tllr_fc.group_supervisor"
+                                invisible="state != 'listo' or tipo != 'garantia' or cerrada_facturar"/>
                         <button name="action_volver_estado" string="Volver atrás" type="object"
                                 groups="tllr_fc.group_supervisor"
                                 confirm="¿Volver la OT al estado anterior? Se pedirá un motivo."
@@ -89,6 +95,12 @@
                                     class="oe_stat_button" icon="fa-check-square-o"
                                     invisible="control_count == 0">
                                 <field name="control_count" widget="statinfo" string="Controles"/>
+                            </button>
+                            <button name="action_ver_notas_credito" type="object"
+                                    class="oe_stat_button" icon="fa-undo"
+                                    groups="account.group_account_invoice"
+                                    invisible="nota_credito_count == 0">
+                                <field name="nota_credito_count" widget="statinfo" string="Notas de crédito"/>
                             </button>
                             <button name="action_ver_facturas" type="object"
                                     class="oe_stat_button" icon="fa-file-text-o"
@@ -500,10 +512,12 @@
                                 <group>
                                     <group string="Resultado de la OT">
                                         <field name="ingreso"/>
+                                        <field name="notas_credito" invisible="not notas_credito"
+                                               string="  de las cuales, notas de crédito"/>
                                         <field name="costo_propio"/>
                                         <field name="mano_obra"/>
                                         <field name="impuesto"/>
-                                        <field name="ajustes_costo"/>
+                                        <field name="ajustes_costo" string="Ajustes"/>
                                         <field name="costo_garantias_origen"
                                                invisible="tipo == 'garantia'"/>
                                         <field name="margen" class="fw-bold"/>
@@ -654,5 +668,36 @@
             <field name="context">{'search_default_abiertas': 1}</field>
         </record>
 
-    </data>
+    
+        <!-- Cobro en garantía con la OT lista para entrega (solo se edita «Cobrar al cliente») -->
+        <record id="view_tllr_fc_servicio_cobro_list" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.servicio.cobro.list</field>
+            <field name="model">tllr_fc.ot.servicio</field>
+            <field name="arch" type="xml">
+                <list editable="bottom" create="0" delete="0">
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="product_id" readonly="1"/>
+                    <field name="cantidad" readonly="1"/>
+                    <field name="precio_unitario" readonly="1"/>
+                    <field name="subtotal" readonly="1"/>
+                    <field name="cobrar_cliente"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_producto_cobro_list" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.producto.cobro.list</field>
+            <field name="model">tllr_fc.ot.producto</field>
+            <field name="arch" type="xml">
+                <list editable="bottom" create="0" delete="0">
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="product_id" readonly="1"/>
+                    <field name="cantidad_utilizada" readonly="1"/>
+                    <field name="precio_unitario" readonly="1"/>
+                    <field name="subtotal" readonly="1"/>
+                    <field name="cobrar_cliente"/>
+                </list>
+            </field>
+        </record>
+</data>
 </odoo>

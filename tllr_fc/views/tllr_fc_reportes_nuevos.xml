@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 2026.19.021: informes de Productividad y de Turnos, y Reporte de la OT valorizado -->
+
+        <!-- ============ Productividad: asistente ============ -->
+        <record id="view_tllr_fc_wizard_rep_productividad_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.rep_productividad.form</field>
+            <field name="model">tllr_fc.wizard.rep_productividad</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="agrupar_por"/>
+                        <field name="tipo_ot"/>
+                        <field name="personal_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todo el personal"/>
+                        <field name="puesto_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los puestos"/>
+                        <field name="servicio_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los servicios"/>
+                    </group>
+                    <div class="text-muted">
+                        Horas estándar: las de los servicios propios terminados en el período; por persona se reparten en proporción a las horas que cada una cargó en el servicio. Horas reales: las cargadas en el período. Eficiencia = estándar ÷ reales.
+                    </div>
+                    <footer>
+                        <button name="action_ver" string="Ver en pantalla" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button name="action_imprimir" string="Descargar PDF" type="object"
+                                class="btn-secondary" data-hotkey="w"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_rep_productividad" model="ir.actions.act_window">
+            <field name="name">Productividad</field>
+            <field name="res_model">tllr_fc.wizard.rep_productividad</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="view_tllr_fc_rep_productividad_linea_list" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.productividad.linea.list</field>
+            <field name="model">tllr_fc.rep.productividad.linea</field>
+            <field name="arch" type="xml">
+                <list string="Productividad" create="0" edit="0" delete="0" decoration-bf="es_total">
+                    <field name="es_total" column_invisible="1"/>
+                    <field name="grupo"/>
+                    <field name="horas_estandar"/>
+                    <field name="horas_reales"/>
+                    <field name="eficiencia"/>
+                    <field name="ot_count"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_report_rep_productividad" model="ir.actions.report">
+            <field name="name">Productividad</field>
+            <field name="model">tllr_fc.rep.productividad.linea</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_rep_productividad_document</field>
+            <field name="report_file">tllr_fc.report_rep_productividad_document</field>
+            <field name="print_report_name">'Productividad'</field>
+            <field name="binding_model_id" ref="model_tllr_fc_rep_productividad_linea"/>
+            <field name="binding_type">report</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+        </record>
+
+        <template id="report_rep_productividad_document">
+            <t t-call="web.html_container">
+                <t t-set="o" t-value="docs[:1].wizard_id"/>
+                <t t-set="docs_all" t-value="docs"/>
+                <t t-foreach="docs[:1]" t-as="primera">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <div class="row">
+                                <div class="col-8">
+                                    <h2 style="margin-bottom: 0;">Productividad</h2>
+                                    <div>
+                                        Del <span t-field="o.fecha_desde"/> al <span t-field="o.fecha_hasta"/>
+                                        · por <t t-out="{'personal': 'Personal de taller', 'puesto': 'Puesto', 'servicio': 'Servicio'}[o.agrupar_por]"/>
+                                    </div>
+                                    <div t-if="o.get_filtros()" class="text-muted">Filtros: <t t-out="o.get_filtros()"/></div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <strong t-field="o.company_id.name"/><br/>
+                                    <span t-out="datetime.date.today().strftime('%d/%m/%Y')"/>
+                                </div>
+                            </div>
+                            <hr/>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th><t t-out="{'personal': 'Personal de taller', 'puesto': 'Puesto', 'servicio': 'Servicio'}[o.agrupar_por]"/></th>
+                                        <th style="width: 15%;">Horas estándar</th>
+                                        <th style="width: 15%;">Horas reales</th>
+                                        <th style="width: 13%;">Eficiencia %</th>
+                                        <th style="width: 13%;">OT terminadas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="docs_all" t-as="l">
+                                        <td><strong t-if="l.es_total" t-out="l.grupo"/><span t-else="" t-out="l.grupo"/></td>
+                                        <td class="text-end"><t t-out="l.horas_estandar" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                        <td class="text-end"><t t-out="l.horas_reales" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                        <td class="text-end"><t t-out="l.eficiencia" t-options="{'widget': 'float', 'precision': 1}"/> %</td>
+                                        <td class="text-end"><t t-out="l.ot_count"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- ============ Turnos: asistente ============ -->
+        <record id="view_tllr_fc_wizard_rep_turnos_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.rep_turnos.form</field>
+            <field name="model">tllr_fc.wizard.rep_turnos</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="agrupar_por"/>
+                        <field name="puesto_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los puestos"/>
+                    </group>
+                    <div class="text-muted">
+                        Turnos con fecha en el período. Asistencia = recibidos ÷ (recibidos + no asistió); los pendientes y cancelados no cuentan. El detalle por cliente solo lo ve el administrador de taller.
+                    </div>
+                    <footer>
+                        <button name="action_ver" string="Ver en pantalla" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button name="action_imprimir" string="Descargar PDF" type="object"
+                                class="btn-secondary" data-hotkey="w"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_rep_turnos" model="ir.actions.act_window">
+            <field name="name">Turnos</field>
+            <field name="res_model">tllr_fc.wizard.rep_turnos</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="view_tllr_fc_rep_turnos_linea_list" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.turnos.linea.list</field>
+            <field name="model">tllr_fc.rep.turnos.linea</field>
+            <field name="arch" type="xml">
+                <list string="Turnos" create="0" edit="0" delete="0" decoration-bf="es_total">
+                    <field name="es_total" column_invisible="1"/>
+                    <field name="grupo"/>
+                    <field name="agendados"/>
+                    <field name="confirmados"/>
+                    <field name="recibidos"/>
+                    <field name="no_asistio"/>
+                    <field name="cancelados"/>
+                    <field name="total"/>
+                    <field name="asistencia"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_report_rep_turnos" model="ir.actions.report">
+            <field name="name">Turnos</field>
+            <field name="model">tllr_fc.rep.turnos.linea</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_rep_turnos_document</field>
+            <field name="report_file">tllr_fc.report_rep_turnos_document</field>
+            <field name="print_report_name">'Turnos'</field>
+            <field name="binding_model_id" ref="model_tllr_fc_rep_turnos_linea"/>
+            <field name="binding_type">report</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+        </record>
+
+        <template id="report_rep_turnos_document">
+            <t t-call="web.html_container">
+                <t t-set="o" t-value="docs[:1].wizard_id"/>
+                <t t-set="docs_all" t-value="docs"/>
+                <t t-foreach="docs[:1]" t-as="primera">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <div class="row">
+                                <div class="col-8">
+                                    <h2 style="margin-bottom: 0;">Turnos</h2>
+                                    <div>
+                                        Del <span t-field="o.fecha_desde"/> al <span t-field="o.fecha_hasta"/>
+                                        · por <t t-out="'mes' if o.agrupar_por == 'mes' else 'cliente'"/>
+                                    </div>
+                                    <div t-if="o.get_filtros()" class="text-muted">Filtros: <t t-out="o.get_filtros()"/></div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <strong t-field="o.company_id.name"/><br/>
+                                    <span t-out="datetime.date.today().strftime('%d/%m/%Y')"/>
+                                </div>
+                            </div>
+                            <hr/>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th><t t-out="'Mes' if o.agrupar_por == 'mes' else 'Cliente'"/></th>
+                                        <th style="width: 10%;">Agendados</th>
+                                        <th style="width: 11%;">Confirmados</th>
+                                        <th style="width: 10%;">Recibidos</th>
+                                        <th style="width: 10%;">No asistió</th>
+                                        <th style="width: 10%;">Cancelados</th>
+                                        <th style="width: 8%;">Total</th>
+                                        <th style="width: 11%;">Asistencia %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="docs_all" t-as="l">
+                                        <td><strong t-if="l.es_total" t-out="l.grupo"/><span t-else="" t-out="l.grupo"/></td>
+                                        <td class="text-end"><t t-out="l.agendados"/></td>
+                                        <td class="text-end"><t t-out="l.confirmados"/></td>
+                                        <td class="text-end"><t t-out="l.recibidos"/></td>
+                                        <td class="text-end"><t t-out="l.no_asistio"/></td>
+                                        <td class="text-end"><t t-out="l.cancelados"/></td>
+                                        <td class="text-end"><t t-out="l.total"/></td>
+                                        <td class="text-end"><t t-out="l.asistencia" t-options="{'widget': 'float', 'precision': 1}"/> %</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- ============ Reporte de la OT valorizado (interno / cliente) ============ -->
+        <record id="action_report_ot_interno" model="ir.actions.report">
+            <field name="name">Reporte de la OT (interno)</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_ot_interno_document</field>
+            <field name="report_file">tllr_fc.report_ot_interno_document</field>
+            <field name="print_report_name">'OT-interno-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_ot"/>
+            <field name="binding_type">report</field>
+            <field name="group_ids" eval="[(4, ref('tllr_fc.group_supervisor'))]"/>
+        </record>
+
+        <record id="action_report_ot_cliente" model="ir.actions.report">
+            <field name="name">Reporte de la OT (cliente)</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_ot_cliente_document</field>
+            <field name="report_file">tllr_fc.report_ot_cliente_document</field>
+            <field name="print_report_name">'OT-cliente-%s' % (object.name or '').replace('/', '-')</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+            <field name="binding_model_id" ref="model_tllr_fc_ot"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <template id="report_ot_interno_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <t t-set="interno" t-value="True"/>
+                        <t t-call="tllr_fc.report_ot_valorizado_cuerpo"/>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <template id="report_ot_cliente_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <t t-set="interno" t-value="False"/>
+                        <t t-call="tllr_fc.report_ot_valorizado_cuerpo"/>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <template id="report_ot_valorizado_cuerpo">
+            <div class="page">
+                <t t-set="moneda" t-value="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                <t t-call="tllr_fc.report_cabecera_ot">
+                    <t t-set="ot" t-value="o"/>
+                    <t t-set="titulo">Orden de trabajo valorizada<t t-if="interno"> (uso interno)</t></t>
+                    <t t-set="numero" t-value="o.name"/>
+                </t>
+                <div>
+                    Ingreso: <span t-field="o.fecha_ingreso" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                    <span t-if="o.fecha_entrega"> · Entrega: <span t-field="o.fecha_entrega" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/></span>
+                    · Km ingreso: <span t-out="'{:,}'.format(o.kilometraje_ingreso).replace(',', '.')"/>
+                    <span t-if="interno"> · Combustible ingreso: <span t-field="o.combustible_ingreso"/></span>
+                </div>
+
+                <!-- Servicios -->
+                <t t-set="servicios" t-value="o.servicio_ids if interno else o.servicio_ids.filtered(lambda s: s.estado != 'no_realizado')"/>
+                <h4 style="margin-top: 14px;">Servicios</h4>
+                <table class="table table-sm" t-if="servicios">
+                    <thead>
+                        <tr>
+                            <th>Servicio</th>
+                            <th style="width: 8%;">Cantidad</th>
+                            <th style="width: 13%;">Precio unitario</th>
+                            <th style="width: 8%;">Desc. %</th>
+                            <th style="width: 13%;">Precio</th>
+                            <th t-if="interno" style="width: 13%;">Costo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="servicios" t-as="s">
+                            <td>
+                                <span t-field="s.product_id.display_name"/>
+                                <span t-if="interno and s.adicional"> · adicional</span>
+                                <span t-if="s.no_facturar"> · cortesía</span>
+                                <div t-if="interno and s.estado == 'no_realizado'" class="text-muted">
+                                    No realizado<span t-if="s.motivo_no_realizado">: <span t-field="s.motivo_no_realizado"/></span>
+                                </div>
+                            </td>
+                            <td class="text-end"><span t-field="s.cantidad"/></td>
+                            <td class="text-end"><t t-out="s.precio_unitario if s.facturable else 0" t-options="moneda"/></td>
+                            <td class="text-end"><span t-out="s.descuento"/></td>
+                            <td class="text-end"><t t-out="s.subtotal" t-options="moneda"/></td>
+                            <td t-if="interno" class="text-end"><t t-out="s.costo_efectivo" t-options="moneda"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>Total servicios</strong></td>
+                            <td class="text-end"><strong t-out="sum(servicios.mapped('subtotal'))" t-options="moneda"/></td>
+                            <td t-if="interno" class="text-end"><strong t-out="sum(servicios.mapped('costo_efectivo'))" t-options="moneda"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="text-muted">Sin servicios.</div>
+
+                <!-- Repuestos, insumos y accesorios -->
+                <t t-set="productos" t-value="o.producto_ids if interno else o.producto_ids.filtered(lambda p: p.uso != 'insumo')"/>
+                <h4 style="margin-top: 14px;">Repuestos, insumos y accesorios</h4>
+                <table class="table table-sm" t-if="productos">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th style="width: 8%;">Cantidad</th>
+                            <th style="width: 13%;">Precio unitario</th>
+                            <th style="width: 8%;">Desc. %</th>
+                            <th style="width: 13%;">Precio</th>
+                            <th t-if="interno" style="width: 13%;">Costo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="productos" t-as="p">
+                            <td>
+                                <span t-field="p.product_id.display_name"/>
+                                <span t-if="interno"> (<span t-field="p.uso"/>)</span>
+                                <span t-if="interno and p.adicional"> · adicional</span>
+                                <span t-if="p.provisto_cliente"> · provisto por el cliente</span>
+                                <span t-if="p.no_facturar"> · cortesía</span>
+                            </td>
+                            <td class="text-end"><t t-out="p.cantidad_utilizada or p.cantidad_requerida" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                            <td class="text-end"><t t-out="p.precio_unitario if p.facturable else 0" t-options="moneda"/></td>
+                            <td class="text-end"><span t-out="p.descuento"/></td>
+                            <td class="text-end"><t t-out="p.subtotal" t-options="moneda"/></td>
+                            <td t-if="interno" class="text-end"><t t-out="0 if p.provisto_cliente else p.costo" t-options="moneda"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>Total repuestos e insumos</strong></td>
+                            <td class="text-end"><strong t-out="sum(productos.mapped('subtotal'))" t-options="moneda"/></td>
+                            <td t-if="interno" class="text-end"><strong t-out="sum(productos.filtered(lambda p: not p.provisto_cliente).mapped('costo'))" t-options="moneda"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div t-else="" class="text-muted">Sin repuestos ni insumos.</div>
+
+                <t t-if="interno">
+                    <!-- Horas -->
+                    <h4 style="margin-top: 14px;">Horas de trabajo</h4>
+                    <table class="table table-sm" t-if="o.hora_ids">
+                        <thead>
+                            <tr>
+                                <th style="width: 11%;">Fecha</th>
+                                <th>Persona</th>
+                                <th style="width: 14%;">Función</th>
+                                <th style="width: 9%;">Horas</th>
+                                <th style="width: 14%;">Costo por hora</th>
+                                <th style="width: 14%;">Costo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="o.hora_ids.sorted(lambda h: (h.fecha, h.id))" t-as="h">
+                                <td><span t-field="h.fecha"/></td>
+                                <td><span t-field="h.personal_id.name"/></td>
+                                <td><span t-field="h.funcion_id.name"/></td>
+                                <td class="text-end"><span t-field="h.horas"/></td>
+                                <td class="text-end"><t t-out="h.costo_hora" t-options="moneda"/></td>
+                                <td class="text-end"><t t-out="h.costo" t-options="moneda"/></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total horas</strong></td>
+                                <td class="text-end"><strong t-out="sum(o.hora_ids.mapped('horas'))" t-options="{'widget': 'float', 'precision': 2}"/></td>
+                                <td></td>
+                                <td class="text-end"><strong t-out="sum(o.hora_ids.mapped('costo'))" t-options="moneda"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div t-else="" class="text-muted">Sin horas cargadas.</div>
+
+                    <!-- Herramientas dañadas (solo registro) -->
+                    <t t-if="o.herramienta_danada_ids">
+                        <h4 style="margin-top: 14px;">Herramientas dañadas (solo registro)</h4>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Herramienta</th><th style="width: 10%;">Cantidad</th><th>Motivo</th><th style="width: 20%;">Persona</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.herramienta_danada_ids" t-as="h">
+                                    <td><span t-field="h.product_id.display_name"/></td>
+                                    <td class="text-end"><span t-field="h.cantidad"/></td>
+                                    <td><span t-field="h.motivo"/></td>
+                                    <td><span t-field="h.personal_id.name"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                </t>
+
+                <!-- Totales -->
+                <h4 style="margin-top: 14px;">Totales</h4>
+                <t t-set="total_precio" t-value="sum(servicios.mapped('subtotal')) + sum(productos.mapped('subtotal'))"/>
+                <table class="table table-sm" style="width: 55%;">
+                    <tbody>
+                        <tr>
+                            <td>Precio de venta (servicios + repuestos e insumos)</td>
+                            <td class="text-end"><strong t-out="total_precio" t-options="moneda"/></td>
+                        </tr>
+                        <t t-if="interno">
+                            <t t-set="costo_serv" t-value="sum(servicios.mapped('costo_efectivo'))"/>
+                            <t t-set="costo_prod" t-value="sum(productos.filtered(lambda p: not p.provisto_cliente).mapped('costo'))"/>
+                            <t t-set="costo_horas" t-value="sum(o.hora_ids.mapped('costo'))"/>
+                            <tr><td>Costo de servicios</td><td class="text-end"><t t-out="costo_serv" t-options="moneda"/></td></tr>
+                            <tr><td>Costo de repuestos e insumos</td><td class="text-end"><t t-out="costo_prod" t-options="moneda"/></td></tr>
+                            <tr><td>Costo de mano de obra</td><td class="text-end"><t t-out="costo_horas" t-options="moneda"/></td></tr>
+                            <tr>
+                                <td><strong>Costo total</strong></td>
+                                <td class="text-end"><strong t-out="costo_serv + costo_prod + costo_horas" t-options="moneda"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+
+                <t t-if="interno">
+                    <!-- Control de calidad -->
+                    <h4 style="margin-top: 14px;">Control de calidad</h4>
+                    <t t-if="o.control_ids">
+                        <t t-foreach="o.control_ids" t-as="c">
+                            <div>
+                                <strong t-field="c.name"/> ·
+                                <span t-field="c.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/> ·
+                                Responsable: <span t-field="c.responsable_id.name"/> ·
+                                <span t-field="c.state"/>
+                            </div>
+                            <table class="table table-sm" t-if="c.linea_ids">
+                                <thead><tr><th>Servicio</th><th style="width: 14%;">Resultado</th><th>Observaciones</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="c.linea_ids" t-as="l">
+                                        <td><span t-field="l.ot_servicio_id.product_id.display_name"/></td>
+                                        <td><span t-field="l.resultado"/></td>
+                                        <td><span t-field="l.resultado_texto"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </t>
+                    <div t-else="" class="text-muted">Sin control de calidad.</div>
+
+                    <!-- Entrega -->
+                    <h4 style="margin-top: 14px;">Entrega</h4>
+                    <t t-set="entrega" t-value="o.entrega_ids.filtered(lambda e: e.state == 'confirmada')[:1]"/>
+                    <t t-if="entrega">
+                        <div>
+                            <span t-field="entrega.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/> ·
+                            Retira: <span t-field="entrega.retira_id.name"/> ·
+                            Km salida: <span t-out="'{:,}'.format(entrega.kilometraje_salida).replace(',', '.')"/> ·
+                            Combustible salida: <span t-field="entrega.combustible_salida"/>
+                        </div>
+                        <t t-set="diferencias" t-value="entrega.linea_ids.filtered('diferencia')"/>
+                        <div t-if="diferencias">
+                            Diferencias de inventario:
+                            <t t-foreach="diferencias" t-as="d"><span t-field="d.name"/><span t-if="d.observacion"> (<span t-field="d.observacion"/>)</span>; </t>
+                        </div>
+                        <div t-else="" class="text-muted">Sin diferencias de inventario.</div>
+                    </t>
+                    <div t-else="" class="text-muted">Sin entrega registrada.</div>
+                </t>
+            </div>
+        </template>
+    </data>
+</odoo>

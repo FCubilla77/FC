@@ -288,6 +288,34 @@
                                 </tbody>
                             </table>
 
+                            <t t-set="garantias" t-value="o.ot_id.sudo().garantia_ids"/>
+                            <div t-if="garantias" style="margin-bottom: 12px;">
+                                <h5>Garantías otorgadas</h5>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Servicio / producto</th>
+                                            <th style="width: 12%;">Días</th>
+                                            <th style="width: 18%;">Vence el</th>
+                                            <th style="width: 14%;">Km de garantía</th>
+                                            <th style="width: 18%;">Hasta los (km)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="garantias" t-as="g">
+                                            <td><span t-field="g.product_id.display_name"/></td>
+                                            <td class="text-end"><span t-out="g.dias"/></td>
+                                            <td class="text-center"><span t-field="g.fecha_limite" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/></td>
+                                            <td class="text-end"><span t-out="'{:,}'.format(g.km).replace(',', '.') if g.km else '—'"/></td>
+                                            <td class="text-end"><span t-out="'{:,}'.format(g.km_limite).replace(',', '.') if g.km_limite else '—'"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="text-muted">
+                                    La garantía vence al cumplirse el plazo en días o el kilometraje, lo que ocurra primero.
+                                </div>
+                            </div>
+
                             <div t-if="o.comentarios" style="margin-bottom: 12px;">
                                 <h5>Comentarios</h5>
                                 <div style="white-space: pre-wrap;"><span t-field="o.comentarios"/></div>

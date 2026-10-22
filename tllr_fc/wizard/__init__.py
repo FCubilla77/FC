@@ -8,3 +8,5 @@ from . import tllr_fc_wizard_reclamo_garantia
 from . import tllr_fc_wizard_refacturar
 from . import tllr_fc_wizard_devolver_consumo
 from . import tllr_fc_wizard_reportes
+from . import tllr_fc_wizard_productividad
+from . import tllr_fc_wizard_turnos

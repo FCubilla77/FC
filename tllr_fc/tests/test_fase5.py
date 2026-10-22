@@ -731,18 +731,191 @@ class TestFase5(TallerCommon):
         fila = asistente.linea_ids.filtered(lambda l: l.ot_id == con_costo)
         self.assertAlmostEqual(fila.porcentaje, -100.0)
         # Filas de grupo: margen total / ingreso total, no la suma de porcentajes.
-        grupos = self.env['tllr_fc.rep.rentabilidad.linea'].read_group(
-            [('wizard_id', '=', asistente.id)], ['porcentaje:sum', 'ingreso:sum', 'margen:sum'],
-            ['tipo'])
-        for g in grupos:
-            if g['ingreso']:
-                esperado = g['margen'] / g['ingreso'] * 100.0
+        grupos = self.env['tllr_fc.rep.rentabilidad.linea']._read_group(
+            [('wizard_id', '=', asistente.id)], ['tipo'],
+            ['porcentaje:sum', 'ingreso:sum', 'margen:sum'])
+        self.assertTrue(grupos)
+        for _tipo, porcentaje, ingreso, margen in grupos:
+            if ingreso:
+                esperado = margen / ingreso * 100.0
             else:
-                esperado = -100.0 if g['margen'] < -0.005 else 0.0
-            self.assertAlmostEqual(g['porcentaje'], esperado, places=3)
+                esperado = -100.0 if margen < -0.005 else 0.0
+            self.assertAlmostEqual(porcentaje, esperado, places=3)
         datos = asistente.linea_ids.get_datos()
         total = datos['total']
         self.assertAlmostEqual(
             total['porcentaje'],
             total['margen'] / total['ingreso'] * 100.0 if total['ingreso']
             else (-100.0 if total['margen'] < -0.005 else 0.0), places=3)
+
+    # ---------------- 2026.19.020: filtros de rentabilidad y garantías en la entrega ----------------
+    def test_rentabilidad_con_filtros(self):
+        ot = self._ot_planificada()
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        base = {'fecha_desde': hoy - timedelta(days=1), 'fecha_hasta': hoy + timedelta(days=1)}
+        Asistente = self.env['tllr_fc.wizard.rep_rentabilidad']
+        todos = Asistente.create(base)
+        todos.action_ver()
+        self.assertIn(ot, todos.linea_ids.ot_id)
+        self.assertFalse(todos.get_filtros())
+        por_cliente = Asistente.create(dict(base, partner_ids=[(6, 0, [ot.partner_id.id])]))
+        por_cliente.action_ver()
+        self.assertIn(ot, por_cliente.linea_ids.ot_id)
+        otro = self.env['res.partner'].create({'name': 'Otro cliente filtro'})
+        sin_cliente = Asistente.create(dict(base, partner_ids=[(6, 0, [otro.id])]))
+        sin_cliente.action_ver()
+        self.assertNotIn(ot, sin_cliente.linea_ids.ot_id)
+        otro_tipo = 'interno' if ot.tipo != 'interno' else 'cliente'
+        por_tipo = Asistente.create(dict(base, tipo_ot=otro_tipo))
+        por_tipo.action_ver()
+        self.assertNotIn(ot, por_tipo.linea_ids.ot_id)
+        por_estado = Asistente.create(dict(base, estado_ot='entregado'))
+        por_estado.action_ver()
+        self.assertNotIn(ot, por_estado.linea_ids.ot_id)
+        por_puesto = Asistente.create(dict(
+            base, puesto_ids=[(6, 0, ot.puesto_line_ids.puesto_id.ids)],
+            responsable_ids=[(6, 0, ot.responsable_id.ids)]))
+        por_puesto.action_ver()
+        self.assertIn(ot, por_puesto.linea_ids.ot_id)
+        self.assertIn('puestos', por_puesto.get_filtros())
+        html = self._html('tllr_fc.action_report_rep_rentabilidad', por_puesto.linea_ids)
+        self.assertIn('Filtros', html)
+
+    def test_comprobante_de_entrega_lista_las_garantias_otorgadas(self):
+        ot = self._ot_planificada()
+        ot.action_iniciar()
+        for puesto in ot.puesto_line_ids.sorted('sequence'):
+            if puesto.state == 'activo':
+                puesto.servicio_ids.filtered(lambda s: s.estado == 'pendiente').action_terminar()
+                ot.action_terminar_puesto()
+        self.assertEqual(ot.state, 'listo')
+        ot.action_cerrar_facturar()
+        factura = ot._tllr_fc_facturas()
+        factura.invoice_payment_term_id = self.plazo30
+        factura.action_post()
+        entrega = self.env['tllr_fc.entrega'].create({'ot_id': ot.id})
+        entrega.linea_ids.write({'entregado': 'si'})
+        entrega.write({'retira_id': entrega.partner_id.id, 'combustible_salida': 'lleno'})
+        entrega.kilometraje_salida = 3000
+        entrega.action_confirmar()
+        html = self._html('tllr_fc.action_report_entrega', entrega)
+        self.assertTrue(ot.garantia_ids)
+        self.assertIn('Garantías otorgadas', html)
+
+    # ---------------- 2026.19.021: productividad, turnos y OT valorizada ----------------
+    def _ot_con_horas(self):
+        ot = self._ot_planificada()
+        ot.action_iniciar()
+        s1 = ot.servicio_ids.filtered(lambda s: s.product_id == self.s1)
+        for persona, horas in ((self.personal1, 3.0), (self.personal2, 1.0)):
+            self.env['tllr_fc.ot.hora'].create({
+                'ot_id': ot.id, 'personal_id': persona.id, 'horas': horas,
+                'servicio_id': s1.id, 'puesto_line_id': s1.puesto_line_id.id})
+        for puesto in ot.puesto_line_ids.sorted('sequence'):
+            if puesto.state == 'activo':
+                puesto.servicio_ids.filtered(lambda s: s.estado == 'pendiente').action_terminar()
+                ot.action_terminar_puesto()
+        return ot
+
+    def test_productividad_reparte_horas_estandar_segun_horas_cargadas(self):
+        ot = self._ot_con_horas()
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        base = {'fecha_desde': hoy - timedelta(days=1), 'fecha_hasta': hoy + timedelta(days=1)}
+        asistente = self.env['tllr_fc.wizard.rep_productividad'].create(base)
+        accion = asistente.action_ver()
+        self.assertEqual(accion['res_model'], 'tllr_fc.rep.productividad.linea')
+        filas = {l.grupo: l for l in asistente.linea_ids}
+        p1 = filas[self.personal1.name]
+        p2 = filas[self.personal2.name]
+        self.assertAlmostEqual(p1.horas_estandar, 0.75)
+        self.assertAlmostEqual(p1.horas_reales, 3.0)
+        self.assertAlmostEqual(p1.eficiencia, 25.0)
+        self.assertAlmostEqual(p2.horas_estandar, 0.25)
+        sin_horas = filas["Sin horas registradas"]
+        self.assertAlmostEqual(sin_horas.horas_estandar, 0.5)
+        total = filas["TOTAL"]
+        self.assertTrue(total.es_total)
+        self.assertAlmostEqual(total.horas_estandar, 1.5)
+        self.assertAlmostEqual(total.horas_reales, 4.0)
+        self.assertAlmostEqual(total.eficiencia, 1.5 / 4.0 * 100)
+        self.assertEqual(total.ot_count, 1)
+        # Por puesto y por servicio.
+        por_puesto = self.env['tllr_fc.wizard.rep_productividad'].create(
+            dict(base, agrupar_por='puesto'))
+        por_puesto.action_ver()
+        filas = {l.grupo: l for l in por_puesto.linea_ids}
+        self.assertAlmostEqual(filas[self.puesto1.name].horas_estandar, 1.0)
+        self.assertAlmostEqual(filas[self.puesto1.name].horas_reales, 4.0)
+        self.assertAlmostEqual(filas[self.puesto2.name].horas_estandar, 0.5)
+        por_servicio = self.env['tllr_fc.wizard.rep_productividad'].create(
+            dict(base, agrupar_por='servicio', servicio_ids=[(6, 0, self.s1.ids)]))
+        por_servicio.action_ver()
+        self.assertEqual(
+            sorted(por_servicio.linea_ids.mapped('grupo')), sorted([self.s1.display_name, "TOTAL"]))
+        # PDF
+        html = self._html('tllr_fc.action_report_rep_productividad', asistente.linea_ids)
+        self.assertIn('Productividad', html)
+        self.assertIn('TOTAL', html)
+        # Filtro por persona: solo su parte.
+        una = self.env['tllr_fc.wizard.rep_productividad'].create(
+            dict(base, personal_ids=[(6, 0, self.personal2.ids)]))
+        una.action_ver()
+        total = una.linea_ids.filtered('es_total')
+        self.assertAlmostEqual(total.horas_estandar, 0.25)
+        self.assertAlmostEqual(total.horas_reales, 1.0)
+        self.assertEqual(ot.state in ('listo', 'calidad'), True)
+
+    def test_turnos_estados_y_asistencia(self):
+        ahora = fields.Datetime.now()
+        for estado, cantidad in (('recibido', 3), ('no_asistio', 1), ('cancelado', 2),
+                                 ('agendado', 1), ('confirmado', 1)):
+            for _i in range(cantidad):
+                self.env['tllr_fc.turno'].create({
+                    'partner_id': self.cliente.id, 'vehiculo_id': self.vehiculo.id,
+                    'fecha_hora': ahora, 'state': estado})
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        base = {'fecha_desde': hoy - timedelta(days=1), 'fecha_hasta': hoy + timedelta(days=1)}
+        por_mes = self.env['tllr_fc.wizard.rep_turnos'].create(base)
+        por_mes.action_ver()
+        total = por_mes.linea_ids.filtered('es_total')
+        self.assertEqual(total.recibidos, 3)
+        self.assertEqual(total.no_asistio, 1)
+        self.assertEqual(total.cancelados, 2)
+        self.assertEqual(total.total, 8)
+        # Asistencia: 3 / (3 + 1); los pendientes y cancelados no cuentan.
+        self.assertAlmostEqual(total.asistencia, 75.0)
+        html = self._html('tllr_fc.action_report_rep_turnos', por_mes.linea_ids)
+        self.assertIn('Asistencia', html)
+        # Por cliente: solo el administrador.
+        por_cliente = self.env['tllr_fc.wizard.rep_turnos'].create(
+            dict(base, agrupar_por='cliente'))
+        por_cliente.action_ver()
+        self.assertIn(self.cliente.display_name, por_cliente.linea_ids.mapped('grupo'))
+        supervisor = self.env['res.users'].create({
+            'name': "Supervisor turnos", 'login': "sup_turnos_f21",
+            'group_ids': [Command.link(self.env.ref('tllr_fc.group_supervisor').id)]})
+        no_admin = self.env['tllr_fc.wizard.rep_turnos'].with_user(supervisor).create(
+            dict(base, agrupar_por='cliente'))
+        with self.assertRaises(AccessError):
+            no_admin.action_ver()
+
+    def test_reporte_de_la_ot_valorizado_interno_y_cliente(self):
+        ot = self._ot_planificada()
+        self.env['tllr_fc.ot.producto'].create({
+            'ot_id': ot.id, 'product_id': self.repuesto.id, 'cantidad_reservada': 2})
+        self.env['tllr_fc.ot.producto'].create({
+            'ot_id': ot.id, 'product_id': self.insumo.id, 'cantidad_reservada': 1})
+        ot.action_iniciar()
+        for linea in ot.producto_ids:
+            linea.cantidad_utilizada = linea.cantidad_reservada
+        interno = self._html('tllr_fc.action_report_ot_interno', ot)
+        cliente = self._html('tllr_fc.action_report_ot_cliente', ot)
+        self.assertIn('Costo total', interno)
+        self.assertIn('Grasa F3', interno)
+        self.assertIn('Filtro F3', interno)
+        self.assertNotIn('Costo total', cliente)
+        self.assertNotIn('Grasa F3', cliente)
+        self.assertIn('Filtro F3', cliente)
+        self.assertNotIn('Horas de trabajo', cliente)
+        # El informe interno solo se ofrece al supervisor.
+        self.assertTrue(self.env.ref('tllr_fc.action_report_ot_interno').group_ids)

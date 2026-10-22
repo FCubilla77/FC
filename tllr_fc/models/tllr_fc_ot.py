@@ -180,12 +180,12 @@ class TllrFcOt(models.Model):
         groups='tllr_fc.group_supervisor',
         help="Impuesto total de las facturas confirmadas (estimado si aún no hay factura), en negativo.")
     ajustes_costo = fields.Monetary(
-        string="Ajustes de costo", currency_field='currency_id', compute='_compute_rentabilidad',
+        string="Ajustes", currency_field='currency_id', compute='_compute_rentabilidad',
         groups='tllr_fc.group_supervisor',
         help="Suma de los ajustes de costo de la OT, en negativo.")
     costo_garantia_absorbido = fields.Monetary(
         string="Costo de garantía no cobrado", currency_field='currency_id',
-        compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor',
+        compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor', recursive=True,
         help="En una OT de garantía: costo que no se cobra y se suma a la OT original.")
     costo_garantias_origen = fields.Monetary(
         string="Costo de garantías de esta OT", currency_field='currency_id',
@@ -194,6 +194,12 @@ class TllrFcOt(models.Model):
     margen = fields.Monetary(
         string="Margen", currency_field='currency_id', compute='_compute_rentabilidad',
         groups='tllr_fc.group_supervisor')
+    notas_credito = fields.Monetary(
+        string="Notas de crédito", currency_field='currency_id', compute='_compute_rentabilidad',
+        groups='tllr_fc.group_supervisor',
+        help="Notas de crédito parciales confirmadas, en negativo. Ya están restadas del ingreso.")
+    nota_credito_count = fields.Integer(
+        string="Cantidad de notas de crédito", compute='_compute_nota_credito_count')
     margen_porcentaje = fields.Float(
         string="Margen (%)", compute='_compute_rentabilidad', groups='tllr_fc.group_supervisor')
     servicios_resumen = fields.Char(string="Servicios (resumen)", compute='_compute_resumen')
@@ -300,8 +306,10 @@ class TllrFcOt(models.Model):
             return 0.0, 0.0
         confirmadas = ot._tllr_fc_facturas().filtered(lambda m: m.state == 'posted')
         if confirmadas:
-            return (sum(confirmadas.mapped('amount_total_signed')),
-                    sum(confirmadas.mapped('amount_tax_signed')))
+            # Las notas de crédito (parciales) vienen con signo negativo y restan.
+            documentos = confirmadas | ot._tllr_fc_notas_credito()
+            return (sum(documentos.mapped('amount_total_signed')),
+                    sum(documentos.mapped('amount_tax_signed')))
         if ot.state == 'cancelada':
             # Una OT cancelada no estima ingreso: solo cuenta lo realmente facturado.
             return 0.0, 0.0
@@ -321,7 +329,7 @@ class TllrFcOt(models.Model):
                  'producto_ids.costo', 'producto_ids.facturable', 'hora_ids.costo',
                  'ajuste_ids.monto', 'factura_ids.state', 'factura_ids.amount_total_signed',
                  'factura_ids.amount_tax_signed', 'factura_ids.payment_state',
-                 'ot_garantia_ids.state', 'ot_garantia_ids.costo_garantia_absorbido')
+                 'factura_ids.move_type', 'ot_garantia_ids.state', 'ot_garantia_ids.costo_garantia_absorbido')
     def _compute_rentabilidad(self):
         for ot in self:
             d = ot._tllr_fc_desglose_costos()
@@ -329,6 +337,7 @@ class TllrFcOt(models.Model):
                 garantia._tllr_fc_costos()[1] for garantia in ot.sudo().ot_garantia_ids
                 if garantia.state != 'cancelada')
             ingreso, impuesto = ot._tllr_fc_ingreso_impuesto()
+            ot.notas_credito = sum(ot._tllr_fc_notas_credito().mapped('amount_total_signed'))
             # Ingreso en positivo; todos los costos en negativo.
             ot.ingreso = ingreso
             ot.costo_propio = -d['materiales']
@@ -379,6 +388,22 @@ class TllrFcOt(models.Model):
             else:
                 ot.estado_facturacion = 'borrador' if facturas else 'sin_facturar'
                 ot.estado_pago = 'no_pagada'
+
+    @api.depends('factura_ids.state', 'factura_ids.move_type')
+    def _compute_nota_credito_count(self):
+        for ot in self:
+            ot.nota_credito_count = len(ot.sudo().factura_ids.filtered(
+                lambda m: m.move_type == 'out_refund' and m.state == 'posted'))
+
+    def action_ver_notas_credito(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window', 'name': "Notas de crédito",
+            'res_model': 'account.move', 'view_mode': 'list,form',
+            'domain': [('id', 'in', self.sudo().factura_ids.filtered(
+                lambda m: m.move_type == 'out_refund').ids)],
+            'context': {'default_move_type': 'out_refund', 'create': False},
+        }
 
     def _compute_traslado_count(self):
         datos = self.env['stock.picking'].sudo()._read_group(
@@ -845,6 +870,31 @@ class TllrFcOt(models.Model):
             'context': {'default_ot_id': self.id},
         }
 
+    def _tllr_fc_accion_cobro(self, modelo, nombre, dominio_extra=None):
+        self.ensure_one()
+        if not self._tllr_fc_es_supervisor():
+            raise AccessError("Solo el supervisor o el administrador de taller marcan «Cobrar al cliente».")
+        if self.tipo != 'garantia' or self.state not in ('espera', 'proceso', 'listo') \
+                or self.cerrada_facturar:
+            raise UserError("«Cobrar al cliente» se marca en una OT de garantía que aún no se cerró para facturar.")
+        vista = self.env.ref('tllr_fc.view_tllr_fc_%s_cobro_list' % (
+            'servicio' if modelo == 'tllr_fc.ot.servicio' else 'producto'))
+        return {
+            'type': 'ir.actions.act_window', 'name': nombre, 'res_model': modelo,
+            'view_mode': 'list', 'views': [(vista.id, 'list')], 'target': 'new',
+            'domain': [('ot_id', '=', self.id)] + (dominio_extra or []),
+        }
+
+    def action_cobro_servicios(self):
+        """Lista editable (solo «Cobrar al cliente») de los servicios de la OT de garantía."""
+        return self._tllr_fc_accion_cobro('tllr_fc.ot.servicio', "Servicios a cobrar")
+
+    def action_cobro_productos(self):
+        """Lista editable (solo «Cobrar al cliente») de los repuestos de la OT de garantía."""
+        return self._tllr_fc_accion_cobro(
+            'tllr_fc.ot.producto', "Repuestos a cobrar",
+            [('uso', 'in', ['repuesto', 'insumo_facturable', 'accesorio'])])
+
     # ------------------------------------------------------------------
     # Facturación directa
     # ------------------------------------------------------------------
@@ -855,8 +905,26 @@ class TllrFcOt(models.Model):
         """
         self.ensure_one()
         return self.sudo().factura_ids.filtered(
-            lambda m: m.move_type == 'out_invoice' and m.payment_state != 'reversed'
-            and not m.reversal_move_ids.filtered(lambda r: r.state == 'posted'))
+            lambda m: m.move_type == 'out_invoice'
+            and not (m.state == 'posted' and m._tllr_fc_totalmente_acreditada()))
+
+    def _tllr_fc_notas_credito(self):
+        """Notas de crédito confirmadas (parciales) de las facturas vigentes de la OT."""
+        self.ensure_one()
+        facturas = self._tllr_fc_facturas()
+        return self.sudo().factura_ids.filtered(
+            lambda m: m.move_type == 'out_refund' and m.state == 'posted'
+            and m.reversed_entry_id in facturas)
+
+    def _tllr_fc_nota_credito_parcial(self, nota):
+        """Una nota de crédito parcial resta ingreso a la OT y queda relacionada."""
+        self.ensure_one()
+        factura = nota.reversed_entry_id
+        self.message_post(body=(
+            "Nota de crédito parcial %s por %s sobre la factura %s: se resta del ingreso de la "
+            "OT. Acreditado en total: %s de %s.") % (
+                nota._get_html_link(), nota.amount_total, factura._get_html_link(),
+                factura._tllr_fc_acreditado(), factura.amount_total))
 
     def _compute_puede_refacturar(self):
         for ot in self:

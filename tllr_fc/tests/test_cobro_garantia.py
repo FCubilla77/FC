@@ -139,3 +139,30 @@ class TestCobroGarantia(TallerCommon):
         self.assertAlmostEqual(garantia.costo_garantia_absorbido, 8000)
         self.assertAlmostEqual(garantia.margen, base - 2 * 12000)
         self.assertAlmostEqual(original.costo_garantias_origen, -8000)
+
+    # ---------------- 2026.19.020: cobrar con la OT lista para entrega ----------------
+    def test_cobrar_cliente_con_la_ot_lista_para_entrega(self):
+        ot = self._ot_garantia(cobrar_repuesto=False)
+        ot.action_iniciar()
+        repuesto = ot.producto_ids
+        repuesto.cantidad_utilizada = 2
+        self._terminar(ot)
+        self.assertEqual(ot.state, 'listo')
+        self.assertFalse(ot.requiere_factura)
+        # Con la OT lista se puede marcar el cobro (solo ese campo).
+        self.assertEqual(ot.action_cobro_productos()['res_model'], 'tllr_fc.ot.producto')
+        self.assertEqual(ot.action_cobro_servicios()['res_model'], 'tllr_fc.ot.servicio')
+        repuesto.cobrar_cliente = True
+        self.assertTrue(repuesto.facturable)
+        self.assertTrue(ot.requiere_factura)
+        self.assertEqual(repuesto.state_aprobacion, 'pendiente')
+        with self.assertRaises(UserError):
+            repuesto.descuento = 5
+        self._aprobar(ot)
+        ot.action_cerrar_facturar()
+        self.assertEqual(len(ot._tllr_fc_facturas().invoice_line_ids), 1)
+        # Cerrada para facturar ya no se puede cambiar.
+        with self.assertRaises(UserError):
+            repuesto.cobrar_cliente = False
+        with self.assertRaises(UserError):
+            ot.action_cobro_productos()

@@ -13,6 +13,14 @@
                         <field name="fecha_desde"/>
                         <field name="fecha_hasta"/>
                         <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="tipo_ot"/>
+                        <field name="estado_ot"/>
+                        <field name="partner_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los clientes"/>
+                        <field name="responsable_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los responsables"/>
+                        <field name="puesto_ids" widget="many2many_tags"
+                               options="{'no_create': True}" placeholder="Todos los puestos"/>
                     </group>
                     <div class="text-muted">
                         Incluye las OT cuya fecha de ingreso está en el rango, agrupadas por tipo. Las canceladas solo aparecen si tienen factura o costos.
@@ -99,6 +107,7 @@
                                         Fecha de ingreso del
                                         <span t-field="o.fecha_desde"/> al <span t-field="o.fecha_hasta"/>
                                     </div>
+                                    <div t-if="o.get_filtros()" class="text-muted">Filtros: <t t-out="o.get_filtros()"/></div>
                                 </div>
                                 <div class="col-4 text-end">
                                     <strong t-field="o.company_id.name"/><br/>

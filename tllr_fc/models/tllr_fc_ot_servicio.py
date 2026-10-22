@@ -184,6 +184,13 @@ class TllrFcOtServicio(models.Model):
                     "La OT %s está en estado «%s»: ya no se pueden modificar sus servicios."
                     % (ot.name, dict(ot._fields['state'].selection)[ot.state]))
 
+    def _tllr_fc_cobro_en_listo(self, vals):
+        """«Cobrar al cliente» también se marca con la OT de garantía lista para entrega,
+        mientras no se haya cerrado para facturar."""
+        return set(vals) <= {'cobrar_cliente'} and all(
+            linea.ot_id.tipo == 'garantia' and linea.ot_id.state == 'listo'
+            and not linea.ot_id.cerrada_facturar for linea in self)
+
     def _tllr_fc_verificar_pertenencia(self):
         """El servicio debe figurar entre los trabajos del puesto asignado."""
         for servicio in self.filtered('puesto_line_id'):
@@ -253,7 +260,7 @@ class TllrFcOtServicio(models.Model):
                 for ot in self.ot_id:
                     if ot.state in ('entregado', 'cancelada'):
                         raise UserError("La OT %s ya está cerrada." % ot.name)
-            else:
+            elif not self._tllr_fc_cobro_en_listo(vals):
                 self._tllr_fc_verificar_ot_editable(self.ot_id)
         resultado = super().write(vals)
         if 'puesto_line_id' in vals:

@@ -31,7 +31,11 @@ class AccountMove(models.Model):
             factura.tllr_fc_ot_id.sudo()._tllr_fc_asiento_factura(factura)
         for nota in posted.filtered(
                 lambda m: m.move_type == 'out_refund' and m.reversed_entry_id.tllr_fc_ot_id):
-            nota.reversed_entry_id.tllr_fc_ot_id.sudo()._tllr_fc_nota_credito_total(nota)
+            ot = nota.reversed_entry_id.tllr_fc_ot_id.sudo()
+            if nota.reversed_entry_id._tllr_fc_totalmente_acreditada():
+                ot._tllr_fc_nota_credito_total(nota)
+            else:
+                ot._tllr_fc_nota_credito_parcial(nota)
         return posted
 
     def _reverse_moves(self, default_values_list=None, cancel=False):
@@ -80,22 +84,32 @@ class AccountMove(models.Model):
                 "el módulo de Taller." % (movimiento.display_name, movimiento.tllr_fc_ot_id.name))
 
     # ------------------------------------------------------------------
-    # Notas de crédito de facturas de una OT: solo por el total
+    # Notas de crédito de facturas de una OT (totales o parciales)
     # ------------------------------------------------------------------
+    def _tllr_fc_acreditado(self, excluir=None):
+        """Importe ya acreditado de la factura con notas de crédito confirmadas."""
+        self.ensure_one()
+        notas = self.sudo().reversal_move_ids.filtered(
+            lambda r: r.move_type == 'out_refund' and r.state == 'posted' and r != excluir)
+        return sum(notas.mapped('amount_total'))
+
+    def _tllr_fc_totalmente_acreditada(self):
+        """La factura quedó anulada por notas de crédito que suman su total."""
+        self.ensure_one()
+        return self.payment_state == 'reversed' or (
+            self.currency_id.compare_amounts(self._tllr_fc_acreditado(), self.amount_total) >= 0)
+
     def _tllr_fc_validar_nota_credito(self):
+        """Las notas de crédito de una factura de OT pueden ser parciales, pero no superar el total."""
         self.ensure_one()
         factura = self.reversed_entry_id
         if not factura.tllr_fc_ot_id or factura.move_type != 'out_invoice':
             return
         moneda = factura.currency_id
-        if moneda.compare_amounts(self.amount_total, factura.amount_total) != 0:
+        acreditado = factura._tllr_fc_acreditado(excluir=self) + self.amount_total
+        if moneda.compare_amounts(acreditado, factura.amount_total) > 0:
             raise UserError(
-                "La factura %s pertenece a la OT %s: la nota de crédito debe ser por el total "
-                "(%s). Para facturar solo una parte, emití la nota de crédito total y generá la "
-                "nueva factura desde la OT marcando «No facturar» en lo que no se cobra." % (
-                    factura.name, factura.tllr_fc_ot_id.name, factura.amount_total))
-        otras = self.search_count([
-            ('reversed_entry_id', '=', factura.id), ('state', '=', 'posted'),
-            ('id', '!=', self.id)])
-        if otras:
-            raise UserError("La factura %s ya tiene una nota de crédito confirmada." % factura.name)
+                "La factura %s pertenece a la OT %s: las notas de crédito no pueden superar su "
+                "total (%s). Ya se acreditó %s y esta nota suma %s." % (
+                    factura.name, factura.tllr_fc_ot_id.name, factura.amount_total,
+                    factura._tllr_fc_acreditado(excluir=self), self.amount_total))

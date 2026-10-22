@@ -32,8 +32,41 @@ class TllrFcWizardRepRentabilidad(models.TransientModel):
         string="Ingreso hasta", required=True, default=fields.Date.context_today)
     company_id = fields.Many2one(
         'res.company', string="Compañía", required=True, default=lambda self: self.env.company)
+    partner_ids = fields.Many2many(
+        'res.partner', 'tllr_fc_rep_rent_partner_rel', 'wizard_id', 'partner_id',
+        string="Clientes", help="Vacío = todos los clientes.")
+    tipo_ot = fields.Selection(
+        [('todos', "Todos"), ('cliente', "Cliente"), ('garantia', "Garantía"),
+         ('interno', "Interno")], string="Tipo de OT", required=True, default='todos')
+    estado_ot = fields.Selection(
+        [('todos', "Todos"), ('espera', "En espera"), ('proceso', "En proceso"),
+         ('calidad', "En control de calidad"), ('listo', "Listo para entrega"),
+         ('entregado', "Entregado"), ('cancelada', "Cancelada")],
+        string="Estado de la OT", required=True, default='todos')
+    responsable_ids = fields.Many2many(
+        'tllr_fc.personal', 'tllr_fc_rep_rent_resp_rel', 'wizard_id', 'personal_id',
+        string="Responsables", help="Vacío = todos.")
+    puesto_ids = fields.Many2many(
+        'tllr_fc.puesto', 'tllr_fc_rep_rent_puesto_rel', 'wizard_id', 'puesto_id',
+        string="Puestos", help="OT que pasan por alguno de estos puestos. Vacío = todos.")
     linea_ids = fields.One2many(
         'tllr_fc.rep.rentabilidad.linea', 'wizard_id', string="Líneas")
+
+    def get_filtros(self):
+        """Texto con los filtros aplicados (para el encabezado del PDF)."""
+        self.ensure_one()
+        partes = []
+        if self.tipo_ot != 'todos':
+            partes.append("tipo %s" % dict(self._fields['tipo_ot'].selection)[self.tipo_ot])
+        if self.estado_ot != 'todos':
+            partes.append("estado %s" % dict(self._fields['estado_ot'].selection)[self.estado_ot])
+        if self.partner_ids:
+            partes.append("clientes %s" % ', '.join(self.partner_ids.mapped('name')))
+        if self.responsable_ids:
+            partes.append("responsables %s" % ', '.join(self.responsable_ids.mapped('name')))
+        if self.puesto_ids:
+            partes.append("puestos %s" % ', '.join(self.puesto_ids.mapped('name')))
+        return '; '.join(partes)
 
     def _generar_lineas(self):
         """Calcula el reporte y lo deja en líneas (una por OT, sin las canceladas)."""
@@ -43,10 +76,26 @@ class TllrFcWizardRepRentabilidad(models.TransientModel):
         self.linea_ids.unlink()
         inicio = datetime.combine(self.fecha_desde, time.min)
         fin = datetime.combine(self.fecha_hasta, time.max)
-        ots = self.env['tllr_fc.ot'].sudo().search([
+        dominio = [
             ('company_id', '=', self.company_id.id),
             ('fecha_ingreso', '>=', inicio), ('fecha_ingreso', '<=', fin),
-        ], order='name')
+        ]
+        if self.partner_ids:
+            dominio.append(('partner_id', 'in', self.partner_ids.ids))
+        if self.tipo_ot != 'todos':
+            dominio.append(('tipo', '=', self.tipo_ot))
+        if self.estado_ot != 'todos':
+            dominio.append(('state', '=', self.estado_ot))
+        if self.responsable_ids:
+            dominio.append(('responsable_id', 'in', self.responsable_ids.ids))
+        if self.puesto_ids:
+            dominio.append(('puesto_line_ids.puesto_id', 'in', self.puesto_ids.ids))
+        ots = self.env['tllr_fc.ot'].sudo().search(dominio, order='name')
+        # Precarga por lotes de lo que usa el cálculo de rentabilidad (evita consultas por OT).
+        for relacion in ('factura_ids', 'servicio_ids', 'producto_ids', 'hora_ids',
+                         'ajuste_ids', 'ot_garantia_ids'):
+            ots.mapped(relacion)
+        ots.mapped('factura_ids.reversal_move_ids')
         valores = []
         moneda = self.company_id.currency_id
         for tipo in TIPOS_ORDEN:

@@ -188,6 +188,20 @@
                   groups="tllr_fc.group_supervisor"
                   sequence="20"/>
 
+        <menuitem id="menu_tllr_fc_rep_productividad"
+                  name="Productividad"
+                  parent="menu_tllr_fc_informes"
+                  action="action_tllr_fc_rep_productividad"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="30"/>
+
+        <menuitem id="menu_tllr_fc_rep_turnos"
+                  name="Turnos"
+                  parent="menu_tllr_fc_informes"
+                  action="action_tllr_fc_rep_turnos"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="40"/>
+
         <menuitem id="menu_tllr_fc_config"
                   name="Configuración"
                   parent="menu_tllr_fc_root"
