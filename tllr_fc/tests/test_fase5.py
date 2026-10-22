@@ -712,3 +712,37 @@ class TestFase5(TallerCommon):
         self.assertNotIn(vacia, ots)
         self.assertIn(con_costo, ots)
         self.assertIn(liquidada, ots)
+
+    # ---------------- 2026.19.019: Margen % sin ingreso, grupos y total ----------------
+    def test_margen_porcentaje_sin_ingreso_grupos_y_total(self):
+        motivo = self.env.ref('tllr_fc.motivo_cancelacion_otro')
+        con_costo = self._ot_planificada()
+        linea = self.env['tllr_fc.ot.producto'].create({
+            'ot_id': con_costo.id, 'product_id': self.repuesto.id, 'cantidad_reservada': 2})
+        con_costo.action_iniciar()
+        linea.cantidad_utilizada = 2
+        con_costo._tllr_fc_cancelar(motivo, False)
+        self.assertLess(con_costo.margen, 0)
+        self.assertAlmostEqual(con_costo.margen_porcentaje, -1.0)
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        asistente = self.env['tllr_fc.wizard.rep_rentabilidad'].create({
+            'fecha_desde': hoy - timedelta(days=1), 'fecha_hasta': hoy + timedelta(days=1)})
+        asistente.action_ver()
+        fila = asistente.linea_ids.filtered(lambda l: l.ot_id == con_costo)
+        self.assertAlmostEqual(fila.porcentaje, -100.0)
+        # Filas de grupo: margen total / ingreso total, no la suma de porcentajes.
+        grupos = self.env['tllr_fc.rep.rentabilidad.linea'].read_group(
+            [('wizard_id', '=', asistente.id)], ['porcentaje:sum', 'ingreso:sum', 'margen:sum'],
+            ['tipo'])
+        for g in grupos:
+            if g['ingreso']:
+                esperado = g['margen'] / g['ingreso'] * 100.0
+            else:
+                esperado = -100.0 if g['margen'] < -0.005 else 0.0
+            self.assertAlmostEqual(g['porcentaje'], esperado, places=3)
+        datos = asistente.linea_ids.get_datos()
+        total = datos['total']
+        self.assertAlmostEqual(
+            total['porcentaje'],
+            total['margen'] / total['ingreso'] * 100.0 if total['ingreso']
+            else (-100.0 if total['margen'] < -0.005 else 0.0), places=3)

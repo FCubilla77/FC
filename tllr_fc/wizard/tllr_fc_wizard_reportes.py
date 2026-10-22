@@ -3,10 +3,18 @@ from datetime import datetime, time
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import SQL
 
 TIPOS_ORDEN = ('cliente', 'garantia', 'interno')
 CLAVES_IMPORTE = ('ingreso', 'costo_propio', 'mano_obra', 'impuesto', 'ajustes_costo',
                   'garantias', 'costos', 'margen')
+
+
+def calcular_porcentaje(margen, ingreso):
+    """Margen % = margen / ingreso. Sin ingreso y con pérdida: -100 %."""
+    if ingreso:
+        return margen / ingreso * 100.0
+    return -100.0 if margen < -0.005 else 0.0
 
 
 class TllrFcWizardRepRentabilidad(models.TransientModel):
@@ -58,7 +66,7 @@ class TllrFcWizardRepRentabilidad(models.TransientModel):
                     'mano_obra': ot.mano_obra, 'impuesto': ot.impuesto,
                     'ajustes_costo': ot.ajustes_costo, 'garantias': ot.costo_garantias_origen,
                     'costos': costos, 'margen': ot.ingreso + costos,
-                    'porcentaje': ((ot.ingreso + costos) / ot.ingreso * 100.0) if ot.ingreso else 0.0,
+                    'porcentaje': calcular_porcentaje(ot.ingreso + costos, ot.ingreso),
                 })
         return self.env['tllr_fc.rep.rentabilidad.linea'].create(valores)
 
@@ -109,6 +117,18 @@ class TllrFcRepRentabilidadLinea(models.TransientModel):
     margen = fields.Monetary(string="Margen", currency_field='currency_id')
     porcentaje = fields.Float(string="Margen %", digits=(16, 1))
 
+    @api.model
+    def _read_group_select(self, aggregate_spec, query):
+        """En filas de grupo, el Margen % es margen total / ingreso total
+        (no la suma de los porcentajes); sin ingreso y con pérdida, -100 %."""
+        if aggregate_spec == 'porcentaje:sum':
+            ingreso = self._field_to_sql(self._table, 'ingreso', query)
+            margen = self._field_to_sql(self._table, 'margen', query)
+            return SQL(
+                "CASE WHEN SUM(%(i)s) <> 0 THEN SUM(%(m)s) / SUM(%(i)s) * 100 "
+                "WHEN SUM(%(m)s) < -0.005 THEN -100 ELSE 0 END", i=ingreso, m=margen)
+        return super()._read_group_select(aggregate_spec, query)
+
     def get_datos(self):
         """Líneas agrupadas por tipo, con subtotales y total general."""
         etiquetas = dict(self._fields['tipo']._description_selection(self.env))
@@ -121,7 +141,7 @@ class TllrFcRepRentabilidadLinea(models.TransientModel):
             return dict.fromkeys(CLAVES_IMPORTE, 0.0)
 
         def porcentaje(t):
-            return (t['margen'] / t['ingreso'] * 100.0) if t['ingreso'] else 0.0
+            return calcular_porcentaje(t['margen'], t['ingreso'])
 
         grupos, total = [], vacio()
         for tipo in TIPOS_ORDEN:

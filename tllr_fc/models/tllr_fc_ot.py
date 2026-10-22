@@ -339,7 +339,11 @@ class TllrFcOt(models.Model):
             ot.costo_garantias_origen = -origen
             ot.margen = (ingreso - d['materiales'] - d['mano_obra'] - impuesto
                          - origen - d['ajustes'])
-            ot.margen_porcentaje = (ot.margen / ingreso) if ingreso else 0.0
+            # Sin ingreso y con pérdida: -100 % (la pérdida iguala lo gastado).
+            if ingreso:
+                ot.margen_porcentaje = ot.margen / ingreso
+            else:
+                ot.margen_porcentaje = -1.0 if ot.margen < -0.005 else 0.0
 
     @api.depends('servicio_ids.state_aprobacion', 'producto_ids.state_aprobacion')
     def _compute_adicionales_pendientes(self):
