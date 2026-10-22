@@ -116,7 +116,7 @@
             <field name="name">tllr_fc.garantia.list</field>
             <field name="model">tllr_fc.garantia</field>
             <field name="arch" type="xml">
-                <list decoration-danger="state != 'vigente'" decoration-success="state == 'vigente'">
+                <list decoration-danger="state in ('vencida_fecha', 'vencida_km')" decoration-success="state == 'vigente'" decoration-warning="state == 'en_reclamo'" decoration-muted="state == 'ejecutada'">
                     <field name="ot_id"/>
                     <field name="vehiculo_id"/>
                     <field name="partner_id"/>
@@ -170,7 +170,7 @@
                     <field name="partner_id"/>
                     <field name="product_id"/>
                     <filter string="Vigentes por fecha" name="vigente"
-                            domain="[('fecha_limite', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                            domain="[('fecha_limite', '&gt;=', context_today().strftime('%Y-%m-%d')), ('reclamo_ot_id', '=', False), ('reclamo_recepcion_id', '=', False)]"/>
                     <filter string="Vencidas por fecha" name="vencida"
                             domain="[('fecha_limite', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
                     <filter string="Reclamadas" name="reclamada" domain="[('reclamo_ot_id', '!=', False)]"/>

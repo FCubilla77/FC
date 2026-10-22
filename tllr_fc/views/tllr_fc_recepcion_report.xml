@@ -102,6 +102,79 @@
                                 <div style="white-space: pre-wrap;"><span t-field="o.observaciones"/></div>
                             </div>
 
+                            <t t-if="o.tipo_ot_propuesto == 'cliente'">
+                                <h5>Garantía de los trabajos</h5>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Servicio solicitado</th>
+                                            <th style="width: 18%;">Garantía (días)</th>
+                                            <th style="width: 18%;">Garantía (km)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="o.servicio_ids" t-as="s">
+                                            <t t-set="plantilla" t-value="s.product_id.product_tmpl_id"/>
+                                            <td><span t-field="s.product_id.display_name"/></td>
+                                            <t t-if="plantilla.tllr_fc_garantia_dias">
+                                                <td class="text-end"><span t-field="plantilla.tllr_fc_garantia_dias"/></td>
+                                                <td class="text-end">
+                                                    <span t-if="plantilla.tllr_fc_garantia_km" t-field="plantilla.tllr_fc_garantia_km"/>
+                                                    <span t-else="">Sin límite de km</span>
+                                                </td>
+                                            </t>
+                                            <td t-else="" colspan="2" class="text-center">Sin garantía</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div style="margin-bottom: 12px; text-align: justify;">
+                                    <p>Los servicios realizados y los productos suministrados por el taller en esta
+                                        orden de trabajo están garantizados por los plazos y kilometrajes indicados en
+                                        el cuadro, contados desde la fecha de entrega del vehículo.</p>
+                                    <p><strong>Vigencia:</strong> la garantía de cada servicio y de cada producto vence
+                                        al cumplirse el plazo o al alcanzarse el kilometraje límite, lo que ocurra primero.
+                                        Se registra al entregar el vehículo y se detalla en el comprobante de entrega.</p>
+                                    <p><strong>Alcance:</strong> la garantía cubre únicamente los defectos de fábrica de
+                                        los productos suministrados por el taller y los defectos en los servicios
+                                        realizados por el taller.</p>
+                                    <p>Cada servicio o producto puede reclamarse una sola vez.</p>
+                                </div>
+                            </t>
+                            <t t-if="o.tipo_ot_propuesto == 'garantia'">
+                                <t t-set="reclamadas" t-value="o.garantia_elegida_ids | o.garantia_reclamo_ids"/>
+                                <h5>Reclamo de garantía</h5>
+                                <table class="table table-sm" t-if="reclamadas">
+                                    <thead>
+                                        <tr>
+                                            <th>Servicio / producto reclamado</th>
+                                            <th style="width: 13%;">OT original</th>
+                                            <th style="width: 13%;">Entrega</th>
+                                            <th style="width: 13%;">Vence el</th>
+                                            <th style="width: 13%;">Km límite</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="reclamadas" t-as="g">
+                                            <td><span t-field="g.product_id.display_name"/></td>
+                                            <td><span t-field="g.ot_id.name"/></td>
+                                            <td><span t-field="g.fecha_entrega"/></td>
+                                            <td><span t-field="g.fecha_limite"/></td>
+                                            <td class="text-end"><span t-field="g.km_limite"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div style="margin-bottom: 12px; text-align: justify;">
+                                    <p>Con esta recepción se da curso al reclamo de garantía de los servicios y
+                                        productos indicados en el cuadro.</p>
+                                    <p><strong>Efecto del reclamo:</strong> al entregar el vehículo, la garantía de cada
+                                        ítem reclamado queda <strong>ejecutada</strong> y deja de tener vigencia. No podrá
+                                        volver a reclamarse por el mismo servicio o producto.</p>
+                                    <p><strong>Alcance:</strong> la garantía cubre únicamente los defectos de fábrica de
+                                        los productos suministrados por el taller y los defectos en los servicios
+                                        realizados por el taller.</p>
+                                </div>
+                            </t>
+
                             <div class="row" style="margin-top: 70px;">
                                 <div class="col-6 text-center">
                                     <div style="border-top: 1px solid #000; margin: 0 20px; padding-top: 4px;">

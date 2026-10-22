@@ -480,7 +480,7 @@
                                         <field name="km_limite"/>
                                         <field name="state" widget="badge"
                                                decoration-success="state == 'vigente'"
-                                               decoration-danger="state != 'vigente'"/>
+                                               decoration-danger="state in ('vencida_fecha', 'vencida_km')"/>
                                         <field name="reclamo_ot_id"/>
                                     </list>
                                 </field>

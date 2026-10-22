@@ -27,7 +27,7 @@ class TllrFcWizardReclamoGarantia(models.TransientModel):
                 raise UserError("Elegí garantías de una sola OT para reclamar juntas.")
             valores['ot_id'] = garantias.ot_id.id
             valores['garantia_ids'] = [Command.set(garantias.filtered(
-                lambda g: not g.reclamo_ot_id).ids)]
+                lambda g: not g.reclamo_ot_id and not g.reclamo_recepcion_id).ids)]
         ot = self.env['tllr_fc.ot'].browse(valores.get('ot_id') or self.env.context.get('default_ot_id'))
         if ot:
             valores['kilometraje_actual'] = max(
@@ -53,7 +53,7 @@ class TllrFcWizardReclamoGarantia(models.TransientModel):
         ot = self.ot_id
         if not self.garantia_ids:
             raise UserError("Elegí al menos una garantía.")
-        if self.garantia_ids.filtered(lambda g: g.reclamo_ot_id or g.ot_id != ot):
+        if self.garantia_ids.filtered(lambda g: g.reclamo_ot_id or g.reclamo_recepcion_id or g.ot_id != ot):
             raise UserError("Alguna garantía elegida ya tiene un reclamo o no pertenece a la OT.")
         if self._vencidas() and not self.env.context.get('tllr_fc_excepcion'):
             if not self.env.user.has_group('tllr_fc.group_administrador'):

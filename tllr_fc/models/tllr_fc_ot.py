@@ -1178,6 +1178,7 @@ class TllrFcOt(models.Model):
         })
         self.producto_ids._tllr_fc_sincronizar_stock()
         self._tllr_fc_cerrar_detencion()
+        self._tllr_fc_liberar_garantias()
         if not liquidar:
             self.sudo()._tllr_fc_asiento_cancelacion()
         texto = "OT cancelada (%s)." % motivo.name
@@ -1314,6 +1315,11 @@ class TllrFcOt(models.Model):
         self.producto_ids._tllr_fc_sincronizar_stock()
         return True
 
+    def _tllr_fc_liberar_garantias(self):
+        """Una OT de garantía cancelada devuelve las garantías reclamadas a Vigente."""
+        self.env['tllr_fc.garantia'].sudo().search(
+            [('reclamo_ot_id', 'in', self.ids)])._tllr_fc_liberar_reclamo()
+
     def _tllr_fc_cancelar_por_recepcion(self):
         """Cancela la OT en espera cuando se anula su recepción (sin liquidación)."""
         motivo = self.env.ref(
@@ -1325,6 +1331,7 @@ class TllrFcOt(models.Model):
             })
             ot.producto_ids._tllr_fc_sincronizar_stock()
             ot._tllr_fc_cerrar_detencion()
+            ot._tllr_fc_liberar_garantias()
             ot.message_post(body="OT cancelada porque se anuló su recepción (sin liquidación).")
 
     def action_ver_recepcion(self):

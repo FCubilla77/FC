@@ -28,9 +28,11 @@ class TllrFcGarantia(models.Model):
     fecha_limite = fields.Date(string="Vence el", required=True, index=True)
     km_limite = fields.Integer(string="Km límite", help="0 = no aplica.")
     state = fields.Selection(
-        [('vigente', "Vigente"), ('vencida_fecha', "Vencida por fecha"),
-         ('vencida_km', "Vencida por kilometraje")],
-        string="Estado", compute='_compute_state')
+        [('vigente', "Vigente"), ('en_reclamo', "En reclamo"), ('ejecutada', "Ejecutada"),
+         ('vencida_fecha', "Vencida por fecha"), ('vencida_km', "Vencida por kilometraje")],
+        string="Estado", compute='_compute_state',
+        help="Vigente: disponible para reclamar. En reclamo: hay una OT de garantía abierta. "
+             "Ejecutada: la OT de garantía se entregó y la garantía ya no tiene vigencia.")
     reclamo_recepcion_id = fields.Many2one(
         'tllr_fc.recepcion', string="Recepción del reclamo", copy=False, readonly=True,
         ondelete='set null')
@@ -68,11 +70,22 @@ class TllrFcGarantia(models.Model):
             return 'vencida_km'
         return 'vigente'
 
-    @api.depends('fecha_limite', 'km_limite', 'vehiculo_id.kilometraje')
+    @api.depends('fecha_limite', 'km_limite', 'vehiculo_id.kilometraje',
+                 'reclamo_ot_id.state', 'reclamo_recepcion_id')
     def _compute_state(self):
         hoy = fields.Date.context_today(self)
         for garantia in self:
-            garantia.state = garantia._tllr_fc_estado_a(hoy, garantia.vehiculo_id.kilometraje)
+            if garantia.reclamo_ot_id and garantia.reclamo_ot_id.state == 'entregado':
+                garantia.state = 'ejecutada'
+            elif garantia.reclamo_ot_id or garantia.reclamo_recepcion_id:
+                garantia.state = 'en_reclamo'
+            else:
+                garantia.state = garantia._tllr_fc_estado_a(
+                    hoy, garantia.vehiculo_id.kilometraje)
+
+    def _tllr_fc_liberar_reclamo(self):
+        """Libera el reclamo (OT de garantía cancelada o recepción anulada): vuelve a Vigente."""
+        self.sudo().write({'reclamo_ot_id': False, 'reclamo_recepcion_id': False})
 
     @api.depends('product_id', 'ot_id')
     def _compute_display_name(self):

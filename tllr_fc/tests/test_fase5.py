@@ -523,3 +523,61 @@ class TestFase5(TallerCommon):
         self.assertAlmostEqual(
             ot.margen, ot.ingreso + ot.costo_propio + ot.mano_obra + ot.impuesto
             + ot.costo_garantias_origen + ot.ajustes_costo)
+
+    # ---------------- 2026.19.014: garantía ejecutada y condiciones en la recepción ----------------
+    def _reclamar(self, ot):
+        asistente = self.env['tllr_fc.wizard.reclamo_garantia'].create({
+            'ot_id': ot.id, 'garantia_ids': [Command.set(ot.garantia_ids.ids)],
+            'kilometraje_actual': 2600, 'descripcion': 'Pierde aceite'})
+        return self.env['tllr_fc.recepcion'].browse(asistente.action_reclamar()['res_id'])
+
+    def _confirmar_recepcion(self, recepcion):
+        recepcion.action_cargar_items()
+        recepcion.item_ids.write({'presente': 'si'})
+        resultado = recepcion.action_confirmar()
+        if isinstance(resultado, dict):
+            self.env['tllr_fc.wizard.confirmar_advertencia'].create({
+                'res_model': 'tllr_fc.recepcion', 'res_id': recepcion.id,
+                'accion': 'action_confirmar', 'mensaje': 'x'}).action_continuar()
+
+    def test_garantia_en_reclamo_ejecutada_y_liberada(self):
+        ot = self._ot_entregada()
+        garantias = ot.garantia_ids
+        self.assertEqual(set(garantias.mapped('state')), {'vigente'})
+        recepcion = self._reclamar(ot)
+        self.assertEqual(set(garantias.mapped('state')), {'en_reclamo'})
+        self._confirmar_recepcion(recepcion)
+        ot_garantia = recepcion.ot_id
+        self.assertEqual(set(garantias.mapped('state')), {'en_reclamo'})
+        ot_garantia.with_context(tllr_fc_permitir_write=True).write({'state': 'entregado'})
+        self.assertEqual(set(garantias.mapped('state')), {'ejecutada'})
+
+    def test_ot_de_garantia_cancelada_devuelve_la_garantia_a_vigente(self):
+        ot = self._ot_entregada()
+        recepcion = self._reclamar(ot)
+        self._confirmar_recepcion(recepcion)
+        recepcion.ot_id._tllr_fc_cancelar(
+            self.env.ref('tllr_fc.motivo_cancelacion_recepcion_anulada'), False)
+        self.assertEqual(set(ot.garantia_ids.mapped('state')), {'vigente'})
+        self.assertFalse(ot.garantia_ids.mapped('reclamo_ot_id'))
+
+    def test_recepcion_anulada_devuelve_la_garantia_a_vigente(self):
+        ot = self._ot_entregada()
+        recepcion = self._reclamar(ot)
+        recepcion.action_cancelar()
+        self.assertEqual(set(ot.garantia_ids.mapped('state')), {'vigente'})
+
+    def test_recepcion_imprime_las_condiciones_de_garantia(self):
+        ot = self._ot_entregada()
+        recepcion = self._reclamar(ot)
+        html = self._html('tllr_fc.action_report_recepcion', recepcion)
+        self.assertIn('Reclamo de garantía', html)
+        self.assertIn('ejecutada', html)
+        self.assertIn('defectos de fábrica', html)
+        normal = self.env['tllr_fc.recepcion'].create({
+            'vehiculo_id': self.vehiculo.id, 'partner_id': self.cliente.id, 'kilometraje': 3000,
+            'servicio_ids': [Command.create({'product_id': self.s1.id})]})
+        html = self._html('tllr_fc.action_report_recepcion', normal)
+        self.assertIn('Garantía de los trabajos', html)
+        self.assertIn('defectos de fábrica', html)
+        self.assertNotIn('ejecutada', html)

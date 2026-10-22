@@ -375,6 +375,9 @@ class TllrFcRecepcion(models.Model):
             if ot and ot.state == 'espera':
                 ot._tllr_fc_cancelar_por_recepcion()
             recepcion.with_context(tllr_fc_permitir_write=True).write({'state': 'cancelada'})
+            (recepcion.garantia_elegida_ids | recepcion.garantia_reclamo_ids).filtered(
+                lambda g: not g.reclamo_ot_id or g.reclamo_ot_id.state == 'cancelada'
+            )._tllr_fc_liberar_reclamo()
             turno = recepcion.turno_id
             if turno and turno.state == 'recibido':
                 turno.write({'state': 'confirmado'})
