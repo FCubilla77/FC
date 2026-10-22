@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Reportes de gestión (2026.19.015): rentabilidad de OT y existencia por almacén -->
+
+        <!-- ============ Asistentes ============ -->
+        <record id="view_tllr_fc_wizard_rep_rentabilidad_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.rep_rentabilidad.form</field>
+            <field name="model">tllr_fc.wizard.rep_rentabilidad</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="fecha_desde"/>
+                        <field name="fecha_hasta"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                    <div class="text-muted">
+                        Incluye todas las OT cuya fecha de ingreso está en el rango, agrupadas por tipo.
+                    </div>
+                    <footer>
+                        <button name="action_imprimir" string="Imprimir" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_rep_rentabilidad" model="ir.actions.act_window">
+            <field name="name">Rentabilidad de OT</field>
+            <field name="res_model">tllr_fc.wizard.rep_rentabilidad</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="view_tllr_fc_wizard_rep_existencia_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.rep_existencia.form</field>
+            <field name="model">tllr_fc.wizard.rep_existencia</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="almacen_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Todos los almacenes"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+                    <div class="text-muted">
+                        Saldo actual de los productos almacenables, por almacén. Vacío = todos.
+                    </div>
+                    <footer>
+                        <button name="action_imprimir" string="Imprimir" type="object"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_rep_existencia" model="ir.actions.act_window">
+            <field name="name">Existencia por almacén</field>
+            <field name="res_model">tllr_fc.wizard.rep_existencia</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- ============ Rentabilidad de OT (A4 horizontal) ============ -->
+        <record id="action_report_rep_rentabilidad" model="ir.actions.report">
+            <field name="name">Rentabilidad de OT</field>
+            <field name="model">tllr_fc.wizard.rep_rentabilidad</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_rep_rentabilidad_document</field>
+            <field name="report_file">tllr_fc.report_rep_rentabilidad_document</field>
+            <field name="print_report_name">'Rentabilidad-OT'</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4_horizontal"/>
+        </record>
+
+        <template id="report_rep_rentabilidad_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <t t-set="datos" t-value="o.get_datos()"/>
+                            <t t-set="dec" t-value="o.company_id.currency_id.decimal_places"/>
+                            <t t-set="cols" t-value="['ingreso', 'costo_propio', 'mano_obra', 'impuesto', 'ajustes_costo', 'garantias', 'costos', 'margen']"/>
+                            <div class="row">
+                                <div class="col-8">
+                                    <h2 style="margin-bottom: 0;">Rentabilidad de órdenes de trabajo</h2>
+                                    <div>
+                                        Fecha de ingreso del
+                                        <span t-field="o.fecha_desde"/> al <span t-field="o.fecha_hasta"/>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <strong t-field="o.company_id.name"/><br/>
+                                    <span t-out="datetime.date.today().strftime('%d/%m/%Y')"/>
+                                </div>
+                            </div>
+                            <hr/>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 7%;">OT</th>
+                                        <th style="width: 6%;">Fecha</th>
+                                        <th>Cliente</th>
+                                        <th>Vehículo</th>
+                                        <th>Valor de la factura</th>
+                                        <th>Costo de la OT</th>
+                                        <th>Mano de obra</th>
+                                        <th>Impuesto</th>
+                                        <th>Ajustes</th>
+                                        <th>Garantías</th>
+                                        <th>Total costos</th>
+                                        <th>Margen</th>
+                                        <th>Margen %</th>
+                                    </tr>
+                                </thead>
+                                <t t-foreach="datos['grupos']" t-as="g">
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="13"><strong>OT de tipo <t t-out="g['tipo']"/></strong></td>
+                                        </tr>
+                                        <tr t-foreach="g['filas']" t-as="f">
+                                            <td><t t-out="f['ot']"/></td>
+                                            <td><span t-if="f['fecha']" t-out="f['fecha']" t-options="{'widget': 'date', 'format': 'dd/MM/yy'}"/></td>
+                                            <td><t t-out="f['cliente']"/></td>
+                                            <td><t t-out="f['vehiculo']"/></td>
+                                            <td t-foreach="cols" t-as="c" class="text-end">
+                                                <t t-out="f[c]" t-options="{'widget': 'float', 'precision': dec}"/>
+                                            </td>
+                                            <td class="text-end"><t t-out="f['porcentaje']" t-options="{'widget': 'float', 'precision': 1}"/> %</td>
+                                        </tr>
+                                        <tr style="font-weight: bold;">
+                                            <td colspan="4" class="text-end">Subtotal <t t-out="g['tipo']"/></td>
+                                            <td t-foreach="cols" t-as="c" class="text-end">
+                                                <t t-out="g['subtotal'][c]" t-options="{'widget': 'float', 'precision': dec}"/>
+                                            </td>
+                                            <td class="text-end"><t t-out="g['subtotal']['porcentaje']" t-options="{'widget': 'float', 'precision': 1}"/> %</td>
+                                        </tr>
+                                    </tbody>
+                                </t>
+                                <tbody>
+                                    <tr t-if="not datos['grupos']">
+                                        <td colspan="13" class="text-center">No hay órdenes de trabajo en el rango indicado.</td>
+                                    </tr>
+                                    <tr style="font-weight: bold; border-top: 2px solid #000;">
+                                        <td colspan="4" class="text-end">TOTAL GENERAL</td>
+                                        <td t-foreach="cols" t-as="c" class="text-end">
+                                            <t t-out="datos['total'][c]" t-options="{'widget': 'float', 'precision': dec}"/>
+                                        </td>
+                                        <td class="text-end"><t t-out="datos['total']['porcentaje']" t-options="{'widget': 'float', 'precision': 1}"/> %</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="text-muted">
+                                Los costos se muestran en negativo, igual que en la pestaña Rentabilidad de la OT.
+                                Margen = valor de la factura + total de costos. Margen % = margen ÷ valor de la factura.
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- ============ Existencia por almacén (A4 vertical) ============ -->
+        <record id="action_report_rep_existencia" model="ir.actions.report">
+            <field name="name">Existencia por almacén</field>
+            <field name="model">tllr_fc.wizard.rep_existencia</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">tllr_fc.report_rep_existencia_document</field>
+            <field name="report_file">tllr_fc.report_rep_existencia_document</field>
+            <field name="print_report_name">'Existencia-por-almacen'</field>
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+        </record>
+
+        <template id="report_rep_existencia_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="tllr_fc.report_layout">
+                        <div class="page">
+                            <t t-set="decimales" t-value="o.env['decimal.precision'].precision_get('Product Unit')"/>
+                            <div class="row">
+                                <div class="col-8">
+                                    <h2 style="margin-bottom: 0;">Existencia por almacén</h2>
+                                    <div>Saldo actual</div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <strong t-field="o.company_id.name"/><br/>
+                                    <span t-out="datetime.date.today().strftime('%d/%m/%Y')"/>
+                                </div>
+                            </div>
+                            <hr/>
+                            <t t-foreach="o.get_datos()" t-as="a">
+                                <h4 style="margin-top: 14px;">Almacén: <t t-out="a['almacen']"/></h4>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 20%;">Código</th>
+                                            <th>Descripción</th>
+                                            <th style="width: 20%;">Cantidad saldo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="a['filas']" t-as="f">
+                                            <td><t t-out="f['codigo']"/></td>
+                                            <td><t t-out="f['descripcion']"/></td>
+                                            <td class="text-end">
+                                                <t t-out="f['cantidad']" t-options="{'widget': 'float', 'precision': decimales}"/>
+                                                <t t-out="f['unidad']"/>
+                                            </td>
+                                        </tr>
+                                        <tr t-if="not a['filas']">
+                                            <td colspan="3" class="text-center">Sin productos con saldo.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+    </data>
+</odoo>

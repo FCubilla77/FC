@@ -581,3 +581,40 @@ class TestFase5(TallerCommon):
         self.assertIn('Garantía de los trabajos', html)
         self.assertIn('defectos de fábrica', html)
         self.assertNotIn('ejecutada', html)
+
+    # ---------------- 2026.19.015: reportes de gestión ----------------
+    def test_reporte_de_rentabilidad_agrupa_por_tipo_y_totaliza(self):
+        ot = self._ot_entregada()
+        hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
+        asistente = self.env['tllr_fc.wizard.rep_rentabilidad'].create({
+            'fecha_desde': hoy - timedelta(days=30), 'fecha_hasta': hoy + timedelta(days=1)})
+        datos = asistente.get_datos()
+        filas = [f for g in datos['grupos'] for f in g['filas']]
+        self.assertIn(ot.name, [f['ot'] for f in filas])
+        fila = next(f for f in filas if f['ot'] == ot.name)
+        self.assertAlmostEqual(fila['margen'], ot.margen)
+        self.assertAlmostEqual(datos['total']['margen'], sum(f['margen'] for f in filas))
+        self.assertAlmostEqual(
+            datos['total']['costos'], datos['total']['margen'] - datos['total']['ingreso'])
+        html = self._html('tllr_fc.action_report_rep_rentabilidad', asistente)
+        self.assertIn('TOTAL GENERAL', html)
+        self.assertIn(ot.name, html)
+        with self.assertRaises(UserError):
+            asistente.write({'fecha_hasta': hoy - timedelta(days=60)})
+            asistente.action_imprimir()
+
+    def test_reporte_de_existencia_por_almacen(self):
+        asistente = self.env['tllr_fc.wizard.rep_existencia'].create({
+            'almacen_ids': [Command.set(self.almacen.ids)]})
+        bloques = asistente.get_datos()
+        self.assertEqual([b['almacen'] for b in bloques], [self.almacen.name])
+        productos = {f['descripcion']: f['cantidad'] for f in bloques[0]['filas']}
+        self.assertTrue(any('Filtro F3' in d for d in productos))
+        html = self._html('tllr_fc.action_report_rep_existencia', asistente)
+        self.assertIn('Filtro F3', html)
+
+    def test_menu_informes_contiene_los_reportes(self):
+        informes = self.env.ref('tllr_fc.menu_tllr_fc_informes')
+        hijos = informes.child_id
+        self.assertIn(self.env.ref('tllr_fc.menu_tllr_fc_rep_rentabilidad'), hijos)
+        self.assertIn(self.env.ref('tllr_fc.menu_tllr_fc_rep_existencia'), hijos)
