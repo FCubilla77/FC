@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.015",
+    "version": "2026.19.016",
     "license": "LGPL-3",
     "application": True,
     "installable": True,

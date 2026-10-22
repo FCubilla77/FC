@@ -15,11 +15,13 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                     </group>
                     <div class="text-muted">
-                        Incluye todas las OT cuya fecha de ingreso está en el rango, agrupadas por tipo.
+                        Incluye las OT, sin las canceladas, cuya fecha de ingreso está en el rango, agrupadas por tipo.
                     </div>
                     <footer>
-                        <button name="action_imprimir" string="Imprimir" type="object"
+                        <button name="action_ver" string="Ver en pantalla" type="object"
                                 class="btn-primary" data-hotkey="q"/>
+                        <button name="action_imprimir" string="Descargar PDF" type="object"
+                                class="btn-secondary" data-hotkey="w"/>
                         <button string="Cancelar" class="btn-secondary" special="cancel"
                                 data-hotkey="x"/>
                     </footer>
@@ -49,8 +51,10 @@
                         Saldo actual de los productos almacenables, por almacén. Vacío = todos.
                     </div>
                     <footer>
-                        <button name="action_imprimir" string="Imprimir" type="object"
+                        <button name="action_ver" string="Ver en pantalla" type="object"
                                 class="btn-primary" data-hotkey="q"/>
+                        <button name="action_imprimir" string="Descargar PDF" type="object"
+                                class="btn-secondary" data-hotkey="w"/>
                         <button string="Cancelar" class="btn-secondary" special="cancel"
                                 data-hotkey="x"/>
                     </footer>
@@ -68,20 +72,24 @@
         <!-- ============ Rentabilidad de OT (A4 horizontal) ============ -->
         <record id="action_report_rep_rentabilidad" model="ir.actions.report">
             <field name="name">Rentabilidad de OT</field>
-            <field name="model">tllr_fc.wizard.rep_rentabilidad</field>
+            <field name="model">tllr_fc.rep.rentabilidad.linea</field>
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">tllr_fc.report_rep_rentabilidad_document</field>
             <field name="report_file">tllr_fc.report_rep_rentabilidad_document</field>
             <field name="print_report_name">'Rentabilidad-OT'</field>
+            <field name="binding_model_id" ref="model_tllr_fc_rep_rentabilidad_linea"/>
+            <field name="binding_type">report</field>
             <field name="paperformat_id" ref="tllr_fc.paperformat_a4_horizontal"/>
         </record>
 
         <template id="report_rep_rentabilidad_document">
             <t t-call="web.html_container">
-                <t t-foreach="docs" t-as="o">
+                <t t-set="o" t-value="docs[:1].wizard_id"/>
+                <t t-set="docs_all" t-value="docs"/>
+                <t t-foreach="docs[:1]" t-as="primera">
                     <t t-call="tllr_fc.report_layout">
                         <div class="page">
-                            <t t-set="datos" t-value="o.get_datos()"/>
+                            <t t-set="datos" t-value="docs_all.get_datos()"/>
                             <t t-set="dec" t-value="o.company_id.currency_id.decimal_places"/>
                             <t t-set="cols" t-value="['ingreso', 'costo_propio', 'mano_obra', 'impuesto', 'ajustes_costo', 'garantias', 'costos', 'margen']"/>
                             <div class="row">
@@ -154,7 +162,7 @@
                                 </tbody>
                             </table>
                             <div class="text-muted">
-                                Los costos se muestran en negativo, igual que en la pestaña Rentabilidad de la OT.
+                                No incluye OT canceladas. Los costos se muestran en negativo, igual que en la pestaña Rentabilidad de la OT.
                                 Margen = valor de la factura + total de costos. Margen % = margen ÷ valor de la factura.
                             </div>
                         </div>
@@ -166,20 +174,24 @@
         <!-- ============ Existencia por almacén (A4 vertical) ============ -->
         <record id="action_report_rep_existencia" model="ir.actions.report">
             <field name="name">Existencia por almacén</field>
-            <field name="model">tllr_fc.wizard.rep_existencia</field>
+            <field name="model">tllr_fc.rep.existencia.linea</field>
             <field name="report_type">qweb-pdf</field>
             <field name="report_name">tllr_fc.report_rep_existencia_document</field>
             <field name="report_file">tllr_fc.report_rep_existencia_document</field>
             <field name="print_report_name">'Existencia-por-almacen'</field>
+            <field name="binding_model_id" ref="model_tllr_fc_rep_existencia_linea"/>
+            <field name="binding_type">report</field>
             <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
         </record>
 
         <template id="report_rep_existencia_document">
             <t t-call="web.html_container">
-                <t t-foreach="docs" t-as="o">
+                <t t-set="o" t-value="docs[:1].wizard_id"/>
+                <t t-set="docs_all" t-value="docs"/>
+                <t t-foreach="docs[:1]" t-as="primera">
                     <t t-call="tllr_fc.report_layout">
                         <div class="page">
-                            <t t-set="decimales" t-value="o.env['decimal.precision'].precision_get('Product Unit')"/>
+                            <t t-set="decimales" t-value="docs_all.env['decimal.precision'].precision_get('Product Unit')"/>
                             <div class="row">
                                 <div class="col-8">
                                     <h2 style="margin-bottom: 0;">Existencia por almacén</h2>
@@ -191,7 +203,7 @@
                                 </div>
                             </div>
                             <hr/>
-                            <t t-foreach="o.get_datos()" t-as="a">
+                            <t t-foreach="docs_all.get_datos()" t-as="a">
                                 <h4 style="margin-top: 14px;">Almacén: <t t-out="a['almacen']"/></h4>
                                 <table class="table table-sm">
                                     <thead>
@@ -221,6 +233,80 @@
                 </t>
             </t>
         </template>
+
+
+        <!-- ============ Grillas nativas ============ -->
+        <record id="view_tllr_fc_rep_rentabilidad_linea_list" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.rentabilidad.linea.list</field>
+            <field name="model">tllr_fc.rep.rentabilidad.linea</field>
+            <field name="arch" type="xml">
+                <list string="Rentabilidad de OT" create="0" edit="0" delete="0">
+                    <field name="ot_id"/>
+                    <field name="tipo" optional="hide"/>
+                    <field name="fecha"/>
+                    <field name="partner_id"/>
+                    <field name="vehiculo_id"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="ingreso" sum="Total"/>
+                    <field name="costo_propio" sum="Total"/>
+                    <field name="mano_obra" sum="Total"/>
+                    <field name="impuesto" sum="Total"/>
+                    <field name="ajustes_costo" sum="Total"/>
+                    <field name="garantias" sum="Total"/>
+                    <field name="costos" sum="Total"/>
+                    <field name="margen" sum="Total"/>
+                    <field name="porcentaje"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_rep_rentabilidad_linea_search" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.rentabilidad.linea.search</field>
+            <field name="model">tllr_fc.rep.rentabilidad.linea</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="ot_id"/>
+                    <field name="partner_id"/>
+                    <field name="vehiculo_id"/>
+                    <filter string="Margen negativo" name="margen_negativo"
+                            domain="[('margen', '&lt;', 0)]"/>
+                    <group>
+                        <filter string="Tipo de OT" name="agrupar_tipo" context="{'group_by': 'tipo'}"/>
+                        <filter string="Cliente" name="agrupar_cliente" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Vehículo" name="agrupar_vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_rep_existencia_linea_list" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.existencia.linea.list</field>
+            <field name="model">tllr_fc.rep.existencia.linea</field>
+            <field name="arch" type="xml">
+                <list string="Existencia por almacén" create="0" edit="0" delete="0">
+                    <field name="almacen_id" optional="hide"/>
+                    <field name="codigo"/>
+                    <field name="descripcion"/>
+                    <field name="cantidad"/>
+                    <field name="unidad"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_rep_existencia_linea_search" model="ir.ui.view">
+            <field name="name">tllr_fc.rep.existencia.linea.search</field>
+            <field name="model">tllr_fc.rep.existencia.linea</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="codigo"/>
+                    <field name="descripcion"/>
+                    <field name="almacen_id"/>
+                    <group>
+                        <filter string="Almacén" name="agrupar_almacen" context="{'group_by': 'almacen_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
 
     </data>
 </odoo>

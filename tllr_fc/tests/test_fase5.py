@@ -585,33 +585,50 @@ class TestFase5(TallerCommon):
     # ---------------- 2026.19.015: reportes de gestión ----------------
     def test_reporte_de_rentabilidad_agrupa_por_tipo_y_totaliza(self):
         ot = self._ot_entregada()
+        cancelada = self._ot_planificada()
+        cancelada._tllr_fc_cancelar(
+            self.env.ref('tllr_fc.motivo_cancelacion_recepcion_anulada'), False)
         hoy = fields.Date.context_today(self.env['tllr_fc.ot'])
         asistente = self.env['tllr_fc.wizard.rep_rentabilidad'].create({
             'fecha_desde': hoy - timedelta(days=30), 'fecha_hasta': hoy + timedelta(days=1)})
-        datos = asistente.get_datos()
+        accion = asistente.action_ver()
+        self.assertEqual(accion['res_model'], 'tllr_fc.rep.rentabilidad.linea')
+        lineas = self.env[accion['res_model']].search(accion['domain'])
+        self.assertIn(ot, lineas.ot_id)
+        self.assertNotIn(cancelada, lineas.ot_id)
+        linea = lineas.filtered(lambda l: l.ot_id == ot)
+        self.assertAlmostEqual(linea.margen, ot.margen)
+        datos = lineas.get_datos()
         filas = [f for g in datos['grupos'] for f in g['filas']]
-        self.assertIn(ot.name, [f['ot'] for f in filas])
-        fila = next(f for f in filas if f['ot'] == ot.name)
-        self.assertAlmostEqual(fila['margen'], ot.margen)
         self.assertAlmostEqual(datos['total']['margen'], sum(f['margen'] for f in filas))
         self.assertAlmostEqual(
             datos['total']['costos'], datos['total']['margen'] - datos['total']['ingreso'])
-        html = self._html('tllr_fc.action_report_rep_rentabilidad', asistente)
+        pdf = asistente.action_imprimir()
+        # El administrador sin diseño de documento recibe antes el configurador de Odoo.
+        self.assertIn(pdf['type'], ('ir.actions.report', 'ir.actions.act_window'))
+        lineas = self.env['tllr_fc.rep.rentabilidad.linea'].search(
+            [('wizard_id', '=', asistente.id)])
+        html = self._html('tllr_fc.action_report_rep_rentabilidad', lineas)
         self.assertIn('TOTAL GENERAL', html)
         self.assertIn(ot.name, html)
+        self.assertNotIn(cancelada.name, html)
+        asistente.write({'fecha_hasta': hoy - timedelta(days=60)})
         with self.assertRaises(UserError):
-            asistente.write({'fecha_hasta': hoy - timedelta(days=60)})
             asistente.action_imprimir()
 
     def test_reporte_de_existencia_por_almacen(self):
         asistente = self.env['tllr_fc.wizard.rep_existencia'].create({
             'almacen_ids': [Command.set(self.almacen.ids)]})
-        bloques = asistente.get_datos()
+        accion = asistente.action_ver()
+        lineas = self.env[accion['res_model']].search(accion['domain'])
+        self.assertEqual(lineas.almacen_id, self.almacen)
+        self.assertTrue(any('Filtro F3' in l.descripcion for l in lineas))
+        self.assertTrue(all(l.cantidad for l in lineas))
+        bloques = lineas.get_datos()
         self.assertEqual([b['almacen'] for b in bloques], [self.almacen.name])
-        productos = {f['descripcion']: f['cantidad'] for f in bloques[0]['filas']}
-        self.assertTrue(any('Filtro F3' in d for d in productos))
-        html = self._html('tllr_fc.action_report_rep_existencia', asistente)
+        html = self._html('tllr_fc.action_report_rep_existencia', lineas)
         self.assertIn('Filtro F3', html)
+        self.assertIn('Almacén: %s' % self.almacen.name, html)
 
     def test_menu_informes_contiene_los_reportes(self):
         informes = self.env.ref('tllr_fc.menu_tllr_fc_informes')
