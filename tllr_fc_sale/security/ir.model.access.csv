@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sale_order_tllr_fc_usuario,sale.order tllr_fc usuario,sale.model_sale_order,tllr_fc.group_usuario,1,0,0,0
+access_sale_order_line_tllr_fc_usuario,sale.order.line tllr_fc usuario,sale.model_sale_order_line,tllr_fc.group_usuario,1,0,0,0
+access_tllr_fc_sale_wizard_vencido,tllr_fc_sale.wizard.vencido,model_tllr_fc_sale_wizard_vencido,tllr_fc.group_usuario,1,1,1,1

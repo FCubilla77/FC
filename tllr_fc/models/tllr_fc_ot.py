@@ -1306,6 +1306,16 @@ class TllrFcOt(models.Model):
         self.ensure_one()
         return True
 
+    def _tllr_fc_actualizar_documento_venta(self, solo_realizado=False):
+        """Actualiza el documento de venta previo a la factura. El núcleo no tiene ninguno."""
+        self.ensure_one()
+        return False
+
+    def _tllr_fc_importe_estimado(self):
+        """Importe estimado de la OT: suma de subtotales. Ventas lo reemplaza por el del presupuesto."""
+        self.ensure_one()
+        return self.total
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:

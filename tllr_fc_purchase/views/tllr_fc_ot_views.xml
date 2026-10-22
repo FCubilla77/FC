@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_tllr_fc_ot_form_purchase" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.form.purchase</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="inherit_id" ref="tllr_fc.view_tllr_fc_ot_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//header/button[@name='action_iniciar']" position="after">
+                    <button name="action_compra_directa" type="object"
+                            string="Compra directa" groups="tllr_fc.group_supervisor"
+                            invisible="not tllr_fc_usar_compras or state not in ('espera', 'proceso')"/>
+                    <button name="action_compra_directa" type="object"
+                            string="Solicitar compra" groups="!tllr_fc.group_supervisor"
+                            invisible="not tllr_fc_usar_compras or state not in ('espera', 'proceso')"/>
+                </xpath>
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_ver_compras" type="object"
+                            class="oe_stat_button" icon="fa-shopping-cart"
+                            groups="tllr_fc.group_usuario"
+                            invisible="compra_count == 0">
+                        <field name="compra_count" widget="statinfo" string="Compras"/>
+                    </button>
+                </xpath>
+                <xpath expr="//field[@name='recepcion_id']" position="after">
+                    <field name="tllr_fc_usar_compras" invisible="1"/>
+                    <field name="tercerizados_resumen" invisible="not tercerizados_resumen"/>
+                </xpath>
+                <xpath expr="//field[@name='servicio_ids']/list/field[@name='descripcion']" position="after">
+                    <field name="tllr_fc_usar_compras" column_invisible="1"/>
+                    <field name="puede_tercerizarse" column_invisible="1"/>
+                    <field name="tercerizado" groups="tllr_fc.group_supervisor"
+                           column_invisible="not parent.tllr_fc_usar_compras"
+                           readonly="not puede_tercerizarse or estado != 'pendiente'"/>
+                    <field name="proveedor_id" groups="tllr_fc.group_supervisor"
+                           column_invisible="not parent.tllr_fc_usar_compras"
+                           required="tercerizado" readonly="not tercerizado"
+                           options="{'no_create': True}"/>
+                    <field name="compra_id" groups="tllr_fc.group_supervisor" optional="show"
+                           column_invisible="not parent.tllr_fc_usar_compras"/>
+                    <button name="action_generar_compra" type="object" string="Generar compra"
+                            icon="fa-shopping-cart" groups="tllr_fc.group_supervisor"
+                            column_invisible="not parent.tllr_fc_usar_compras"
+                            invisible="not tercerizado or compra_line_id"/>
+                    <field name="compra_line_id" column_invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_ot_kanban_purchase" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.kanban.purchase</field>
+            <field name="model">tllr_fc.ot</field>
+            <field name="inherit_id" ref="tllr_fc.view_tllr_fc_ot_kanban"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@t-if='record.servicios_resumen.raw_value']" position="after">
+                    <div t-if="record.tercerizados_resumen.raw_value" class="small text-info">
+                        <i class="fa fa-truck me-1" title="Tercerizado"/>Tercerizado:
+                        <field name="tercerizados_resumen"/>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+
+        <template id="report_ot_valorizado_cuerpo_purchase"
+                  inherit_id="tllr_fc.report_ot_valorizado_cuerpo">
+            <xpath expr="//span[@t-if='interno and s.adicional']" position="after">
+                <span t-if="interno and s.tercerizado"> · tercerizado
+                    <t t-if="s.proveedor_id">(<span t-field="s.proveedor_id.name"/>)</t></span>
+            </xpath>
+        </template>
+    </data>
+</odoo>

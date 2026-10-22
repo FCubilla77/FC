@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <menuitem id="menu_tllr_fc_compras_directas"
+                  name="Compras directas"
+                  parent="tllr_fc.menu_tllr_fc_operacion"
+                  action="action_tllr_fc_compras_directas"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="35"/>
+    </data>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_config_settings_view_form_tllr_fc_purchase" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.tllr_fc_purchase</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="tllr_fc.res_config_settings_view_form_tllr_fc"/>
+            <field name="arch" type="xml">
+                <xpath expr="//block[@name='tllr_fc_facturacion']" position="before">
+                    <block title="Integración con Compras" name="tllr_fc_compras">
+                        <setting string="Integración con Compras"
+                                 help="Activo: compra directa de repuestos y servicios tercerizados desde la OT. Desactivado: no se muestran ni funcionan. Las compras ya vinculadas no se modifican.">
+                            <field name="tllr_fc_usar_compras"/>
+                        </setting>
+                    </block>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

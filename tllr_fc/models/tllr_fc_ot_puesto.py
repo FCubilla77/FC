@@ -62,7 +62,8 @@ class TllrFcOtPuesto(models.Model):
                 sin_informe.mapped('product_id.name')))
         horas = self.ot_id.hora_ids.sudo()
         sin_horas = terminados.filtered(
-            lambda s: not horas.filtered(lambda h: h.servicio_id == s))
+            lambda s: s._tllr_fc_requiere_horas()
+            and not horas.filtered(lambda h: h.servicio_id == s))
         if sin_horas:
             errores.append("Faltan las horas trabajadas de: %s." % ', '.join(
                 sin_horas.mapped('product_id.name')))

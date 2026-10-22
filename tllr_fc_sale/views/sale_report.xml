@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- El presupuesto se imprime con el formato A4 del taller (márgenes 15/15/15/20 mm) -->
+        <record id="sale.action_report_saleorder" model="ir.actions.report">
+            <field name="paperformat_id" ref="tllr_fc.paperformat_a4"/>
+        </record>
+
+        <template id="report_saleorder_vehiculo" inherit_id="sale.report_saleorder_document">
+            <xpath expr="//div[@id='informations']" position="after">
+                <div t-if="doc.tllr_fc_vehiculo_id" class="row mb-3" id="tllr_fc_vehiculo">
+                    <div class="col-3"><strong>Vehículo (chapa):</strong><br/>
+                        <span t-field="doc.tllr_fc_chapa"/></div>
+                    <div class="col-3"><strong>Marca:</strong><br/>
+                        <span t-field="doc.tllr_fc_marca"/></div>
+                    <div class="col-3"><strong>Modelo:</strong><br/>
+                        <span t-field="doc.tllr_fc_modelo"/></div>
+                    <div class="col-3"><strong>Kilometraje:</strong><br/>
+                        <span t-field="doc.tllr_fc_kilometraje"/></div>
+                </div>
+            </xpath>
+        </template>
+    </data>
+</odoo>

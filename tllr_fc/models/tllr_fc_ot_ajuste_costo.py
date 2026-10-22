@@ -57,7 +57,8 @@ class TllrFcOtAjusteCosto(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        if not self.env.user.has_group('tllr_fc.group_administrador'):
+        if (not self.env.user.has_group('tllr_fc.group_administrador')
+                and not self.env.context.get('tllr_fc_ajuste_automatico')):
             raise AccessError("Solo el administrador de taller registra ajustes de costo.")
         ajustes = super().create(vals_list)
         for ajuste in ajustes:
@@ -72,9 +73,9 @@ class TllrFcOtAjusteCosto(models.Model):
                 "El ajuste de costo se registra cuando la OT ya terminó (lista, entregada o cancelada).")
         if self.company_id.currency_id.is_zero(self.monto):
             raise UserError("El monto del ajuste no puede ser cero.")
-        if not ot._tllr_fc_asientos_activos():
-            ot.message_post(body="Ajuste de costo de %s registrado por %s (sin asiento: los "
-                                 "asientos del taller están desactivados). Motivo: %s" % (
+        if self.env.context.get('tllr_fc_ajuste_sin_asiento') or not ot._tllr_fc_asientos_activos():
+            ot.message_post(body="Ajuste de costo de %s registrado por %s (sin asiento del "
+                                 "taller). Motivo: %s" % (
                                      self.monto, self.env.user.name, self.motivo))
             return
         debe = self.cuenta_debe_id or self._tllr_fc_cuenta_costo_defecto()

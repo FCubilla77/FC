@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_purchase_order_tllr_fc_usuario,purchase.order tllr_fc usuario,purchase.model_purchase_order,tllr_fc.group_usuario,1,0,0,0
+access_purchase_order_line_tllr_fc_usuario,purchase.order.line tllr_fc usuario,purchase.model_purchase_order_line,tllr_fc.group_usuario,1,0,0,0
+access_purchase_order_tllr_fc_supervisor,purchase.order tllr_fc supervisor,purchase.model_purchase_order,tllr_fc.group_supervisor,1,1,1,0
+access_purchase_order_line_tllr_fc_supervisor,purchase.order.line tllr_fc supervisor,purchase.model_purchase_order_line,tllr_fc.group_supervisor,1,1,1,1
+access_tllr_fc_wizard_compra_directa,tllr_fc.wizard.compra_directa,model_tllr_fc_wizard_compra_directa,tllr_fc.group_usuario,1,1,1,1
+access_tllr_fc_wizard_compra_directa_linea,tllr_fc.wizard.compra_directa.linea,model_tllr_fc_wizard_compra_directa_linea,tllr_fc.group_usuario,1,1,1,1

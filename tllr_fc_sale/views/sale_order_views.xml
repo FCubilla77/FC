@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_order_form_tllr_fc_sale" model="ir.ui.view">
+            <field name="name">sale.order.form.tllr_fc_sale</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[@name='partner_details']" position="inside">
+                    <field name="tllr_fc_vehiculo_id" groups="tllr_fc.group_usuario"
+                           readonly="state in ('cancel', 'sale') or tllr_fc_ot_id"
+                           options="{'no_create': True}"/>
+                    <field name="tllr_fc_kilometraje" groups="tllr_fc.group_usuario"
+                           invisible="not tllr_fc_vehiculo_id"
+                           readonly="state in ('cancel', 'sale')"/>
+                    <field name="tllr_fc_recepcion_id" groups="tllr_fc.group_usuario"
+                           invisible="not tllr_fc_recepcion_id"/>
+                    <field name="tllr_fc_ot_id" groups="tllr_fc.group_usuario"
+                           invisible="not tllr_fc_ot_id"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="product_template_form_view_tllr_fc_purchase" model="ir.ui.view">
+            <field name="name">product.template.form.tllr_fc_purchase</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="tllr_fc.product_template_form_view_tllr_fc"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='tllr_fc_puesto_ids']" position="after">
+                    <field name="tllr_fc_puede_tercerizarse" invisible="type != 'service'"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

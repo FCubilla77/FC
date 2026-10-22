@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_tllr_fc_recepcion_form_sale" model="ir.ui.view">
+            <field name="name">tllr_fc.recepcion.form.sale</field>
+            <field name="model">tllr_fc.recepcion</field>
+            <field name="inherit_id" ref="tllr_fc.view_tllr_fc_recepcion_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='turno_id']" position="after">
+                    <field name="tllr_fc_usar_ventas" invisible="1"/>
+                    <field name="cliente_pidio_presupuesto"
+                           invisible="not tllr_fc_usar_ventas"
+                           readonly="state != 'borrador'"/>
+                    <field name="sale_order_id"
+                           invisible="not tllr_fc_usar_ventas and not sale_order_id"
+                           readonly="state != 'borrador'"
+                           options="{'no_create': True}"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

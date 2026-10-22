@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_tllr_fc_sale_wizard_vencido_form" model="ir.ui.view">
+            <field name="name">tllr_fc_sale.wizard.vencido.form</field>
+            <field name="model">tllr_fc_sale.wizard.vencido</field>
+            <field name="arch" type="xml">
+                <form>
+                    <div class="alert alert-warning" role="alert">
+                        <field name="mensaje" readonly="1" nolabel="1"/>
+                    </div>
+                    <field name="order_id" invisible="1"/>
+                    <footer>
+                        <button name="action_continuar" string="Confirmar de todos modos"
+                                type="object" class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancelar" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_tllr_fc_wizard_compra_directa_form" model="ir.ui.view">
+            <field name="name">tllr_fc.wizard.compra_directa.form</field>
+            <field name="model">tllr_fc.wizard.compra_directa</field>
+            <field name="arch" type="xml">
+                <form>
+                    <field name="ot_id" invisible="1"/>
+                    <field name="es_supervisor" invisible="1"/>
+                    <group>
+                        <field name="proveedor_id" invisible="not es_supervisor"
+                               required="es_supervisor" options="{'no_create': True}"/>
+                        <field name="nota" invisible="es_supervisor"/>
+                    </group>
+                    <field name="linea_ids">
+                        <list editable="bottom">
+                            <field name="ot_id" column_invisible="1"/>
+                            <field name="producto_id" options="{'no_create': True}"/>
+                            <field name="product_id"/>
+                            <field name="cantidad"/>
+                            <field name="precio" column_invisible="not parent.es_supervisor"/>
+                        </list>
+                    </field>
+                    <footer>
+                        <button name="action_crear_compra" string="Crear compra" type="object"
+                                class="btn-primary" invisible="not es_supervisor" data-hotkey="q"/>
+                        <button name="action_solicitar" string="Solicitar al supervisor" type="object"
+                                class="btn-primary" invisible="es_supervisor" data-hotkey="q"/>
+                        <button string="Cancelar" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

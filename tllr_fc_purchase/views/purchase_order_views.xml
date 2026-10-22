@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="purchase_order_form_tllr_fc_purchase" model="ir.ui.view">
+            <field name="name">purchase.order.form.tllr_fc_purchase</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[@name='other_info']" position="inside">
+                    <field name="tllr_fc_ot_id" groups="tllr_fc.group_usuario"
+                           invisible="not tllr_fc_ot_id"/>
+                    <field name="tllr_fc_tipo" groups="tllr_fc.group_usuario"
+                           invisible="not tllr_fc_ot_id"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="purchase_order_list_tllr_fc_purchase" model="ir.ui.view">
+            <field name="name">tllr_fc.compras.list</field>
+            <field name="model">purchase.order</field>
+            <field name="arch" type="xml">
+                <list create="0" delete="0">
+                    <field name="name"/>
+                    <field name="date_order"/>
+                    <field name="partner_id"/>
+                    <field name="tllr_fc_ot_id"/>
+                    <field name="tllr_fc_tipo"/>
+                    <field name="amount_total" sum="Total"/>
+                    <field name="state" widget="badge"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_compras_directas" model="ir.actions.act_window">
+            <field name="name">Compras directas</field>
+            <field name="res_model">purchase.order</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('tllr_fc_ot_id', '!=', False)]</field>
+            <field name="view_ids" eval="[(5, 0, 0),
+                (0, 0, {'view_mode': 'list', 'view_id': ref('purchase_order_list_tllr_fc_purchase')}),
+                (0, 0, {'view_mode': 'form', 'view_id': ref('purchase.purchase_order_form')})]"/>
+        </record>
+    </data>
+</odoo>

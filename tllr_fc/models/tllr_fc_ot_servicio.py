@@ -125,6 +125,11 @@ class TllrFcOtServicio(models.Model):
             return 0.0
         return self.product_id.sudo().standard_price * self.cantidad
 
+    def _tllr_fc_requiere_horas(self):
+        """Un servicio propio exige horas cargadas al terminar. Compras exime a los tercerizados."""
+        self.ensure_one()
+        return True
+
     def _tllr_fc_costo_efectivo_servicio(self):
         """Costo efectivo del servicio. El puente de Compras lo reemplaza por el
         costo real de la compra confirmada (servicios tercerizados)."""
