@@ -13,6 +13,37 @@
                          groups="tllr_fc.group_administrador">
                         <field name="company_id" invisible="1"/>
 
+                        <block title="Integraciones" name="tllr_fc_integraciones">
+                            <setting string="Integración con Ventas" groups="base.group_system"
+                                     help="Presupuesto, pedido de venta y factura desde el pedido para las OT de Cliente.">
+                                <field name="module_tllr_fc_sale"/>
+                                <div class="alert alert-warning mt-2" role="alert">
+                                    Al activar y guardar se instala el módulo puente «Integración con Ventas» y, si no está instalado, también Ventas. Al desactivar y guardar se desinstala el puente y se eliminan sus datos: vínculos de presupuestos con las OT y las recepciones, y los campos del puente. Los presupuestos y pedidos de Ventas no se borran.
+                                </div>
+                            </setting>
+                            <setting string="Integración con Ventas" groups="!base.group_system"
+                                     help="Solo un administrador de Odoo puede instalar o desinstalar esta integración.">
+                                <field name="module_tllr_fc_sale" readonly="1"/>
+                                <div class="alert alert-warning mt-2" role="alert">
+                                    Solo un administrador de Odoo puede cambiar esta opción. Al activarla se instala el puente con Ventas (e instala Ventas si falta); al desactivarla se desinstala y se eliminan sus datos.
+                                </div>
+                            </setting>
+                            <setting string="Integración con Compras" groups="base.group_system"
+                                     help="Compra directa de repuestos y servicios tercerizados desde la OT.">
+                                <field name="module_tllr_fc_purchase"/>
+                                <div class="alert alert-warning mt-2" role="alert">
+                                    Al activar y guardar se instala el módulo puente «Integración con Compras» y, si no están instalados, también Compras y su integración con Inventario. Al desactivar y guardar se desinstala el puente y se eliminan sus datos: vínculos de compras con las OT, servicios tercerizados y costos reales asociados. Las órdenes de compra de Compras no se borran.
+                                </div>
+                            </setting>
+                            <setting string="Integración con Compras" groups="!base.group_system"
+                                     help="Solo un administrador de Odoo puede instalar o desinstalar esta integración.">
+                                <field name="module_tllr_fc_purchase" readonly="1"/>
+                                <div class="alert alert-warning mt-2" role="alert">
+                                    Solo un administrador de Odoo puede cambiar esta opción. Al activarla se instala el puente con Compras (e instala Compras si falta); al desactivarla se desinstala y se eliminan sus datos.
+                                </div>
+                            </setting>
+                        </block>
+
                         <block title="Control de calidad" name="tllr_fc_calidad">
                             <setting string="Control de calidad en OT de Cliente"
                                      help="Si está activo, las OT de tipo Cliente pasan por control de calidad antes de quedar listas.">

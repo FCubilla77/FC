@@ -10,3 +10,4 @@ from . import test_cobro_garantia
 from . import test_traslados
 from . import test_asientos
 from . import test_011
+from . import test_integraciones

@@ -241,3 +241,10 @@ class TestCompras(TallerCommon):
         factura.invoice_line_ids.price_unit = 23000
         factura.action_post()
         self.assertFalse(self.env['tllr_fc.ot.ajuste_costo'].search([('ot_id', '=', ot.id)]))
+
+    def test_90_ajustes_desmarcar_abre_asistente_de_desinstalacion(self):
+        ajustes = self.env['res.config.settings'].create({})
+        self.assertTrue(ajustes.module_tllr_fc_purchase)
+        ajustes.module_tllr_fc_purchase = False
+        accion = ajustes.execute()
+        self.assertEqual(accion.get('res_model'), 'base.module.uninstall')

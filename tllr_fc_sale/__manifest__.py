@@ -19,11 +19,11 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.023",
+    "version": "2026.19.024",
     "license": "LGPL-3",
     "application": False,
     "installable": True,
-    "auto_install": True,
+    "auto_install": False,
     "depends": ["tllr_fc", "sale"],
     "data": [
         "security/ir.model.access.csv",

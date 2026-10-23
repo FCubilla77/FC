@@ -36,6 +36,11 @@ class ResConfigSettings(models.TransientModel):
     tllr_fc_aprobacion_adicional = fields.Selection(
         related='company_id.tllr_fc_aprobacion_adicional', readonly=False)
 
+    # Integraciones: al guardar, Odoo instala (o desinstala) el módulo puente.
+    # Solo ejecuta el cambio un administrador de Odoo (base.group_system).
+    module_tllr_fc_sale = fields.Boolean(string="Instalar integración con Ventas")
+    module_tllr_fc_purchase = fields.Boolean(string="Instalar integración con Compras")
+
     # Ajustes graba los campos relacionados de a uno en la compañía; la validación
     # de los asientos se difiere hasta que están todos guardados.
     @api.model_create_multi

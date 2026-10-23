@@ -347,3 +347,11 @@ class TestVentas(TallerCommon):
         pedido.with_user(self.usuario_taller).read(['name'])
         with self.assertRaises(AccessError):
             pedido.with_user(self.usuario_taller).write({'note': 'x'})
+
+    # ---------------- 2026.19.024: Ajustes ----------------
+    def test_90_ajustes_desmarcar_abre_asistente_de_desinstalacion(self):
+        ajustes = self.env['res.config.settings'].create({})
+        self.assertTrue(ajustes.module_tllr_fc_sale)
+        ajustes.module_tllr_fc_sale = False
+        accion = ajustes.execute()
+        self.assertEqual(accion.get('res_model'), 'base.module.uninstall')
