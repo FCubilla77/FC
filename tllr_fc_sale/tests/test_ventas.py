@@ -355,3 +355,22 @@ class TestVentas(TallerCommon):
         ajustes.module_tllr_fc_sale = False
         accion = ajustes.execute()
         self.assertEqual(accion.get('res_model'), 'base.module.uninstall')
+
+    # ---------------- 2026.19.025: sin entregas de Ventas ----------------
+    def test_91_presupuesto_del_taller_no_genera_entrega(self):
+        pedido = self._presupuesto(
+            productos=[self.s1, self.repuesto], tllr_fc_vehiculo_id=self.vehiculo.id)
+        recepcion = self._recepcion(pedido)
+        self.assertTrue(recepcion)
+        pedido.action_confirm()
+        self.assertEqual(pedido.state, 'sale')
+        self.assertFalse(pedido.picking_ids)
+        # Aumentar la cantidad tampoco genera entrega
+        linea = pedido.order_line.filtered(lambda l: l.product_id == self.repuesto)
+        linea.product_uom_qty = 4
+        self.assertFalse(pedido.picking_ids)
+
+    def test_92_presupuesto_comun_sigue_generando_entrega(self):
+        pedido = self._presupuesto(productos=[self.repuesto])
+        pedido.action_confirm()
+        self.assertTrue(pedido.picking_ids)

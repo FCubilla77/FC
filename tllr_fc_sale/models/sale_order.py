@@ -51,6 +51,11 @@ class SaleOrder(models.Model):
             valores['tllr_fc_ot_id'] = self.tllr_fc_ot_id.id
         return valores
 
+    def _tllr_fc_es_del_taller(self):
+        """True si el presupuesto o pedido pertenece al taller (OT, recepción o vehículo)."""
+        self.ensure_one()
+        return bool(self.tllr_fc_ot_id or self.tllr_fc_recepcion_ids or self.tllr_fc_vehiculo_id)
+
     def action_confirm(self):
         """Avisa antes de confirmar un presupuesto del taller vencido."""
         if (len(self) == 1 and self.state in ('draft', 'sent') and self.validity_date
