@@ -812,12 +812,31 @@ class TllrFcOtProducto(models.Model):
                     and ot.state != 'proceso':
                 raise UserError("Solo se registra lo utilizado con la OT en proceso.")
         lineas = super().create(vals_list)
+        lineas._tllr_fc_verificar_puesto_del_servicio()
         for linea, vals in zip(lineas, vals_list):
             if vals.get('cantidad_utilizada'):
                 linea._tllr_fc_verificar_aprobacion()
                 linea._tllr_fc_verificar_uso_en_puesto(vals['cantidad_utilizada'])
         lineas._tllr_fc_sincronizar_stock()
         return lineas
+
+    @api.onchange('servicio_id')
+    def _onchange_servicio_puesto(self):
+        """Con servicio elegido, el puesto es el de su línea."""
+        linea = self.servicio_id.puesto_line_id
+        if linea:
+            self.puesto_line_id = linea
+
+    def _tllr_fc_verificar_puesto_del_servicio(self):
+        """El puesto de un repuesto con servicio es la línea de puesto de ese servicio."""
+        for linea in self:
+            destino = linea.servicio_id.puesto_line_id
+            if destino and linea.puesto_line_id and linea.puesto_line_id != destino:
+                raise UserError(
+                    "«%s» corresponde al servicio «%s», que se realiza en el puesto «%s». "
+                    "Para usar otro puesto, quitá antes el servicio vinculado." % (
+                        linea.product_id.display_name, linea.servicio_id.display_name,
+                        destino.display_name))
 
     def _tllr_fc_alinear_puesto_con_servicio(self):
         """Lleva cada repuesto al puesto de su servicio, salvo si ya consumió o trasladó stock."""
@@ -912,6 +931,8 @@ class TllrFcOtProducto(models.Model):
                         "No se puede cambiar el producto ni el lote de «%s»: ya se consumió stock."
                         % linea.product_id.display_name)
         resultado = super().write(vals)
+        if {'puesto_line_id', 'servicio_id'} & set(vals):
+            self._tllr_fc_verificar_puesto_del_servicio()
         if {'product_id', 'cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',
                 'lote_id', 'provisto_cliente', 'puesto_line_id'} & set(vals):
             self._tllr_fc_sincronizar_stock()

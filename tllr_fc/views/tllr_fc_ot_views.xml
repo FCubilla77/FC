@@ -311,7 +311,7 @@
                                                domain="[('ot_id', '=', parent.id)]"
                                                optional="show"/>
                                         <field name="puesto_line_id" options="{'no_create': True}"
-                                               domain="[('ot_id', '=', parent.id)]"
+                                               domain="[('ot_id', '=', parent.id)] + ([('servicio_ids', 'in', [servicio_id])] if servicio_id else [])"
                                                readonly="cantidad_consumida &gt; 0"/>
                                         <field name="cantidad_reservada"/>
                                         <field name="cantidad_utilizada"

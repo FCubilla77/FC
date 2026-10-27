@@ -43,6 +43,18 @@ class TllrFcOtPuesto(models.Model):
     almacen_id = fields.Many2one(
         'stock.warehouse', related='puesto_id.almacen_id', string="Almacén")
 
+    @api.depends('puesto_id.name', 'servicio_ids', 'servicio_ids.product_id', 'personal_ids')
+    def _compute_display_name(self):
+        """Distingue las líneas de un mismo puesto: con el servicio o, si no tiene, el personal."""
+        for linea in self:
+            nombre = linea.puesto_id.name or ''
+            servicio = linea.servicio_ids.sorted('id')[:1]
+            if servicio:
+                nombre = "%s · %s" % (nombre, servicio.product_id.name)
+            elif linea.personal_ids:
+                nombre = "%s · %s" % (nombre, ', '.join(linea.personal_ids.mapped('name')))
+            linea.display_name = nombre
+
     @api.depends('servicio_ids')
     def _compute_servicio_id(self):
         for linea in self:
