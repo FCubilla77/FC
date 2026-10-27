@@ -2,7 +2,7 @@
 from markupsafe import Markup, escape
 
 from odoo import Command, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 class SaleOrder(models.Model):
@@ -95,6 +95,18 @@ class SaleOrder(models.Model):
             "<table border='1' cellpadding='3'><tr><th>Producto</th><th>Cant.</th>"
             "<th>Precio</th><th>Desc. %%</th><th>Subtotal</th></tr>%s</table>"
             "<p>Total anterior: %s</p>") % (filas, self.amount_total)
+
+    def _tllr_fc_verificar_almacenables_manuales(self, ot):
+        """Al cerrar la OT no puede haber productos almacenables cargados a mano."""
+        self.ensure_one()
+        manuales = self.order_line.filtered(
+            lambda l: l.product_uom_qty > 0 and l._tllr_fc_es_almacenable_manual())
+        if manuales:
+            raise UserError(
+                "El presupuesto %s tiene productos almacenables cargados a mano que no están "
+                "en la OT %s: %s. Cargalos en la orden de trabajo o quitalos del presupuesto "
+                "para poder cerrar y facturar." % (
+                    self.name, ot.name, ', '.join(manuales.mapped('product_id.display_name'))))
 
     def _tllr_fc_crear_factura(self, ot):
         """Factura en borrador desde el pedido, con lo que dice el pedido (no la política de facturación)."""

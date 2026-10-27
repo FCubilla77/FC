@@ -354,12 +354,12 @@ class TllrFcOt(models.Model):
             else:
                 ot.margen_porcentaje = -1.0 if ot.margen < -0.005 else 0.0
 
-    @api.depends('servicio_ids.state_aprobacion', 'producto_ids.state_aprobacion')
+    @api.depends('servicio_ids.pendiente_aprobacion', 'producto_ids.pendiente_aprobacion')
     def _compute_adicionales_pendientes(self):
         for ot in self:
             ot.adicionales_pendientes = (
-                len(ot.servicio_ids.filtered(lambda s: s.state_aprobacion == 'pendiente'))
-                + len(ot.producto_ids.filtered(lambda p: p.state_aprobacion == 'pendiente')))
+                len(ot.servicio_ids.filtered('pendiente_aprobacion'))
+                + len(ot.producto_ids.filtered('pendiente_aprobacion')))
 
     @api.depends('detenida', 'detenida_desde', 'dias_detenida')
     def _compute_dias_detenida_total(self):
@@ -1034,8 +1034,27 @@ class TllrFcOt(models.Model):
             "activa: el supervisor puede volver a facturarla con «Refacturar».") % (
                 nota._get_html_link(), factura._get_html_link()))
 
-    def _tllr_fc_lineas_factura(self, solo_realizado=False):
-        """Líneas de la factura: servicios, repuestos, insumos facturables y accesorios."""
+    def _tllr_fc_cantidad_producto_factura(self, linea, solo_realizado=False, estimado=False):
+        """Cantidad de un repuesto, insumo o accesorio que se factura (o presupuesta).
+
+        Nunca supera lo cubierto: el excedente pendiente de aprobación no se factura.
+        """
+        if estimado:
+            base = linea.cantidad_requerida
+        else:
+            base = linea.cantidad_consumida if solo_realizado else linea.cantidad_utilizada
+        return linea._tllr_fc_cantidad_aprobada(base)
+
+    def _tllr_fc_cantidad_servicio_factura(self, servicio):
+        return servicio._tllr_fc_cantidad_aprobada(servicio.cantidad)
+
+    def _tllr_fc_lineas_factura(self, solo_realizado=False, estimado=False):
+        """Líneas de la factura: servicios, repuestos, insumos facturables y accesorios.
+
+        Solo entra lo aprobado: los adicionales (líneas nuevas o cantidades que suben)
+        pendientes de aprobación quedan fuera. Con `estimado` (presupuesto) los productos
+        se toman por la cantidad requerida en lugar de la utilizada.
+        """
         self.ensure_one()
         lineas = []
         for servicio in self.servicio_ids.filtered(
@@ -1043,15 +1062,18 @@ class TllrFcOt(models.Model):
                 and s.estado != 'no_realizado'):
             if solo_realizado and servicio.estado != 'terminado':
                 continue
+            cantidad = self._tllr_fc_cantidad_servicio_factura(servicio)
+            if cantidad <= 0:
+                continue
             lineas.append((0, 0, {
                 'product_id': servicio.product_id.id,
                 'name': servicio.descripcion or servicio.product_id.display_name,
-                'quantity': servicio.cantidad,
+                'quantity': cantidad,
                 'price_unit': servicio.precio_unitario,
                 'discount': servicio.descuento,
             }))
         for linea in self.producto_ids.filtered('facturable'):
-            cantidad = linea.cantidad_consumida if solo_realizado else linea.cantidad_utilizada
+            cantidad = self._tllr_fc_cantidad_producto_factura(linea, solo_realizado, estimado)
             if cantidad <= 0:
                 continue
             lineas.append((0, 0, {
@@ -1068,10 +1090,11 @@ class TllrFcOt(models.Model):
         sin_precio = []
         for servicio in self.servicio_ids.filtered(
                 lambda s: s.facturable and (s.estado == 'terminado' or not solo_realizado)):
-            if not servicio.precio_unitario:
+            if (self._tllr_fc_cantidad_servicio_factura(servicio) > 0
+                    and not servicio.precio_unitario):
                 sin_precio.append(servicio.product_id.display_name)
         for linea in self.producto_ids.filtered('facturable'):
-            cantidad = linea.cantidad_consumida if solo_realizado else linea.cantidad_utilizada
+            cantidad = self._tllr_fc_cantidad_producto_factura(linea, solo_realizado)
             if cantidad > 0 and not linea.precio_unitario:
                 sin_precio.append(linea.product_id.display_name)
         if sin_precio:
@@ -1123,7 +1146,8 @@ class TllrFcOt(models.Model):
         if self.adicionales_pendientes and not self.env.context.get('tllr_fc_excepcion'):
             return self._tllr_fc_abrir_excepcion(
                 'action_cerrar_facturar', 'supervisor',
-                "Cerrar para facturar con %s adicional(es) sin aprobación del cliente." %
+                "Hay %s adicional(es) (líneas nuevas o cantidades mayores) sin aprobación del "
+                "cliente. Si continuás, solo se facturará lo aprobado." %
                 self.adicionales_pendientes)
         documento = self._tllr_fc_generar_documento_venta()
         self.write({
@@ -1259,6 +1283,12 @@ class TllrFcOt(models.Model):
             sin_puesto = ot.producto_ids.filtered(lambda p: not p.puesto_line_id)
             if sin_puesto:
                 sin_puesto.write({'puesto_line_id': primero.id})
+
+    def _tllr_fc_ajustar_cubierta_a_presupuesto(self):
+        """Tras actualizar el presupuesto, la cantidad cubierta de cada línea lo sigue."""
+        for ot in self:
+            ot.servicio_ids._tllr_fc_ajustar_a_presupuesto()
+            ot.producto_ids._tllr_fc_ajustar_a_presupuesto()
 
     def action_ver_garantias(self):
         self.ensure_one()

@@ -90,19 +90,19 @@
                     </group>
                     <group string="Servicios adicionales">
                         <field name="servicio_ids" nolabel="1" colspan="2"
-                               domain="[('ot_id', '=', ot_id), ('state_aprobacion', '=', 'pendiente')]">
-                            <list><field name="product_id"/><field name="subtotal"/></list>
+                               domain="[('ot_id', '=', ot_id), ('pendiente_aprobacion', '=', True)]">
+                            <list><field name="product_id"/><field name="cantidad"/><field name="cantidad_excedente"/><field name="subtotal"/></list>
                         </field>
                     </group>
                     <group string="Repuestos, insumos y accesorios adicionales">
                         <field name="producto_ids" nolabel="1" colspan="2"
-                               domain="[('ot_id', '=', ot_id), ('state_aprobacion', '=', 'pendiente')]">
-                            <list><field name="product_id"/><field name="cantidad_reservada"/><field name="subtotal"/></list>
+                               domain="[('ot_id', '=', ot_id), ('pendiente_aprobacion', '=', True)]">
+                            <list><field name="product_id"/><field name="cantidad_reservada"/><field name="cantidad_excedente"/><field name="subtotal"/></list>
                         </field>
                     </group>
                     <group><field name="notas"/></group>
                     <div class="alert alert-warning" role="alert" invisible="estado != 'rechazado'">
-                        Si el cliente rechaza, las líneas se quitan de la OT (queda constancia en el historial).
+                        Si el cliente rechaza, las líneas nuevas se quitan de la OT y los excedentes de cantidad vuelven a lo cubierto (queda constancia en el historial).
                     </div>
                     <footer>
                         <button name="action_registrar" string="Registrar" type="object"

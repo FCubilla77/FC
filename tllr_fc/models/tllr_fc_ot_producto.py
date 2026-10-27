@@ -18,7 +18,7 @@ class TllrFcOtProducto(models.Model):
     """
     _name = 'tllr_fc.ot.producto'
     _description = "Repuesto, insumo o accesorio de la orden de trabajo"
-    _inherit = ['tllr_fc.mixin.wizard']
+    _inherit = ['tllr_fc.mixin.wizard', 'tllr_fc.mixin.cubierta']
     _order = 'ot_id, id'
 
     ot_id = fields.Many2one(
@@ -69,6 +69,11 @@ class TllrFcOtProducto(models.Model):
              "supervisor.")
     ot_tipo = fields.Selection(related='ot_id.tipo', string="Tipo de OT")
     facturable = fields.Boolean(string="Facturable", compute='_compute_facturable')
+    cantidad_excedente = fields.Float(
+        string="Excedente", compute='_compute_excedente', store=True, digits='Product Unit',
+        help="Cantidad pedida por encima de lo cubierto: pendiente de aprobación.")
+    pendiente_aprobacion = fields.Boolean(
+        string="Pendiente de aprobación", compute='_compute_excedente', store=True)
     subtotal = fields.Monetary(
         string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
     adicional = fields.Boolean(string="Adicional", readonly=True, copy=False)
@@ -77,7 +82,7 @@ class TllrFcOtProducto(models.Model):
         ('no_requiere', "No requiere"),
         ('pendiente', "Pendiente de aprobación"),
         ('aprobado', "Aprobado"),
-        ('autorizado', "Autorizado sin aprobación"),
+        ('autorizado', "Aprobado (supervisor)"),
     ], string="Aprobación", required=True, default='no_requiere', copy=False,
         index=True)
     aprobacion_id = fields.Many2one(
@@ -134,6 +139,18 @@ class TllrFcOtProducto(models.Model):
                 # En una OT de garantía solo se factura lo marcado «Cobrar al cliente».
                 facturable = facturable and linea.cobrar_cliente
             linea.facturable = facturable
+
+    @api.depends('cantidad_requerida', 'cantidad_cubierta', 'state_aprobacion',
+                 'cobrar_cliente', 'ot_id.state', 'ot_id.tipo')
+    def _compute_excedente(self):
+        for linea in self:
+            linea.cantidad_excedente = linea._tllr_fc_calcular_excedente()
+            linea.pendiente_aprobacion = (
+                linea.state_aprobacion == 'pendiente' or linea.cantidad_excedente > 0)
+
+    def _tllr_fc_cantidad_pedida(self):
+        self.ensure_one()
+        return max(self.cantidad_reservada - self.cantidad_no_utilizada, 0.0)
 
     @api.depends('cantidad_reservada', 'cantidad_no_utilizada')
     def _compute_cantidad_requerida(self):
@@ -300,11 +317,12 @@ class TllrFcOtProducto(models.Model):
             ctx = linea.with_context(tllr_fc_permitir_write=True)
             if linea.cobrar_cliente:
                 if linea.state_aprobacion == 'no_requiere':
-                    ctx.write({'state_aprobacion': 'pendiente'})
+                    ctx.write({'state_aprobacion': 'pendiente', 'cantidad_cubierta': 0.0})
                 if not linea.precio_unitario:
                     ctx.write({'precio_unitario': linea.product_id.list_price})
             elif linea.state_aprobacion != 'no_requiere':
                 ctx.write({'state_aprobacion': 'no_requiere', 'aprobacion_id': False})
+                linea._tllr_fc_cubrir()
 
     @api.constrains('product_id')
     def _check_uso_producto(self):
@@ -774,7 +792,8 @@ class TllrFcOtProducto(models.Model):
         permitidos = {'cobrar_cliente'}
         if self.env.context.get('tllr_fc_permitir_write'):
             # Ajustes internos que acompañan al marcado (aprobación pendiente y precio).
-            permitidos |= {'state_aprobacion', 'aprobacion_id', 'precio_unitario'}
+            permitidos |= {
+                'state_aprobacion', 'aprobacion_id', 'precio_unitario', 'cantidad_cubierta'}
         return set(vals) <= permitidos and all(
             linea.ot_id.tipo == 'garantia' and linea.ot_id.state == 'listo'
             and not linea.ot_id.cerrada_facturar for linea in self)
@@ -812,6 +831,7 @@ class TllrFcOtProducto(models.Model):
                     and ot.state != 'proceso':
                 raise UserError("Solo se registra lo utilizado con la OT en proceso.")
         lineas = super().create(vals_list)
+        lineas._tllr_fc_iniciar_cubierta()
         lineas._tllr_fc_verificar_puesto_del_servicio()
         for linea, vals in zip(lineas, vals_list):
             if vals.get('cantidad_utilizada'):
@@ -848,38 +868,52 @@ class TllrFcOtProducto(models.Model):
                 continue
             linea.puesto_line_id = destino
 
-    def _tllr_fc_verificar_aprobacion(self):
-        """Un adicional pendiente de aprobación no se consume si la aprobación es obligatoria."""
+    def _tllr_fc_verificar_aprobacion(self, cantidad_utilizada=None):
+        """Un adicional pendiente de aprobación no se consume si la aprobación es obligatoria.
+
+        Tampoco el excedente: se puede usar hasta la cantidad cubierta.
+        """
         self.ensure_one()
-        if (self.state_aprobacion == 'pendiente'
-                and self.company_id.tllr_fc_aprobacion_adicional == 'obligatoria'):
+        if self.company_id.tllr_fc_aprobacion_adicional != 'obligatoria':
+            return
+        if self.state_aprobacion == 'pendiente':
             raise UserError(
                 "«%s» es un trabajo adicional pendiente de aprobación del cliente. El "
                 "supervisor debe registrar la aprobación o autorizar el uso sin ella."
                 % self.product_id.display_name)
+        total = self.cantidad_utilizada if cantidad_utilizada is None else cantidad_utilizada
+        if (self._tllr_fc_aplica_aprobacion() and total - self.cantidad_cubierta > 1e-6
+                and total - self._tllr_fc_cantidad_pedida() <= 1e-6):
+            raise UserError(
+                "«%s»: solo está cubierta la cantidad %s; el excedente está pendiente de "
+                "aprobación del cliente. El supervisor debe registrar la aprobación o "
+                "autorizar el uso sin ella." % (
+                    self.product_id.display_name, self.cantidad_cubierta))
 
     def action_autorizar_sin_aprobacion(self):
-        """El supervisor autoriza usar el adicional sin la aprobación del cliente."""
+        """El supervisor autoriza el adicional (línea nueva o excedente) sin la aprobación del
+        cliente. Queda un registro en Aprobaciones y vale como aprobado."""
         if not self._es_supervisor():
             raise AccessError("Solo el supervisor puede autorizar el uso sin aprobación.")
         self.ensure_one()
-        if self.state_aprobacion != 'pendiente':
+        if not self.pendiente_aprobacion:
             raise UserError("La línea no está pendiente de aprobación.")
         if not self.env.context.get('tllr_fc_excepcion'):
             return self._tllr_fc_abrir_excepcion(
                 'action_autorizar_sin_aprobacion', 'supervisor',
                 "Usar «%s» sin la aprobación del cliente." % self.product_id.display_name)
-        self.with_context(tllr_fc_permitir_write=True).state_aprobacion = 'autorizado'
+        self.env['tllr_fc.ot.aprobacion']._tllr_fc_registrar_autorizacion(
+            self.ot_id, servicios=self.env['tllr_fc.ot.servicio'], productos=self)
         return True
 
     def write(self, vals):
         if not self.env.context.get('tllr_fc_permitir_write') and (
-                {'state_aprobacion', 'aprobacion_id', 'adicional'} & set(vals)):
+                {'state_aprobacion', 'aprobacion_id', 'adicional', 'cantidad_cubierta'} & set(vals)):
             raise UserError("La aprobación de un adicional se registra con el botón de la OT.")
         if vals.get('cantidad_utilizada'):
             for linea in self:
                 if vals['cantidad_utilizada'] > linea.cantidad_utilizada:
-                    linea._tllr_fc_verificar_aprobacion()
+                    linea._tllr_fc_verificar_aprobacion(vals['cantidad_utilizada'])
                     linea._tllr_fc_verificar_uso_en_puesto(
                         vals['cantidad_utilizada'] - linea.cantidad_utilizada)
         if 'servicio_id' in vals and 'puesto_line_id' not in vals:
@@ -931,6 +965,8 @@ class TllrFcOtProducto(models.Model):
                         "No se puede cambiar el producto ni el lote de «%s»: ya se consumió stock."
                         % linea.product_id.display_name)
         resultado = super().write(vals)
+        if {'cantidad_reservada', 'cantidad_no_utilizada'} & set(vals):
+            self._tllr_fc_seguir_cantidad_en_espera()
         if {'puesto_line_id', 'servicio_id'} & set(vals):
             self._tllr_fc_verificar_puesto_del_servicio()
         if {'product_id', 'cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',

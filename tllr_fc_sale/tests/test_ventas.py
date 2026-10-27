@@ -183,13 +183,13 @@ class TestVentas(TallerCommon):
         ot.action_actualizar_presupuesto()
         pedido = ot.sale_order_id
         self.assertEqual(pedido.state, 'draft')
-        self.assertEqual(len(pedido.order_line), 2)
+        self.assertEqual(len(pedido.order_line), 3)
         ot.action_iniciar()
         # Con un presupuesto existente hay que habilitar la actualización
         with self.assertRaises(UserError):
             ot.action_actualizar_presupuesto()
         ot.actualizar_presupuesto = True
-        ot.producto_ids.cantidad_utilizada = 1
+        ot.producto_ids.descuento = 5
         ot.action_actualizar_presupuesto()
         self.assertEqual(pedido, ot.sale_order_id)
         self.assertEqual(len(pedido.order_line), 3)
@@ -212,6 +212,8 @@ class TestVentas(TallerCommon):
         ot.action_iniciar()
         ot.actualizar_presupuesto = True
         ot.producto_ids.cantidad_reservada = 3
+        ot.producto_ids.with_context(
+            tllr_fc_excepcion=True, tllr_fc_motivo="prueba").action_autorizar_sin_aprobacion()
         ot.producto_ids.cantidad_utilizada = 3
         ot.action_actualizar_presupuesto()
         linea = pedido.order_line.filtered(lambda l: l.product_id == self.repuesto)
@@ -374,3 +376,59 @@ class TestVentas(TallerCommon):
         pedido = self._presupuesto(productos=[self.repuesto])
         pedido.action_confirm()
         self.assertTrue(pedido.picking_ids)
+
+
+@tagged('post_install', '-at_install')
+class TestVentas029(TallerCommon):
+    """2026.19.029: líneas «Desde la OT» y reapertura del presupuesto."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env.user.group_ids |= cls.env.ref('tllr_fc.group_supervisor')
+
+    def _ot_con_presupuesto(self):
+        ot = self._ot_planificada()
+        self.env['tllr_fc.ot.producto'].create({
+            'ot_id': ot.id, 'product_id': self.repuesto.id, 'cantidad_reservada': 2})
+        ot.actualizar_presupuesto = True
+        ot.action_actualizar_presupuesto()
+        return ot, ot.sale_order_id
+
+    def test_29_01_lineas_del_presupuesto_quedan_marcadas(self):
+        ot, pedido = self._ot_con_presupuesto()
+        self.assertTrue(pedido.order_line)
+        self.assertEqual(set(pedido.order_line.mapped('tllr_fc_origen')), {'ot'})
+
+    def test_29_02_linea_manual_se_conserva_al_actualizar(self):
+        ot, pedido = self._ot_con_presupuesto()
+        pedido.write({'order_line': [Command.create({
+            'product_id': self.s3.id, 'product_uom_qty': 1})]})
+        manual = pedido.order_line.filtered(lambda l: l.product_id == self.s3)
+        self.assertEqual(manual.tllr_fc_origen, 'manual')
+        ot.producto_ids.cantidad_reservada = 3
+        ot.action_actualizar_presupuesto()
+        self.assertTrue(manual.exists())
+        self.assertEqual(manual.product_uom_qty, 1)
+
+    def test_29_03_producto_almacenable_manual_se_bloquea(self):
+        ot, pedido = self._ot_con_presupuesto()
+        with self.assertRaisesRegex(UserError, "orden de trabajo"):
+            pedido.write({'order_line': [Command.create({
+                'product_id': self.insumo.id, 'product_uom_qty': 1})]})
+
+    def test_29_04_presupuesto_confirmado_vuelve_a_borrador(self):
+        ot, pedido = self._ot_con_presupuesto()
+        pedido.with_context(tllr_fc_vencido_ok=True, skip_procurement=True).action_confirm()
+        self.assertEqual(pedido.state, 'sale')
+        ot.producto_ids.cantidad_reservada = 3
+        ot.action_actualizar_presupuesto()
+        self.assertEqual(pedido.state, 'draft')
+        linea = pedido.order_line.filtered(lambda l: l.product_id == self.repuesto)
+        self.assertEqual(linea.product_uom_qty, 3)
+
+    def test_29_05_sin_diferencias_sigue_confirmado(self):
+        ot, pedido = self._ot_con_presupuesto()
+        pedido.with_context(tllr_fc_vencido_ok=True, skip_procurement=True).action_confirm()
+        ot.action_actualizar_presupuesto()
+        self.assertEqual(pedido.state, 'sale')

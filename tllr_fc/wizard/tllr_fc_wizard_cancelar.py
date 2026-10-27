@@ -75,6 +75,13 @@ class TllrFcWizardCancelar(models.TransientModel):
             return self._tllr_fc_abrir_excepcion(
                 'action_confirmar', 'supervisor',
                 "Cancelar la OT %s sin liquidar lo ejecutado." % self.ot_id.name)
+        if (self.liquidar and self.ot_id.adicionales_pendientes
+                and not self.env.context.get('tllr_fc_excepcion')):
+            return self._tllr_fc_abrir_excepcion(
+                'action_confirmar', 'supervisor',
+                "Hay %s adicional(es) (líneas nuevas o cantidades mayores) sin aprobación del "
+                "cliente. Si continuás, solo se facturará lo aprobado." %
+                self.ot_id.adicionales_pendientes)
         self.ot_id._tllr_fc_cancelar(self.motivo_id, self.liquidar)
         # Tras cancelar se pregunta si el vehículo se entrega al cliente.
         return {

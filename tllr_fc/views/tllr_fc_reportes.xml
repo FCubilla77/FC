@@ -111,7 +111,7 @@
                                 <tbody>
                                     <tr t-foreach="o.servicio_ids" t-as="s">
                                         <td><span t-field="s.product_id.display_name"/></td>
-                                        <td><span t-field="s.puesto_line_id.name"/></td>
+                                        <td><span t-field="s.puesto_line_id.display_name"/></td>
                                         <td><span t-out="', '.join(s.puesto_line_id.personal_ids.mapped('name'))"/></td>
                                         <td style="white-space: pre-wrap;"><span t-field="s.informe"/></td>
                                     </tr>
@@ -122,18 +122,20 @@
                                 <thead>
                                     <tr>
                                         <th>Producto</th>
-                                        <th style="width: 14%;">Uso</th>
+                                        <th style="width: 20%;">Servicio</th>
+                                        <th style="width: 12%;">Uso</th>
                                         <th style="width: 12%;" class="text-end">Reservado</th>
                                         <th style="width: 12%;" class="text-end">Utilizado</th>
                                         <th style="width: 13%;" class="text-end">No utilizado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr t-foreach="o.producto_ids" t-as="p">
+                                    <tr t-foreach="o.producto_ids.sorted(lambda p: (0, o.servicio_ids.ids.index(p.servicio_id.id), p.id) if p.servicio_id else (1, 0, p.id))" t-as="p">
                                         <td>
                                             <span t-field="p.product_id.display_name"/>
                                             <span t-if="p.provisto_cliente"> (del cliente)</span>
                                         </td>
+                                        <td><span t-out="p.servicio_id.product_id.display_name"/></td>
                                         <td><span t-field="p.uso"/></td>
                                         <td class="text-end"><span t-field="p.cantidad_reservada"/></td>
                                         <td class="text-end"><span t-field="p.cantidad_utilizada"/></td>
@@ -157,7 +159,7 @@
                                     <tr t-foreach="o.hora_ids.sorted(lambda h: (h.fecha, h.id))" t-as="h">
                                         <td><span t-field="h.fecha"/></td>
                                         <td><span t-field="h.personal_id.name"/></td>
-                                        <td><span t-field="h.puesto_line_id.name"/></td>
+                                        <td><span t-field="h.puesto_line_id.display_name"/></td>
                                         <td><span t-field="h.servicio_id.product_id.display_name"/></td>
                                         <td class="text-end"><span t-field="h.horas"/></td>
                                     </tr>

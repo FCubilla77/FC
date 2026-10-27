@@ -20,5 +20,17 @@
                 </xpath>
             </field>
         </record>
+        <record id="view_order_form_tllr_fc_sale_origen" model="ir.ui.view">
+            <field name="name">sale.order.form.tllr_fc_sale.origen</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='order_line']/list/field[@name='product_template_id']"
+                       position="after">
+                    <field name="tllr_fc_origen" string="Origen" optional="show"
+                           readonly="1" groups="tllr_fc.group_usuario"/>
+                </xpath>
+            </field>
+        </record>
     </data>
 </odoo>

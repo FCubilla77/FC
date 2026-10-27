@@ -348,6 +348,7 @@
                     <thead>
                         <tr>
                             <th>Producto</th>
+                            <th style="width: 18%;">Servicio</th>
                             <th style="width: 8%;">Cantidad</th>
                             <th style="width: 13%;">Precio unitario</th>
                             <th style="width: 8%;">Desc. %</th>
@@ -356,7 +357,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr t-foreach="productos" t-as="p">
+                        <tr t-foreach="productos.sorted(lambda p: (0, o.servicio_ids.ids.index(p.servicio_id.id), p.id) if p.servicio_id else (1, 0, p.id))" t-as="p">
                             <td>
                                 <span t-field="p.product_id.display_name"/>
                                 <span t-if="interno"> (<span t-field="p.uso"/>)</span>
@@ -364,6 +365,7 @@
                                 <span t-if="p.provisto_cliente"> · provisto por el cliente</span>
                                 <span t-if="p.no_facturar"> · cortesía</span>
                             </td>
+                            <td><span t-out="p.servicio_id.product_id.display_name"/></td>
                             <td class="text-end"><t t-out="p.cantidad_utilizada or p.cantidad_requerida" t-options="{'widget': 'float', 'precision': 2}"/></td>
                             <td class="text-end"><t t-out="p.precio_unitario if p.facturable else 0" t-options="moneda"/></td>
                             <td class="text-end"><span t-out="p.descuento"/></td>
@@ -371,7 +373,7 @@
                             <td t-if="interno" class="text-end"><t t-out="0 if p.provisto_cliente else p.costo" t-options="moneda"/></td>
                         </tr>
                         <tr>
-                            <td colspan="4" class="text-end"><strong>Total repuestos e insumos</strong></td>
+                            <td colspan="5" class="text-end"><strong>Total repuestos e insumos</strong></td>
                             <td class="text-end"><strong t-out="sum(productos.mapped('subtotal'))" t-options="moneda"/></td>
                             <td t-if="interno" class="text-end"><strong t-out="sum(productos.filtered(lambda p: not p.provisto_cliente).mapped('costo'))" t-options="moneda"/></td>
                         </tr>

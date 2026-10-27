@@ -280,10 +280,15 @@
                                         <field name="state_aprobacion" widget="badge" optional="show"
                                                decoration-warning="state_aprobacion == 'pendiente'"
                                                decoration-success="state_aprobacion in ('aprobado', 'autorizado')"/>
+                                        <field name="cantidad_cubierta" optional="hide"/>
+                                        <field name="cantidad_excedente" optional="show"
+                                               decoration-danger="cantidad_excedente &gt; 0"
+                                               string="Excedente pendiente"/>
+                                        <field name="pendiente_aprobacion" column_invisible="1"/>
                                         <button name="action_autorizar_sin_aprobacion" type="object"
                                                 icon="fa-unlock" title="Autorizar sin aprobación del cliente"
                                                 groups="tllr_fc.group_supervisor"
-                                                invisible="state_aprobacion != 'pendiente' or not id"/>
+                                                invisible="not pendiente_aprobacion or not id"/>
                                         <button name="action_terminar" type="object" icon="fa-check"
                                                 title="Terminar servicio"
                                                 invisible="estado != 'pendiente' or parent.state != 'proceso' or not id"/>
@@ -359,10 +364,15 @@
                                         <field name="state_aprobacion" widget="badge" optional="show"
                                                decoration-warning="state_aprobacion == 'pendiente'"
                                                decoration-success="state_aprobacion in ('aprobado', 'autorizado')"/>
+                                        <field name="cantidad_cubierta" optional="hide"/>
+                                        <field name="cantidad_excedente" optional="show"
+                                               decoration-danger="cantidad_excedente &gt; 0"
+                                               string="Excedente pendiente"/>
+                                        <field name="pendiente_aprobacion" column_invisible="1"/>
                                         <button name="action_autorizar_sin_aprobacion" type="object"
                                                 icon="fa-unlock" title="Autorizar sin aprobación del cliente"
                                                 groups="tllr_fc.group_supervisor"
-                                                invisible="state_aprobacion != 'pendiente' or not id"/>
+                                                invisible="not pendiente_aprobacion or not id"/>
                                     </list>
                                 </field>
                             </page>

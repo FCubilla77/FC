@@ -9,7 +9,7 @@ class TllrFcOtServicio(models.Model):
     """Servicio de la orden de trabajo: planificación, precio y estado."""
     _name = 'tllr_fc.ot.servicio'
     _description = "Servicio de la orden de trabajo"
-    _inherit = ['tllr_fc.mixin.wizard']
+    _inherit = ['tllr_fc.mixin.wizard', 'tllr_fc.mixin.cubierta']
     _order = 'ot_id, id'
 
     ot_id = fields.Many2one(
@@ -51,6 +51,11 @@ class TllrFcOtServicio(models.Model):
              "supervisor.")
     ot_tipo = fields.Selection(related='ot_id.tipo', string="Tipo de OT")
     facturable = fields.Boolean(string="Facturable", compute='_compute_facturable')
+    cantidad_excedente = fields.Float(
+        string="Excedente", compute='_compute_excedente', store=True,
+        help="Cantidad pedida por encima de lo cubierto: pendiente de aprobación.")
+    pendiente_aprobacion = fields.Boolean(
+        string="Pendiente de aprobación", compute='_compute_excedente', store=True)
     subtotal = fields.Monetary(
         string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
     producto_ids = fields.One2many(
@@ -85,7 +90,7 @@ class TllrFcOtServicio(models.Model):
         ('no_requiere', "No requiere"),
         ('pendiente', "Pendiente de aprobación"),
         ('aprobado', "Aprobado"),
-        ('autorizado', "Autorizado sin aprobación"),
+        ('autorizado', "Aprobado (supervisor)"),
     ], string="Aprobación", required=True, default='no_requiere', copy=False,
         index=True)
     aprobacion_id = fields.Many2one(
@@ -103,6 +108,18 @@ class TllrFcOtServicio(models.Model):
                 # En una OT de garantía solo se factura lo marcado «Cobrar al cliente».
                 facturable = facturable and servicio.cobrar_cliente
             servicio.facturable = facturable
+
+    @api.depends('cantidad', 'cantidad_cubierta', 'state_aprobacion', 'cobrar_cliente',
+                 'ot_id.state', 'ot_id.tipo')
+    def _compute_excedente(self):
+        for servicio in self:
+            servicio.cantidad_excedente = servicio._tllr_fc_calcular_excedente()
+            servicio.pendiente_aprobacion = (
+                servicio.state_aprobacion == 'pendiente' or servicio.cantidad_excedente > 0)
+
+    def _tllr_fc_cantidad_pedida(self):
+        self.ensure_one()
+        return self.cantidad
 
     @api.depends('cantidad', 'precio_unitario', 'descuento', 'facturable')
     def _compute_subtotal(self):
@@ -175,11 +192,12 @@ class TllrFcOtServicio(models.Model):
             ctx = servicio.with_context(tllr_fc_permitir_write=True)
             if servicio.cobrar_cliente:
                 if servicio.state_aprobacion == 'no_requiere':
-                    ctx.write({'state_aprobacion': 'pendiente'})
+                    ctx.write({'state_aprobacion': 'pendiente', 'cantidad_cubierta': 0.0})
                 if not servicio.precio_unitario:
                     ctx.write({'precio_unitario': servicio.product_id.list_price})
             elif servicio.state_aprobacion != 'no_requiere':
                 ctx.write({'state_aprobacion': 'no_requiere', 'aprobacion_id': False})
+                servicio._tllr_fc_cubrir()
 
     @api.constrains('puesto_line_id', 'ot_id')
     def _check_puesto_de_la_ot(self):
@@ -258,6 +276,7 @@ class TllrFcOtServicio(models.Model):
             if vals.get('cobrar_cliente') and ot.tipo == 'garantia':
                 vals['state_aprobacion'] = 'pendiente'
         servicios = super().create(vals_list)
+        servicios._tllr_fc_iniciar_cubierta()
         servicios._tllr_fc_asignar_puesto_automatico()
         servicios._tllr_fc_verificar_pertenencia()
         return servicios
@@ -270,7 +289,7 @@ class TllrFcOtServicio(models.Model):
                     "el descuento o marcar «No facturar».")
             for campo in ('estado', 'terminado_por_id', 'fecha_terminado',
                           'motivo_no_realizado', 'adicional', 'state_aprobacion',
-                          'aprobacion_id'):
+                          'aprobacion_id', 'cantidad_cubierta'):
                 if campo in vals:
                     raise UserError(
                         "El estado del servicio se cambia con los botones de la OT.")
@@ -290,6 +309,8 @@ class TllrFcOtServicio(models.Model):
                         "El servicio «%s» tiene horas cargadas: no se puede cambiar de puesto."
                         % servicio.product_id.display_name)
         resultado = super().write(vals)
+        if 'cantidad' in vals:
+            self._tllr_fc_seguir_cantidad_en_espera()
         if 'puesto_line_id' in vals:
             self._tllr_fc_verificar_pertenencia()
             self.producto_ids._tllr_fc_alinear_puesto_con_servicio()
@@ -348,27 +369,37 @@ class TllrFcOtServicio(models.Model):
         return True
 
     def _tllr_fc_verificar_aprobacion(self):
-        """Un adicional pendiente de aprobación no se ejecuta si la aprobación es obligatoria."""
+        """Un adicional pendiente de aprobación no se ejecuta si la aprobación es obligatoria
+        (tampoco el excedente de cantidad)."""
         self.ensure_one()
-        if (self.state_aprobacion == 'pendiente'
-                and self.company_id.tllr_fc_aprobacion_adicional == 'obligatoria'):
+        if self.company_id.tllr_fc_aprobacion_adicional != 'obligatoria':
+            return
+        if self.state_aprobacion == 'pendiente':
             raise UserError(
                 "«%s» es un trabajo adicional pendiente de aprobación del cliente. El "
                 "supervisor debe registrar la aprobación o autorizar la ejecución sin ella."
                 % self.product_id.display_name)
+        if self.cantidad_excedente > 0:
+            raise UserError(
+                "«%s»: solo está cubierta la cantidad %s; el excedente está pendiente de "
+                "aprobación del cliente. El supervisor debe registrar la aprobación o "
+                "autorizar la ejecución sin ella." % (
+                    self.product_id.display_name, self.cantidad_cubierta))
 
     def action_autorizar_sin_aprobacion(self):
-        """El supervisor autoriza ejecutar el adicional sin la aprobación del cliente."""
+        """El supervisor autoriza el adicional (servicio nuevo o excedente de cantidad) sin la
+        aprobación del cliente. Queda un registro en Aprobaciones y vale como aprobado."""
         if not self._es_supervisor():
             raise AccessError("Solo el supervisor puede autorizar la ejecución sin aprobación.")
         self.ensure_one()
-        if self.state_aprobacion != 'pendiente':
+        if not self.pendiente_aprobacion:
             raise UserError("La línea no está pendiente de aprobación.")
         if not self.env.context.get('tllr_fc_excepcion'):
             return self._tllr_fc_abrir_excepcion(
                 'action_autorizar_sin_aprobacion', 'supervisor',
                 "Ejecutar «%s» sin la aprobación del cliente." % self.product_id.display_name)
-        self.with_context(tllr_fc_permitir_write=True).state_aprobacion = 'autorizado'
+        self.env['tllr_fc.ot.aprobacion']._tllr_fc_registrar_autorizacion(
+            self.ot_id, servicios=self, productos=self.env['tllr_fc.ot.producto'])
         return True
 
     def action_no_realizado(self):
