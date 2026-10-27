@@ -51,6 +51,13 @@
                   groups="tllr_fc.group_usuario"
                   sequence="30"/>
 
+        <menuitem id="menu_tllr_fc_ot_productos"
+                  name="Repuestos por servicio"
+                  parent="menu_tllr_fc_operacion"
+                  action="action_tllr_fc_ot_producto"
+                  groups="tllr_fc.group_supervisor"
+                  sequence="35"/>
+
         <menuitem id="menu_tllr_fc_controles_calidad"
                   name="Controles de calidad"
                   parent="menu_tllr_fc_operacion"

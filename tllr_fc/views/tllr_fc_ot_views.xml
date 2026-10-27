@@ -303,6 +303,9 @@
                                         <field name="product_id" options="{'no_create': True}"
                                                readonly="cantidad_consumida &gt; 0"/>
                                         <field name="uso" optional="show"/>
+                                        <field name="servicio_id" options="{'no_create': True}"
+                                               domain="[('ot_id', '=', parent.id)]"
+                                               optional="show"/>
                                         <field name="puesto_line_id" options="{'no_create': True}"
                                                domain="[('ot_id', '=', parent.id)]"
                                                readonly="cantidad_consumida &gt; 0"/>
@@ -371,6 +374,8 @@
                                         <list editable="bottom" create="0" delete="0">
                                             <field name="product_id" readonly="1"/>
                                             <field name="puesto_line_id" readonly="1" optional="show"/>
+                                            <field name="costo_repuestos" groups="tllr_fc.group_supervisor"
+                                                   optional="hide"/>
                                             <field name="estado" widget="badge" readonly="1"
                                                    decoration-success="estado == 'terminado'"
                                                    decoration-muted="estado == 'no_realizado'"
@@ -390,6 +395,7 @@
                                 </div>
                                 <group string="Horas trabajadas">
                                     <field name="hora_ids" nolabel="1" colspan="2"
+                                           context="{'default_ot_id': id}"
                                            readonly="state not in ('espera', 'proceso', 'calidad') or detenida">
                                         <list editable="bottom" decoration-warning="aviso">
                                             <field name="currency_id" column_invisible="1"/>

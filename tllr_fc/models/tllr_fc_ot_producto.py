@@ -88,6 +88,13 @@ class TllrFcOtProducto(models.Model):
         ondelete='set null', index=True, copy=False,
         help="Puesto de la OT que usa el repuesto o insumo. El stock se traslada al almacén "
              "del puesto y solo se registra su uso cuando el puesto está activo.")
+    servicio_id = fields.Many2one(
+        'tllr_fc.ot.servicio', string="Servicio", domain="[('ot_id', '=', ot_id)]",
+        ondelete='set null', index=True, copy=False,
+        help="Servicio de la OT para el que se usa el repuesto o insumo. Es opcional: los "
+             "insumos genéricos (estopa, lubricantes, etc.) quedan sin servicio. Sirve para "
+             "cargar los repuestos habituales en la próxima OT con el mismo servicio y para "
+             "calcular el costo de repuestos por servicio.")
     move_ids = fields.One2many(
         'stock.move', 'tllr_fc_ot_producto_id', string="Movimientos de stock", copy=False)
     traslado_move_ids = fields.One2many(
@@ -197,6 +204,52 @@ class TllrFcOtProducto(models.Model):
         for linea in self:
             hechos = linea.sudo().move_ids.filtered(lambda m: m.state == 'done')
             linea.costo = abs(sum(hechos.mapped('value')))
+
+    @api.constrains('servicio_id', 'ot_id')
+    def _check_servicio_de_la_ot(self):
+        for linea in self.filtered('servicio_id'):
+            if linea.servicio_id.ot_id != linea.ot_id:
+                raise ValidationError(
+                    "El servicio «%s» no pertenece a la OT %s." % (
+                        linea.servicio_id.display_name, linea.ot_id.name))
+
+    # ------------------------------------------------------------------
+    # Aviso de existencia
+    # ------------------------------------------------------------------
+    def _tllr_fc_sugerencia_compra(self):
+        """Qué hacer cuando falta existencia. El puente de Compras lo amplía."""
+        self.ensure_one()
+        return ("Debe gestionarse la compra del repuesto o recepcionarse las compras "
+                "que estén pendientes.")
+
+    def _tllr_fc_aviso_existencia(self):
+        """Texto de aviso si el producto no tiene existencia o no alcanza para la OT."""
+        self.ensure_one()
+        producto = self.product_id
+        if not producto or not producto.is_storable or self.provisto_cliente:
+            return ""
+        compania = self.ot_id.company_id or self.env.company
+        producto = producto.with_company(compania)
+        redondeo = producto.uom_id.rounding or 0.001
+        if float_compare(producto.qty_available, 0, precision_rounding=redondeo) <= 0:
+            return "«%s» no tiene existencia en ningún almacén de la empresa. %s" % (
+                producto.display_name, self._tllr_fc_sugerencia_compra())
+        propio = sum(self.sudo().move_ids.filtered(
+            lambda m: m.state in ('assigned', 'partially_available')).mapped('quantity'))
+        disponible = producto.free_qty + propio
+        pendiente = max(self.cantidad_requerida - self.cantidad_consumida, 0.0)
+        if float_compare(pendiente, disponible, precision_rounding=redondeo) > 0:
+            return "«%s»: la existencia disponible (%s %s) no alcanza para lo pedido (%s). %s" % (
+                producto.display_name, round(disponible, 3), self.uom_id.name or "",
+                round(pendiente, 3), self._tllr_fc_sugerencia_compra())
+        return ""
+
+    @api.onchange('product_id', 'cantidad_reservada')
+    def _onchange_aviso_existencia(self):
+        for linea in self:
+            aviso = linea._tllr_fc_aviso_existencia()
+            if aviso:
+                return {'warning': {'title': "Sin existencia suficiente", 'message': aviso}}
 
     @api.constrains('cantidad_reservada', 'cantidad_utilizada', 'cantidad_no_utilizada',
                     'descuento', 'precio_unitario')

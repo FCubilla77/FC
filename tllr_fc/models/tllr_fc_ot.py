@@ -582,6 +582,91 @@ class TllrFcOt(models.Model):
                         "La OT %s está «Lista para entrega»: usá «Volver atrás» para reabrirla." % ot.name)
 
     # ------------------------------------------------------------------
+    # 2026.19.026: ayudas de carga
+    # ------------------------------------------------------------------
+    def _tllr_fc_servicio_puesto_unicos(self):
+        """(servicio, puesto) para proponer en las horas: solo si la OT tiene uno solo.
+
+        Cuenta los servicios propios que exigen horas y no están «No realizados».
+        Con un solo servicio propone ese servicio y su puesto; con varios servicios
+        pero un solo puesto, propone solo el puesto.
+        """
+        self.ensure_one()
+        servicios = self.servicio_ids.filtered(
+            lambda s: s.estado != 'no_realizado' and s._tllr_fc_requiere_horas())
+        puestos = self.puesto_line_ids
+        servicio = servicios if len(servicios) == 1 else servicios.browse()
+        puesto = servicio.puesto_line_id if servicio and servicio.puesto_line_id else (
+            puestos if len(puestos) == 1 else puestos.browse())
+        return servicio, puesto
+
+    def _tllr_fc_ots_anteriores(self, producto):
+        """OT entregadas del mismo vehículo con el servicio terminado, la más reciente primero."""
+        self.ensure_one()
+        anteriores = self.sudo().search([
+            ('id', '!=', self.id), ('vehiculo_id', '=', self.vehiculo_id.id),
+            ('company_id', '=', self.company_id.id), ('state', '=', 'entregado'),
+            ('tipo', '!=', 'garantia'),
+            ('servicio_ids.product_id', '=', producto.id),
+        ], order='fecha_entrega desc, id desc')
+        return anteriores.filtered(lambda o: o.servicio_ids.filtered(
+            lambda s: s.product_id == producto and s.estado == 'terminado'))
+
+    def _tllr_fc_cargar_repuestos_anteriores(self):
+        """Carga los repuestos e insumos usados en la OT anterior con el mismo servicio.
+
+        Por cada servicio de esta OT toma la OT entregada más reciente del mismo
+        vehículo que lo realizó. Carga las líneas vinculadas a ese servicio con lo
+        utilizado; los insumos genéricos (sin servicio) no se cargan. Si esa OT no
+        tiene ninguna línea vinculada (OT anterior a la vinculación), carga todas.
+        """
+        self.ensure_one()
+        if self.tipo == 'garantia' or not self.vehiculo_id or self.producto_ids:
+            return self.env['tllr_fc.ot.producto']
+        cantidades = {}
+        origenes = {}
+        legado_usado = set()
+        for servicio in self.servicio_ids:
+            anteriores = self._tllr_fc_ots_anteriores(servicio.product_id)[:1]
+            if not anteriores:
+                continue
+            previa = anteriores
+            lineas_previas = previa.sudo().producto_ids.filtered(
+                lambda l: l.cantidad_utilizada > 0 and not l.provisto_cliente
+                and l.product_id.active)
+            if any(l.servicio_id for l in previa.sudo().producto_ids):
+                lineas = lineas_previas.filtered(
+                    lambda l: l.servicio_id.product_id == servicio.product_id)
+                clave_servicio = servicio.id
+            else:
+                if previa.id in legado_usado:
+                    continue
+                legado_usado.add(previa.id)
+                lineas = lineas_previas
+                clave_servicio = 0
+            for linea in lineas:
+                clave = (linea.product_id.id, clave_servicio)
+                cantidades[clave] = cantidades.get(clave, 0.0) + linea.cantidad_utilizada
+                origenes.setdefault(clave, set()).add(previa.name)
+        if not cantidades:
+            return self.env['tllr_fc.ot.producto']
+        vals_list = [{
+            'ot_id': self.id, 'product_id': producto_id,
+            'cantidad_reservada': cantidad,
+            'servicio_id': servicio_id or False,
+            'descripcion': "Cargado de %s" % ', '.join(sorted(origenes[(producto_id, servicio_id)])),
+        } for (producto_id, servicio_id), cantidad in cantidades.items()]
+        lineas = self.env['tllr_fc.ot.producto'].create(vals_list)
+        todas = sorted({n for o in origenes.values() for n in o})
+        avisos = [a for a in (linea._tllr_fc_aviso_existencia() for linea in lineas) if a]
+        cuerpo = "Se cargaron %s repuestos e insumos de la OT anterior (%s) según los servicios realizados. Revisá y quitá lo que no corresponda." % (
+            len(lineas), ', '.join(todas))
+        if avisos:
+            cuerpo += " Atención: " + " ".join(avisos)
+        self.message_post(body=cuerpo)
+        return lineas
+
+    # ------------------------------------------------------------------
     # Recorrido por los puestos
     # ------------------------------------------------------------------
     def _tllr_fc_es_supervisor(self):

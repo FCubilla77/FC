@@ -44,6 +44,20 @@ class TllrFcOtHora(models.Model):
         string="Horas del día (persona)", compute='_compute_horas_dia_persona')
     aviso = fields.Char(string="Aviso", compute='_compute_horas_dia_persona')
 
+    @api.model
+    def default_get(self, campos):
+        """Con un solo servicio (o un solo puesto) en la OT, propone puesto y servicio."""
+        valores = super().default_get(campos)
+        ot = self.env['tllr_fc.ot'].browse(
+            valores.get('ot_id') or self.env.context.get('default_ot_id'))
+        if ot:
+            servicio, puesto = ot._tllr_fc_servicio_puesto_unicos()
+            if servicio and 'servicio_id' in campos and not valores.get('servicio_id'):
+                valores['servicio_id'] = servicio.id
+            if puesto and 'puesto_line_id' in campos and not valores.get('puesto_line_id'):
+                valores['puesto_line_id'] = puesto.id
+        return valores
+
     @api.depends('funcion_id', 'fecha', 'horas')
     def _compute_costo(self):
         for hora in self:

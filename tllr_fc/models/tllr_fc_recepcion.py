@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 # Campos de mensajería que pueden cambiar aunque la recepción esté cerrada.
 CAMPOS_LIBRES = {
@@ -346,6 +350,12 @@ class TllrFcRecepcion(models.Model):
     def _tllr_fc_confirmar(self):
         self.ensure_one()
         ot = self.env['tllr_fc.ot'].create(self._tllr_fc_preparar_ot())
+        try:
+            with self.env.cr.savepoint():
+                ot._tllr_fc_cargar_repuestos_anteriores()
+        except Exception as error:  # la carga es una ayuda: nunca debe impedir la recepción
+            _logger.warning("No se cargaron los repuestos anteriores de %s: %s", ot.name, error)
+            ot.message_post(body="No se pudieron cargar los repuestos de la OT anterior.")
         self.vehiculo_id.write({'kilometraje': self.kilometraje})
         self.with_context(tllr_fc_permitir_write=True).write({
             'state': 'confirmada',

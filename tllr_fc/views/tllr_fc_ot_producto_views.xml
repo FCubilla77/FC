@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_tllr_fc_ot_producto_list" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.producto.list</field>
+            <field name="model">tllr_fc.ot.producto</field>
+            <field name="arch" type="xml">
+                <list create="0" edit="0" delete="0">
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="ot_id"/>
+                    <field name="servicio_id"/>
+                    <field name="product_id"/>
+                    <field name="uso" optional="show"/>
+                    <field name="cantidad_reservada" sum="Reservado"/>
+                    <field name="cantidad_utilizada" sum="Utilizado"/>
+                    <field name="costo" groups="tllr_fc.group_supervisor" sum="Costo"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_tllr_fc_ot_producto_search" model="ir.ui.view">
+            <field name="name">tllr_fc.ot.producto.search</field>
+            <field name="model">tllr_fc.ot.producto</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="ot_id"/>
+                    <field name="servicio_id"/>
+                    <field name="product_id"/>
+                    <filter name="con_servicio" string="Con servicio vinculado"
+                            domain="[('servicio_id', '!=', False)]"/>
+                    <filter name="genericos" string="Genéricos (sin servicio)"
+                            domain="[('servicio_id', '=', False)]"/>
+                    <group>
+                        <filter name="agrupar_servicio" string="Servicio"
+                                context="{'group_by': 'servicio_id'}"/>
+                        <filter name="agrupar_producto" string="Producto"
+                                context="{'group_by': 'product_id'}"/>
+                        <filter name="agrupar_ot" string="OT" context="{'group_by': 'ot_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_tllr_fc_ot_producto" model="ir.actions.act_window">
+            <field name="name">Repuestos por servicio</field>
+            <field name="res_model">tllr_fc.ot.producto</field>
+            <field name="view_mode">list</field>
+            <field name="context">{'search_default_agrupar_servicio': 1}</field>
+        </record>
+
+    </data>
+</odoo>

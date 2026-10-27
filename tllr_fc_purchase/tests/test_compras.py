@@ -248,3 +248,22 @@ class TestCompras(TallerCommon):
         ajustes.module_tllr_fc_purchase = False
         accion = ajustes.execute()
         self.assertEqual(accion.get('res_model'), 'base.module.uninstall')
+
+    # ---------------- 2026.19.026: aviso de existencia ----------------
+    def test_95_aviso_sin_existencia_propone_compra_directa_y_pendientes(self):
+        sin_stock = self.env['product.product'].create({
+            'name': 'Sin stock 026 compras', 'type': 'consu', 'is_storable': True,
+            'tllr_fc_uso_taller': 'repuesto'})
+        ot = self._ot_planificada()
+        linea = self.env['tllr_fc.ot.producto'].create({
+            'ot_id': ot.id, 'product_id': sin_stock.id, 'cantidad_reservada': 2})
+        self.assertIn("compra directa", linea._tllr_fc_aviso_existencia())
+        proveedor = self.env['res.partner'].create({'name': 'Proveedor 026'})
+        compra = self.env['purchase.order'].create({
+            'partner_id': proveedor.id,
+            'order_line': [Command.create({
+                'product_id': sin_stock.id, 'product_qty': 3, 'price_unit': 100})]})
+        compra.button_confirm()
+        aviso = linea._tllr_fc_aviso_existencia()
+        self.assertIn(compra.name, aviso)
+        self.assertIn("pendientes", aviso)

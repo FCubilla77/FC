@@ -197,4 +197,6 @@ class TllrFcVehiculo(models.Model):
             # La chapa y el chasis son únicos: la copia debe completarlos a mano.
             vals['chapa'] = "%s-COPIA" % (vals.get('chapa') or '')
             vals['chasis'] = False
+            # El kilometraje de la copia se reinicia: se registra en su primera recepción.
+            vals['kilometraje'] = 0
         return datos

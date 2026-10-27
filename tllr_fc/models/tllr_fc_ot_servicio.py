@@ -53,6 +53,12 @@ class TllrFcOtServicio(models.Model):
     facturable = fields.Boolean(string="Facturable", compute='_compute_facturable')
     subtotal = fields.Monetary(
         string="Subtotal", currency_field='currency_id', compute='_compute_subtotal')
+    producto_ids = fields.One2many(
+        'tllr_fc.ot.producto', 'servicio_id', string="Repuestos e insumos vinculados")
+    costo_repuestos = fields.Monetary(
+        string="Costo de repuestos", currency_field='currency_id',
+        compute='_compute_costo_repuestos', groups='tllr_fc.group_supervisor',
+        help="Costo de lo consumido de los repuestos e insumos vinculados a este servicio.")
     horas_estandar = fields.Float(
         string="Horas estándar", compute='_compute_horas_estandar')
     costo_estandar = fields.Monetary(
@@ -135,6 +141,11 @@ class TllrFcOtServicio(models.Model):
         costo real de la compra confirmada (servicios tercerizados)."""
         self.ensure_one()
         return self._tllr_fc_costo_estandar_valor()
+
+    @api.depends('producto_ids.costo')
+    def _compute_costo_repuestos(self):
+        for servicio in self:
+            servicio.costo_repuestos = sum(servicio.sudo().producto_ids.mapped('costo'))
 
     @api.depends('product_id', 'cantidad', 'estado', 'ot_id.state')
     def _compute_costos(self):
