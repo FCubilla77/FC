@@ -28,6 +28,9 @@ class TllrFcOtHora(models.Model):
         'tllr_fc.ot.servicio', string="Servicio", ondelete='restrict', index=True,
         domain="[('ot_id', '=', ot_id), ('puesto_line_id', '=', puesto_line_id)]",
         help="Servicio de la OT al que corresponden las horas.")
+    personal_permitido_ids = fields.Many2many(
+        'tllr_fc.personal', string="Personal que puede cargar estas horas",
+        compute='_compute_personal_permitido')
     funcion_id = fields.Many2one(
         'tllr_fc.funcion', string="Función", readonly=True, ondelete='restrict',
         help="Se copia del personal al cargar las horas y no se recalcula: un cambio "
@@ -57,6 +60,14 @@ class TllrFcOtHora(models.Model):
             if puesto and 'puesto_line_id' in campos and not valores.get('puesto_line_id'):
                 valores['puesto_line_id'] = puesto.id
         return valores
+
+    @api.depends('puesto_line_id.personal_ids', 'ot_id.state', 'ot_id.personal_horas_ids')
+    def _compute_personal_permitido(self):
+        for hora in self:
+            if hora.ot_id.state == 'calidad':
+                hora.personal_permitido_ids = hora.ot_id.personal_horas_ids
+            else:
+                hora.personal_permitido_ids = hora.puesto_line_id.personal_ids
 
     @api.depends('funcion_id', 'fecha', 'horas')
     def _compute_costo(self):
@@ -125,10 +136,15 @@ class TllrFcOtHora(models.Model):
             ot._tllr_fc_verificar_no_detenida("cargar horas")
 
     def _tllr_fc_verificar_personal(self):
-        if self.env.user.has_group('tllr_fc.group_supervisor'):
-            return
+        """Las horas se cargan solo al personal asignado a la línea de puesto del servicio.
+
+        Rige también para el supervisor. En control de calidad las carga el responsable del
+        control (el supervisor queda exceptuado allí, como antes).
+        """
         for hora in self:
             if hora.ot_id.state == 'calidad':
+                if self.env.user.has_group('tllr_fc.group_supervisor'):
+                    continue
                 if hora.personal_id not in hora.ot_id.personal_horas_ids:
                     raise ValidationError(
                         "En control de calidad solo el responsable del control (%s) puede "
@@ -136,10 +152,35 @@ class TllrFcOtHora(models.Model):
                             ', '.join(hora.ot_id.personal_horas_ids.mapped('name')) or '-',
                             hora.ot_id.name))
                 continue
-            if hora.personal_id not in (hora.ot_id.personal_ids | hora.ot_id.responsable_id):
+            linea = hora.puesto_line_id
+            if not linea:
+                # Horas sin puesto (solo con el contexto técnico): rige el personal de la OT.
+                if hora.personal_id not in (hora.ot_id.personal_ids | hora.ot_id.responsable_id):
+                    raise ValidationError(
+                        "%s no está asignado a ningún puesto de la OT %s: solo el personal "
+                        "asignado puede registrar horas." % (hora.personal_id.name, hora.ot_id.name))
+                continue
+            if not linea.personal_ids:
                 raise ValidationError(
-                    "%s no está asignado a ningún puesto de la OT %s: solo el personal "
-                    "asignado puede registrar horas." % (hora.personal_id.name, hora.ot_id.name))
+                    "El puesto «%s» no tiene personal asignado: asignalo en «Puestos y personal» "
+                    "antes de cargar horas." % linea.name)
+            if hora.personal_id not in linea.personal_ids:
+                raise ValidationError(
+                    "%s no está asignado al %s (%s). Solo el personal de esa línea puede cargar "
+                    "horas en él; asignalo en «Puestos y personal»." % (
+                        hora.personal_id.name,
+                        "servicio «%s» del puesto «%s»" % (
+                            hora.servicio_id.product_id.display_name, linea.name)
+                        if hora.servicio_id else "puesto «%s»" % linea.name,
+                        ', '.join(linea.personal_ids.mapped('name'))))
+
+    def _tllr_fc_verificar_linea_activa(self):
+        for hora in self:
+            linea = hora.puesto_line_id
+            if linea and linea.state == 'pendiente' and hora.ot_id.state != 'calidad':
+                raise UserError(
+                    "El puesto «%s» todavía no está activo: las horas se cargan cuando "
+                    "el puesto está activo o terminado." % linea.name)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -151,12 +192,15 @@ class TllrFcOtHora(models.Model):
             if vals.get('servicio_id') and not vals.get('puesto_line_id'):
                 vals['puesto_line_id'] = self.env['tllr_fc.ot.servicio'].browse(
                     vals['servicio_id']).puesto_line_id.id
-            if not vals.get('servicio_id') and not self.env.context.get('tllr_fc_sin_servicio'):
-                raise UserError("Indicá el servicio al que corresponden las horas.")
             if not vals.get('puesto_line_id') and not self.env.context.get('tllr_fc_sin_servicio'):
                 raise UserError("Indicá el puesto en el que se trabajaron las horas.")
+            if not vals.get('servicio_id') and not self.env.context.get('tllr_fc_sin_servicio'):
+                linea = self.env['tllr_fc.ot.puesto'].browse(vals.get('puesto_line_id'))
+                if linea.servicio_ids:
+                    raise UserError("Indicá el servicio al que corresponden las horas.")
         horas = super().create(vals_list)
         horas._tllr_fc_verificar_personal()
+        horas._tllr_fc_verificar_linea_activa()
         return horas
 
     def write(self, vals):
@@ -167,8 +211,9 @@ class TllrFcOtHora(models.Model):
             vals = dict(vals, funcion_id=self.env['tllr_fc.personal'].browse(
                 vals['personal_id']).funcion_id.id)
         resultado = super().write(vals)
-        if 'personal_id' in vals:
+        if {'personal_id', 'puesto_line_id', 'servicio_id'} & set(vals):
             self._tllr_fc_verificar_personal()
+            self._tllr_fc_verificar_linea_activa()
         return resultado
 
     @api.ondelete(at_uninstall=False)

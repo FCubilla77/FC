@@ -1446,6 +1446,9 @@ class TllrFcOt(models.Model):
         if sin_personal:
             raise UserError(
                 "Asigná al menos una persona a cada puesto: %s." % ', '.join(sin_personal.mapped('name')))
+        self.servicio_ids.filtered(
+            lambda s: not s.puesto_line_id and s.estado != 'no_realizado'
+        )._tllr_fc_asignar_puesto_automatico()
         sin_puesto = self.servicio_ids.filtered(
             lambda s: not s.puesto_line_id and s.estado != 'no_realizado')
         if sin_puesto:

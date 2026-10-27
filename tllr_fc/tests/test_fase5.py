@@ -807,6 +807,7 @@ class TestFase5(TallerCommon):
         ot = self._ot_planificada()
         ot.action_iniciar()
         s1 = ot.servicio_ids.filtered(lambda s: s.product_id == self.s1)
+        s1.puesto_line_id.personal_ids = [Command.link(self.personal2.id)]
         for persona, horas in ((self.personal1, 3.0), (self.personal2, 1.0)):
             self.env['tllr_fc.ot.hora'].create({
                 'ot_id': ot.id, 'personal_id': persona.id, 'horas': horas,

@@ -800,6 +800,9 @@ class TllrFcOtProducto(models.Model):
                 vals['state_aprobacion'] = 'pendiente' if ot.tipo == 'cliente' else 'no_requiere'
             if vals.get('cobrar_cliente') and ot.tipo == 'garantia':
                 vals['state_aprobacion'] = 'pendiente'
+            if not vals.get('puesto_line_id') and vals.get('servicio_id'):
+                servicio = self.env['tllr_fc.ot.servicio'].browse(vals['servicio_id'])
+                vals['puesto_line_id'] = servicio.puesto_line_id.id
             if not vals.get('puesto_line_id'):
                 lineas_puesto = ot.puesto_line_ids.sorted(lambda l: (l.sequence, l.id))
                 vals['puesto_line_id'] = (
@@ -815,6 +818,16 @@ class TllrFcOtProducto(models.Model):
                 linea._tllr_fc_verificar_uso_en_puesto(vals['cantidad_utilizada'])
         lineas._tllr_fc_sincronizar_stock()
         return lineas
+
+    def _tllr_fc_alinear_puesto_con_servicio(self):
+        """Lleva cada repuesto al puesto de su servicio, salvo si ya consumió o trasladó stock."""
+        for linea in self.filtered('servicio_id'):
+            destino = linea.servicio_id.puesto_line_id
+            if not destino or destino == linea.puesto_line_id:
+                continue
+            if linea.cantidad_consumida or linea._tllr_fc_cantidad_traslado('ida', True):
+                continue
+            linea.puesto_line_id = destino
 
     def _tllr_fc_verificar_aprobacion(self):
         """Un adicional pendiente de aprobación no se consume si la aprobación es obligatoria."""
@@ -850,6 +863,16 @@ class TllrFcOtProducto(models.Model):
                     linea._tllr_fc_verificar_aprobacion()
                     linea._tllr_fc_verificar_uso_en_puesto(
                         vals['cantidad_utilizada'] - linea.cantidad_utilizada)
+        if 'servicio_id' in vals and 'puesto_line_id' not in vals:
+            # El repuesto sigue al puesto de su servicio (si todavía no se movió stock).
+            servicio = self.env['tllr_fc.ot.servicio'].browse(vals['servicio_id'])
+            if servicio.puesto_line_id:
+                for linea in self:
+                    if (servicio.puesto_line_id != linea.puesto_line_id
+                            and not linea.cantidad_consumida
+                            and not linea._tllr_fc_cantidad_traslado('ida', True)):
+                        vals = dict(vals, puesto_line_id=servicio.puesto_line_id.id)
+                        break
         if 'puesto_line_id' in vals:
             for linea in self:
                 if vals['puesto_line_id'] == linea.puesto_line_id.id:

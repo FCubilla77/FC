@@ -216,6 +216,9 @@
                                         <field name="puesto_id" options="{'no_create': True}"
                                                domain="[('es_calidad', '=', False), ('sistema', '=', False)]"
                                                readonly="state != 'pendiente'"/>
+                                        <field name="servicio_id" options="{'no_create': True}"
+                                               domain="[('ot_id', '=', parent.id), ('estado', '!=', 'no_realizado')]"
+                                               readonly="state != 'pendiente'"/>
                                         <field name="personal_ids" widget="many2many_tags"
                                                options="{'no_create': True}"/>
                                         <field name="state" widget="badge"
@@ -230,6 +233,7 @@
                                     <list>
                                         <field name="sequence" widget="handle"/>
                                         <field name="puesto_id"/>
+                                        <field name="servicio_id"/>
                                         <field name="personal_ids" widget="many2many_tags"/>
                                         <field name="state" widget="badge"
                                                decoration-info="state == 'activo'"
@@ -400,14 +404,14 @@
                                         <list editable="bottom" decoration-warning="aviso">
                                             <field name="currency_id" column_invisible="1"/>
                                             <field name="aviso" column_invisible="1"/>
-                                            <field name="personal_id" options="{'no_create': True}"
-                                                   domain="[('id', 'in', parent.personal_horas_ids)]"/>
+                                            <field name="personal_permitido_ids" column_invisible="1"/>
                                             <field name="puesto_line_id" options="{'no_create': True}"
                                                    domain="[('ot_id', '=', parent.id)]"
                                                    required="1"/>
                                             <field name="servicio_id" options="{'no_create': True}"
-                                                   domain="[('ot_id', '=', parent.id), ('puesto_line_id', '=', puesto_line_id), ('estado', '!=', 'no_realizado')]"
-                                                   required="1"/>
+                                                   domain="[('ot_id', '=', parent.id), ('puesto_line_id', '=', puesto_line_id), ('estado', '!=', 'no_realizado')]"/>
+                                            <field name="personal_id" options="{'no_create': True}"
+                                                   domain="[('id', 'in', personal_permitido_ids)]"/>
                                             <field name="funcion_id" optional="show"/>
                                             <field name="fecha"/>
                                             <field name="horas" widget="float_time" sum="Total"/>

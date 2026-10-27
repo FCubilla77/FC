@@ -25,10 +25,10 @@ class Test026(TallerCommon):
                 'ot_id': ot.id, 'product_id': producto.id, 'cantidad_reservada': cantidad,
                 'servicio_id': vinculo.id or False})
         ot.action_iniciar()
-        for linea in ot.producto_ids:
-            linea.cantidad_utilizada = linea.cantidad_reservada
         for puesto in ot.puesto_line_ids.sorted('sequence'):
             if puesto.state == 'activo':
+                for linea in ot.producto_ids.filtered(lambda p: p.puesto_line_id == puesto):
+                    linea.cantidad_utilizada = linea.cantidad_reservada
                 puesto.servicio_ids.filtered(lambda s: s.estado == 'pendiente').action_terminar()
                 ot.action_terminar_puesto()
         ot.write({'state': 'entregado', 'fecha_entrega': fields.Datetime.now()})

@@ -40,8 +40,12 @@ class TestAjustes011(TallerCommon):
         Hora = self.env['tllr_fc.ot.hora']
         with self.assertRaises(UserError):
             Hora.create({'ot_id': ot.id, 'personal_id': self.personal1.id, 'horas': 1})
+        # 2026.19.027: solo el personal de la línea del servicio carga horas (no el responsable).
+        with self.assertRaises(ValidationError):
+            Hora.create({'ot_id': ot.id, **self._sv(ot),
+                         'personal_id': self.responsable.id, 'horas': 1})
         hora = Hora.create({'ot_id': ot.id, **self._sv(ot),
-                            'personal_id': self.responsable.id, 'horas': 1})
+                            'personal_id': self.personal1.id, 'horas': 1})
         self.assertTrue(hora.puesto_line_id)
 
     # ---- 03 Terminar puesto ----

@@ -70,9 +70,10 @@ class TestFase4(TallerCommon):
         propia = self.env['tllr_fc.ot.hora'].with_user(self.usuario_taller).create({
             'ot_id': ot.id, **self._sv(ot), 'personal_id': self.personal1.id, 'horas': 1})
         self.assertTrue(propia)
-        # El supervisor puede cargar horas de cualquiera.
-        self.env['tllr_fc.ot.hora'].create({
-            'ot_id': ot.id, **self._sv(ot), 'personal_id': ajeno.id, 'horas': 1})
+        # 2026.19.027: tampoco el supervisor carga horas de quien no está en la línea.
+        with self.assertRaises(ValidationError):
+            self.env['tllr_fc.ot.hora'].create({
+                'ot_id': ot.id, **self._sv(ot), 'personal_id': ajeno.id, 'horas': 1})
 
     def test_horas_mas_de_12_en_el_dia_avisa_sin_bloquear(self):
         ot = self._ot_en_proceso()

@@ -225,10 +225,13 @@ class TllrFcOtServicio(models.Model):
     def _tllr_fc_asignar_puesto_automatico(self):
         """Asocia al primer puesto de la OT que realiza el servicio (si no tiene uno)."""
         for servicio in self.filtered(lambda s: not s.puesto_line_id):
-            for linea in servicio.ot_id.puesto_line_ids:
-                if servicio.product_id.product_tmpl_id in linea.puesto_id.servicio_ids:
-                    servicio.puesto_line_id = linea
-                    break
+            candidatas = servicio.ot_id.puesto_line_ids.filtered(
+                lambda l: servicio.product_id.product_tmpl_id in l.puesto_id.servicio_ids)
+            # Se prefiere una línea que todavía no tiene servicio (mismo puesto repetido).
+            libres = candidatas.filtered(lambda l: not l.servicio_ids)
+            elegida = (libres or candidatas)[:1]
+            if elegida:
+                servicio.puesto_line_id = elegida
 
     # ------------------------------------------------------------------
     # ORM
@@ -278,9 +281,18 @@ class TllrFcOtServicio(models.Model):
                         raise UserError("La OT %s ya está cerrada." % ot.name)
             elif not self._tllr_fc_cobro_en_listo(vals):
                 self._tllr_fc_verificar_ot_editable(self.ot_id)
+        if 'puesto_line_id' in vals:
+            for servicio in self:
+                if vals['puesto_line_id'] != servicio.puesto_line_id.id and servicio.puesto_line_id \
+                        and self.env['tllr_fc.ot.hora'].sudo().search_count(
+                            [('servicio_id', '=', servicio.id)]):
+                    raise UserError(
+                        "El servicio «%s» tiene horas cargadas: no se puede cambiar de puesto."
+                        % servicio.product_id.display_name)
         resultado = super().write(vals)
         if 'puesto_line_id' in vals:
             self._tllr_fc_verificar_pertenencia()
+            self.producto_ids._tllr_fc_alinear_puesto_con_servicio()
         if 'cobrar_cliente' in vals:
             self._tllr_fc_sincronizar_cobro()
             for servicio in self:

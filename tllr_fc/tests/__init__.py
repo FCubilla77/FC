@@ -12,3 +12,4 @@ from . import test_asientos
 from . import test_011
 from . import test_integraciones
 from . import test_026
+from . import test_027
