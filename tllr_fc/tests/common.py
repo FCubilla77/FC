@@ -27,6 +27,11 @@ class TallerCommon(TransactionCase):
                 lambda self: None)
             parche.start()
             cls.addClassCleanup(parche.stop)
+            # El informe de los servicios (2026.19.030) se prueba en test_030.
+            parche_informes = patch.object(
+                type(cls.env['tllr_fc.ot']), '_tllr_fc_verificar_informes', lambda self: None)
+            parche_informes.start()
+            cls.addClassCleanup(parche_informes.stop)
         marca = cls.env['tllr_fc.marca'].create({'name': 'Toyota F3'})
         modelo = cls.env['tllr_fc.modelo'].create({'name': 'Hilux F3', 'marca_id': marca.id})
         tipo = cls.env['tllr_fc.tipo_vehiculo'].create({'name': 'Camioneta F3'})

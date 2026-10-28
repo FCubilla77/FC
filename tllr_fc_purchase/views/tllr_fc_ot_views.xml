@@ -14,7 +14,7 @@
                             string="Solicitar compra" groups="!tllr_fc.group_supervisor"
                             invisible="not tllr_fc_usar_compras or state not in ('espera', 'proceso')"/>
                 </xpath>
-                <xpath expr="//div[@name='button_box']" position="inside">
+                <xpath expr="//button[@name='action_ver_recepcion']" position="after">
                     <button name="action_ver_compras" type="object"
                             class="oe_stat_button" icon="fa-shopping-cart"
                             groups="tllr_fc.group_usuario"

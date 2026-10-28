@@ -1366,6 +1366,17 @@ class TllrFcOt(models.Model):
             'res_model': 'tllr_fc.wizard.cancelar', 'view_mode': 'form',
             'target': 'new', 'context': {'default_ot_id': self.id}}
 
+    def _tllr_fc_verificar_informes(self):
+        """Todo servicio terminado debe tener su informe antes de liquidar o entregar."""
+        self.ensure_one()
+        faltan = self.servicio_ids.filtered(
+            lambda s: s.estado == 'terminado' and not (s.informe or '').strip())
+        if faltan:
+            raise UserError(
+                "Falta el informe de los servicios terminados de la OT %s: %s. Cargalo en la "
+                "pestaña de servicios." % (
+                    self.name, ', '.join(faltan.mapped('product_id.display_name'))))
+
     def _tllr_fc_cancelar(self, motivo, liquidar):
         """Cancela la OT: con liquidación factura lo realizado; siempre libera reservas."""
         self.ensure_one()
@@ -1381,6 +1392,7 @@ class TllrFcOt(models.Model):
         if liquidar:
             if self.tipo != 'cliente' or not self._tllr_fc_trabajo_realizado():
                 raise UserError("Solo se liquida una OT de cliente con trabajo realizado.")
+            self._tllr_fc_verificar_informes()
             self._tllr_fc_verificar_precios(solo_realizado=True)
         facturas.filtered(lambda m: m.state == 'draft').sudo().unlink()
         for control in self.control_ids.filtered(lambda c: c.state == 'borrador'):

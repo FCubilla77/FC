@@ -91,16 +91,22 @@
                     </header>
                     <sheet>
                         <div class="oe_button_box" name="button_box">
+                            <button name="action_ver_recepcion" type="object"
+                                    class="oe_stat_button" icon="fa-clipboard">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_text">Recepción</span>
+                                </div>
+                            </button>
+                            <button name="action_ver_traslados" type="object"
+                                    class="oe_stat_button" icon="fa-exchange"
+                                    groups="stock.group_stock_user"
+                                    invisible="traslado_count == 0">
+                                <field name="traslado_count" widget="statinfo" string="Traslados"/>
+                            </button>
                             <button name="action_ver_controles" type="object"
                                     class="oe_stat_button" icon="fa-check-square-o"
                                     invisible="control_count == 0">
                                 <field name="control_count" widget="statinfo" string="Controles"/>
-                            </button>
-                            <button name="action_ver_notas_credito" type="object"
-                                    class="oe_stat_button" icon="fa-undo"
-                                    groups="account.group_account_invoice"
-                                    invisible="nota_credito_count == 0">
-                                <field name="nota_credito_count" widget="statinfo" string="Notas de crédito"/>
                             </button>
                             <button name="action_ver_facturas" type="object"
                                     class="oe_stat_button" icon="fa-file-text-o"
@@ -111,16 +117,11 @@
                                     <field name="estado_facturacion" readonly="1"/>
                                 </div>
                             </button>
-                            <button name="action_ver_entregas" type="object"
-                                    class="oe_stat_button" icon="fa-truck"
-                                    invisible="entrega_count == 0">
-                                <field name="entrega_count" widget="statinfo" string="Entregas"/>
-                            </button>
-                            <button name="action_ver_traslados" type="object"
-                                    class="oe_stat_button" icon="fa-exchange"
-                                    groups="stock.group_stock_user"
-                                    invisible="traslado_count == 0">
-                                <field name="traslado_count" widget="statinfo" string="Traslados"/>
+                            <button name="action_ver_notas_credito" type="object"
+                                    class="oe_stat_button" icon="fa-undo"
+                                    groups="account.group_account_invoice"
+                                    invisible="nota_credito_count == 0">
+                                <field name="nota_credito_count" widget="statinfo" string="Notas de crédito"/>
                             </button>
                             <button name="action_ver_asientos" type="object"
                                     class="oe_stat_button" icon="fa-book"
@@ -128,16 +129,15 @@
                                     invisible="asiento_count == 0">
                                 <field name="asiento_count" widget="statinfo" string="Asientos"/>
                             </button>
+                            <button name="action_ver_entregas" type="object"
+                                    class="oe_stat_button" icon="fa-truck"
+                                    invisible="entrega_count == 0">
+                                <field name="entrega_count" widget="statinfo" string="Entregas"/>
+                            </button>
                             <button name="action_ver_garantias" type="object"
                                     class="oe_stat_button" icon="fa-shield"
                                     invisible="garantia_count == 0">
                                 <field name="garantia_count" widget="statinfo" string="Garantías"/>
-                            </button>
-                            <button name="action_ver_recepcion" type="object"
-                                    class="oe_stat_button" icon="fa-clipboard">
-                                <div class="o_stat_info">
-                                    <span class="o_stat_text">Recepción</span>
-                                </div>
                             </button>
                         </div>
                         <field name="descuento_cliente" invisible="1"/>

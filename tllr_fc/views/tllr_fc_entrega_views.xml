@@ -288,6 +288,38 @@
                                 </tbody>
                             </table>
 
+                            <t t-set="control" t-value="o.ot_id.sudo().control_ids.filtered(lambda c: c.state != 'borrador').sorted(lambda c: (c.fecha, c.id))[-1:]"/>
+                            <div t-if="control" style="margin-bottom: 12px;">
+                                <h5>Control de calidad</h5>
+                                <div>
+                                    <strong t-field="control.name"/> ·
+                                    <span t-field="control.fecha" t-options="{'widget': 'datetime', 'format': 'dd/MM/yyyy HH:mm'}"/>
+                                    · Responsable: <span t-field="control.responsable_id.name"/>
+                                    · <span t-field="control.state"/>
+                                </div>
+                                <table class="table table-sm" t-if="control.linea_ids">
+                                    <thead>
+                                        <tr>
+                                            <th>Servicio</th>
+                                            <th style="width: 14%;">Resultado</th>
+                                            <th>Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="control.linea_ids" t-as="l">
+                                            <td><span t-field="l.ot_servicio_id.product_id.display_name"/></td>
+                                            <td><span t-field="l.resultado"/></td>
+                                            <td style="white-space: pre-wrap;"><span t-field="l.resultado_texto"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <t t-set="ot_informe" t-value="o.ot_id.sudo()"/>
+                            <t t-call="tllr_fc.report_informe_servicios">
+                                <t t-set="o" t-value="ot_informe"/>
+                            </t>
+
                             <t t-set="garantias" t-value="o.ot_id.sudo().garantia_ids"/>
                             <div t-if="garantias" style="margin-bottom: 12px;">
                                 <h5>Garantías otorgadas</h5>

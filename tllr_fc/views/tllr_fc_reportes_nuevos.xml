@@ -287,6 +287,28 @@
             </t>
         </template>
 
+        <!-- Informe de los servicios terminados (OT cliente y comprobante de entrega) -->
+        <template id="report_informe_servicios">
+            <t t-set="terminados" t-value="o.servicio_ids.filtered(lambda s: s.estado == 'terminado')"/>
+            <div t-if="terminados" style="margin-top: 14px;">
+                <h4>Informe de los servicios</h4>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Servicio</th>
+                            <th>Informe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="terminados" t-as="s">
+                            <td><span t-field="s.product_id.display_name"/></td>
+                            <td style="white-space: pre-wrap;"><span t-field="s.informe"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </template>
+
         <template id="report_ot_valorizado_cuerpo">
             <div class="page">
                 <t t-set="moneda" t-value="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
@@ -456,6 +478,8 @@
                         </t>
                     </tbody>
                 </table>
+
+                <t t-if="not interno" t-call="tllr_fc.report_informe_servicios"/>
 
                 <t t-if="interno">
                     <!-- Control de calidad -->

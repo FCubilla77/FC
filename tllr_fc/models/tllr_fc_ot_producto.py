@@ -280,8 +280,9 @@ class TllrFcOtProducto(models.Model):
             if float_compare(linea.cantidad_utilizada, linea.cantidad_reservada,
                              precision_rounding=linea.uom_id.rounding or 0.001) > 0:
                 raise ValidationError(
-                    "No se puede utilizar más de lo reservado de «%s». Aumentá primero la "
-                    "cantidad reservada." % linea.product_id.display_name)
+                    "No se puede utilizar más de lo reservado de «%s». Para usar más, subí la "
+                    "cantidad reservada (la diferencia queda pendiente de aprobación) o agregá "
+                    "una línea adicional." % linea.product_id.display_name)
             if linea.cantidad_no_utilizada < 0:
                 raise ValidationError("La cantidad no utilizada no puede ser negativa.")
             if float_compare(linea.cantidad_utilizada + linea.cantidad_no_utilizada,

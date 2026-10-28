@@ -166,6 +166,7 @@ class TllrFcEntrega(models.Model):
             raise UserError(
                 "La OT %s no está lista para entrega (estado «%s»)." % (
                     ot.name, dict(ot._fields['state'].selection)[ot.state]))
+        ot._tllr_fc_verificar_informes()
         if not self.retira_id:
             raise UserError("Indicá quién retira el vehículo.")
         if not self.combustible_salida:
