@@ -7,7 +7,7 @@ class TllrFcControlCalidad(models.Model):
     """Control de calidad de la OT. Una OT puede tener varios (historial)."""
     _name = 'tllr_fc.control_calidad'
     _description = "Control de calidad"
-    _inherit = ['mail.thread', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'tllr_fc.mixin.wizard']
     _order = 'id desc'
 
     name = fields.Char(string="Número", required=True, readonly=True, copy=False, default="Nuevo")

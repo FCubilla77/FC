@@ -127,38 +127,6 @@
                                 </div>
                             </setting>
                         </block>
-
-                        <block title="Licencia" name="tllr_fc_licencia">
-                            <setting string="Código de la base"
-                                     help="Identificador único de esta base de datos. Envíaselo a FC_Py para que emita o renueve la licencia.">
-                                <field name="tllr_fc_licencia_uuid" readonly="1" widget="CopyClipboardChar"/>
-                            </setting>
-                            <setting string="Código de licencia"
-                                     help="Pegá acá el código que te entregó FC_Py, tal cual lo recibiste.">
-                                <field name="tllr_fc_licencia_codigo" nolabel="1"/>
-                                <div class="content-group mt16">
-                                    <div class="row mt4">
-                                        <label for="tllr_fc_licencia_estado" class="col-lg-4 o_light_label"/>
-                                        <field name="tllr_fc_licencia_estado" widget="badge"
-                                               decoration-success="tllr_fc_licencia_estado == 'valida'"
-                                               decoration-warning="tllr_fc_licencia_estado == 'sin_licencia'"
-                                               decoration-danger="tllr_fc_licencia_estado in ('vencida', 'invalida')"/>
-                                    </div>
-                                    <div class="row mt4" invisible="not tllr_fc_licencia_cliente">
-                                        <label for="tllr_fc_licencia_cliente" class="col-lg-4 o_light_label"/>
-                                        <field name="tllr_fc_licencia_cliente" readonly="1"/>
-                                    </div>
-                                    <div class="row mt4" invisible="not tllr_fc_licencia_vencimiento">
-                                        <label for="tllr_fc_licencia_vencimiento" class="col-lg-4 o_light_label"/>
-                                        <field name="tllr_fc_licencia_vencimiento" readonly="1"/>
-                                    </div>
-                                </div>
-                                <div class="alert alert-danger mt-2" role="alert"
-                                     invisible="tllr_fc_licencia_estado == 'valida'">
-                                    Sin una licencia válida, el Taller bloquea la carga de nuevos registros y la edición de los documentos en curso (recepciones, OT, entregas, controles de calidad y turnos). Esta pantalla de Ajustes queda siempre disponible.
-                                </div>
-                            </setting>
-                        </block>
                     </app>
                 </xpath>
             </field>

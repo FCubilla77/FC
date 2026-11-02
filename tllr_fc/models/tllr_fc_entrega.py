@@ -16,7 +16,7 @@ class TllrFcEntrega(models.Model):
     """Entrega del vehículo al cliente (revisión de inventario y condiciones)."""
     _name = 'tllr_fc.entrega'
     _description = "Entrega de vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
     _order = 'id desc'
     _check_company_auto = True
 

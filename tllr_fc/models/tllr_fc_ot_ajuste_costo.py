@@ -6,7 +6,6 @@ from odoo.exceptions import AccessError, UserError
 class TllrFcOtAjusteCosto(models.Model):
     """Ajuste de costo posterior de una OT (solo administrador de taller)."""
     _name = 'tllr_fc.ot.ajuste_costo'
-    _inherit = ['tllr_fc.mixin.licencia']
     _description = "Ajuste de costo de la orden de trabajo"
     _order = 'fecha desc, id desc'
 

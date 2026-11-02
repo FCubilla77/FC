@@ -7,7 +7,6 @@ from .utils import escapar_ilike
 
 class TllrFcModelo(models.Model):
     _name = 'tllr_fc.modelo'
-    _inherit = ['tllr_fc.mixin.licencia']
     _description = "Modelo de vehículo"
     _order = 'marca_id, name'
     _check_company_auto = True

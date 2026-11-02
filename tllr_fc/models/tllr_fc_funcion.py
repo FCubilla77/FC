@@ -8,7 +8,7 @@ from .utils import escapar_ilike
 class TllrFcFuncion(models.Model):
     _name = 'tllr_fc.funcion'
     _description = "Función de taller"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'name'
     _check_company_auto = True
 
