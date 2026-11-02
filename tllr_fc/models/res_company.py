@@ -68,10 +68,6 @@ class ResCompany(models.Model):
              "se generan traslados internos.")
 
     # --- Otros ---
-    tllr_fc_usa_terceros = fields.Boolean(
-        string="Usa mercadería de terceros", default=False)
-    tllr_fc_ubicacion_terceros_id = fields.Many2one(
-        'stock.location', string="Ubicación de mercadería de terceros")
     tllr_fc_aprobacion_adicional = fields.Selection(
         [('obligatoria', "Obligatoria"), ('recomendada', "Recomendada")],
         string="Aprobación de trabajos adicionales", default='obligatoria',
