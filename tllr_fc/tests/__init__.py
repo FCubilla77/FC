@@ -16,3 +16,4 @@ from . import test_027
 from . import test_028
 from . import test_029
 from . import test_030
+from . import test_032_licencia

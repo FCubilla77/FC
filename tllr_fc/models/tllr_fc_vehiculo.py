@@ -6,7 +6,7 @@ from odoo.exceptions import ValidationError
 class TllrFcVehiculo(models.Model):
     _name = 'tllr_fc.vehiculo'
     _description = "Vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
     _order = 'chapa'
     _check_company_auto = True
     _rec_names_search = ['chapa', 'name', 'chasis', 'codigo']

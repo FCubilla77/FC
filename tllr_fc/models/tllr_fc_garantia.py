@@ -8,6 +8,7 @@ from odoo.exceptions import ValidationError
 class TllrFcGarantia(models.Model):
     """Garantía de un servicio o producto entregado al cliente."""
     _name = 'tllr_fc.garantia'
+    _inherit = ['tllr_fc.mixin.licencia']
     _description = "Garantía"
     _order = 'fecha_limite, id'
     _check_company_auto = True

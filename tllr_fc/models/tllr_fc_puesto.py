@@ -6,7 +6,7 @@ from odoo.exceptions import ValidationError
 class TllrFcPuesto(models.Model):
     _name = 'tllr_fc.puesto'
     _description = "Puesto de trabajo"
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
     _order = 'name'
     _check_company_auto = True
 
