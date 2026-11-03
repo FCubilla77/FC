@@ -13,7 +13,7 @@ class TllrFcOt(models.Model):
     """
     _name = 'tllr_fc.ot'
     _description = "Orden de trabajo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
     _order = 'id desc'
     _check_company_auto = True
 

@@ -1,0 +1,23 @@
+Módulo Taller — Licencia
+
+Copyright (c) 2026 FC_Py. Todos los derechos reservados.
+
+Este software se distribuye bajo los términos de la Odoo Proprietary License v1.0
+(OPL-1). El texto oficial y completo de la licencia está publicado por Odoo S.A. en:
+
+    https://www.odoo.com/documentation/19.0/legal/licenses.html
+
+En resumen, y sin que esto reemplace al texto oficial: este software solo puede
+usarse, instalarse o modificarse por quien tenga una licencia vigente otorgada por
+FC_Py, por escrito. No está permitido publicar, distribuir, sublicenciar ni vender
+copias de este software, modificadas o no, sin autorización expresa y por escrito de
+FC_Py. El aviso de copyright y de licencia debe conservarse en todas las copias.
+
+El uso de este módulo está además sujeto al contrato de licencia firmado entre FC_Py
+y el cliente o el partner correspondiente, que detalla el alcance, la vigencia, el
+precio y las condiciones de reventa (si las hubiera). Ante cualquier diferencia entre
+este archivo y ese contrato, prevalece el contrato.
+
+Este software se entrega "TAL CUAL", sin garantía de ningún tipo, expresa o
+implícita. FC_Py no será responsable por reclamos, daños u otras responsabilidades
+derivadas del uso del software.

@@ -5,7 +5,7 @@ from odoo import api, fields, models
 class TllrFcPersonal(models.Model):
     _name = 'tllr_fc.personal'
     _description = "Personal de taller"
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
     _order = 'name'
     _check_company_auto = True
 

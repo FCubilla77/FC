@@ -12,7 +12,7 @@ ESTADOS_PENDIENTES = ('agendado', 'confirmado')
 class TllrFcTurno(models.Model):
     _name = 'tllr_fc.turno'
     _description = "Turno"
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
     _order = 'fecha_hora desc, id desc'
     _check_company_auto = True
 

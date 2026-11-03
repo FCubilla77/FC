@@ -17,7 +17,7 @@ ESTADOS_OT_ABIERTA = ('espera', 'proceso', 'calidad', 'listo')
 class TllrFcRecepcion(models.Model):
     _name = 'tllr_fc.recepcion'
     _description = "Recepción de vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
     _order = 'fecha desc, id desc'
     _check_company_auto = True
 

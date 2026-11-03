@@ -2,6 +2,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from .tllr_fc_licencia import tllr_fc_decodificar_licencia
+
 # (código de la secuencia, prefijo, nombre). Numeración por compañía, relleno 5.
 TLLR_FC_SECUENCIAS = [
     ('tllr_fc.vehiculo', 'VEH/', 'Taller - Vehículos'),
@@ -72,6 +74,63 @@ class ResCompany(models.Model):
         [('obligatoria', "Obligatoria"), ('recomendada', "Recomendada")],
         string="Aprobación de trabajos adicionales", default='obligatoria',
         required=True)
+
+    # --- Licencia (2026.19.032) ---
+    tllr_fc_licencia_uuid = fields.Char(
+        string="Código de la base", compute='_compute_tllr_fc_licencia_uuid',
+        help="Identificador único de esta base de datos. Es el dato que FC_Py necesita "
+             "para emitir o renovar la licencia del Taller: copialo y envíaselo.")
+    tllr_fc_licencia_codigo = fields.Text(
+        string="Código de licencia",
+        help="Código entregado por FC_Py para esta base de datos. Pegalo tal cual lo "
+             "recibiste, sin agregar ni quitar espacios o saltos de línea.")
+    tllr_fc_licencia_cliente = fields.Char(
+        string="Licencia emitida a", compute='_compute_tllr_fc_licencia')
+    tllr_fc_licencia_vencimiento = fields.Date(
+        string="Vencimiento de la licencia", compute='_compute_tllr_fc_licencia')
+    tllr_fc_licencia_estado = fields.Selection([
+        ('sin_licencia', "Sin licencia"),
+        ('valida', "Válida"),
+        ('vencida', "Vencida"),
+        ('invalida', "Código inválido"),
+    ], string="Estado de la licencia", compute='_compute_tllr_fc_licencia')
+
+    def _tllr_fc_licencia_uuid_actual(self):
+        return self.env['ir.config_parameter'].sudo().get_param('database.uuid') or ''
+
+    def _compute_tllr_fc_licencia_uuid(self):
+        uuid_actual = self._tllr_fc_licencia_uuid_actual()
+        for compania in self:
+            compania.tllr_fc_licencia_uuid = uuid_actual
+
+    @api.depends('tllr_fc_licencia_codigo')
+    def _compute_tllr_fc_licencia(self):
+        uuid_actual = self._tllr_fc_licencia_uuid_actual()
+        hoy = fields.Date.context_today(self)
+        for compania in self:
+            cliente, vencimiento, estado = False, False, 'sin_licencia'
+            codigo = (compania.tllr_fc_licencia_codigo or '').strip()
+            if codigo:
+                try:
+                    datos = tllr_fc_decodificar_licencia(codigo)
+                except ValueError:
+                    estado = 'invalida'
+                else:
+                    cliente = datos['cliente']
+                    vencimiento = fields.Date.to_date(datos['vence'])
+                    if datos['uuid'] != uuid_actual:
+                        estado = 'invalida'
+                    elif not vencimiento or vencimiento < hoy:
+                        estado = 'vencida'
+                    else:
+                        estado = 'valida'
+            compania.tllr_fc_licencia_cliente = cliente
+            compania.tllr_fc_licencia_vencimiento = vencimiento
+            compania.tllr_fc_licencia_estado = estado
+
+    def _tllr_fc_licencia_valida(self):
+        self.ensure_one()
+        return self.tllr_fc_licencia_estado == 'valida'
 
     @api.constrains(
         'tllr_fc_generar_asientos', 'tllr_fc_diario_id',
