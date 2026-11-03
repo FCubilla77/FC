@@ -145,11 +145,22 @@ def tllr_fc_version_odoo_instalada():
     hay que acordarse de actualizar dos lugares distintos el día que el módulo pase
     a estar preparado para otra versión de Odoo. Devuelve `None` si no se puede
     determinar (no debería pasar en un módulo instalado correctamente).
+
+    OJO (bug corregido en 2026.19.035): `get_manifest` NO devuelve el string del
+    manifest tal cual se escribió. Odoo le antepone su propia serie cuando la
+    versión declarada no empieza con ella (`adapt_version`, en
+    `odoo/modules/module.py`): "2026.19.034" se convierte en "19.0.2026.19.034".
+    Por eso se toma el anteúltimo segmento (siempre el número de versión del
+    módulo, año y corrección son los últimos tres, sin importar qué antepone
+    Odoo), nunca una posición fija desde el principio del string.
     """
     try:
         manifest = _tllr_fc_odoo_module.get_manifest('tllr_fc')
         version = str((manifest or {}).get('version') or '')
-        return int(version.split('.')[1])
+        partes = version.split('.')
+        if len(partes) < 3:
+            return None
+        return int(partes[-2])
     except Exception:
         return None
 

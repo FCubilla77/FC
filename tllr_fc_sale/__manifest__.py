@@ -19,7 +19,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Servicios/Taller",
-    "version": "2026.19.034",
+    "version": "2026.19.035",
     "license": "OPL-1",
     "application": False,
     "installable": True,

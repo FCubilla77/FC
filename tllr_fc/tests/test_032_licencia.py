@@ -199,3 +199,19 @@ class Test032Licencia(TallerCommon):
         version_actual = tllr_fc_version_odoo_instalada()
         esperado = "%s|%s" % (version_actual, self.uuid_base)
         self.assertEqual(self.env.company.tllr_fc_licencia_uuid, esperado)
+
+    def test_15_version_detectada_coincide_con_la_declarada_en_el_manifest(self):
+        # Chequeo independiente de `tllr_fc_version_odoo_instalada()`: no llama a
+        # esa misma función para construir lo esperado (si lo hiciera, un bug
+        # sistemático en la función pasaría inadvertido, como pasó en 2026.19.034
+        # con el "0" en vez de "19" por el prefijo que antepone `get_manifest`).
+        # Se lee el manifest "a mano", sin pasar por `adapt_version` de Odoo.
+        import ast
+        import os
+        ruta_manifest = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '__manifest__.py')
+        with open(ruta_manifest, encoding='utf-8') as f:
+            manifest_declarado = ast.literal_eval(f.read())
+        version_declarada = manifest_declarado['version']  # ej. "2026.19.035"
+        nn_declarado = int(version_declarada.split('.')[1])
+        self.assertEqual(tllr_fc_version_odoo_instalada(), nn_declarado)
