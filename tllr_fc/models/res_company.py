@@ -2,7 +2,7 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
-from .tllr_fc_licencia import tllr_fc_decodificar_licencia
+from .tllr_fc_licencia import tllr_fc_decodificar_licencia, tllr_fc_version_odoo_instalada
 
 # (código de la secuencia, prefijo, nombre). Numeración por compañía, relleno 5.
 TLLR_FC_SECUENCIAS = [
@@ -75,11 +75,13 @@ class ResCompany(models.Model):
         string="Aprobación de trabajos adicionales", default='obligatoria',
         required=True)
 
-    # --- Licencia (2026.19.032) ---
+    # --- Licencia (2026.19.032 / 2026.19.034) ---
     tllr_fc_licencia_uuid = fields.Char(
         string="Código de la base", compute='_compute_tllr_fc_licencia_uuid',
-        help="Identificador único de esta base de datos. Es el dato que FC_Py necesita "
-             "para emitir o renovar la licencia del Taller: copialo y envíaselo.")
+        help="Versión de Odoo del módulo instalado y identificador único de esta base "
+             "de datos, juntos en un solo dato (formato «versión|identificador»). Es "
+             "lo que FC_Py necesita para emitir o renovar la licencia: copialo y "
+             "envíaselo tal cual, sin separarlo.")
     tllr_fc_licencia_codigo = fields.Text(
         string="Código de licencia",
         help="Código entregado por FC_Py para esta base de datos. Pegalo tal cual lo "
@@ -93,6 +95,7 @@ class ResCompany(models.Model):
         ('valida', "Válida"),
         ('vencida', "Vencida"),
         ('invalida', "Código inválido"),
+        ('otra_version', "No corresponde a esta versión"),
     ], string="Estado de la licencia", compute='_compute_tllr_fc_licencia')
 
     def _tllr_fc_licencia_uuid_actual(self):
@@ -100,12 +103,15 @@ class ResCompany(models.Model):
 
     def _compute_tllr_fc_licencia_uuid(self):
         uuid_actual = self._tllr_fc_licencia_uuid_actual()
+        version_actual = tllr_fc_version_odoo_instalada()
+        texto_version = str(version_actual) if version_actual is not None else '?'
         for compania in self:
-            compania.tllr_fc_licencia_uuid = uuid_actual
+            compania.tllr_fc_licencia_uuid = "%s|%s" % (texto_version, uuid_actual)
 
     @api.depends('tllr_fc_licencia_codigo')
     def _compute_tllr_fc_licencia(self):
         uuid_actual = self._tllr_fc_licencia_uuid_actual()
+        version_actual = tllr_fc_version_odoo_instalada()
         hoy = fields.Date.context_today(self)
         for compania in self:
             cliente, vencimiento, estado = False, False, 'sin_licencia'
@@ -120,6 +126,8 @@ class ResCompany(models.Model):
                     vencimiento = fields.Date.to_date(datos['vence'])
                     if datos['uuid'] != uuid_actual:
                         estado = 'invalida'
+                    elif version_actual is not None and datos['version_odoo'] != version_actual:
+                        estado = 'otra_version'
                     elif not vencimiento or vencimiento < hoy:
                         estado = 'vencida'
                     else:

@@ -2,7 +2,6 @@
 from . import tllr_fc_licencia
 from . import res_company
 from . import res_config_settings
-from . import tllr_fc_licencia_mixin
 from . import tllr_fc_marca
 from . import tllr_fc_modelo
 from . import tllr_fc_tipo_vehiculo

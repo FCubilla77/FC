@@ -2,6 +2,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 
 class TllrFcOt(models.Model):
     """Orden de trabajo.
@@ -13,7 +15,7 @@ class TllrFcOt(models.Model):
     """
     _name = 'tllr_fc.ot'
     _description = "Orden de trabajo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
     _order = 'id desc'
     _check_company_auto = True
 
@@ -1446,13 +1448,16 @@ class TllrFcOt(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            compania = self.env['res.company'].browse(
+                vals.get('company_id') or self.env.company.id)
+            tllr_fc_licencia_verificar(self.env, compania)
             if not vals.get('name') or vals['name'] == "Nuevo":
-                compania = self.env['res.company'].browse(
-                    vals.get('company_id') or self.env.company.id)
                 vals['name'] = compania._tllr_fc_siguiente_codigo('tllr_fc.ot')
         return super().create(vals_list)
 
     def write(self, vals):
+        for ot in self:
+            tllr_fc_licencia_verificar(self.env, ot.company_id)
         if not self._tllr_fc_es_supervisor():
             if 'tipo' in vals:
                 raise AccessError(

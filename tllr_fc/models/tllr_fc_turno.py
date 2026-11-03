@@ -6,13 +6,15 @@ import pytz
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 ESTADOS_PENDIENTES = ('agendado', 'confirmado')
 
 
 class TllrFcTurno(models.Model):
     _name = 'tllr_fc.turno'
     _description = "Turno"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'fecha_hora desc, id desc'
     _check_company_auto = True
 
@@ -173,11 +175,17 @@ class TllrFcTurno(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            compania = self.env['res.company'].browse(
+                vals.get('company_id') or self.env.company.id)
+            tllr_fc_licencia_verificar(self.env, compania)
             if not vals.get('name') or vals['name'] == "Nuevo":
-                compania = self.env['res.company'].browse(
-                    vals.get('company_id') or self.env.company.id)
                 vals['name'] = compania._tllr_fc_siguiente_codigo('tllr_fc.turno')
         return super().create(vals_list)
+
+    def write(self, vals):
+        for turno in self:
+            tllr_fc_licencia_verificar(self.env, turno.company_id)
+        return super().write(vals)
 
     @api.ondelete(at_uninstall=False)
     def _unlink_si_sin_recepcion(self):

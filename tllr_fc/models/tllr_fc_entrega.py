@@ -2,6 +2,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 NIVELES_COMBUSTIBLE = [
     ('reserva', "Reserva"),
     ('1_4', "1/4"),
@@ -16,7 +18,7 @@ class TllrFcEntrega(models.Model):
     """Entrega del vehículo al cliente (revisión de inventario y condiciones)."""
     _name = 'tllr_fc.entrega'
     _description = "Entrega de vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
     _order = 'id desc'
     _check_company_auto = True
 
@@ -109,9 +111,10 @@ class TllrFcEntrega(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             ot = self.env['tllr_fc.ot'].browse(vals.get('ot_id'))
+            compania = self.env['res.company'].browse(
+                vals.get('company_id') or ot.company_id.id or self.env.company.id)
+            tllr_fc_licencia_verificar(self.env, compania)
             if not vals.get('name') or vals['name'] == "Nuevo":
-                compania = self.env['res.company'].browse(
-                    vals.get('company_id') or ot.company_id.id or self.env.company.id)
                 vals['name'] = compania._tllr_fc_siguiente_codigo('tllr_fc.entrega')
             if ot:
                 vals.setdefault('kilometraje_salida', ot.kilometraje_ingreso)
@@ -120,6 +123,8 @@ class TllrFcEntrega(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        for entrega in self:
+            tllr_fc_licencia_verificar(self.env, entrega.company_id)
         if any(e.state == 'confirmada' for e in self) and not self.env.context.get(
                 'tllr_fc_permitir_write'):
             raise UserError("Una entrega confirmada no se modifica.")

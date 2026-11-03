@@ -4,6 +4,8 @@ import logging
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 _logger = logging.getLogger(__name__)
 
 # Campos de mensajería que pueden cambiar aunque la recepción esté cerrada.
@@ -17,7 +19,7 @@ ESTADOS_OT_ABIERTA = ('espera', 'proceso', 'calidad', 'listo')
 class TllrFcRecepcion(models.Model):
     _name = 'tllr_fc.recepcion'
     _description = "Recepción de vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.wizard']
     _order = 'fecha desc, id desc'
     _check_company_auto = True
 
@@ -100,6 +102,8 @@ class TllrFcRecepcion(models.Model):
                         'confirmada' if recepcion.state == 'confirmada' else 'anulada'))
 
     def write(self, vals):
+        for recepcion in self:
+            tllr_fc_licencia_verificar(self.env, recepcion.company_id)
         if set(vals) - CAMPOS_LIBRES:
             self._tllr_fc_asegurar_editable()
         return super().write(vals)
@@ -115,9 +119,10 @@ class TllrFcRecepcion(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            compania = self.env['res.company'].browse(
+                vals.get('company_id') or self.env.company.id)
+            tllr_fc_licencia_verificar(self.env, compania)
             if not vals.get('name') or vals['name'] == "Nuevo":
-                compania = self.env['res.company'].browse(
-                    vals.get('company_id') or self.env.company.id)
                 vals['name'] = compania._tllr_fc_siguiente_codigo('tllr_fc.recepcion')
         return super().create(vals_list)
 

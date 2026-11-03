@@ -2,11 +2,13 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 
 class TllrFcVehiculo(models.Model):
     _name = 'tllr_fc.vehiculo'
     _description = "Vehículo"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'chapa'
     _check_company_auto = True
     _rec_names_search = ['chapa', 'name', 'chasis', 'codigo']
@@ -181,9 +183,10 @@ class TllrFcVehiculo(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._normalizar_vals(vals)
+            compania = self.env['res.company'].browse(
+                vals.get('company_id') or self.env.company.id)
+            tllr_fc_licencia_verificar(self.env, compania)
             if not vals.get('codigo') or vals['codigo'] == "Nuevo":
-                compania = self.env['res.company'].browse(
-                    vals.get('company_id') or self.env.company.id)
                 vals['codigo'] = compania._tllr_fc_siguiente_codigo('tllr_fc.vehiculo')
         return super().create(vals_list)
 

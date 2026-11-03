@@ -2,12 +2,14 @@
 from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 
 class TllrFcControlCalidad(models.Model):
     """Control de calidad de la OT. Una OT puede tener varios (historial)."""
     _name = 'tllr_fc.control_calidad'
     _description = "Control de calidad"
-    _inherit = ['mail.thread', 'tllr_fc.mixin.wizard', 'tllr_fc.mixin.licencia', 'tllr_fc.mixin.licencia.edicion']
+    _inherit = ['mail.thread', 'tllr_fc.mixin.wizard']
     _order = 'id desc'
 
     name = fields.Char(string="Número", required=True, readonly=True, copy=False, default="Nuevo")
@@ -45,6 +47,7 @@ class TllrFcControlCalidad(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             ot = self.env['tllr_fc.ot'].browse(vals.get('ot_id'))
+            tllr_fc_licencia_verificar(self.env, ot.company_id)
             if not vals.get('name') or vals['name'] == "Nuevo":
                 vals['name'] = ot.company_id._tllr_fc_siguiente_codigo('tllr_fc.control')
             if 'linea_ids' not in vals:
@@ -61,6 +64,8 @@ class TllrFcControlCalidad(models.Model):
         return controles
 
     def write(self, vals):
+        for control in self:
+            tllr_fc_licencia_verificar(self.env, control.company_id)
         if not self.env.context.get('tllr_fc_permitir_write'):
             for control in self:
                 if control.state != 'borrador' and set(vals) - {'message_main_attachment_id'}:

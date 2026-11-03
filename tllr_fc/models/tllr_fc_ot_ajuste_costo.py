@@ -2,11 +2,12 @@
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 
 class TllrFcOtAjusteCosto(models.Model):
     """Ajuste de costo posterior de una OT (solo administrador de taller)."""
     _name = 'tllr_fc.ot.ajuste_costo'
-    _inherit = ['tllr_fc.mixin.licencia']
     _description = "Ajuste de costo de la orden de trabajo"
     _order = 'fecha desc, id desc'
 
@@ -61,6 +62,10 @@ class TllrFcOtAjusteCosto(models.Model):
         if (not self.env.user.has_group('tllr_fc.group_administrador')
                 and not self.env.context.get('tllr_fc_ajuste_automatico')):
             raise AccessError("Solo el administrador de taller registra ajustes de costo.")
+        Ot = self.env['tllr_fc.ot']
+        for vals in vals_list:
+            company = Ot.browse(vals['ot_id']).company_id if vals.get('ot_id') else None
+            tllr_fc_licencia_verificar(self.env, company)
         ajustes = super().create(vals_list)
         for ajuste in ajustes:
             ajuste._tllr_fc_generar()

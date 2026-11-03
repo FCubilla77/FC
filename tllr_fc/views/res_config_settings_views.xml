@@ -142,7 +142,7 @@
                                         <field name="tllr_fc_licencia_estado" widget="badge"
                                                decoration-success="tllr_fc_licencia_estado == 'valida'"
                                                decoration-warning="tllr_fc_licencia_estado == 'sin_licencia'"
-                                               decoration-danger="tllr_fc_licencia_estado in ('vencida', 'invalida')"/>
+                                               decoration-danger="tllr_fc_licencia_estado in ('vencida', 'invalida', 'otra_version')"/>
                                     </div>
                                     <div class="row mt4" invisible="not tllr_fc_licencia_cliente">
                                         <label for="tllr_fc_licencia_cliente" class="col-lg-4 o_light_label"/>
@@ -152,6 +152,10 @@
                                         <label for="tllr_fc_licencia_vencimiento" class="col-lg-4 o_light_label"/>
                                         <field name="tllr_fc_licencia_vencimiento" readonly="1"/>
                                     </div>
+                                </div>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="tllr_fc_licencia_estado != 'otra_version'">
+                                    Este código de licencia corresponde a otra versión del módulo. Después de actualizar el Taller hay que pedirle a FC_Py un código nuevo, usando el «Código de la base» actual.
                                 </div>
                                 <div class="alert alert-danger mt-2" role="alert"
                                      invisible="tllr_fc_licencia_estado == 'valida'">

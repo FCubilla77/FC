@@ -2,13 +2,14 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
 from .utils import escapar_ilike
 
 
 class TllrFcFuncion(models.Model):
     _name = 'tllr_fc.funcion'
     _description = "Función de taller"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'tllr_fc.mixin.licencia']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'name'
     _check_company_auto = True
 
@@ -26,6 +27,14 @@ class TllrFcFuncion(models.Model):
     costo_actual = fields.Monetary(
         string="Costo por hora vigente", compute='_compute_costo_actual',
         currency_field='currency_id', groups='tllr_fc.group_supervisor')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        Company = self.env['res.company']
+        for vals in vals_list:
+            tllr_fc_licencia_verificar(
+                self.env, Company.browse(vals['company_id']) if vals.get('company_id') else None)
+        return super().create(vals_list)
 
     @api.depends('company_id')
     def _compute_currency_id(self):

@@ -4,11 +4,12 @@ from datetime import timedelta
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from .tllr_fc_licencia import tllr_fc_licencia_verificar
+
 
 class TllrFcGarantia(models.Model):
     """Garantía de un servicio o producto entregado al cliente."""
     _name = 'tllr_fc.garantia'
-    _inherit = ['tllr_fc.mixin.licencia']
     _description = "Garantía"
     _order = 'fecha_limite, id'
     _check_company_auto = True
@@ -39,6 +40,14 @@ class TllrFcGarantia(models.Model):
         ondelete='set null')
     reclamo_ot_id = fields.Many2one(
         'tllr_fc.ot', string="OT de garantía", copy=False, readonly=True, ondelete='set null')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        Ot = self.env['tllr_fc.ot']
+        for vals in vals_list:
+            company = Ot.browse(vals['ot_id']).company_id if vals.get('ot_id') else None
+            tllr_fc_licencia_verificar(self.env, company)
+        return super().create(vals_list)
 
     @api.onchange('ot_id')
     def _onchange_ot_id(self):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Control de licencia del módulo Taller (2026.19.032 / 2026.19.033).
+"""Control de licencia del módulo Taller (2026.19.032 / 2026.19.033 / 2026.19.034).
 
 La licencia se emite fuera de este módulo, con una herramienta propia de FC_Py que
 conserva la clave privada de firma (nunca viaja con el módulo). Este archivo solo
@@ -11,8 +11,19 @@ código de un producto no sirve para activar otro.
 
 El código de licencia tiene el formato "TLLRFC1.<datos>.<firma>" (base64 URL-safe),
 con los datos: producto (`p`, debe ser "tllr_fc"), identificador de la base de datos
-(`database.uuid`), nombre del cliente y fecha de vencimiento.
-`tllr_fc_decodificar_licencia` lo valida.
+(`database.uuid`), nombre del cliente, fecha de vencimiento y versión de Odoo
+autorizada (`m`, desde 2026.19.034 — ver más abajo). `tllr_fc_decodificar_licencia`
+lo valida.
+
+Versión de Odoo autorizada (desde 2026.19.034): el código de licencia queda atado al
+número central de la versión del módulo (el "19" de "2026.19.034"), no a la versión
+completa. Mientras ese número no cambie, cualquier cantidad de correcciones o
+ajustes menores (el último número) no afectan la licencia vigente. El día que el
+módulo pase a estar preparado para otra versión de Odoo (ese número central cambia,
+por ejemplo a "20"), cualquier código emitido para el número anterior deja de ser
+válido (estado "otra_version") y hay que emitir uno nuevo — sin necesidad de ningún
+paso manual adicional: la comparación es automática, cada vez que se calcula el
+estado de la licencia, contra la versión realmente instalada.
 
 `TLLR_FC_LICENCIA_OBLIGATORIA` es el interruptor para los builds que se entregan a un
 partner con reventa ilimitada (contrato con código fuente): se deja en `False` al
@@ -85,10 +96,13 @@ def _tllr_fc_b64_decode(texto):
 def tllr_fc_decodificar_licencia(codigo):
     """Valida la firma de un código de licencia y devuelve sus datos.
 
-    Devuelve `{'uuid': ..., 'cliente': ..., 'vence': 'AAAA-MM-DD'}` si el código es
-    auténtico y corresponde al Taller. Lanza `ValueError` (mensaje corto, para uso
-    interno) si el formato, la codificación, la firma, el contenido o el producto
-    no son válidos (por ejemplo, un código emitido para otro producto de FC_Py).
+    Devuelve `{'uuid': ..., 'cliente': ..., 'vence': 'AAAA-MM-DD', 'version_odoo': int}`
+    si el código es auténtico y corresponde al Taller. Lanza `ValueError` (mensaje
+    corto, para uso interno) si el formato, la codificación, la firma, el contenido
+    o el producto no son válidos (por ejemplo, un código emitido para otro producto
+    de FC_Py). No compara la versión de Odoo contra la instalada: eso lo hace quien
+    llama (ver `res.company._compute_tllr_fc_licencia`), que es quien sabe cuál es
+    la versión realmente instalada.
     """
     if not codigo or not codigo.strip():
         raise ValueError("vacío")
@@ -114,11 +128,30 @@ def tllr_fc_decodificar_licencia(codigo):
         datos = json.loads(datos_bytes.decode('utf-8'))
     except Exception:
         raise ValueError("contenido")
-    if not isinstance(datos, dict) or not all(k in datos for k in ('p', 'u', 'c', 'v')):
+    if not isinstance(datos, dict) or not all(k in datos for k in ('p', 'u', 'c', 'v', 'm')):
         raise ValueError("contenido")
     if datos['p'] != TLLR_FC_LICENCIA_PRODUCTO:
         raise ValueError("otro_producto")
-    return {'uuid': datos['u'], 'cliente': datos['c'], 'vence': datos['v']}
+    return {
+        'uuid': datos['u'], 'cliente': datos['c'], 'vence': datos['v'],
+        'version_odoo': datos['m'],
+    }
+
+
+def tllr_fc_version_odoo_instalada():
+    """Número central de la versión del módulo instalado (ej. 19 en "2026.19.034").
+
+    Se lee del manifest del módulo instalado, no de una constante aparte: así no
+    hay que acordarse de actualizar dos lugares distintos el día que el módulo pase
+    a estar preparado para otra versión de Odoo. Devuelve `None` si no se puede
+    determinar (no debería pasar en un módulo instalado correctamente).
+    """
+    try:
+        manifest = _tllr_fc_odoo_module.get_manifest('tllr_fc')
+        version = str((manifest or {}).get('version') or '')
+        return int(version.split('.')[1])
+    except Exception:
+        return None
 
 
 def tllr_fc_licencia_exenta(env):
