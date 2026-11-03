@@ -4,13 +4,18 @@ from datetime import timedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+from .l10n_py_licencia import l10n_py_licencia_verificar
 
-# Códigos reales de las dos cuentas de Patrimonio que este proceso usa.
-# Se buscan por xmlid (definidos en account.account-py.csv al instalar el
-# paquete de Localización Fiscal) — si el usuario los cambió de código no
-# importa, lo que se busca es el registro, no el string de código.
-XMLID_RESULTADO_EJERCICIO = 'l10n_py.py_3_03_01_01_002'
-XMLID_RESULTADOS_ACUMULADOS = 'l10n_py.py_3_03_01_01_001'
+
+# Ids de plantilla de las dos cuentas de Patrimonio que este proceso usa
+# (definidos en data/template/account.account-py.csv). Al cargar el paquete
+# de Localización Fiscal, Odoo crea cada cuenta con el xmlid
+# 'account.<id_compañía>_<id_plantilla>' (una por compañía), no con un xmlid
+# del módulo: por eso se resuelven con account.chart.template.ref() para la
+# compañía que corresponda. Se busca el registro, no el string de código, así
+# que si el usuario cambió el código de la cuenta sigue funcionando.
+XMLID_RESULTADO_EJERCICIO = 'py_3_03_01_01_002'
+XMLID_RESULTADOS_ACUMULADOS = 'py_3_03_01_01_001'
 
 
 class L10nPyCierreEjercicio(models.Model):
@@ -18,8 +23,13 @@ class L10nPyCierreEjercicio(models.Model):
     año). Guarda los dos asientos generados (Cierre al 31/12 y Apertura al
     1/1 siguiente) para poder consultarlos y, si hace falta, deshacerlos.
 
-    No depende de local_py: usa únicamente modelos nativos de 'account'."""
+    No depende de local_py: usa únicamente modelos nativos de 'account'.
+
+    Es un documento de trabajo en curso: requiere licencia vigente de l10n_py para
+    crearse y para editarse (mixins de models/licencia_mixin.py). La consulta del
+    historial sigue disponible sin licencia."""
     _name = 'l10n_py.cierre_ejercicio'
+    _inherit = ['l10n_py.mixin.licencia', 'l10n_py.mixin.licencia.edicion']
     _description = 'Cierre de Ejercicio (Paraguay)'
     _order = 'anio desc'
     _rec_name = 'display_name'
@@ -85,12 +95,14 @@ class L10nPyCierreEjercicio(models.Model):
                 })
             rec.write({'state': 'deshecho'})
 
-    def _get_cuenta(self, xmlid):
-        cuenta = self.env.ref(xmlid, raise_if_not_found=False)
+    def _get_cuenta(self, xmlid, company):
+        cuenta = self.env['account.chart.template'].with_company(company).ref(
+            xmlid, raise_if_not_found=False)
         if not cuenta:
             raise UserError(
-                'No se encontró la cuenta %s. Verifique que el módulo l10n_py esté '
-                'instalado y que la cuenta no haya sido eliminada.' % xmlid
+                'No se encontró la cuenta %s en %s. Verifique que el paquete fiscal '
+                'Paraguay esté asignado a la compañía y que la cuenta no haya sido '
+                'eliminada.' % (xmlid, company.name)
             )
         return cuenta
 
@@ -111,6 +123,10 @@ class L10nPyCierreEjercicio(models.Model):
         Cierre (31/12 de 'anio') y el Asiento de Apertura (1/1 de 'anio'+1),
         y deja el fiscalyear_lock_date de la compañía en la fecha de
         cierre. Devuelve el registro l10n_py.cierre_ejercicio creado."""
+        # Falla temprano y con un mensaje claro si falta la licencia, antes de
+        # calcular nada (el create() del registro final también la exige).
+        l10n_py_licencia_verificar(self.env, company)
+
         Report = self.env['l10n_py.balance_general.report']
 
         fecha_referencia = fields.Date.from_string('%s-12-31' % anio)
@@ -139,7 +155,7 @@ class L10nPyCierreEjercicio(models.Model):
             )
 
         diario = self._get_diario_miscelanea(company)
-        cuenta_resultado_ejercicio = self._get_cuenta(XMLID_RESULTADO_EJERCICIO)
+        cuenta_resultado_ejercicio = self._get_cuenta(XMLID_RESULTADO_EJERCICIO, company)
 
         # ------------------------------------------------------------
         # 1) Asiento de Cierre: zanja cada cuenta imputable de Ingresos/
@@ -160,7 +176,6 @@ class L10nPyCierreEjercicio(models.Model):
                 '%s. No corresponde generar un Cierre vacío.' % anio
             )
 
-        resultado_neto = sum(saldo_resultado.values())
         lineas_cierre = []
         for account, saldo in saldo_resultado.items():
             # 'saldo' ya viene con el signo de exposición (Ingresos
@@ -187,18 +202,24 @@ class L10nPyCierreEjercicio(models.Model):
                     'name': 'Cierre de Ejercicio %s' % anio,
                 }))
 
-        if resultado_neto > 0:
+        # Resultado del ejercicio = lo que falta para cuadrar las líneas que
+        # zanjan Ingresos/Costos/Gastos (positivo = ganancia, acreedor;
+        # negativo = pérdida, deudor). Se calcula a partir de las propias
+        # líneas del asiento, así el asiento siempre cuadra.
+        dif = sum(l[2]['debit'] - l[2]['credit'] for l in lineas_cierre)
+        resultado_neto = dif
+        if dif > 0:
             lineas_cierre.append((0, 0, {
                 'account_id': cuenta_resultado_ejercicio.id,
-                'debit': resultado_neto,
-                'credit': 0.0,
+                'credit': dif,
+                'debit': 0.0,
                 'name': 'Resultado del Ejercicio %s' % anio,
             }))
-        elif resultado_neto < 0:
+        elif dif < 0:
             lineas_cierre.append((0, 0, {
                 'account_id': cuenta_resultado_ejercicio.id,
-                'credit': -resultado_neto,
-                'debit': 0.0,
+                'debit': -dif,
+                'credit': 0.0,
                 'name': 'Resultado del Ejercicio %s' % anio,
             }))
 

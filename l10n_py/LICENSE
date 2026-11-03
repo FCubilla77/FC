@@ -1,0 +1,27 @@
+Odoo Proprietary License v1.0 (OPL-1)
+
+Copyright (c) 2026 FC_Py. Todos los derechos reservados.
+
+Módulo: Paraguay - Contabilidad (l10n_py)
+
+Este módulo se distribuye bajo la Odoo Proprietary License v1.0 (OPL-1). El texto
+oficial y completo de la licencia está disponible en:
+
+    https://www.odoo.com/documentation/19.0/legal/licenses.html
+
+Resumen en español (informativo, no reemplaza al texto oficial):
+
+  Se permite:
+    - Usar el módulo en la base de datos para la que se emitió la licencia
+      correspondiente (código de licencia emitido por FC_Py).
+    - Modificarlo para uso propio, conforme a los términos de la OPL-1.
+
+  No se permite:
+    - Usar el módulo sin una licencia vigente emitida por FC_Py.
+    - Redistribuirlo, revenderlo, sublicenciarlo ni ponerlo a disposición de
+      terceros, ya sea en su forma original o modificada.
+    - Eludir, desactivar o alterar el control técnico de licencia.
+
+Si existe un contrato firmado entre el cliente y FC_Py (incluidos los contratos de
+partner), las condiciones de ese contrato prevalecen sobre este archivo y sobre este
+resumen.

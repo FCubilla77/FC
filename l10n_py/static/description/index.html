@@ -39,6 +39,16 @@
     </div>
 
     <div class="oe_row oe_spaced">
+        <h4>Licenciamiento del producto</h4>
+        <ul>
+            <li>Licencia OPL-1 (Odoo Proprietary License v1.0), emitida por FC_Py y atada a la base de datos de cada cliente y a la versión de Odoo del módulo</li>
+            <li>Configuración en Ajustes &gt; Configuración l10n_py &gt; Licencia: «Código de la base» para solicitar la licencia, campo para pegar el código recibido y estado de la licencia (vigente, vencida, inválida, de otra versión)</li>
+            <li>El paquete fiscal Paraguay solo se puede asignar con una licencia vigente; sin ella, Odoo muestra un aviso indicando que falta la licencia. Al asignarlo con licencia válida se carga todo el paquete (plan de cuentas, grupos de cuentas, impuestos y configuración predeterminada)</li>
+            <li>Con licencia vencida o ausente se bloquea la creación y edición de Cierres de Ejercicio; la lectura, los informes y la pantalla de Ajustes siempre quedan disponibles</li>
+        </ul>
+    </div>
+
+    <div class="oe_row oe_spaced">
         <h4>Fuera de alcance de este módulo (pendiente a futuro)</h4>
         <ul>
             <li>Tags de cuenta adicionales para reportes fiscales más allá de IVA Crédito/Débito Fiscal</li>
@@ -50,7 +60,8 @@
     <div class="oe_row oe_spaced">
         <h4>Guía de configuración — pasos a realizar después de instalar</h4>
         <ol>
-            <li>Instalar el módulo y seleccionar el paquete "Paraguay - Contabilidad" en Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete (si no se aplicó automáticamente).</li>
+            <li>Instalar el módulo. Copiar el «Código de la base» desde Ajustes &gt; Configuración l10n_py &gt; Licencia, enviarlo a FC_Py y pegar el código de licencia recibido.</li>
+            <li>Con la licencia vigente, seleccionar el paquete "Paraguay - Contabilidad" en Ajustes &gt; Facturación &gt; Localización Fiscal &gt; Paquete. El paquete no se asigna automáticamente al instalar: requiere la licencia.</li>
             <li>Actualizar manualmente el país de la compañía (<i>Ajustes generales &gt; Compañías &gt; País</i>) a Paraguay, si corresponde — este módulo solo configura el país fiscal, no el domicilio legal.</li>
             <li>Verificar en Ajustes &gt; Facturación &gt; Impuestos que los impuestos y grupos de impuestos quedaron cargados correctamente.</li>
             <li>Revisar el diario "Banco" de ejemplo y crear los diarios de banco/caja reales de la empresa siguiendo ese mismo patrón (cuenta propia + cuenta transitoria). <b>Importante</b>: al crear un diario de banco/caja nuevo, Odoo genera una cuenta por defecto automáticamente y ese código no respeta el formato con puntos de este plan — corregilo a mano después (ej. <code>1.01.01.03.007</code>) o, para evitarlo directamente, creá primero la cuenta correcta desde el Plan de Cuentas (a mano, o duplicando una cuenta existente del mismo grupo) y asignásela al diario en vez de dejar que Odoo la genere. Crear cuentas nuevas a mano desde el Plan de Cuentas, o duplicando una existente, no tiene este problema.</li>
@@ -73,6 +84,16 @@
             Odoo no vincula automáticamente a ningún paquete de
             localización fiscal — si corresponde, debe actualizarse
             manualmente a Paraguay luego de instalar este módulo.
+        </p>
+    </div>
+
+    <div class="oe_row oe_spaced">
+        <p style="font-size: 0.85em; color: #666;">
+            Desarrollado por FC_Py.<br/>
+            Copyright (c) 2026 FC_Py. Distribuido bajo la Odoo Proprietary License v1.0
+            (OPL-1); ver el archivo LICENSE del módulo. El uso requiere una licencia
+            vigente emitida por FC_Py. Si existe un contrato firmado con el cliente, sus
+            condiciones prevalecen sobre este texto.
         </p>
     </div>
 </section>

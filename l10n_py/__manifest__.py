@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0014",
+    "version": "19.0.2026.0015",
     "category": "Accounting/Localizations/Account Charts",
-    "license": "LGPL-3",
+    "license": "OPL-1",
     "author": "FC_Py",
     "summary": "Paquete de Localización Fiscal Paraguay: plan de cuentas, grupos, "
                "impuestos, posiciones fiscales, plazos de pago, permisos "
                "contables, diario de banco de ejemplo, valores de compañía "
                "por defecto (account.chart.template), Balance General x "
-               "Grupos de Cuentas y Cierre/Apertura de Ejercicio",
+               "Grupos de Cuentas, Cierre/Apertura de Ejercicio y "
+               "licenciamiento del producto",
     "description": """
         Localización Fiscal / Paquete: Paraguay
         =========================================
@@ -17,6 +18,9 @@
         Localización Fiscal (account.chart.template) para Paraguay. Ver
         static/description/index.html para el detalle completo y la guía
         de configuración posterior a la instalación.
+
+        El paquete fiscal Paraguay requiere una licencia vigente, que se carga
+        en Ajustes > Configuración l10n_py (sección Licencia).
 
         Todo lo que no corresponde al paquete nativo de Localización Fiscal
         (validaciones de RUT, Timbrado/Nro. Documento, Tipo Fiscal, reportes
@@ -31,6 +35,7 @@
         "report/report_balance_general.xml",
         "views/balance_general_views.xml",
         "views/cierre_ejercicio_views.xml",
+        "views/res_config_settings_views.xml",
     ],
     "installable": True,
     "auto_install": False,

@@ -138,7 +138,7 @@ class AccountChartTemplate(models.AbstractModel):
         }
 
     @template('py', 'account.journal')
-    def _get_py_account_journal(self, template_code):
+    def _get_py_account_journal(self):
         """Diario de banco de EJEMPLO — un único diario ('Banco'), con sus
         cuentas ya asignadas, para que sirva de plantilla/patrón al crear
         los diarios de banco reales de cada empresa (confirmado con el
