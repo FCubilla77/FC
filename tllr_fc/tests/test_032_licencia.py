@@ -3,7 +3,7 @@
 import base64
 import json
 from datetime import date, timedelta
-from unittest import mock
+from unittest import mock, skipIf
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -36,7 +36,7 @@ def _firmar(clave_privada, uuid_, cliente, vence, producto="tllr_fc", version_od
         padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
         hashes.SHA256())
     b64 = lambda data: base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
-    return "TLLRFC1.%s.%s" % (b64(datos), b64(firma))
+    return "FC_PY1.%s.%s" % (b64(datos), b64(firma))
 
 
 @tagged('post_install', '-at_install')
@@ -62,7 +62,7 @@ class Test032Licencia(TallerCommon):
             tllr_fc_decodificar_licencia(codigo)
 
     def test_02_codigo_vacio_o_con_formato_incorrecto(self):
-        for malo in ("", "   ", "cualquier-cosa", "TLLRFC1.solo-dos-partes"):
+        for malo in ("", "   ", "cualquier-cosa", "FC_PY1.solo-dos-partes"):
             with self.assertRaises(ValueError):
                 tllr_fc_decodificar_licencia(malo)
 
@@ -79,7 +79,7 @@ class Test032Licencia(TallerCommon):
             padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
             hashes.SHA256())
         b64 = lambda data: base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
-        codigo = "TLLRFC1.%s.%s" % (b64(datos), b64(firma))
+        codigo = "FC_PY1.%s.%s" % (b64(datos), b64(firma))
         with mock.patch.object(
                 _tllr_fc_licencia_mod, '_tllr_fc_obtener_clave_publica',
                 return_value=self.clave_prueba.public_key()):
@@ -102,11 +102,17 @@ class Test032Licencia(TallerCommon):
     def _forzar(self):
         return self.env.companies.with_context(tllr_fc_licencia_forzar_test=True)
 
+    @skipIf(not _tllr_fc_licencia_mod.TLLR_FC_LICENCIA_OBLIGATORIA,
+            "Build de partner: TLLR_FC_LICENCIA_OBLIGATORIA = False, el control de "
+            "licencia está desactivado por diseño y no hay nada que bloquear aquí.")
     def test_05_sin_licencia_no_se_puede_crear(self):
         self.env.company.tllr_fc_licencia_codigo = False
         with self.assertRaises(UserError):
             self._forzar().env['tllr_fc.marca'].create({'name': "Marca sin licencia"})
 
+    @skipIf(not _tllr_fc_licencia_mod.TLLR_FC_LICENCIA_OBLIGATORIA,
+            "Build de partner: TLLR_FC_LICENCIA_OBLIGATORIA = False, el control de "
+            "licencia está desactivado por diseño y no hay nada que bloquear aquí.")
     def test_06_licencia_de_otra_base_no_sirve(self):
         codigo = _firmar(self.clave_prueba, "otra-base-distinta", "Cliente X", "2099-01-01")
         self.env.company.with_context(tllr_fc_licencia_forzar_test=True).write({
@@ -121,6 +127,9 @@ class Test032Licencia(TallerCommon):
         marca = self.env['tllr_fc.marca'].create({'name': "Marca sin forzar control"})
         self.assertTrue(marca.id)
 
+    @skipIf(not _tllr_fc_licencia_mod.TLLR_FC_LICENCIA_OBLIGATORIA,
+            "Build de partner: TLLR_FC_LICENCIA_OBLIGATORIA = False, el control de "
+            "licencia está desactivado por diseño y no hay nada que bloquear aquí.")
     def test_08_edicion_de_ot_en_curso_tambien_se_bloquea(self):
         self.env.company.tllr_fc_licencia_codigo = False
         ot = self._ot_planificada()
@@ -181,6 +190,9 @@ class Test032Licencia(TallerCommon):
             self.assertEqual(self.env.company.tllr_fc_licencia_estado, 'otra_version')
             self.assertFalse(self.env.company._tllr_fc_licencia_valida())
 
+    @skipIf(not _tllr_fc_licencia_mod.TLLR_FC_LICENCIA_OBLIGATORIA,
+            "Build de partner: TLLR_FC_LICENCIA_OBLIGATORIA = False, el control de "
+            "licencia está desactivado por diseño y no hay nada que bloquear aquí.")
     def test_13_licencia_de_otra_version_tambien_bloquea_la_creacion(self):
         version_actual = tllr_fc_version_odoo_instalada()
         with self._mock_clave_publica():

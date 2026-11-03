@@ -9,7 +9,7 @@ firma las licencias de todos los productos de FC_Py (Taller, local_py, l10n_py);
 código de licencia identifica a qué producto corresponde (campo `p`), así que el
 código de un producto no sirve para activar otro.
 
-El código de licencia tiene el formato "TLLRFC1.<datos>.<firma>" (base64 URL-safe),
+El código de licencia tiene el formato "FC_PY1.<datos>.<firma>" (base64 URL-safe),
 con los datos: producto (`p`, debe ser "tllr_fc"), identificador de la base de datos
 (`database.uuid`), nombre del cliente, fecha de vencimiento y versión de Odoo
 autorizada (`m`, desde 2026.19.034 — ver más abajo). `tllr_fc_decodificar_licencia`
@@ -46,7 +46,10 @@ try:
 except ImportError:  # pragma: no cover - entorno sin la librería `cryptography`
     _TLLR_FC_CRYPTO_DISPONIBLE = False
 
-TLLR_FC_LICENCIA_PREFIJO = "TLLRFC1"
+# Prefijo fijo del formato de licencia de FC_Py: es el MISMO para todos sus
+# productos (Taller, local_py, l10n_py); no se elige uno distinto por producto.
+# Lo que identifica al producto es el campo `p` del payload (ver más abajo).
+TLLR_FC_LICENCIA_PREFIJO = "FC_PY1"
 TLLR_FC_LICENCIA_PRODUCTO = "tllr_fc"
 
 # Interruptor de build. `True`: build normal, con control de licencia (el que FC_Py
