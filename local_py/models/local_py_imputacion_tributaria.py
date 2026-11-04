@@ -5,6 +5,7 @@ from odoo import models, fields
 
 class L10nPyImputacionTributaria(models.Model):
     _name = 'local_py.imputacion_tributaria'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Imputación Tributaria (Paraguay)'
     _order = 'sequence, id'
 

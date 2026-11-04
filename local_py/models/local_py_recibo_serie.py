@@ -6,6 +6,7 @@ from odoo.exceptions import ValidationError
 
 class LocalPyReciboSerie(models.Model):
     _name = 'local_py.recibo.serie'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Serie de Recibo'
     _order = 'id desc'
 

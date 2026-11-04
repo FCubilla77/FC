@@ -9,7 +9,7 @@ from .local_py_libro_report import fmt_pyg
 class LocalPyRecibo(models.Model):
     _name = 'local_py.recibo'
     _description = 'Recibo'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _order = 'id desc'
 
     def _default_serie_id(self):

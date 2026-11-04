@@ -5,6 +5,7 @@ from odoo import api, fields, models, exceptions
 
 class LocalPyDocumentoAnulado(models.Model):
     _name = 'local_py.documento_anulado'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Documento Anulado (número no utilizado, a omitir en la numeración)'
     _order = 'diario_id, numero'
 

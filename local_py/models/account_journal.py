@@ -3,8 +3,26 @@ import re
 
 from odoo import models, fields, api, exceptions
 
+from .local_py_licencia import local_py_licencia_verificar
+
 # Máximo permitido para un campo de 8 dígitos (99.999.999)
 TIMBRADO_MAX = 99999999
+
+# Campos de numeración fiscal del Diario que exigen licencia vigente para
+# configurarse o modificarse. El control es deliberadamente quirúrgico: solo se
+# verifica la licencia cuando la operación toca uno de estos campos, nunca en un
+# create/write común de account.journal (que Odoo dispara internamente en muchos
+# flujos). Así, sin licencia no se puede dar de alta ni cambiar una numeración
+# fiscal, pero el resto del diario — y la emisión de facturas con los diarios ya
+# configurados — sigue funcionando.
+CAMPOS_LICENCIA_TIMBRADO = (
+    'l10n_py_timbrado',
+    'l10n_py_nro_documento',
+    'l10n_py_nro_documento_final',
+    'l10n_py_venc_timbrado',
+    'l10n_py_inicio_vigencia_timbrado',
+    'local_py_tipo_fiscal_id',
+)
 
 # Solo se permiten números y el carácter '-'
 NRO_DOCUMENTO_PATTERN = re.compile(r'^[0-9-]*$')
@@ -209,7 +227,23 @@ class AccountJournal(models.Model):
             return True
         return bool(self.env['local_py.documento_anulado'].search_count([('diario_id', '=', self.id)]))
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Exige licencia vigente solo si el diario nace ya con datos de
+        numeración fiscal; un diario común (banco, caja, etc.) no se bloquea."""
+        Company = self.env['res.company']
+        for vals in vals_list:
+            if any(vals.get(campo) for campo in CAMPOS_LICENCIA_TIMBRADO):
+                local_py_licencia_verificar(
+                    self.env,
+                    Company.browse(vals['company_id']) if vals.get('company_id') else None)
+        return super().create(vals_list)
+
     def write(self, vals):
+        # Exige licencia vigente solo si la escritura toca la numeración fiscal.
+        if any(campo in vals for campo in CAMPOS_LICENCIA_TIMBRADO):
+            for company in self.mapped('company_id') or self.env.company:
+                local_py_licencia_verificar(self.env, company)
         if 'l10n_py_nro_documento' in vals:
             for journal in self:
                 if vals['l10n_py_nro_documento'] != journal.l10n_py_nro_documento \

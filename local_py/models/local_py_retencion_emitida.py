@@ -6,6 +6,7 @@ from odoo.exceptions import UserError
 
 class LocalPyRetencionEmitida(models.Model):
     _name = 'local_py.retencion_emitida'
+    _inherit = ['local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _description = 'Retención Emitida'
     _order = 'fecha desc'
 

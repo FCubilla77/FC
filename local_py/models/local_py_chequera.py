@@ -6,6 +6,7 @@ from odoo.exceptions import UserError, ValidationError
 
 class LocalPyChequera(models.Model):
     _name = 'local_py.chequera'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Chequera'
     _order = 'id desc'
 

@@ -19,8 +19,8 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.015",
-    "license": "LGPL-3",
+    "version": "2026.19.016",
+    "license": "OPL-1",
     "depends": ["base", "account", "base_address_extended", "mail", "stock", "stock_account"],
     "data": [
         "security/ir.model.access.csv",
@@ -72,6 +72,7 @@
         "views/libro_marangatu_views.xml",
         "views/config_paraguay_wizard_views.xml",
         "views/local_py_chart_of_accounts_menu.xml",
+        "views/res_config_settings_views.xml",
         "views/local_py_report_orden_pago.xml",
         "views/local_py_report_recibo.xml",
         "views/local_py_orden_pago_views.xml",

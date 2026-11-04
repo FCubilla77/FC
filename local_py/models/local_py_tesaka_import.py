@@ -9,6 +9,7 @@ from odoo.exceptions import UserError
 
 class LocalPyTesakaImport(models.Model):
     _name = 'local_py.tesaka_import'
+    _inherit = ['local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _description = 'Importación Tesaka (Retenciones levantadas/anuladas)'
     _order = 'fecha_importacion desc'
 

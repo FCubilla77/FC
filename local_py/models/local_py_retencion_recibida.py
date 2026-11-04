@@ -6,6 +6,7 @@ from odoo.exceptions import UserError, ValidationError
 
 class LocalPyRetencionRecibida(models.Model):
     _name = 'local_py.retencion_recibida'
+    _inherit = ['local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _description = 'Retención Recibida'
     _order = 'fecha desc'
 

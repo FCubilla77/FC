@@ -31,7 +31,7 @@ MAX_6_DIGITS = 999999
 class LocalPyRubrica(models.Model):
     _name = 'local_py.rubrica'
     _description = 'Rúbrica de Libros Contables'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'local_py.mixin.licencia']
     _order = 'fecha desc, id desc'
 
     company_id = fields.Many2one(

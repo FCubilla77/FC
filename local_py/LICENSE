@@ -1,0 +1,56 @@
+Copyright (c) 2026 FC_Py — Paraguay
+
+Módulo: local_py (Local_Py — Localización Fiscal Paraguay para Odoo 19 Community)
+
+Este software se licencia bajo la Odoo Proprietary License v1.0 (OPL-1).
+Texto oficial de la licencia:
+https://www.odoo.com/documentation/19.0/legal/licenses.html
+
+
+RESUMEN EN ESPAÑOL (no reemplaza al texto oficial)
+==================================================
+
+Lo que la licencia PERMITE a quien recibió una copia de este módulo:
+
+  * Usar el módulo, sin límite de usuarios, en las bases de datos de Odoo
+    autorizadas por FC_Py.
+  * Modificar el código para su propio uso y crear módulos que dependan de
+    este, para esas mismas bases de datos autorizadas.
+  * Recibir el código fuente del módulo.
+
+Lo que la licencia PROHÍBE:
+
+  * Distribuir, publicar, sublicenciar, vender, alquilar, ceder o poner a
+    disposición de terceros el módulo o cualquier parte de su código, con o
+    sin modificaciones, con o sin contraprestación.
+  * Usar el módulo en bases de datos distintas de las autorizadas.
+  * Quitar, alterar o eludir los avisos de copyright, de licencia o el
+    control técnico de licencia incorporado al módulo.
+
+
+CONTROL TÉCNICO DE LICENCIA
+===========================
+
+Este módulo incorpora un control que exige una licencia vigente, emitida por
+FC_Py y atada al identificador único de la base de datos del cliente y a la
+versión de Odoo para la que está preparada la edición instalada.
+
+La activación se hace en:
+  Localización Paraguay › Configuraciones › Licencia
+  (o bien Ajustes › Configuración local_py, sección «Licencia»)
+
+Sin una licencia válida, el módulo bloquea la creación de sus maestros, la
+creación y edición de sus documentos de trabajo en curso, la configuración de
+numeración fiscal (Timbrado) en los diarios y el asistente de restablecimiento
+de la configuración. La lectura, los informes, la emisión de facturas y la
+propia pantalla de licencia quedan siempre disponibles.
+
+
+PREVALENCIA DEL CONTRATO
+========================
+
+El contrato firmado entre FC_Py y el cliente (o entre FC_Py y el partner)
+prevalece sobre este archivo. Ante cualquier discrepancia entre este resumen,
+el texto oficial de OPL-1 y el contrato, rige el contrato.
+
+Contacto: FC_Py — Paraguay

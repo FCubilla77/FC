@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+            Sección propia "Configuración local_py" en Ajustes (aparece como ítem
+            propio en la barra lateral de Ajustes, por el name="local_py" del <app>,
+            igual al nombre técnico del módulo). Aloja la licencia del producto.
+            Esta pantalla queda siempre disponible, con o sin licencia válida: es la
+            única forma de cargar o renovar el código.
+        -->
+        <record id="res_config_settings_view_form_local_py" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.local_py</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="45"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app data-string="Configuración local_py" string="Configuración local_py"
+                         name="local_py" groups="account.group_account_manager">
+                        <block title="Licencia" name="local_py_licencia">
+                            <setting string="Código de la base"
+                                     help="Versión del módulo e identificador único de esta base de datos. Envíeselo a FC_Py, tal cual, para que emita o renueve la licencia.">
+                                <field name="local_py_licencia_uuid" readonly="1" widget="CopyClipboardChar"/>
+                            </setting>
+                            <setting string="Código de licencia"
+                                     help="Pegue acá el código que le entregó FC_Py, tal cual lo recibió.">
+                                <field name="local_py_licencia_codigo" nolabel="1"/>
+                                <div class="content-group mt16">
+                                    <div class="row mt4">
+                                        <label for="local_py_licencia_estado" class="col-lg-4 o_light_label"/>
+                                        <field name="local_py_licencia_estado" widget="badge"
+                                               decoration-success="local_py_licencia_estado == 'valida'"
+                                               decoration-warning="local_py_licencia_estado == 'sin_licencia'"
+                                               decoration-danger="local_py_licencia_estado in ('vencida', 'invalida', 'otra_version')"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not local_py_licencia_cliente">
+                                        <label for="local_py_licencia_cliente" class="col-lg-4 o_light_label"/>
+                                        <field name="local_py_licencia_cliente" readonly="1"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not local_py_licencia_vencimiento">
+                                        <label for="local_py_licencia_vencimiento" class="col-lg-4 o_light_label"/>
+                                        <field name="local_py_licencia_vencimiento" readonly="1"/>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="local_py_licencia_estado != 'otra_version'">
+                                    Este código de licencia corresponde a otra versión del módulo. Después de actualizar Local_Py hay que pedirle a FC_Py un código nuevo, usando el «Código de la base» actual.
+                                </div>
+                                <div class="alert alert-danger mt-2" role="alert"
+                                     invisible="local_py_licencia_estado == 'valida'">
+                                    Sin una licencia válida, Local_Py bloquea la carga de nuevos maestros (Tipo Fiscal, Conceptos, Rúbricas, Chequeras, Series de Recibo, Documentos Anulados), la creación y edición de los documentos en curso (Recibos, Órdenes de Pago, Cheques de Clientes, Retenciones y Tesaka), las Configuraciones Localización Py y la configuración de Timbrado en los diarios. La lectura, los informes, la emisión de facturas y esta pantalla de Ajustes quedan siempre disponibles.
+                                </div>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Atajo desde el menú propio del módulo, para no obligar al cliente a
+             entrar por Ajustes. Abre la misma pantalla, posicionada en el bloque
+             de local_py. -->
+        <record id="action_local_py_config_settings" model="ir.actions.act_window">
+            <field name="name">Licencia</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">inline</field>
+            <field name="context">{'module': 'local_py'}</field>
+        </record>
+
+        <menuitem id="menu_local_py_licencia"
+                  name="Licencia"
+                  parent="local_py.menu_local_py_configuraciones"
+                  action="action_local_py_config_settings"
+                  groups="account.group_account_manager"
+                  sequence="90"/>
+
+    </data>
+</odoo>

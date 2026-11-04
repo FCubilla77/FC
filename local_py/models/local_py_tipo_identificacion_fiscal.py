@@ -5,6 +5,7 @@ from odoo import models, fields
 
 class L10nPyTipoIdentificacionFiscal(models.Model):
     _name = 'local_py.tipo_identificacion_fiscal'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Tipo de Identificación Fiscal (Paraguay)'
     _order = 'sequence, id'
 

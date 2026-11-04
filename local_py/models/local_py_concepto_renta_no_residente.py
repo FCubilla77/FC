@@ -5,6 +5,7 @@ from odoo import models, fields
 
 class LocalPyConceptoRentaNoResidente(models.Model):
     _name = 'local_py.concepto_renta_no_residente'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Concepto Renta No Residente (INR — Retenciones a Proveedores del Exterior)'
     _order = 'sequence, id'
 

@@ -6,6 +6,7 @@ from odoo.exceptions import UserError, ValidationError
 
 class LocalPyChequeCliente(models.Model):
     _name = 'local_py.cheque_cliente'
+    _inherit = ['local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _description = 'Cheque de Cliente'
     _order = 'id desc'
 

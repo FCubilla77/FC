@@ -5,6 +5,7 @@ from odoo import models, fields
 
 class LocalPyConceptoIva(models.Model):
     _name = 'local_py.concepto_iva'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Concepto IVA (Retenciones — DNIT/Tesaka)'
     _order = 'sequence, id'
 

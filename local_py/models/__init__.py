@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# El nucleo de licencia va primero: otros modelos de este paquete lo importan.
+from . import local_py_licencia
+from . import local_py_licencia_mixin
+
 from . import res_partner
 from . import account_fiscal_position
 from . import res_company
@@ -43,3 +47,4 @@ from . import local_py_cheque_cliente
 from . import local_py_recibo_factura
 from . import local_py_recibo_medio
 from . import local_py_recibo
+from . import res_config_settings

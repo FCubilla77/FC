@@ -6,6 +6,7 @@ from odoo.exceptions import ValidationError
 
 class LocalPyNoRetencion(models.Model):
     _name = 'local_py.no_retencion'
+    _inherit = ['local_py.mixin.licencia']
     _description = 'Resolución de No Retención'
     _order = 'fecha_desde desc'
 

@@ -5,6 +5,7 @@ from odoo import api, exceptions, fields, models
 
 class LocalPyConfiguracionLocalizacion(models.Model):
     _name = 'local_py.configuracion_localizacion'
+    _inherit = ['local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _description = 'Configuraciones de Localización Paraguay'
 
     company_id = fields.Many2one(

@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 class LocalPyOrdenPago(models.Model):
     _name = 'local_py.orden_pago'
     _description = 'Orden de Pago'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'local_py.mixin.licencia', 'local_py.mixin.licencia.edicion']
     _order = 'fecha desc, id desc'
 
     name = fields.Char(string='Número', default='Nuevo', copy=False, readonly=True)
