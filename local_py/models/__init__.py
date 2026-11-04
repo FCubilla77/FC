@@ -16,7 +16,6 @@ from . import account_account
 from . import account_move
 from . import account_move_line
 from . import account_move_marangatu
-from . import local_py_plan_cuentas_report
 from . import local_py_rubrica
 from . import local_py_configuracion_localizacion
 from . import local_py_libro_report

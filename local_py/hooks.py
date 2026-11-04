@@ -14,9 +14,8 @@ _logger = logging.getLogger(__name__)
 #
 # local_py continúa haciéndose cargo de todo lo que ese paquete nativo no
 # cubre: Tipo Fiscal, RUT, Timbrado/Nro. Documento, Libro Ventas/Compras,
-# el reporte de Plan de Cuentas (que sigue funcionando igual, ya que lee
-# account.account/account.group en tiempo real sin importar qué módulo
-# cargó esos datos), y el refuerzo de permisos contables.
+# y el refuerzo de permisos contables. El reporte de Plan de Cuentas lo
+# provee el módulo l10n_py (ver views/local_py_chart_of_accounts_menu.xml).
 
 # Grupo base cuyos usuarios deben recibir automáticamente el grupo
 # complementario de abajo (Requerimiento: acceso contable a cuentas de
@@ -284,7 +283,6 @@ def configure_paraguay(env):
       - Creación de los Diarios de Retención (IVA, Renta, Recibida) y de
         Cheques de Clientes, y completado de las Cuentas de Configuraciones
         Localización Py desde el plan de cuentas de l10n_py.
-      - Reconstrucción del reporte de Plan de Cuentas.
 
     Es seguro invocarla más de una vez (instalación y, manualmente, desde el
     asistente de reconfiguración).
@@ -294,8 +292,6 @@ def configure_paraguay(env):
     _backfill_tipo_fiscal_codes(env)
     _backfill_partner_tipo_identificacion(env)
     _configure_diarios_y_cuentas(env)
-
-    env['local_py.plan_cuentas.report'].sudo()._rebuild()
 
     _logger.info("local_py: configuración de Paraguay (local_py) aplicada correctamente.")
 

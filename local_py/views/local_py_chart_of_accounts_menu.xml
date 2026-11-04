@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Acceso directo al Plan de Cuentas estándar de Odoo (account.account),
+             disponible en Community; se ubica en el menú propio "Localización
+             Paraguay" para no depender de los permisos más restrictivos de
+             Contabilidad > Configuración.
+
+             El reporte "Plan de Cuentas" (listado jerárquico de Títulos e
+             Imputables con filtro por Nivel 1, en Contabilidad > Reportes) lo
+             provee el módulo l10n_py; local_py ya no lo duplica. -->
+        <menuitem id="menu_l10n_py_chart_of_accounts"
+                  name="Plan de Cuentas (editar cuentas)"
+                  parent="local_py.menu_local_py_datos_maestros"
+                  action="account.action_account_form"
+                  sequence="10"/>
+    </data>
+</odoo>

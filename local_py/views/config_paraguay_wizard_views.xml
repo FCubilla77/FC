@@ -18,8 +18,6 @@
                         iniciada, Odoo puede rechazar este cambio puntual; el resto de
                         la acción se aplica igual).
                         <br/>
-                        - Reconstruye el reporte Plan de Cuentas.
-                        <br/>
                         <br/>
                         No modifica las validaciones de RUT en contactos, ni los campos
                         Timbrado/Nro. Documento en diarios y facturas — esas
