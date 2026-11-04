@@ -122,18 +122,19 @@ class AccountChartTemplate(models.AbstractModel):
                 # Anglo-Saxon). Ambos quedan a criterio del usuario cuando
                 # cree sus propias categorías de producto.
 
-                # Recibos/Pagos Pendientes ("Outstanding Receipts/Payments"):
-                # en Odoo 19 NO son campos directos del diario — el diario
-                # los toma de estas cuentas a nivel COMPAÑÍA, y Odoo las
-                # aplica automáticamente a las líneas de método de pago de
-                # los diarios de banco que pertenezcan a este chart_template
-                # (ver account_journal.py:_assign_outsanding_account_to_
-                # payment_method_lines, 19.0). No hay forma de fijarlas por
-                # diario individualmente en la plantilla — quedan como
-                # default de compañía, que el usuario puede cambiar por
-                # diario después si lo necesita.
-                'account_journal_payment_debit_account_id': 'py_1_01_01_03_005',
-                'account_journal_payment_credit_account_id': 'py_1_01_01_03_006',
+                # Cuenta transitoria de bancos (suspense) a nivel COMPAÑÍA: Odoo
+                # la espera aquí (como l10n_es, l10n_fr, etc.). Si no se define, crea
+                # por su cuenta "Bank Suspense Account" con el prefijo de bancos.
+                'account_journal_suspense_account_id': 'py_1_01_01_03_004',
+
+                # Recibos/Pagos Pendientes ("Outstanding Receipts/Payments"): NO
+                # son campos de la compañía en Odoo 19 y no se pueden indicar aquí.
+                # Odoo los busca por xmlid 'account.<id_compañía>_account_journal_
+                # payment_debit_account_id' / '..._credit_account_id' y, si no
+                # existen, crea los suyos en inglés. Por eso nuestras cuentas
+                # RECIBOS PENDIENTES (1.01.01.03.005) y PAGOS PENDIENTES
+                # (1.01.01.03.006) se declaran en account.account-py.csv con
+                # EXACTAMENTE esos ids: Odoo las encuentra y no crea duplicados.
             },
         }
 
@@ -147,7 +148,10 @@ class AccountChartTemplate(models.AbstractModel):
         propias cuentas de banco).
         """
         return {
-            'bank_py': {
+            # Clave 'bank' (no 'bank_py'): personaliza el diario de banco que Odoo
+            # ya crea por defecto, en lugar de agregar un segundo diario "Bank"
+            # (con su propia cuenta 1.01.01.03.007 sobrante).
+            'bank': {
                 'name': 'Banco',
                 'type': 'bank',
                 'default_account_id': 'py_1_01_01_03_003',
