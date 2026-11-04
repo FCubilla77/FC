@@ -25,7 +25,7 @@ from odoo.addons.l10n_py.models.l10n_py_licencia import (
 
 
 def _firmar(clave_privada, uuid_, cliente, vence, producto="l10n_py", version_odoo=None,
-            prefijo="L10NPY1"):
+            prefijo="FC_PY1"):
     """Genera un código de licencia como lo haría el script de FC_Py, pero firmado con
     una clave de prueba (nunca la clave privada real).
 
@@ -88,7 +88,7 @@ class TestLicenciaL10nPy(TransactionCase):
             l10n_py_decodificar_licencia(codigo)
 
     def test_02_codigo_vacio_o_con_formato_incorrecto(self):
-        for malo in ("", "   ", "cualquier-cosa", "L10NPY1.solo-dos-partes",
+        for malo in ("", "   ", "cualquier-cosa", "FC_PY1.solo-dos-partes",
                      "TLLRFC1.a.b", "OTRO.a.b"):
             with self.assertRaises(ValueError):
                 l10n_py_decodificar_licencia(malo)
@@ -101,7 +101,7 @@ class TestLicenciaL10nPy(TransactionCase):
             padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
             hashes.SHA256())
         b64 = lambda data: base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
-        codigo = "L10NPY1.%s.%s" % (b64(datos), b64(firma))
+        codigo = "FC_PY1.%s.%s" % (b64(datos), b64(firma))
         with self._mock_clave_publica():
             with self.assertRaisesRegex(ValueError, "contenido"):
                 l10n_py_decodificar_licencia(codigo)
@@ -110,8 +110,18 @@ class TestLicenciaL10nPy(TransactionCase):
         codigo = _firmar(self.clave_prueba, self.uuid_base, "Cliente X", self.manana,
                          producto="tllr_fc")
         with self._mock_clave_publica():
-            with self.assertRaisesRegex(ValueError, "producto"):
+            with self.assertRaisesRegex(ValueError, "otro_producto"):
                 l10n_py_decodificar_licencia(codigo)
+
+    def test_02e_el_prefijo_del_formato_es_el_compartido_de_fc_py(self):
+        # El prefijo es fijo para todos los productos de FC_Py; un código con el
+        # prefijo propio de otro esquema (L10NPY1) debe rechazarse por formato.
+        codigo = _firmar(self.clave_prueba, self.uuid_base, "Cliente X", self.manana)
+        self.assertTrue(codigo.startswith("FC_PY1."))
+        propio = "L10NPY1." + codigo.split(".", 1)[1]
+        with self._mock_clave_publica():
+            with self.assertRaisesRegex(ValueError, "formato"):
+                l10n_py_decodificar_licencia(propio)
 
     def test_02d_codigo_firmado_correctamente_se_decodifica(self):
         codigo = _firmar(self.clave_prueba, self.uuid_base, "Cliente X", self.manana)
@@ -206,6 +216,14 @@ class TestLicenciaL10nPy(TransactionCase):
             with self.assertRaises(UserError):
                 cierre.with_context(l10n_py_licencia_forzar_test=True).write(
                     {'resultado_ejercicio': 9.0})
+
+    def test_13b_licencia_de_otra_version_bloquea_la_creacion(self):
+        with self._mock_clave_publica():
+            self.company.l10n_py_licencia_codigo = _firmar(
+                self.clave_prueba, self.uuid_base, "Cliente X", self.manana,
+                version_odoo=l10n_py_version_odoo_instalada() + 1)
+            with self.assertRaises(UserError):
+                self._cierre_forzado().create(self._cierre_vals())
 
     def test_14_sin_control_forzado_no_se_bloquea_en_pruebas(self):
         self.company.l10n_py_licencia_codigo = False

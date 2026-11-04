@@ -10,7 +10,7 @@ código de licencia identifica a qué producto corresponde (campo `p`), así que
 código de un producto no sirve para activar otro. Este módulo es autosuficiente: no
 importa nada de otros módulos de FC_Py ni requiere que estén instalados.
 
-El código de licencia tiene el formato "L10NPY1.<datos>.<firma>" (base64 URL-safe),
+El código de licencia tiene el formato "FC_PY1.<datos>.<firma>" (base64 URL-safe),
 con los datos: producto (`p`, debe ser "l10n_py"), identificador de la base de datos
 (`database.uuid`), nombre del cliente, fecha de vencimiento y versión de Odoo
 autorizada (`m`). `l10n_py_decodificar_licencia` lo valida.
@@ -51,7 +51,7 @@ try:
 except ImportError:  # pragma: no cover - entorno sin la librería `cryptography`
     _L10N_PY_CRYPTO_DISPONIBLE = False
 
-L10N_PY_LICENCIA_PREFIJO = "L10NPY1"
+L10N_PY_LICENCIA_PREFIJO = "FC_PY1"
 L10N_PY_LICENCIA_PRODUCTO = "l10n_py"
 L10N_PY_CODIGO_PAQUETE_FISCAL = "py"
 
@@ -142,7 +142,7 @@ def l10n_py_decodificar_licencia(codigo):
             clave in payload for clave in ('p', 'u', 'c', 'v', 'm')):
         raise ValueError("contenido")
     if payload['p'] != L10N_PY_LICENCIA_PRODUCTO:
-        raise ValueError("producto")
+        raise ValueError("otro_producto")
     version_odoo = payload['m']
     if isinstance(version_odoo, bool) or not isinstance(version_odoo, int):
         raise ValueError("contenido")
