@@ -33,8 +33,8 @@ NIVEL_1_LABELS = [
     ('1', '1 - Activo'),
     ('2', '2 - Pasivo'),
     ('3', '3 - Patrimonio Neto'),
-    ('4', '4 - Ingresos Operativos'),
-    ('5', '5 - Costos Operativos'),
+    ('4', '4 - Ingresos'),
+    ('5', '5 - Costos'),
     ('6', '6 - Otros Ingresos'),
     ('7', '7 - Gastos'),
 ]

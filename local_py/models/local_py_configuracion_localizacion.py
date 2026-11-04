@@ -111,11 +111,19 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'que se confirme contra el archivo de Marangatu de la DNIT (o se mapee a '
              'mano) — recién ahí se reclasifica a "Retenciones Recibidas".',
     )
-    l10n_py_cuenta_retenciones_recibidas_id = fields.Many2one(
-        'account.account', string='Cuenta "Retenciones Recibidas"',
+    l10n_py_cuenta_retenciones_recibidas_iva_id = fields.Many2one(
+        'account.account', string='Cuenta "Retenciones Recibidas" (IVA)',
         domain="[('company_ids', 'in', company_id)]",
-        help='Cuenta de Activo (crédito fiscal) donde se reclasifica una Retención '
-             'Recibida una vez confirmada contra la DNIT.',
+        help='Cuenta de Activo (crédito fiscal) donde se reclasifica la porción de IVA '
+             'de una Retención Recibida, una vez confirmada contra la DNIT. El '
+             'desglose IVA/Renta se toma del archivo de Marangatu al procesarlo '
+             '(Fase 2) — un mismo comprobante de retención puede traer las dos.',
+    )
+    l10n_py_cuenta_retenciones_recibidas_renta_id = fields.Many2one(
+        'account.account', string='Cuenta "Retenciones Recibidas" (Renta)',
+        domain="[('company_ids', 'in', company_id)]",
+        help='Igual que la Cuenta "Retenciones Recibidas" (IVA), para la porción de '
+             'Renta del mismo comprobante.',
     )
     l10n_py_cuenta_retenciones_diferencia_id = fields.Many2one(
         'account.account', string='Cuenta "Diferencia" (Retenciones Recibidas)',
@@ -175,25 +183,28 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                 )
 
     @api.constrains(
-        'l10n_py_cuenta_retencion_a_confirmar_id', 'l10n_py_cuenta_retenciones_recibidas_id',
+        'l10n_py_cuenta_retencion_a_confirmar_id',
+        'l10n_py_cuenta_retenciones_recibidas_iva_id',
+        'l10n_py_cuenta_retenciones_recibidas_renta_id',
         'l10n_py_cuenta_retenciones_diferencia_id',
     )
     def _check_cuentas_retencion_recibida_distintas(self):
         for config in self:
-            cuentas = config.l10n_py_cuenta_retencion_a_confirmar_id | config.l10n_py_cuenta_retenciones_recibidas_id | config.l10n_py_cuenta_retenciones_diferencia_id
             cuentas_cargadas = [
                 c for c in (
                     config.l10n_py_cuenta_retencion_a_confirmar_id,
-                    config.l10n_py_cuenta_retenciones_recibidas_id,
+                    config.l10n_py_cuenta_retenciones_recibidas_iva_id,
+                    config.l10n_py_cuenta_retenciones_recibidas_renta_id,
                     config.l10n_py_cuenta_retenciones_diferencia_id,
                 ) if c
             ]
+            cuentas = self.env['account.account'].browse([c.id for c in cuentas_cargadas])
             if len(cuentas_cargadas) != len(cuentas):
                 raise exceptions.ValidationError(
-                    'Las Cuentas "Retenido a Confirmar", "Retenciones Recibidas" y '
-                    '"Diferencia" (Retenciones Recibidas) tienen que ser 3 Cuentas '
-                    'distintas entre sí — si dos apuntan a la misma, el asiento de '
-                    'reclasificación contra la DNIT queda contablemente invisible '
+                    'Las Cuentas "Retenido a Confirmar", "Retenciones Recibidas (IVA)", '
+                    '"Retenciones Recibidas (Renta)" y "Diferencia" tienen que ser 4 '
+                    'Cuentas distintas entre sí — si dos apuntan a la misma, el asiento '
+                    'de reclasificación contra la DNIT queda contablemente invisible '
                     '(débito y crédito a la misma Cuenta).'
                 )
 

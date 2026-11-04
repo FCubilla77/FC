@@ -153,6 +153,127 @@ def _backfill_partner_tipo_identificacion(env):
         )
 
 
+def _buscar_cuenta(env, company, code):
+    """Busca una cuenta por su Código dentro de la Compañía.
+
+    No se referencian por ID externo (l10n_py.py_1_01_...) porque el sistema
+    de plantillas de Odoo crea una copia por Compañía, con un ID externo
+    distinto al del template — buscar por Código es lo que funciona igual en
+    mono y multi-compañía."""
+    return env['account.account'].sudo().search([
+        ('code', '=', code),
+        ('company_ids', 'in', company.id),
+    ], limit=1)
+
+
+# Diarios que local_py necesita para operar, con la Cuenta del plan de
+# l10n_py que les corresponde. Los Diarios de VENTA (Factura, Nota de
+# Crédito, Nota de Débito) quedan deliberadamente afuera: exigen Timbrado,
+# Nro. Documento, Nro. Documento Final y fechas de vigencia — datos reales
+# del timbrado asignado por la DNIT, que solo puede cargar el usuario.
+DIARIOS_LOCAL_PY = [
+    # (campo en Configuración, nombre, código, tipo, código de cuenta)
+    ('l10n_py_diario_retencion_iva_id', 'Retención IVA', 'RIVA', 'general', '2.01.03.01.004'),
+    ('l10n_py_diario_retencion_renta_id', 'Retención Renta', 'RRTA', 'general', '2.01.03.01.004'),
+    ('l10n_py_diario_retencion_recibida_id', 'Retención Recibida', 'RREC', 'general', '1.01.03.02.006'),
+    ('l10n_py_diario_cheque_cliente_id', 'Cheques de Clientes', 'CHCL', 'bank', '1.01.01.01.004'),
+]
+
+# Cuentas de Configuraciones Localización Py, por Código del plan de l10n_py.
+CUENTAS_LOCAL_PY = [
+    ('l10n_py_cuenta_gasto_absorcion_id', '7.02.17.01.001'),
+    ('l10n_py_cuenta_gasto_absorcion_renta_id', '7.02.17.01.001'),
+    ('l10n_py_cuenta_retencion_a_confirmar_id', '1.01.03.02.006'),
+    ('l10n_py_cuenta_retenciones_recibidas_iva_id', '1.01.03.02.002'),
+    ('l10n_py_cuenta_retenciones_recibidas_renta_id', '1.01.03.02.005'),
+]
+
+
+def _configure_diarios_y_cuentas(env):
+    """Crea los Diarios que local_py necesita (Retención IVA, Retención
+    Renta, Retención Recibida y Cheques de Clientes) y completa las Cuentas
+    de Configuraciones Localización Py, tomándolas del plan de cuentas de
+    l10n_py por su Código.
+
+    Es idempotente y no invasiva: solo crea un Diario si no existe otro con
+    el mismo código en esa Compañía, y solo completa un campo de
+    Configuración que esté vacío — nunca pisa una elección hecha a mano.
+    Si el plan de l10n_py todavía no está instalado en una Compañía, esa
+    Compañía se saltea con un aviso en el log, sin cortar el proceso.
+    """
+    Journal = env['account.journal'].sudo()
+    Config = env['local_py.configuracion_localizacion'].sudo()
+
+    for company in env['res.company'].sudo().search([]):
+        # Si no encuentra ni una de las cuentas esperadas, esta Compañía no
+        # tiene cargado el plan de l10n_py — no tiene sentido seguir.
+        if not _buscar_cuenta(env, company, '1.01.03.02.006'):
+            _logger.info(
+                "local_py: la compañía '%s' no tiene el plan de cuentas de l10n_py "
+                "cargado — se omite la configuración automática de Diarios y Cuentas.",
+                company.name,
+            )
+            continue
+
+        config = Config.search([('company_id', '=', company.id)], limit=1)
+        if not config:
+            config = Config.create({'company_id': company.id})
+            _logger.info(
+                "local_py: se creó el registro de Configuraciones Localización Py para "
+                "la compañía '%s'.", company.name,
+            )
+
+        vals_config = {}
+
+        for campo, nombre, codigo_diario, tipo, codigo_cuenta in DIARIOS_LOCAL_PY:
+            if config[campo]:
+                continue  # ya configurado a mano — no se toca
+            journal = Journal.search([
+                ('code', '=', codigo_diario), ('company_id', '=', company.id),
+            ], limit=1)
+            if not journal:
+                cuenta = _buscar_cuenta(env, company, codigo_cuenta)
+                if not cuenta:
+                    _logger.warning(
+                        "local_py: no se encontró la Cuenta %s en la compañía '%s' — no se "
+                        "creó el Diario '%s'. Créelo a mano desde Contabilidad > "
+                        "Configuración > Diarios.",
+                        codigo_cuenta, company.name, nombre,
+                    )
+                    continue
+                journal = Journal.create({
+                    'name': nombre,
+                    'code': codigo_diario,
+                    'type': tipo,
+                    'company_id': company.id,
+                    'default_account_id': cuenta.id,
+                })
+                _logger.info(
+                    "local_py: Diario '%s' (%s) creado en la compañía '%s' con la Cuenta %s.",
+                    nombre, codigo_diario, company.name, codigo_cuenta,
+                )
+            vals_config[campo] = journal.id
+
+        for campo, codigo_cuenta in CUENTAS_LOCAL_PY:
+            if config[campo]:
+                continue  # ya configurado a mano — no se toca
+            cuenta = _buscar_cuenta(env, company, codigo_cuenta)
+            if cuenta:
+                vals_config[campo] = cuenta.id
+            else:
+                _logger.warning(
+                    "local_py: no se encontró la Cuenta %s en la compañía '%s' — el campo "
+                    "'%s' queda sin completar.", codigo_cuenta, company.name, campo,
+                )
+
+        if vals_config:
+            config.write(vals_config)
+            _logger.info(
+                "local_py: Configuraciones Localización Py completada automáticamente para "
+                "la compañía '%s' (%s campo(s)).", company.name, len(vals_config),
+            )
+
+
 def configure_paraguay(env):
     """Punto de entrada único de los ajustes de local_py que no forman
     parte del paquete nativo de Localización Fiscal (l10n_py):
@@ -160,6 +281,9 @@ def configure_paraguay(env):
       - Visualización de precios/impuestos incluidos.
       - Códigos oficiales de Tipo Fiscal y Tipo de Identificación Fiscal por
         defecto en contactos existentes.
+      - Creación de los Diarios de Retención (IVA, Renta, Recibida) y de
+        Cheques de Clientes, y completado de las Cuentas de Configuraciones
+        Localización Py desde el plan de cuentas de l10n_py.
       - Reconstrucción del reporte de Plan de Cuentas.
 
     Es seguro invocarla más de una vez (instalación y, manualmente, desde el
@@ -169,6 +293,7 @@ def configure_paraguay(env):
     _configure_tax_display(env)
     _backfill_tipo_fiscal_codes(env)
     _backfill_partner_tipo_identificacion(env)
+    _configure_diarios_y_cuentas(env)
 
     env['local_py.plan_cuentas.report'].sudo()._rebuild()
 

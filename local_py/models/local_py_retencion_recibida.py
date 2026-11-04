@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class LocalPyRetencionRecibida(models.Model):
@@ -32,11 +32,41 @@ class LocalPyRetencionRecibida(models.Model):
     )
     importe_dnit = fields.Monetary(
         string='Importe DNIT', currency_field='currency_id', copy=False,
-        help='Importe oficial informado por el archivo de Marangatu de la DNIT (Fase '
-             '2) — se completa recién al procesar ese archivo. Si difiere del '
+        help='Importe oficial total informado por el archivo de Marangatu de la DNIT '
+             '(Fase 2) — se completa recién al procesar ese archivo. Si difiere del '
              'Importe, la diferencia se ajusta contra la Cuenta "Diferencia" al '
              'confirmar.',
     )
+    importe_dnit_iva = fields.Monetary(
+        string='Importe DNIT (IVA)', currency_field='currency_id', copy=False,
+        help='Porción de IVA del Importe DNIT, según el desglose que trae el archivo '
+             'de Marangatu — un mismo comprobante de retención puede tener IVA y Renta '
+             'a la vez. Define cuánto se reclasifica a la Cuenta "Retenciones '
+             'Recibidas (IVA)" al confirmar (Fase 2).',
+    )
+    importe_dnit_renta = fields.Monetary(
+        string='Importe DNIT (Renta)', currency_field='currency_id', copy=False,
+        help='Porción de Renta del Importe DNIT — mismo criterio que el de IVA.',
+    )
+
+    @api.constrains('importe_dnit', 'importe_dnit_iva', 'importe_dnit_renta')
+    def _check_desglose_dnit(self):
+        """El desglose IVA + Renta tiene que cerrar contra el total DNIT.
+        Solo se valida una vez que hay un Importe DNIT cargado — mientras la
+        Retención está "A Confirmar" los 3 están en cero y no hay nada que
+        controlar."""
+        for retencion in self:
+            if not retencion.importe_dnit:
+                continue
+            suma = retencion.importe_dnit_iva + retencion.importe_dnit_renta
+            currency = retencion.currency_id or self.env.company.currency_id
+            if currency.compare_amounts(suma, retencion.importe_dnit) != 0:
+                raise ValidationError(
+                    'El desglose del Importe DNIT no cierra: IVA (%s) + Renta (%s) = %s, '
+                    'pero el Importe DNIT total es %s.'
+                    % (retencion.importe_dnit_iva, retencion.importe_dnit_renta, suma,
+                       retencion.importe_dnit)
+                )
 
     estado = fields.Selection(
         [

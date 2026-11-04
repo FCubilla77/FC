@@ -76,7 +76,8 @@
                                     <group string="Recibo — Retenciones Recibidas">
                                         <field name="l10n_py_diario_retencion_recibida_id" options="{'no_create': True}"/>
                                         <field name="l10n_py_cuenta_retencion_a_confirmar_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_retenciones_recibidas_id" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_retenciones_recibidas_iva_id" options="{'no_create': True}"/>
+                                        <field name="l10n_py_cuenta_retenciones_recibidas_renta_id" options="{'no_create': True}"/>
                                         <field name="l10n_py_cuenta_retenciones_diferencia_id" options="{'no_create': True}"/>
                                     </group>
                                     <group string="Recibo — Cheques de Clientes">

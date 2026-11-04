@@ -11,6 +11,8 @@
                     <field name="recibo_id"/>
                     <field name="importe"/>
                     <field name="importe_dnit"/>
+                    <field name="importe_dnit_iva" optional="show"/>
+                    <field name="importe_dnit_renta" optional="show"/>
                     <field name="numero_comprobante"/>
                     <field name="fecha_confirmacion"/>
                     <field name="estado" widget="badge"
@@ -42,6 +44,8 @@
                                 <field name="currency_id" invisible="1"/>
                                 <field name="importe" readonly="1"/>
                                 <field name="importe_dnit" readonly="1"/>
+                                <field name="importe_dnit_iva" readonly="1"/>
+                                <field name="importe_dnit_renta" readonly="1"/>
                                 <field name="numero_comprobante" readonly="1"/>
                                 <field name="fecha_confirmacion" readonly="1"/>
                                 <field name="control" readonly="1"/>
