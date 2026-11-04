@@ -5,4 +5,5 @@ from . import res_config_settings
 from . import chart_template_licencia
 from . import template_py
 from . import balance_general_report
+from . import plan_cuentas_report
 from . import cierre_ejercicio

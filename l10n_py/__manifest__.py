@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0015",
+    "version": "19.0.2026.0016",
     "category": "Accounting/Localizations/Account Charts",
     "license": "OPL-1",
     "author": "FC_Py",
@@ -9,7 +9,7 @@
                "impuestos, posiciones fiscales, plazos de pago, permisos "
                "contables, diario de banco de ejemplo, valores de compañía "
                "por defecto (account.chart.template), Balance General x "
-               "Grupos de Cuentas, Cierre/Apertura de Ejercicio y "
+               "Grupos de Cuentas, Plan de Cuentas (reporte), Cierre/Apertura de Ejercicio y "
                "licenciamiento del producto",
     "description": """
         Localización Fiscal / Paquete: Paraguay
@@ -34,6 +34,7 @@
         "data/account_group_menu_data.xml",
         "report/report_balance_general.xml",
         "views/balance_general_views.xml",
+        "views/plan_cuentas_report_views.xml",
         "views/cierre_ejercicio_views.xml",
         "views/res_config_settings_views.xml",
     ],
