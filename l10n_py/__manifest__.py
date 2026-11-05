@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "19.0.2026.0016",
+    "version": "2026.19.016",
     "category": "Accounting/Localizations/Account Charts",
     "license": "OPL-1",
     "author": "FC_Py",

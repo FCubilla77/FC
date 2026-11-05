@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from odoo import release
+from odoo.modules.module import get_manifest
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
@@ -187,11 +188,16 @@ class TestLicenciaL10nPy(TransactionCase):
         with open(ruta, encoding='utf-8') as archivo:
             manifest = ast.literal_eval(archivo.read())
         version = manifest['version']
-        coincidencia = re.match(r'^(\d+)\.0\.\d{4}\.\d+$', version)
+        coincidencia = re.match(r'^(\d{4})\.(\d+)\.(\d{3})$', version)
         self.assertTrue(coincidencia, "Esquema de versión inesperado: %s" % version)
-        esperado = int(coincidencia.group(1))
+        esperado = int(coincidencia.group(2))
         self.assertEqual(esperado, int(release.major_version.split('.')[0]))
         self.assertEqual(l10n_py_version_odoo_instalada(), esperado)
+        # Odoo antepone su serie al exponer la versión del manifest: el número
+        # central es el anteúltimo segmento, nunca el primero ni el año.
+        expuesta = get_manifest('l10n_py')['version']
+        self.assertEqual(expuesta, '%s.%s' % (release.major_version, version))
+        self.assertEqual(int(expuesta.split('.')[-2]), esperado)
         self.assertNotEqual(l10n_py_version_odoo_instalada(), 2026)
 
     # -- Bloqueo de creación y edición (se fuerza el control dentro de la prueba) -
