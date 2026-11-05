@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fe_py_recepcion_configuracion_form_purchase" model="ir.ui.view">
+        <field name="name">fe_py_recepcion.configuracion.form.purchase</field>
+        <field name="model">fe_py_recepcion.configuracion</field>
+        <field name="inherit_id" ref="fe_py_recepcion.view_fe_py_recepcion_configuracion_form"/>
+        <field name="arch" type="xml">
+            <field name="diario_id" position="after">
+                <field name="vincular_compras"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_fe_py_recepcion_configuracion_list_purchase" model="ir.ui.view">
+        <field name="name">fe_py_recepcion.configuracion.list.purchase</field>
+        <field name="model">fe_py_recepcion.configuracion</field>
+        <field name="inherit_id" ref="fe_py_recepcion.view_fe_py_recepcion_configuracion_list"/>
+        <field name="arch" type="xml">
+            <field name="diario_id" position="after">
+                <field name="vincular_compras"/>
+            </field>
+        </field>
+    </record>
+</odoo>

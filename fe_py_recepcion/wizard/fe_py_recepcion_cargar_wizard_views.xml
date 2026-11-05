@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fe_py_recepcion_cargar_wizard_form" model="ir.ui.view">
+        <field name="name">fe_py_recepcion.cargar.wizard.form</field>
+        <field name="model">fe_py_recepcion.cargar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cargar XML de facturas recibidas">
+                <field name="state" invisible="1"/>
+                <div invisible="state != 'inicio'">
+                    <p class="text-muted">
+                        Seleccione los archivos XML recibidos de los proveedores (uno o varios,
+                        sin comprimir). Cada archivo genera una recepción para verificar.
+                        Un CDC que ya fue recibido no se vuelve a crear.
+                    </p>
+                    <field name="attachment_ids" widget="many2many_binary" string="Archivos XML"/>
+                </div>
+                <div invisible="state != 'fin'">
+                    <field name="resultado"/>
+                </div>
+                <footer>
+                    <button string="Cargar" name="action_cargar" type="object" class="btn-primary"
+                            invisible="state != 'inicio'" data-hotkey="q"/>
+                    <button string="Ver recepciones creadas" name="action_ver_recepciones" type="object"
+                            class="btn-primary" invisible="state != 'fin'"/>
+                    <button string="Cerrar" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fe_py_recepcion_cargar_wizard" model="ir.actions.act_window">
+        <field name="name">Cargar XML</field>
+        <field name="res_model">fe_py_recepcion.cargar.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

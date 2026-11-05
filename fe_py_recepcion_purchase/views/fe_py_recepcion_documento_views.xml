@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fe_py_recepcion_documento_form_purchase" model="ir.ui.view">
+        <field name="name">fe_py_recepcion.documento.form.purchase</field>
+        <field name="model">fe_py_recepcion.documento</field>
+        <field name="inherit_id" ref="fe_py_recepcion.view_fe_py_recepcion_documento_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_ver_xml']" position="before">
+                <button name="action_vincular_lineas" type="object" string="Vincular líneas con la cotización"
+                        invisible="state != 'cargado' or not vincular_compras or not purchase_id"
+                        groups="account.group_account_invoice"/>
+            </xpath>
+            <xpath expr="//field[@name='journal_id']" position="after">
+                <field name="vincular_compras" invisible="1"/>
+                <field name="purchase_id" readonly="state != 'cargado'" invisible="not vincular_compras"
+                       options="{'no_create': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']//field[@name='producto_id']" position="after">
+                <field name="vincular_compras" column_invisible="1"/>
+                <field name="purchase_id" column_invisible="1"/>
+                <field name="purchase_line_id" readonly="state != 'cargado'" column_invisible="not parent.purchase_id"
+                       options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

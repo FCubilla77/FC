@@ -1,0 +1,52 @@
+<section class="oe_container">
+    <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
+        <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
+        <h3 class="oe_slogan">Versión 2026.19.001</h3>
+        <p class="text-muted">
+            Carga de facturas electrónicas de proveedores desde su archivo XML, con verificación
+            y generación de la factura de proveedor. Solo lee y guarda los datos del XML: no
+            genera ni valida CDC, firma digital ni esquema, y no consulta a SIFEN.
+        </p>
+    </div>
+
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-4 text-center">
+            <h3>📥</h3>
+            <h5>Carga de XML</h5>
+            <p class="text-muted">Uno o varios archivos a la vez; cada uno crea una recepción para verificar.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <h3>✅</h3>
+            <h5>Verificación y confirmación</h5>
+            <p class="text-muted">Control de proveedor, productos, impuestos y totales antes de generar la factura.</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <h3>🧾</h3>
+            <h5>Factura de proveedor</h5>
+            <p class="text-muted">Se genera en borrador, como si se hubiera cargado a mano, con el XML adjunto.</p>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-12">
+            <h3>Funcionalidades actuales</h3>
+            <ul>
+                <li><strong>Documentos recibidos:</strong> factura, nota de crédito y nota de débito electrónicas. Cualquier otro tipo de documento se rechaza con un mensaje claro.</li>
+                <li><strong>Lectura del XML:</strong> cabecera (CDC, timbrado, número, fecha, moneda), proveedor, receptor, condición de pago, cuotas, ítems, totales y documento asociado. Acepta también el XML dentro de un sobre de respuesta.</li>
+                <li><strong>Carga:</strong> varios archivos a la vez, sin comprimir. Un CDC ya recibido no se vuelve a crear; una recepción cancelada se puede reabrir.</li>
+                <li><strong>Flujo de estados:</strong> Cargado, Verificado, Confirmado y Cancelado, con historial (chatter) y el XML original adjunto.</li>
+                <li><strong>Proveedor:</strong> se busca por RUC; si no existe, se abre el formulario completo de Contactos con los datos del XML para que el usuario lo complete.</li>
+                <li><strong>Productos:</strong> cada línea lleva un producto o una cuenta; el producto se sugiere solo con lo elegido antes para ese proveedor.</li>
+                <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML.</li>
+                <li><strong>Descuentos:</strong> se cargan como porcentaje de la línea, controlados contra el total del XML.</li>
+                <li><strong>Condición de pago:</strong> se propone el término de pago de Odoo más cercano a la condición del XML, con aviso si no es exacto y modificable por el usuario. Las cuotas del XML quedan como referencia.</li>
+                <li><strong>Nota de crédito:</strong> se vincula con la factura que afecta, buscada por el documento asociado del XML.</li>
+                <li><strong>Factura de proveedor:</strong> se genera en borrador con Tipo Fiscal, timbrado y número del proveedor. Si la factura se elimina o se cancela, la recepción vuelve a Cargado.</li>
+                <li><strong>Configuración:</strong> diario de compra por defecto (modificable en cada recepción) e impuestos de IVA, por compañía, en Contabilidad &gt; Configuración.</li>
+                <li><strong>Menú:</strong> Contabilidad &gt; Proveedores &gt; Facturas Electrónicas Recibidas.</li>
+                <li><strong>Seguridad:</strong> consulta (Contabilidad: Solo lectura), carga y verificación (Facturación), confirmación (Asesor). Multicompañía.</li>
+                <li><strong>Independencia:</strong> no depende de FE_Py ni modifica local_py. La vinculación con cotizaciones de Compras está en el módulo opcional FE_Py Recepción - Compras.</li>
+            </ul>
+        </div>
+    </div>
+</section>
