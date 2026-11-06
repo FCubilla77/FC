@@ -48,6 +48,11 @@
                         <strong>Avisos</strong>
                         <field name="avisos" class="d-block"/>
                     </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="not confirmacion_auto_motivo or state != 'cargado'">
+                        <strong>No se confirmó automáticamente</strong>
+                        <field name="confirmacion_auto_motivo" class="d-block"/>
+                    </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
@@ -86,6 +91,7 @@
                                     <field name="descripcion"/>
                                     <field name="producto_id" readonly="state != 'cargado'"
                                            options="{'no_create': True}"/>
+                                    <field name="producto_origen" optional="show"/>
                                     <field name="cuenta_id" readonly="state != 'cargado'"
                                            options="{'no_create': True}" optional="show"/>
                                     <field name="unidad_desc" optional="show"/>

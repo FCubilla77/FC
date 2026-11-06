@@ -230,5 +230,30 @@ class TestUnidades(unittest.TestCase):
         self.assertFalse(util.unidades_distintas('', 'Units'))
 
 
+class TestEquivalencias(unittest.TestCase):
+    def test_normalizar_clave(self):
+        self.assertEqual(util.normalizar_clave('  Cable   UTP  Cat6 '), 'cable utp cat6')
+        self.assertEqual(util.normalizar_clave('ABC-01'), util.normalizar_clave(' abc-01'))
+        self.assertEqual(util.normalizar_clave(None), '')
+        self.assertEqual(util.normalizar_clave('   '), '')
+
+    def test_mas_reciente_gana(self):
+        filas = [(10, date(2026, 1, 5), 1), (20, date(2026, 3, 1), 2), (30, date(2026, 2, 1), 3)]
+        self.assertEqual(util.elegir_mas_reciente(filas), 20)
+
+    def test_sin_fecha_pierde_y_empate_gana_el_id_mayor(self):
+        self.assertEqual(util.elegir_mas_reciente([(10, None, 5), (20, date(2026, 1, 1), 1)]), 20)
+        self.assertEqual(util.elegir_mas_reciente([(10, date(2026, 1, 1), 1), (20, date(2026, 1, 1), 2)]), 20)
+        self.assertEqual(util.elegir_mas_reciente([(10, None, 1), (20, None, 2)]), 20)
+
+    def test_sin_filas(self):
+        self.assertIsNone(util.elegir_mas_reciente([]))
+
+    def test_candidato_unico(self):
+        self.assertEqual(util.elegir_unico(['a']), 'a')
+        self.assertIsNone(util.elegir_unico([]))
+        self.assertIsNone(util.elegir_unico(['a', 'b']))
+
+
 if __name__ == '__main__':
     unittest.main()

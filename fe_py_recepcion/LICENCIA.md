@@ -1,4 +1,4 @@
-# Licencia de FE_Py Recepción de Facturas (2026.19.002)
+# Licencia de FE_Py Recepción de Facturas (2026.19.003)
 
 Licencia **OPL-1** (Odoo Proprietary License v1.0). Ver `LICENSE`. Una sola licencia
 cubre `fe_py_recepcion` y su puente `fe_py_recepcion_purchase`.
@@ -7,7 +7,7 @@ cubre `fe_py_recepcion` y su puente `fe_py_recepcion_purchase`.
 - Formato: `FC_PY1.<datos en base64url>.<firma en base64url>`. El prefijo `FC_PY1` es el
   mismo en todos los productos de FC_Py; el producto se identifica con el campo `p`.
 - Datos (JSON): `p` = `fe_py_recepcion`, `u` = `database.uuid` de la base, `c` = cliente,
-  `v` = vencimiento (ISO) y `m` = número central de la versión (el «19» de `2026.19.002`).
+  `v` = vencimiento (ISO) y `m` = número central de la versión (el «19» de `2026.19.003`).
 - Firma RSA-PSS / SHA-256 con clave de 3072 bits. El módulo solo contiene la clave pública
   (`models/fe_py_recepcion_licencia.py`), la misma de todos los productos de FC_Py.
 
@@ -26,7 +26,7 @@ el cliente envía a FC_Py.
 ## Qué bloquea sin licencia válida
 - **Crear**: equivalencias de productos del proveedor.
 - **Crear y editar**: facturas electrónicas recibidas (cargar XML, verificar, confirmar,
-  cancelar, reabrir).
+  cancelar, reabrir), incluida la confirmación automática al cargar el XML.
 - **Nunca**: lectura, líneas y cuotas, Ajustes, la factura de proveedor ya generada, la
   edición de una equivalencia ya creada, ni el regreso automático de la recepción a Cargado
   al eliminar o cancelar su factura.

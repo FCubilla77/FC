@@ -32,7 +32,16 @@ class FePyRecepcionCargarWizard(models.TransientModel):
                 continue
             if creado:
                 creados |= doc
-                filas.append(('success', nombre, _('Creada: %s', doc.name)))
+                if doc.state == 'confirmado':
+                    filas.append(('success', nombre, _(
+                        'Creada y confirmada automáticamente: %(doc)s (factura %(factura)s)',
+                        doc=doc.name, factura=doc.move_id.display_name)))
+                elif doc.confirmacion_auto_motivo:
+                    filas.append(('warning', nombre, _(
+                        'Creada: %(doc)s. No se confirmó automáticamente: %(motivo)s',
+                        doc=doc.name, motivo=doc.confirmacion_auto_motivo)))
+                else:
+                    filas.append(('success', nombre, _('Creada: %s', doc.name)))
             elif doc.state == 'cancelado':
                 filas.append(('warning', nombre, _(
                     'El CDC ya fue recibido y la recepción está Cancelada (%s). '

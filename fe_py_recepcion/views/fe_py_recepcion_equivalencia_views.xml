@@ -9,6 +9,8 @@
                 <field name="codigo"/>
                 <field name="descripcion"/>
                 <field name="producto_id"/>
+                <field name="producto_referencia"/>
+                <field name="ultimo_uso" optional="show"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
         </field>
@@ -23,6 +25,7 @@
                 <field name="codigo"/>
                 <field name="descripcion"/>
                 <field name="producto_id"/>
+                <field name="producto_referencia"/>
                 <group>
                     <filter name="group_partner" string="Proveedor" context="{'group_by': 'partner_id'}"/>
                 </group>

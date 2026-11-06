@@ -92,6 +92,10 @@ class FePyRecepcionDocumento(models.Model):
     iva_odoo = fields.Monetary(string='IVA calculado por Odoo', currency_field='currency_id',
                                readonly=True, copy=False)
     control_hecho = fields.Boolean(copy=False, readonly=True)
+    confirmacion_auto_motivo = fields.Text(
+        string='Motivo por el que no se confirmó automáticamente', copy=False, readonly=True,
+        help='Se completa cuando el proveedor tiene la confirmación automática activada y la '
+             'recepción quedó en Cargado para revisión manual.')
 
     xml_attachment_id = fields.Many2one('ir.attachment', string='XML original', readonly=True,
                                         copy=False, ondelete='set null')
@@ -237,6 +241,7 @@ class FePyRecepcionDocumento(models.Model):
         doc._asignar_asociado(asociados)
         doc._adjuntar_xml(nombre, contenido)
         doc.message_post(body=_('Recepción creada desde el archivo %s.', nombre))
+        doc._confirmacion_automatica()
         return doc, True
 
     @api.model
@@ -308,13 +313,49 @@ class FePyRecepcionDocumento(models.Model):
             doc.partner_id = doc._buscar_proveedor()
 
     def _asignar_producto_sugerido(self):
+        """Sugiere el producto de cada línea sin producto.
+
+        1) Equivalencia ya confirmada con ese proveedor (la usada más recientemente).
+        2) Si no hay equivalencia (por ejemplo, la primera vez), coincidencia exacta del
+           código del XML con la referencia de la ficha del producto o, si no, de la
+           descripción con el nombre. Esta segunda búsqueda no necesita al proveedor.
+        Solo se sugiere cuando hay un único candidato.
+        """
         Equivalencia = self.env['fe_py_recepcion.equivalencia']
-        for doc in self.filtered('partner_id'):
-            for linea in doc.line_ids:
-                producto = Equivalencia.buscar_producto(
-                    doc.partner_id, linea.codigo, linea.descripcion, doc.company_id)
+        for doc in self:
+            for linea in doc.line_ids.filtered(lambda l: not l.producto_id):
+                producto, origen = self.env['product.product'], False
+                if doc.partner_id:
+                    producto = Equivalencia.buscar_producto(
+                        doc.partner_id, linea.codigo, linea.descripcion, doc.company_id)
+                    origen = 'equivalencia' if producto else False
+                if not producto:
+                    producto, origen = doc._buscar_producto_en_ficha(linea.codigo, linea.descripcion)
                 if producto:
-                    linea.producto_id = producto
+                    linea.write({'producto_id': producto.id, 'producto_origen': origen})
+
+    def _buscar_producto_en_ficha(self, codigo, descripcion):
+        """(producto, origen) por coincidencia exacta (sin distinguir mayúsculas ni espacios
+        sobrantes) del código con la referencia del producto o de la descripción con su
+        nombre. Productos activos y que se pueden comprar. Vacío si no hay un único candidato."""
+        self.ensure_one()
+        Producto = self.env['product.product']
+        base = [('purchase_ok', '=', True), '|', ('company_id', '=', False),
+                ('company_id', '=', self.company_id.id)]
+        codigo_n = utilidades.normalizar_clave(codigo)
+        if codigo_n:
+            candidatos = Producto.search(base + [('default_code', 'ilike', codigo.strip())], limit=50)
+            exactos = candidatos.filtered(
+                lambda p: utilidades.normalizar_clave(p.default_code) == codigo_n)
+            if len(exactos) == 1:
+                return exactos, 'referencia'
+        descripcion_n = utilidades.normalizar_clave(descripcion)
+        if descripcion_n:
+            candidatos = Producto.search(base + [('name', 'ilike', descripcion.strip())], limit=50)
+            exactos = candidatos.filtered(lambda p: utilidades.normalizar_clave(p.name) == descripcion_n)
+            if len(exactos) == 1:
+                return exactos, 'descripcion'
+        return Producto, False
 
     def _terminos_de_pago(self):
         """[(id, [días de cada línea])] de los términos de pago de la compañía."""
@@ -601,7 +642,7 @@ class FePyRecepcionDocumento(models.Model):
             if doc.state != 'cargado':
                 raise UserError(_('Solo se puede verificar una recepción en estado Cargado.'))
         self._exigir_sin_bloqueos()
-        self.write({'state': 'verificado'})
+        self.write({'state': 'verificado', 'confirmacion_auto_motivo': False})
         for doc in self:
             doc.message_post(body=_('Recepción verificada por %s.', self.env.user.name))
         return True
@@ -618,6 +659,7 @@ class FePyRecepcionDocumento(models.Model):
             if doc.state != 'verificado':
                 raise UserError(_('Solo se puede confirmar una recepción Verificada.'))
         self._exigir_sin_bloqueos()
+        self.write({'confirmacion_auto_motivo': False})
         Move = self.env['account.move'].with_context(mail_create_nolog=True)
         for doc in self:
             move = Move.with_company(doc.company_id).create(doc._vals_factura())
@@ -642,6 +684,69 @@ class FePyRecepcionDocumento(models.Model):
         for linea in self.line_ids.filtered('producto_id'):
             Equivalencia.registrar(self.partner_id, linea.codigo, linea.descripcion,
                                    linea.producto_id, self.company_id)
+
+    # ------------------------------------------------------------------
+    # Confirmación automática (proveedor con el check activado)
+    # ------------------------------------------------------------------
+    def _confirmacion_automatica(self):
+        """Si el proveedor tiene activada la confirmación automática y todos los controles
+        pasan, confirma la recepción y publica la factura. Ante cualquier problema deshace
+        todo lo hecho, deja la recepción en Cargado y guarda el motivo."""
+        self.ensure_one()
+        if self.state != 'cargado' or not self.partner_id:
+            return False
+        if not self.partner_id.sudo().fe_py_recepcion_confirmar_auto:
+            return False
+        try:
+            with self.env.cr.savepoint():
+                self._ejecutar_confirmacion_automatica()
+        except Exception as error:  # una recepción no debe frenar la carga de las demás
+            if not isinstance(error, UserError):
+                _logger.exception('FE_Py Recepción: falló la confirmación automática de %s', self.name)
+            self.env.invalidate_all()
+            motivo = error.args[0] if isinstance(error, UserError) and error.args else str(error)
+            self.write({'confirmacion_auto_motivo': motivo})
+            self.message_post(body=_(
+                'No se confirmó automáticamente. Revise y confirme a mano. Motivo: %s', motivo))
+            return False
+        return True
+
+    def _ejecutar_confirmacion_automatica(self):
+        self.ensure_one()
+        self._exigir_equivalencias_y_lotes()
+        self._preparar_cotizacion_automatica()
+        self._exigir_sin_bloqueos()
+        _bloqueos, avisos = self._diagnostico()
+        if avisos:
+            raise UserError(_('Hay avisos que requieren revisión:\n%s',
+                              '\n'.join('• %s' % a for a in avisos)))
+        self.write({'state': 'verificado', 'confirmacion_auto_motivo': False})
+        self.action_confirmar()
+        self.move_id.action_post()
+        self.message_post(body=_(
+            'Confirmada automáticamente: factura de proveedor %s publicada.', self.move_id.display_name))
+
+    def _exigir_equivalencias_y_lotes(self):
+        """Solo se confirma sola si todos los productos vienen de equivalencias ya
+        confirmadas y ninguno lleva lote o serie (esos datos se cargan a mano)."""
+        self.ensure_one()
+        for linea in self.line_ids:
+            etiqueta = _('Línea %s', linea.orden)
+            if not linea.producto_id:
+                raise UserError(_('%s: no tiene producto asignado.', etiqueta))
+            if linea.producto_origen != 'equivalencia':
+                raise UserError(_(
+                    '%s: el producto no viene de una equivalencia ya confirmada con este proveedor.',
+                    etiqueta))
+            if getattr(linea.producto_id, 'tracking', 'none') in ('lot', 'serial'):
+                raise UserError(_(
+                    '%(linea)s: el producto "%(producto)s" lleva lote o serie; confirme la '
+                    'recepción a mano para cargar esos datos.',
+                    linea=etiqueta, producto=linea.producto_id.display_name))
+
+    def _preparar_cotizacion_automatica(self):
+        """Extensión para el módulo puente de Compras. Sin él no hay cotización que vincular."""
+        self.ensure_one()
 
     def action_cancelar(self):
         for doc in self:

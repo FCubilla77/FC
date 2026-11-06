@@ -50,7 +50,19 @@ class FePyRecepcionDocumentoLinea(models.Model):
     impuesto_id = fields.Many2one(
         'account.tax', string='Impuesto', compute='_compute_impuesto', store=True, readonly=False,
         domain="[('type_tax_use', '=', 'purchase'), ('company_id', '=', company_id)]")
+    producto_origen = fields.Selection(
+        [('manual', 'Manual'), ('equivalencia', 'Equivalencia'), ('referencia', 'Referencia'),
+         ('descripcion', 'Descripción')],
+        string='Producto elegido por', readonly=True, copy=False,
+        help='Cómo se eligió el producto: equivalencia ya confirmada con ese proveedor, '
+             'coincidencia con la referencia o el nombre de la ficha del producto, o manualmente.')
     aviso = fields.Char(string='Aviso', compute='_compute_aviso')
+
+    def write(self, vals):
+        # Si el usuario cambia el producto, deja de ser una sugerencia del sistema.
+        if 'producto_id' in vals and 'producto_origen' not in vals:
+            vals = dict(vals, producto_origen='manual' if vals['producto_id'] else False)
+        return super().write(vals)
 
     @api.depends('afectacion', 'tasa')
     def _compute_textos(self):

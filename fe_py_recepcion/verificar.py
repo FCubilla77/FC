@@ -266,8 +266,9 @@ def check_migracion():
         nombre = os.path.basename(c)
         if not nombre.startswith('19.0.'):
             errores.append(f"[migracion] '{nombre}' debe empezar con 19.0. (si no, Odoo no la ejecuta)")
-        if not os.path.exists(os.path.join(c, 'pre-migration.py')):
-            errores.append(f"[migracion] {c} sin pre-migration.py")
+        if not (os.path.exists(os.path.join(c, 'pre-migration.py'))
+                or os.path.exists(os.path.join(c, 'post-migration.py'))):
+            errores.append(f"[migracion] {c} sin pre-migration.py ni post-migration.py")
 
 
 if __name__ == '__main__':

@@ -47,6 +47,46 @@ class FePyRecepcionDocumento(models.Model):
                 'Factura de proveedor %(factura)s generada desde la factura electrónica recibida %(doc)s.',
                 factura=move.display_name, doc=self.name))
 
+    # ------------------------------------------------------------------
+    # Confirmación automática con cotización
+    # ------------------------------------------------------------------
+    def _cotizaciones_candidatas(self):
+        """Órdenes de compra confirmadas del proveedor, pendientes de facturar, que tienen una
+        línea distinta para cada producto de la recepción."""
+        self.ensure_one()
+        comercial = self.partner_id.commercial_partner_id
+        ordenes = self.env['purchase.order'].search([
+            ('company_id', '=', self.company_id.id),
+            ('partner_id', 'child_of', comercial.id),
+            ('state', 'in', ('purchase', 'done')),
+            ('invoice_status', '=', 'to invoice'),
+        ])
+        return ordenes.filtered(lambda o: o._fe_py_recepcion_cubre(self.line_ids))
+
+    def _preparar_cotizacion_automatica(self):
+        super()._preparar_cotizacion_automatica()
+        if not self.vincular_compras:
+            return
+        if self.purchase_id:
+            self.action_vincular_lineas()
+            return
+        candidatas = self._cotizaciones_candidatas()
+        if len(candidatas) > 1:
+            raise UserError(_(
+                'Hay más de una cotización posible (%s). Elija la que corresponde y confirme a mano.',
+                ', '.join(candidatas.mapped('name'))))
+        if candidatas:
+            self.purchase_id = candidatas
+            self.action_vincular_lineas()
+            faltan = self.line_ids.filtered(lambda l: not l.purchase_line_id)
+            if faltan:
+                raise UserError(_('No se pudo vincular todas las líneas con la cotización %s.',
+                                  candidatas.name))
+        elif not self.partner_id.sudo().fe_py_recepcion_confirmar_sin_cotizacion:
+            raise UserError(_(
+                'No hay una cotización pendiente de facturar que coincida con los productos y el '
+                'proveedor no tiene habilitada la confirmación sin cotización.'))
+
     def action_vincular_lineas(self):
         """Vincula las líneas que tienen producto con la línea de la cotización del mismo
         producto que todavía no se usó. Las demás quedan sin vincular."""

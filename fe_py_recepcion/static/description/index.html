@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
-        <h3 class="oe_slogan">Versión 2026.19.002</h3>
+        <h3 class="oe_slogan">Versión 2026.19.003</h3>
         <p class="text-muted">
             Carga de facturas electrónicas de proveedores desde su archivo XML, con verificación
             y generación de la factura de proveedor. Solo lee y guarda los datos del XML: no
@@ -36,7 +36,9 @@
                 <li><strong>Carga:</strong> varios archivos a la vez, sin comprimir. Un CDC ya recibido no se vuelve a crear; una recepción cancelada se puede reabrir.</li>
                 <li><strong>Flujo de estados:</strong> Cargado, Verificado, Confirmado y Cancelado, con historial (chatter) y el XML original adjunto.</li>
                 <li><strong>Proveedor:</strong> se busca por RUC; si no existe, se abre el formulario completo de Contactos con los datos del XML para que el usuario lo complete.</li>
-                <li><strong>Productos:</strong> cada línea lleva un producto o una cuenta; el producto se sugiere solo con lo elegido antes para ese proveedor.</li>
+                <li><strong>Productos:</strong> cada línea lleva un producto o una cuenta; el producto se sugiere solo con lo elegido antes para ese proveedor o, la primera vez, comparando el código y la descripción del XML con la referencia y el nombre de la ficha del producto.</li>
+                <li><strong>Equivalencias:</strong> relacionan el ítem del proveedor con el producto y guardan también su referencia. Se conservan todas las relaciones (varios ítems del proveedor hacia un mismo producto, o un ítem hacia distintos productos) y se sugiere la usada más recientemente.</li>
+                <li><strong>Confirmación automática:</strong> con la opción "Confirmar Facturas Electrónicas Recibidas - Automáticamente" en la ficha del proveedor, al cargar el XML la recepción se confirma y la factura, nota de crédito o nota de débito de proveedor se publica, siempre que todos los controles pasen y los productos vengan de equivalencias ya confirmadas. Si algo falla queda en Cargado con el motivo indicado.</li>
                 <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML.</li>
                 <li><strong>Descuentos:</strong> se cargan como porcentaje de la línea, controlados contra el total del XML.</li>
                 <li><strong>Condición de pago:</strong> se propone el término de pago de Odoo más cercano a la condición del XML, con aviso si no es exacto y modificable por el usuario. Las cuotas del XML quedan como referencia.</li>

@@ -184,3 +184,29 @@ def unidades_distintas(unidad_xml, unidad_odoo):
     g_xml = grupo_unidad(unidad_xml)
     g_odoo = grupo_unidad(unidad_odoo)
     return bool(g_xml and g_odoo and g_xml != g_odoo)
+
+
+# ---------------------------------------------------------------------------
+# Equivalencias de productos del proveedor
+# ---------------------------------------------------------------------------
+def normalizar_clave(texto):
+    """Clave de comparación de códigos y descripciones: sin espacios sobrantes ni
+    diferencias de mayúsculas ('  Cable  UTP ' -> 'cable utp')."""
+    return ' '.join((texto or '').split()).casefold()
+
+
+def elegir_mas_reciente(filas):
+    """De varias equivalencias del mismo ítem, el producto de la usada más recientemente.
+
+    `filas`: lista de (producto_id, ultimo_uso, id). Un ultimo_uso vacío pierde contra
+    cualquier fecha; si empatan, gana el id más alto. Devuelve el producto_id o None.
+    """
+    if not filas:
+        return None
+    return max(filas, key=lambda fila: (fila[1] is not None, fila[1] or 0, fila[2]))[0]
+
+
+def elegir_unico(candidatos):
+    """El único candidato, o None si no hay ninguno o hay más de uno (ambiguo)."""
+    candidatos = list(candidatos)
+    return candidatos[0] if len(candidatos) == 1 else None
