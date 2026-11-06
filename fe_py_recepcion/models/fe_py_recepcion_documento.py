@@ -81,6 +81,8 @@ class FePyRecepcionDocumento(models.Model):
 
     motivo_desc = fields.Char(string='Motivo de emisión', readonly=True)
     asociado_texto = fields.Char(string='Documento asociado (XML)', readonly=True)
+    cdc_asociado = fields.Char(string='CDC del documento asociado', size=44, readonly=True, copy=False,
+                               index=True, help='CDC de la factura que afecta la nota, tal como lo informa el XML.')
 
     total_general = fields.Monetary(string='Total del XML', currency_field='currency_id', readonly=True)
     total_iva = fields.Monetary(string='IVA del XML', currency_field='currency_id', readonly=True)
@@ -220,6 +222,7 @@ class FePyRecepcionDocumento(models.Model):
             'entrega_inicial': float(credito.get('entrega_inicial') or 0),
             'motivo_desc': datos['motivo_desc'],
             'asociado_texto': ', '.join(self._texto_asociado(a) for a in asociados),
+            'cdc_asociado': self._cdc_de_asociados(asociados),
             'total_general': float(totales['total_general']),
             'total_iva': float(totales['iva']),
             'subtotal_10': float(totales['sub10']),
@@ -344,7 +347,9 @@ class FePyRecepcionDocumento(models.Model):
     def write(self, vals):
         res = super().write(vals)
         if 'partner_id' in vals:
-            self.filtered(lambda d: d.state == 'cargado')._asignar_producto_sugerido()
+            cargados = self.filtered(lambda d: d.state == 'cargado')
+            cargados._asignar_producto_sugerido()
+            cargados._asignar_asociado()
         return res
 
     def _buscar_producto_en_ficha(self, codigo, descripcion):
@@ -403,26 +408,55 @@ class FePyRecepcionDocumento(models.Model):
                 odoo=utilidades.describir_perfil(dias))
 
     def _asignar_asociado(self, asociados=None):
-        """Busca la factura que afecta una nota de crédito, por su número."""
+        """Busca la factura que afecta una nota de crédito (mismo proveedor siempre).
+
+        1) CDC del documento asociado contra el CDC de la factura de proveedor.
+        2) Si no hay coincidencia, se desglosa el CDC (o los datos sueltos del XML) en
+           establecimiento-punto-número y se busca por el número de documento.
+        """
         for doc in self:
             if doc.itide != '5' or doc.reversed_move_id or not doc.partner_id:
                 continue
-            Move = self.env['account.move']
-            for asociado in (asociados or []):
-                partes = self._partes_asociado(asociado)
-                if not partes:
-                    continue
-                numero = '%s-%s-%s' % partes
-                recepcion = self.search([
-                    ('company_id', '=', doc.company_id.id), ('partner_id', '=', doc.partner_id.id),
-                    ('nro_documento', '=', numero), ('move_id', '!=', False)], limit=1)
-                encontrada = recepcion.move_id or Move.search([
-                    ('move_type', '=', 'in_invoice'), ('company_id', '=', doc.company_id.id),
-                    ('partner_id', '=', doc.partner_id.id), ('l10n_py_nro_documento', '=', numero),
-                    ('state', '!=', 'cancel')], limit=1)
-                if encontrada:
-                    doc.reversed_move_id = encontrada
-                    break
+            encontrada = doc._buscar_factura_asociada(asociados)
+            if encontrada:
+                doc.reversed_move_id = encontrada
+
+    def _buscar_factura_asociada(self, asociados=None):
+        self.ensure_one()
+        Move = self.env['account.move']
+        comercial = self.partner_id.commercial_partner_id
+        base = [('move_type', '=', 'in_invoice'), ('company_id', '=', self.company_id.id),
+                ('state', '!=', 'cancel'), ('commercial_partner_id', '=', comercial.id)]
+        if self.cdc_asociado:
+            encontrada = Move.search(base + [('fe_py_recepcion_cdc', '=', self.cdc_asociado)], limit=1)
+            if encontrada:
+                return encontrada
+        candidatos = list(asociados or [])
+        if not candidatos and self.cdc_asociado:
+            candidatos = [{'cdc': self.cdc_asociado}]
+        for asociado in candidatos:
+            partes = self._partes_asociado(asociado)
+            if not partes:
+                continue
+            numero = '%s-%s-%s' % partes
+            recepcion = self.search([
+                ('company_id', '=', self.company_id.id), ('itide', '=', '1'),
+                ('partner_id.commercial_partner_id', '=', comercial.id),
+                ('nro_documento', '=', numero), ('move_id', '!=', False),
+                ('move_id.state', '!=', 'cancel')], limit=1)
+            encontrada = recepcion.move_id or Move.search(
+                base + [('l10n_py_nro_documento', '=', numero)], limit=1)
+            if encontrada:
+                return encontrada
+        return Move
+
+    @staticmethod
+    def _cdc_de_asociados(asociados):
+        for asociado in (asociados or []):
+            cdc = (asociado.get('cdc') or '').strip()
+            if len(cdc) == 44 and cdc.isdigit():
+                return cdc
+        return False
 
     @staticmethod
     def _partes_asociado(asociado):
@@ -521,9 +555,20 @@ class FePyRecepcionDocumento(models.Model):
         if self.termino_aviso:
             avisos.append(self.termino_aviso)
         if self.itide == '5' and not self.reversed_move_id:
-            avisos.append(_(
-                'No se encontró la factura que afecta esta nota de crédito (%s). Elíjala; '
-                'sin ella no se podrá confirmar la nota en contabilidad.', self.asociado_texto or '-'))
+            otra = self.env['account.move'].sudo().search([
+                ('move_type', '=', 'in_invoice'), ('company_id', '=', company.id),
+                ('state', '!=', 'cancel'), ('fe_py_recepcion_cdc', '=', self.cdc_asociado)], limit=1
+            ) if self.cdc_asociado else self.env['account.move']
+            if otra and self.partner_id and \
+                    otra.commercial_partner_id != self.partner_id.commercial_partner_id:
+                avisos.append(_(
+                    'La factura con el CDC asociado existe (%(factura)s) pero es de otro proveedor '
+                    '(%(proveedor)s), por eso no se vinculó. Elija la factura correcta.',
+                    factura=otra.display_name, proveedor=otra.commercial_partner_id.display_name))
+            else:
+                avisos.append(_(
+                    'No se encontró la factura que afecta esta nota de crédito (%s). Elíjala; '
+                    'sin ella no se podrá confirmar la nota en contabilidad.', self.asociado_texto or '-'))
         return bloqueos, avisos
 
     def _exigir_sin_bloqueos(self):
@@ -560,6 +605,8 @@ class FePyRecepcionDocumento(models.Model):
             'local_py_tipo_fiscal_id': tipo_fiscal.id,
             'l10n_py_timbrado': int(self.timbrado) if (self.timbrado or '').isdigit() else 0,
             'l10n_py_nro_documento': self.nro_documento,
+            'fe_py_recepcion_cdc': self.cdc,
+            'fe_py_recepcion_cdc_asociado': self.cdc_asociado or False,
             'invoice_line_ids': [Command.create(self._vals_linea_factura(linea))
                                  for linea in self.line_ids.sorted('orden')],
         }

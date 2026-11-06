@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
-        <h3 class="oe_slogan">Versión 2026.19.004</h3>
+        <h3 class="oe_slogan">Versión 2026.19.005</h3>
         <p class="text-muted">
             Carga de facturas electrónicas de proveedores desde su archivo XML, con verificación
             y generación de la factura de proveedor. Solo lee y guarda los datos del XML: no
@@ -42,7 +42,8 @@
                 <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML.</li>
                 <li><strong>Descuentos:</strong> se cargan como porcentaje de la línea, controlados contra el total del XML.</li>
                 <li><strong>Condición de pago:</strong> se propone el término de pago de Odoo más cercano a la condición del XML, con aviso si no es exacto y modificable por el usuario. Las cuotas del XML quedan como referencia.</li>
-                <li><strong>Nota de crédito:</strong> se vincula con la factura que afecta, buscada por el documento asociado del XML.</li>
+                <li><strong>CDC:</strong> el CDC del documento y el del documento asociado quedan guardados también en la factura de proveedor (visibles junto al Timbrado). En facturas cargadas a mano se pueden escribir (44 dígitos).</li>
+                <li><strong>Nota de crédito:</strong> se vincula con la factura que afecta, primero por el CDC del documento asociado y, si no coincide, por el número de comprobante que forma el CDC. Siempre debe ser el mismo proveedor.</li>
                 <li><strong>Factura de proveedor:</strong> se genera en borrador con Tipo Fiscal, timbrado y número del proveedor. Si la factura se elimina o se cancela, la recepción vuelve a Cargado.</li>
                 <li><strong>Configuración:</strong> en Ajustes &gt; Configuración FE_Py Recepción, por compañía: un diario de compra para facturas, otro para notas de crédito y otro para notas de débito (modificables en cada recepción), e impuestos de IVA 10%, 5% y exento. La factura generada toma el Tipo Fiscal de su diario.</li>
                 <li><strong>Menú:</strong> Contabilidad &gt; Proveedores &gt; Facturas Electrónicas Recibidas.</li>

@@ -70,6 +70,7 @@
                             <field name="tipo_cambio" invisible="not tipo_cambio"/>
                             <field name="motivo_desc" invisible="not motivo_desc"/>
                             <field name="asociado_texto" invisible="not asociado_texto"/>
+                            <field name="cdc_asociado" invisible="not cdc_asociado"/>
                         </group>
                         <group string="Factura de proveedor a generar">
                             <field name="emisor_ruc"/>
