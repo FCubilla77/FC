@@ -30,6 +30,14 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.fe_py_recepcion_impuesto_exento_id', readonly=False,
         domain="[('type_tax_use', '=', 'purchase'), ('company_id', '=', company_id)]")
 
+    fe_py_recepcion_fetchmail_id = fields.Many2one(
+        related='company_id.fe_py_recepcion_fetchmail_id', readonly=False,
+        domain="[('object_id.model', '=', 'fe_py_recepcion.documento')]")
+
+    def fe_py_recepcion_abrir_cuenta_correo(self):
+        self.ensure_one()
+        return self.company_id.fe_py_recepcion_abrir_cuenta_correo()
+
     fe_py_recepcion_licencia_uuid = fields.Char(
         related='company_id.fe_py_recepcion_licencia_uuid', readonly=True)
     fe_py_recepcion_licencia_codigo = fields.Text(

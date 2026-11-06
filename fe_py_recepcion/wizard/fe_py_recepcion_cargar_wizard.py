@@ -24,15 +24,14 @@ class FePyRecepcionCargarWizard(models.TransientModel):
         filas = []
         for adjunto in self.attachment_ids:
             nombre = adjunto.name or _('(sin nombre)')
-            try:
-                with self.env.cr.savepoint():
-                    doc, creado = Documento.crear_desde_xml(nombre, adjunto.raw or b'')
-            except UserError as error:
-                filas.append(('danger', nombre, str(error.args[0] if error.args else error)))
-                continue
+            doc, creado = Documento.cargar_xml_o_registrar_error(nombre, adjunto.raw or b'')
             if creado:
                 creados |= doc
-                if doc.state == 'confirmado':
+                if doc.state == 'error':
+                    filas.append(('danger', nombre, _(
+                        'No se pudo cargar: %(motivo)s (registro con error: %(doc)s)',
+                        motivo=doc.error_detalle, doc=doc.name)))
+                elif doc.state == 'confirmado':
                     filas.append(('success', nombre, _(
                         'Creada y confirmada automáticamente: %(doc)s (factura %(factura)s)',
                         doc=doc.name, factura=doc.move_id.display_name)))

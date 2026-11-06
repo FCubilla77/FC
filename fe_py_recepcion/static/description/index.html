@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
-        <h3 class="oe_slogan">Versión 2026.19.005</h3>
+        <h3 class="oe_slogan">Versión 2026.19.006</h3>
         <p class="text-muted">
             Carga de facturas electrónicas de proveedores desde su archivo XML, con verificación
             y generación de la factura de proveedor. Solo lee y guarda los datos del XML: no
@@ -34,6 +34,8 @@
                 <li><strong>Documentos recibidos:</strong> factura, nota de crédito y nota de débito electrónicas. Cualquier otro tipo de documento se rechaza con un mensaje claro.</li>
                 <li><strong>Lectura del XML:</strong> cabecera (CDC, timbrado, número, fecha, moneda), proveedor, receptor, condición de pago, cuotas, ítems, totales y documento asociado. Acepta también el XML dentro de un sobre de respuesta.</li>
                 <li><strong>Carga:</strong> varios archivos a la vez, sin comprimir. Un CDC ya recibido no se vuelve a crear; una recepción cancelada se puede reabrir.</li>
+                <li><strong>Recepción por correo:</strong> cada compañía tiene su propia casilla (IMAP/POP, con OAuth de Gmail y Outlook) configurada en Ajustes &gt; Configuración FE_Py Recepción. Cada XML adjunto crea una recepción, con el remitente, el asunto y la fecha del correo, y el PDF que lo acompaña queda adjunto. La casilla debe ser exclusiva de FE_Py Recepción.</li>
+                <li><strong>Estado Error:</strong> un XML que no se puede cargar (dañado, que no es SIFEN o de un tipo no soportado) o un correo sin XML no se pierde: queda un registro con el archivo y el motivo, que se puede reintentar o descartar. Aplica a la carga manual y al correo, con filtros por estado y "Pendientes de revisar".</li>
                 <li><strong>Flujo de estados:</strong> Cargado, Verificado, Confirmado y Cancelado, con historial (chatter) y el XML original adjunto.</li>
                 <li><strong>Proveedor:</strong> se busca por RUC; si no existe, se abre el formulario completo de Contactos con los datos del XML para que el usuario lo complete.</li>
                 <li><strong>Productos:</strong> cada línea lleva un producto o una cuenta; el producto se sugiere solo con lo elegido antes para ese proveedor o, la primera vez, comparando el código y la descripción del XML con la referencia y el nombre de la ficha del producto.</li>

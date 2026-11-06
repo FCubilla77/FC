@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import date
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 from .fe_py_recepcion_licencia import (
     fe_py_recepcion_decodificar_licencia, fe_py_recepcion_version_odoo_instalada)
@@ -13,6 +14,48 @@ class ResCompany(models.Model):
     Los campos viven en la compañía y se muestran en Ajustes (res.config.settings),
     igual que la licencia de local_py y l10n_py."""
     _inherit = 'res.company'
+
+    # ------------------------------------------------------------------
+    # Recepción por correo
+    # ------------------------------------------------------------------
+    fe_py_recepcion_fetchmail_id = fields.Many2one(
+        'fetchmail.server', string='Cuenta de correo de recepción', copy=False, ondelete='set null',
+        groups='base.group_system',
+        domain="[('object_id.model', '=', 'fe_py_recepcion.documento')]",
+        help='Servidor de correo entrante (IMAP/POP) del que se leen las facturas electrónicas '
+             'recibidas. Debe ser una casilla exclusiva de esta compañía, distinta de las que '
+             'usa el resto del sistema: solo se leen los correos no leídos.')
+
+    _fe_py_recepcion_fetchmail_uniq = models.Constraint(
+        'unique(fe_py_recepcion_fetchmail_id)',
+        'Una cuenta de correo de recepción solo puede pertenecer a una compañía.')
+
+    @api.constrains('fe_py_recepcion_fetchmail_id')
+    def _check_fe_py_recepcion_fetchmail(self):
+        for company in self.sudo():
+            servidor = company.fe_py_recepcion_fetchmail_id
+            if servidor and servidor.object_id.model != 'fe_py_recepcion.documento':
+                raise ValidationError(_(
+                    'La cuenta "%s" no es una cuenta de recepción de FE_Py: debe crear un nuevo '
+                    'registro con el botón "Configurar cuenta de correo" de Ajustes.', servidor.name))
+
+    def fe_py_recepcion_abrir_cuenta_correo(self):
+        """Abre la cuenta de correo de la compañía; si todavía no tiene, crea una propia."""
+        self.ensure_one()
+        servidor = self.sudo().fe_py_recepcion_fetchmail_id
+        if not servidor:
+            servidor = self.env['fetchmail.server'].sudo().create({
+                'name': _('FE_Py Recepción - %s', self.name),
+                'object_id': self.env['ir.model']._get('fe_py_recepcion.documento').id,
+                'server_type': 'imap', 'is_ssl': True, 'port': 993,
+                'attach': True, 'original': False,
+            })
+            self.sudo().fe_py_recepcion_fetchmail_id = servidor
+        return {
+            'type': 'ir.actions.act_window', 'name': _('Cuenta de correo de recepción'),
+            'res_model': 'fetchmail.server', 'res_id': servidor.id,
+            'view_mode': 'form', 'target': 'current',
+        }
 
     # ------------------------------------------------------------------
     # Diarios e impuestos

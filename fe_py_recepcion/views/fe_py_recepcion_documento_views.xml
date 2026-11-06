@@ -24,9 +24,15 @@
                             groups="account.group_account_invoice"/>
                     <button name="action_reabrir" type="object" string="Reabrir"
                             invisible="state != 'cancelado'" groups="account.group_account_invoice"/>
+                    <button name="action_reintentar" type="object" string="Reintentar lectura" class="btn-primary"
+                            invisible="state != 'error' or not xml_attachment_id"
+                            groups="account.group_account_invoice"/>
+                    <button name="action_descartar" type="object" string="Descartar"
+                            invisible="state != 'error'" groups="account.group_account_invoice"
+                            confirm="El registro pasará a Cancelado. ¿Continuar?"/>
                     <button name="action_ver_xml" type="object" string="Descargar XML"
                             invisible="not xml_attachment_id"/>
-                    <field name="state" widget="statusbar" statusbar_visible="cargado,verificado,confirmado"/>
+                    <field name="state" widget="statusbar" statusbar_visible="cargado,verificado,confirmado,error"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -48,6 +54,10 @@
                         <strong>Avisos</strong>
                         <field name="avisos" class="d-block"/>
                     </div>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'error'">
+                        <strong>No se pudo cargar</strong>
+                        <field name="error_detalle" class="d-block"/>
+                    </div>
                     <div class="alert alert-info" role="alert"
                          invisible="not confirmacion_auto_motivo or state != 'cargado'">
                         <strong>No se confirmó automáticamente</strong>
@@ -61,7 +71,11 @@
                     <field name="xml_attachment_id" invisible="1"/>
                     <group>
                         <group string="Documento del proveedor">
-                            <field name="itide"/>
+                            <field name="origen"/>
+                            <field name="correo_remitente" invisible="origen != 'correo'"/>
+                            <field name="correo_asunto" invisible="origen != 'correo'"/>
+                            <field name="correo_fecha" invisible="origen != 'correo'"/>
+                            <field name="itide" invisible="not itide"/>
                             <field name="nro_documento"/>
                             <field name="timbrado"/>
                             <field name="fecha_emision"/>
@@ -83,7 +97,7 @@
                             <field name="move_id" invisible="not move_id"/>
                         </group>
                     </group>
-                    <notebook>
+                    <notebook invisible="state == 'error'">
                         <page string="Líneas" name="lineas">
                             <field name="line_ids" readonly="state != 'cargado'">
                                 <list string="Líneas" editable="bottom" create="0" delete="0">
@@ -176,7 +190,7 @@
         <field name="arch" type="xml">
             <list string="Facturas electrónicas recibidas"
                   decoration-muted="state == 'cancelado'" decoration-success="state == 'confirmado'"
-                  decoration-info="state == 'verificado'">
+                  decoration-info="state == 'verificado'" decoration-danger="state == 'error'">
                 <header>
                     <button name="%(action_fe_py_recepcion_cargar_wizard)d" type="action" string="Cargar XML"
                             display="always" class="btn-primary" groups="account.group_account_invoice"/>
@@ -190,10 +204,14 @@
                 <field name="total_general" sum="Total"/>
                 <field name="currency_id" optional="show"/>
                 <field name="move_id" optional="show"/>
+                <field name="origen" optional="show"/>
+                <field name="correo_remitente" optional="hide"/>
+                <field name="correo_asunto" optional="hide"/>
+                <field name="error_detalle" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'confirmado'" decoration-info="state == 'verificado'"
-                       decoration-muted="state == 'cancelado'"/>
+                       decoration-muted="state == 'cancelado'" decoration-danger="state == 'error'"/>
             </list>
         </field>
     </record>
@@ -208,14 +226,23 @@
                 <field name="emisor_ruc"/>
                 <field name="partner_id"/>
                 <field name="cdc"/>
+                <field name="correo_remitente"/>
+                <field name="correo_asunto"/>
                 <filter name="filtro_cargado" string="Cargadas" domain="[('state', '=', 'cargado')]"/>
                 <filter name="filtro_verificado" string="Verificadas" domain="[('state', '=', 'verificado')]"/>
                 <filter name="filtro_confirmado" string="Confirmadas" domain="[('state', '=', 'confirmado')]"/>
                 <filter name="filtro_cancelado" string="Canceladas" domain="[('state', '=', 'cancelado')]"/>
+                <filter name="filtro_error" string="Con error" domain="[('state', '=', 'error')]"/>
+                <separator/>
+                <filter name="filtro_pendientes" string="Pendientes de revisar"
+                        domain="[('state', 'in', ('cargado', 'verificado', 'error'))]"/>
+                <separator/>
+                <filter name="filtro_correo" string="Recibidas por correo" domain="[('origen', '=', 'correo')]"/>
                 <separator/>
                 <filter name="filtro_sin_proveedor" string="Sin proveedor" domain="[('partner_id', '=', False)]"/>
                 <group>
                     <filter name="group_estado" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_origen" string="Origen" context="{'group_by': 'origen'}"/>
                     <filter name="group_proveedor" string="Proveedor" context="{'group_by': 'emisor_nombre'}"/>
                     <filter name="group_tipo" string="Tipo de documento" context="{'group_by': 'itide'}"/>
                     <filter name="group_mes" string="Mes de emisión" context="{'group_by': 'fecha_emision:month'}"/>
@@ -228,7 +255,7 @@
         <field name="name">Facturas Electrónicas Recibidas</field>
         <field name="res_model">fe_py_recepcion.documento</field>
         <field name="view_mode">list,form</field>
-        <field name="context">{'search_default_filtro_cargado': 1}</field>
+        <field name="context">{'search_default_filtro_pendientes': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Todavía no hay facturas electrónicas recibidas</p>
             <p>Use "Cargar XML" para cargar los archivos que le enviaron sus proveedores.</p>

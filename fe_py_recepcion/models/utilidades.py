@@ -210,3 +210,54 @@ def elegir_unico(candidatos):
     """El único candidato, o None si no hay ninguno o hay más de uno (ambiguo)."""
     candidatos = list(candidatos)
     return candidatos[0] if len(candidatos) == 1 else None
+
+
+# ---------------------------------------------------------------------------
+# Adjuntos de un correo
+# ---------------------------------------------------------------------------
+_RE_CDC_ID = re.compile(rb'<(?:[\w.-]+:)?DE\b[^>]*?\bId\s*=\s*["\'](\d{44})["\']')
+
+
+def es_adjunto_xml(nombre):
+    return (nombre or '').strip().lower().endswith('.xml')
+
+
+def es_adjunto_pdf(nombre):
+    return (nombre or '').strip().lower().endswith('.pdf')
+
+
+def a_bytes(contenido):
+    """Los adjuntos XML de un correo pueden llegar como texto: se pasan a bytes UTF-8."""
+    if contenido is None:
+        return b''
+    return contenido.encode('utf-8') if isinstance(contenido, str) else bytes(contenido)
+
+
+def extraer_cdc_aproximado(contenido):
+    """CDC (44 dígitos) del atributo Id del nodo DE, sin validar el XML. Sirve para
+    identificar un registro con error. False si no se encuentra."""
+    encontrado = _RE_CDC_ID.search(a_bytes(contenido)[:200000])
+    return encontrado.group(1).decode('ascii') if encontrado else False
+
+
+def _raiz_nombre(nombre):
+    base = (nombre or '').rsplit('/', 1)[-1]
+    return base.rsplit('.', 1)[0].strip().casefold()
+
+
+def emparejar_pdf(nombre_xml, cdc, nombres_pdf, cantidad_xml):
+    """Índices de los PDF que acompañan a un XML del mismo correo.
+
+    Con un solo XML en el correo, todos los PDF son suyos. Con varios, se emparejan
+    por nombre: misma raíz, un nombre que contiene a la otra o el CDC dentro del nombre.
+    """
+    if cantidad_xml <= 1:
+        return list(range(len(nombres_pdf)))
+    raiz_xml = _raiz_nombre(nombre_xml)
+    elegidos = []
+    for i, nombre_pdf in enumerate(nombres_pdf):
+        raiz_pdf = _raiz_nombre(nombre_pdf)
+        if (raiz_xml and (raiz_pdf == raiz_xml or raiz_xml in raiz_pdf or raiz_pdf in raiz_xml)) \
+                or (cdc and cdc in (nombre_pdf or '')):
+            elegidos.append(i)
+    return elegidos

@@ -255,5 +255,39 @@ class TestEquivalencias(unittest.TestCase):
         self.assertIsNone(util.elegir_unico(['a', 'b']))
 
 
+class TestCorreo(unittest.TestCase):
+    def test_tipos_de_adjunto(self):
+        self.assertTrue(util.es_adjunto_xml('Factura.XML'))
+        self.assertTrue(util.es_adjunto_xml(' a.xml '))
+        self.assertFalse(util.es_adjunto_xml('a.xml.pdf'))
+        self.assertTrue(util.es_adjunto_pdf('KUDE.PDF'))
+        self.assertFalse(util.es_adjunto_xml(None))
+
+    def test_a_bytes(self):
+        self.assertEqual(util.a_bytes('añ'), 'añ'.encode('utf-8'))
+        self.assertEqual(util.a_bytes(b'x'), b'x')
+        self.assertEqual(util.a_bytes(None), b'')
+
+    def test_cdc_aproximado(self):
+        cdc = '0' * 43 + '1'
+        self.assertEqual(util.extraer_cdc_aproximado('<rDE><DE Id="%s"><x/></DE></rDE>' % cdc), cdc)
+        self.assertEqual(util.extraer_cdc_aproximado(b"<ns:DE xmlns:ns='u' Id='%s'>" % cdc.encode()), cdc)
+        self.assertFalse(util.extraer_cdc_aproximado('<DE Id="123">'))
+        self.assertFalse(util.extraer_cdc_aproximado('no es xml'))
+
+    def test_pdf_con_un_solo_xml(self):
+        self.assertEqual(util.emparejar_pdf('a.xml', None, ['x.pdf', 'y.pdf'], 1), [0, 1])
+
+    def test_pdf_por_nombre_con_varios_xml(self):
+        pdfs = ['factura-001.pdf', 'factura-002.pdf', 'otro.pdf']
+        self.assertEqual(util.emparejar_pdf('Factura-001.xml', None, pdfs, 2), [0])
+        self.assertEqual(util.emparejar_pdf('factura-002.xml', None, pdfs, 2), [1])
+        self.assertEqual(util.emparejar_pdf('zzz.xml', None, pdfs, 2), [])
+
+    def test_pdf_por_cdc_en_el_nombre(self):
+        cdc = '0' * 43 + '1'
+        self.assertEqual(util.emparejar_pdf('a.xml', cdc, ['KUDE_%s.pdf' % cdc, 'b.pdf'], 2), [0])
+
+
 if __name__ == '__main__':
     unittest.main()

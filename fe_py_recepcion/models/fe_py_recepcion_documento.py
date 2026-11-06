@@ -4,9 +4,10 @@ import logging
 from decimal import Decimal
 
 from odoo import Command, _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from . import utilidades, xml_parser
+from .fe_py_recepcion_licencia import fe_py_recepcion_licencia_verificar
 from .xml_parser import XmlRecepcionError
 
 _logger = logging.getLogger(__name__)
@@ -40,19 +41,20 @@ class FePyRecepcionDocumento(models.Model):
     name = fields.Char(string='Documento', compute='_compute_name', store=True)
     state = fields.Selection(
         [('cargado', 'Cargado'), ('verificado', 'Verificado'),
-         ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado')],
+         ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('error', 'Error')],
         string='Estado', default='cargado', required=True, copy=False, tracking=True, index=True)
     company_id = fields.Many2one('res.company', string='Compañía', required=True, index=True,
                                  default=lambda self: self.env.company, readonly=True)
     currency_id = fields.Many2one('res.currency', string='Moneda', readonly=True)
 
     # -- Datos del XML (solo lectura) ----------------------------------------
-    cdc = fields.Char(string='CDC', size=44, required=True, readonly=True, copy=False, index=True,
-                      help='Código de Control del DE, tal como lo informó el proveedor en el XML.')
+    cdc = fields.Char(string='CDC', size=44, readonly=True, copy=False, index=True,
+                      help='Código de Control del DE, tal como lo informó el proveedor en el XML. '
+                           'Es obligatorio salvo en los registros con error.')
     itide = fields.Selection(
         [('1', 'Factura electrónica'), ('5', 'Nota de crédito electrónica'),
          ('6', 'Nota de débito electrónica')],
-        string='Tipo de documento', required=True, readonly=True)
+        string='Tipo de documento', readonly=True)
     move_type = fields.Selection(
         [('in_invoice', 'Factura de proveedor'), ('in_refund', 'Nota de crédito de proveedor')],
         string='Tipo de comprobante', compute='_compute_move_type', store=True)
@@ -98,6 +100,17 @@ class FePyRecepcionDocumento(models.Model):
         string='Motivo por el que no se confirmó automáticamente', copy=False, readonly=True,
         help='Se completa cuando el proveedor tiene la confirmación automática activada y la '
              'recepción quedó en Cargado para revisión manual.')
+
+    error_detalle = fields.Text(
+        string='Motivo del error', copy=False, readonly=True,
+        help='Por qué no se pudo cargar el archivo. El registro conserva el XML recibido.')
+    origen = fields.Selection(
+        [('manual', 'Carga manual'), ('correo', 'Correo')], string='Origen', default='manual',
+        required=True, readonly=True, copy=False, index=True)
+    correo_remitente = fields.Char(string='Remitente del correo', readonly=True, copy=False)
+    correo_asunto = fields.Char(string='Asunto del correo', readonly=True, copy=False)
+    correo_fecha = fields.Datetime(string='Fecha del correo', readonly=True, copy=False)
+    correo_message_id = fields.Char(string='Message-Id del correo', readonly=True, copy=False)
 
     xml_attachment_id = fields.Many2one('ir.attachment', string='XML original', readonly=True,
                                         copy=False, ondelete='set null')
@@ -151,6 +164,13 @@ class FePyRecepcionDocumento(models.Model):
         for doc in self:
             doc.name = ' - '.join(filter(None, [doc.nro_documento, doc.emisor_nombre])) or _('Nueva')
 
+    @api.constrains('state', 'cdc', 'itide')
+    def _check_datos_del_xml(self):
+        for doc in self:
+            if doc.state != 'error' and not (doc.cdc and doc.itide):
+                raise ValidationError(_(
+                    'Solo los registros con error pueden quedar sin CDC o sin tipo de documento.'))
+
     @api.depends('itide')
     def _compute_move_type(self):
         for doc in self:
@@ -173,7 +193,7 @@ class FePyRecepcionDocumento(models.Model):
     # Carga del XML
     # ------------------------------------------------------------------
     @api.model
-    def crear_desde_xml(self, nombre, contenido, company=None):
+    def crear_desde_xml(self, nombre, contenido, company=None, extra_vals=None):
         """Crea una recepción desde el contenido (bytes) de un XML.
 
         Devuelve (recepción, creada). Si el CDC ya fue recibido no se vuelve a
@@ -237,6 +257,7 @@ class FePyRecepcionDocumento(models.Model):
             Command.create({'numero': n, 'monto': float(c['monto']), 'vencimiento': c['vencimiento']})
             for n, c in enumerate(credito.get('cuotas') or [], start=1)]
 
+        vals.update(extra_vals or {})
         doc = self.create(vals)
         doc._asignar_proveedor()
         doc._asignar_producto_sugerido()
@@ -484,6 +505,8 @@ class FePyRecepcionDocumento(models.Model):
     def _diagnostico(self):
         """(impedimentos, avisos) de la recepción. No simula la factura."""
         self.ensure_one()
+        if self.state == 'error':
+            return [], []
         bloqueos, avisos = [], []
         company = self.company_id
 
@@ -746,6 +769,154 @@ class FePyRecepcionDocumento(models.Model):
                                    linea.producto_id, self.company_id)
 
     # ------------------------------------------------------------------
+    # Carga con registro de errores (carga manual y correo)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _vals_correo(correo):
+        if not correo:
+            return {}
+        return {
+            'origen': 'correo',
+            'correo_remitente': correo.get('remitente') or False,
+            'correo_asunto': correo.get('asunto') or False,
+            'correo_fecha': correo.get('fecha') or False,
+            'correo_message_id': correo.get('message_id') or False,
+        }
+
+    @api.model
+    def cargar_xml_o_registrar_error(self, nombre, contenido, company=None, correo=None):
+        """Como `crear_desde_xml`, pero un archivo que no se puede cargar no se pierde: queda
+        un registro en estado Error con el XML y el motivo.
+
+        Devuelve (recepción, creada). Un CDC ya recibido devuelve la existente y creada=False.
+        La falta de licencia no genera registros: se propaga.
+        """
+        company = company or self.env.company
+        fe_py_recepcion_licencia_verificar(self.env, company)
+        contenido = utilidades.a_bytes(contenido)
+        try:
+            with self.env.cr.savepoint():
+                doc, creado = self.crear_desde_xml(
+                    nombre, contenido, company=company, extra_vals=self._vals_correo(correo))
+        except Exception as error:  # el archivo no debe frenar la carga de los demás
+            if isinstance(error, UserError):
+                motivo = str(error.args[0]) if error.args else str(error)
+            else:
+                _logger.exception('FE_Py Recepción: error inesperado al cargar %s', nombre)
+                motivo = _('%(archivo)s: error inesperado (%(error)s).', archivo=nombre, error=error)
+            return self._registrar_error(nombre, contenido, company, motivo, correo), True
+        if not creado and correo:
+            doc.message_post(body=_(
+                'El mismo documento llegó otra vez por correo (%(asunto)s, de %(remitente)s).',
+                asunto=correo.get('asunto') or '-', remitente=correo.get('remitente') or '-'))
+        return doc, creado
+
+    @api.model
+    def _registrar_error(self, nombre, contenido, company, motivo, correo=None):
+        vals = {'company_id': company.id, 'state': 'error', 'error_detalle': motivo}
+        vals.update(self._vals_correo(correo))
+        cdc = utilidades.extraer_cdc_aproximado(contenido) if contenido else False
+        if cdc and not self.search_count([('cdc', '=', cdc), ('company_id', '=', company.id)]):
+            vals['cdc'] = cdc
+        doc = self.create(vals)
+        if contenido:
+            doc._adjuntar_xml(nombre, contenido)
+        doc.message_post(body=_('No se pudo cargar: %s', motivo))
+        return doc
+
+    def action_reintentar(self):
+        """Vuelve a leer el XML guardado; si ahora se puede cargar, reemplaza al registro con error."""
+        self.ensure_one()
+        if self.state != 'error' or not self.xml_attachment_id:
+            raise UserError(_('Solo se puede reintentar un registro con error que tenga su XML.'))
+        nombre, contenido = self.xml_attachment_id.name, self.xml_attachment_id.raw
+        cdc_anterior = self.cdc
+        extra = {campo: self[campo] for campo in (
+            'origen', 'correo_remitente', 'correo_asunto', 'correo_fecha', 'correo_message_id')}
+        try:
+            with self.env.cr.savepoint():
+                self.cdc = False  # libera el CDC para poder crear el registro definitivo
+                doc, creado = self.crear_desde_xml(
+                    nombre, contenido, company=self.company_id, extra_vals=extra)
+        except UserError as error:
+            motivo = str(error.args[0]) if error.args else str(error)
+            self.write({'error_detalle': motivo})
+            self.message_post(body=_('Reintento sin éxito: %s', motivo))
+            return True
+        if not creado:
+            self.write({'cdc': cdc_anterior, 'error_detalle': _(
+                'El CDC ya fue recibido en %s; este archivo es un duplicado.', doc.name)})
+            self.message_post(body=self.error_detalle)
+            return True
+        doc.message_post(body=_('Cargada al reintentar la lectura de un registro con error.'))
+        self.unlink()
+        return {
+            'type': 'ir.actions.act_window', 'res_model': self._name, 'res_id': doc.id,
+            'view_mode': 'form', 'target': 'current',
+        }
+
+    def action_descartar(self):
+        for doc in self:
+            if doc.state != 'error':
+                raise UserError(_('Solo se puede descartar un registro con error.'))
+            doc.message_post(body=_('Registro con error descartado por %s.', self.env.user.name))
+        self.write({'state': 'cancelado'})
+        return True
+
+    # ------------------------------------------------------------------
+    # Recepción por correo (servidor de correo entrante propio de la compañía)
+    # ------------------------------------------------------------------
+    @api.model
+    def message_new(self, msg_dict, custom_values=None):
+        """Cada correo recibido en la cuenta de la compañía crea un registro por cada XML
+        adjunto. Odoo necesita un registro donde guardar el correo: se devuelve el primero."""
+        servidor_id = self.env.context.get('default_fetchmail_server_id')
+        company = self.env['res.company'].sudo().search(
+            [('fe_py_recepcion_fetchmail_id', '=', servidor_id)], limit=1) if servidor_id else False
+        if not company:
+            raise UserError(_('El servidor de correo no está asignado a ninguna compañía en '
+                              'Ajustes > Configuración FE_Py Recepción.'))
+        nuevos, existentes = self._procesar_correo(msg_dict, company)
+        return (nuevos or existentes)[:1]
+
+    @api.model
+    def _procesar_correo(self, msg_dict, company):
+        adjuntos = [(a[0], a[1]) for a in (msg_dict.get('attachments') or [])]
+        correo = {
+            'remitente': msg_dict.get('email_from'), 'asunto': msg_dict.get('subject'),
+            'fecha': msg_dict.get('date'), 'message_id': msg_dict.get('message_id'),
+        }
+        xmls = [a for a in adjuntos if utilidades.es_adjunto_xml(a[0])]
+        pdfs = [a for a in adjuntos if utilidades.es_adjunto_pdf(a[0])]
+        nuevos, existentes = self.browse(), self.browse()
+        if not xmls:
+            motivo = (_('El correo no trae archivos XML.') if adjuntos
+                      else _('El correo no trae adjuntos.'))
+            doc = self._registrar_error(None, None, company, motivo, correo)
+            doc._adjuntar_pdfs(pdfs)
+            return doc, existentes
+        for nombre, contenido in xmls:
+            contenido = utilidades.a_bytes(contenido)
+            doc, creado = self.cargar_xml_o_registrar_error(nombre, contenido, company, correo)
+            if creado:
+                nuevos |= doc
+                indices = utilidades.emparejar_pdf(
+                    nombre, doc.cdc, [p[0] for p in pdfs], len(xmls))
+                doc._adjuntar_pdfs([pdfs[i] for i in indices])
+            else:
+                existentes |= doc
+        return nuevos, existentes
+
+    def _adjuntar_pdfs(self, pdfs):
+        """Guarda los PDF (KuDE) que llegaron junto al XML."""
+        self.ensure_one()
+        for nombre, contenido in pdfs:
+            self.env['ir.attachment'].create({
+                'name': nombre, 'raw': utilidades.a_bytes(contenido),
+                'mimetype': 'application/pdf', 'res_model': self._name, 'res_id': self.id,
+            })
+
+    # ------------------------------------------------------------------
     # Confirmación automática (proveedor con el check activado)
     # ------------------------------------------------------------------
     def _confirmacion_automatica(self):
@@ -821,7 +992,9 @@ class FePyRecepcionDocumento(models.Model):
         for doc in self:
             if doc.state != 'cancelado':
                 raise UserError(_('Solo se puede reabrir una recepción Cancelada.'))
-        self.write({'state': 'cargado', 'control_hecho': False})
+        for doc in self:
+            # un registro que nunca pudo leerse vuelve a Error, no a Cargado
+            doc.write({'state': 'cargado' if doc.itide and doc.cdc else 'error', 'control_hecho': False})
         return True
 
     def action_ver_factura(self):
@@ -857,9 +1030,9 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     def unlink(self):
         for doc in self:
-            if doc.state not in ('cargado', 'cancelado') or doc.move_id:
+            if doc.state not in ('cargado', 'cancelado', 'error') or doc.move_id:
                 raise UserError(_(
-                    'Solo se pueden eliminar recepciones Cargadas o Canceladas sin factura generada.'))
+                    'Solo se pueden eliminar recepciones Cargadas, Canceladas o con Error, sin factura generada.'))
         adjuntos = self.mapped('xml_attachment_id')
         resultado = super().unlink()
         adjuntos.unlink()
