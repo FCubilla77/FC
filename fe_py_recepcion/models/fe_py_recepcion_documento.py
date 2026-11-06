@@ -319,11 +319,14 @@ class FePyRecepcionDocumento(models.Model):
         2) Si no hay equivalencia (por ejemplo, la primera vez), coincidencia exacta del
            código del XML con la referencia de la ficha del producto o, si no, de la
            descripción con el nombre. Esta segunda búsqueda no necesita al proveedor.
-        Solo se sugiere cuando hay un único candidato.
+        Solo se sugiere cuando hay un único candidato. Se pueden recalcular las líneas
+        con producto sugerido por el sistema (por ejemplo, al cambiar el proveedor); nunca
+        se pisa un producto elegido a mano.
         """
         Equivalencia = self.env['fe_py_recepcion.equivalencia']
         for doc in self:
-            for linea in doc.line_ids.filtered(lambda l: not l.producto_id):
+            for linea in doc.line_ids.filtered(
+                    lambda l: not l.producto_id or l.producto_origen in ('equivalencia', 'referencia', 'descripcion')):
                 producto, origen = self.env['product.product'], False
                 if doc.partner_id:
                     producto = Equivalencia.buscar_producto(
@@ -332,7 +335,17 @@ class FePyRecepcionDocumento(models.Model):
                 if not producto:
                     producto, origen = doc._buscar_producto_en_ficha(linea.codigo, linea.descripcion)
                 if producto:
-                    linea.write({'producto_id': producto.id, 'producto_origen': origen})
+                    if producto != linea.producto_id or origen != linea.producto_origen:
+                        linea.write({'producto_id': producto.id, 'producto_origen': origen})
+                elif linea.producto_origen == 'equivalencia':
+                    # la equivalencia era de otro proveedor: ya no corresponde
+                    linea.write({'producto_id': False, 'producto_origen': False})
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'partner_id' in vals:
+            self.filtered(lambda d: d.state == 'cargado')._asignar_producto_sugerido()
+        return res
 
     def _buscar_producto_en_ficha(self, codigo, descripcion):
         """(producto, origen) por coincidencia exacta (sin distinguir mayúsculas ni espacios
