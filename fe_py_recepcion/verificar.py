@@ -88,6 +88,18 @@ def modelos_propios():
     return campos
 
 
+def modelos_abstractos():
+    """Modelos declarados con models.AbstractModel (no llevan permisos ni reglas)."""
+    abstractos = set()
+    for path in glob.glob('models/*.py'):
+        for cm in re.finditer(r"class \w+\(([^)]*)\):(.*?)(?=\nclass |\Z)", leer(path), re.S):
+            if 'AbstractModel' in cm.group(1):
+                m = re.search(r"^\s{4}_name\s*=\s*'([^']+)'", cm.group(2), re.M)
+                if m:
+                    abstractos.add(m.group(1))
+    return abstractos
+
+
 def metodos_de(modelo):
     resultado = set()
     for path in glob.glob('models/*.py') + glob.glob('wizard/*.py'):
@@ -159,7 +171,7 @@ def check_referencias_internas():
 
 
 def check_permisos():
-    definidos = {m for m in modelos_propios() if not m.endswith('wizard')}
+    definidos = set(modelos_propios()) - modelos_abstractos()
     csv = leer('security/ir.model.access.csv')
     con_permiso = {m.replace('_', '.') for m in re.findall(r'model_(fe_py_recepcion_[\w]+)', csv)}
     normal = lambda m: m.replace('.', '_')
@@ -174,7 +186,8 @@ def check_permisos():
             errores.append(f"[permisos] fila mal formada: {linea[:60]}")
     sec = leer('security/security.xml')
     for m in definidos:
-        if m != 'fe_py_recepcion.documento.cuota' and 'model_' + normal(m) not in sec:
+        if m in ('fe_py_recepcion.documento', 'fe_py_recepcion.documento.linea',
+                 'fe_py_recepcion.equivalencia') and 'model_' + normal(m) not in sec:
             errores.append(f"[reglas] '{m}' sin regla multicompañía")
 
 
@@ -189,6 +202,13 @@ def check_manifest():
             errores.append(f"[manifest] no está listado: {f}")
     if not re.fullmatch(r'2026\.19\.\d{3}', manifest['version']):
         errores.append(f"[manifest] versión fuera de formato: {manifest['version']}")
+    if manifest.get('license') != 'OPL-1':
+        errores.append(f"[manifest] la licencia debe ser OPL-1: {manifest.get('license')}")
+    if 'cryptography' not in manifest.get('external_dependencies', {}).get('python', []):
+        errores.append("[manifest] falta cryptography en external_dependencies")
+    for archivo in ('LICENSE',):
+        if not os.path.exists(archivo):
+            errores.append(f"[manifest] falta el archivo {archivo}")
     if manifest.get('post_init_hook') and 'post_init_hook' not in leer('__init__.py'):
         errores.append("[manifest] post_init_hook no se importa en __init__.py")
     if 'FE_Py' in manifest['depends'] or 'fe_py' in manifest['depends']:
@@ -207,15 +227,53 @@ def check_acciones_menus():
 
 
 def check_pruebas():
-    r = subprocess.run([sys.executable, '-I', 'tests/test_xml_parser.py'], capture_output=True, text=True)
-    if r.returncode != 0:
-        errores.append("[pruebas] test_xml_parser.py falló:\n" + r.stderr[-800:])
+    for prueba in ('tests/test_xml_parser.py', 'tests/test_licencia_sin_odoo.py'):
+        r = subprocess.run([sys.executable, '-I', prueba], capture_output=True, text=True)
+        if r.returncode != 0:
+            errores.append(f"[pruebas] {prueba} falló:\n" + r.stderr[-800:])
+
+
+def check_ajustes():
+    """Los campos de la vista de Ajustes deben existir en res_config_settings.py y sus
+    related deben apuntar a un campo de res.company que exista."""
+    ajustes = leer('models/res_config_settings.py')
+    campos_ajustes = set(re.findall(r"^\s{4}(\w+)\s*=\s*fields\.", ajustes, re.M))
+    campos_company = set(re.findall(r"^\s{4}(\w+)\s*=\s*fields\.", leer('models/res_company.py'), re.M))
+    for campo in re.findall(r'<field name="(fe_py_\w+)"', leer('views/res_config_settings_views.xml')):
+        if campo not in campos_ajustes:
+            errores.append(f"[ajustes] la vista usa '{campo}', que no está en res_config_settings.py")
+    for campo, destino in re.findall(r"^\s{4}(\w+)\s*=\s*fields\.\w+\(\s*related='company_id\.(\w+)'", ajustes, re.M):
+        if destino not in campos_company:
+            errores.append(f"[ajustes] {campo}: res.company no tiene '{destino}'")
+    for destino in campos_company:
+        if destino.startswith('fe_py_recepcion_licencia_') and destino not in ajustes:
+            errores.append(f"[ajustes] falta exponer '{destino}' en Ajustes")
+
+
+def check_sin_modelo_configuracion():
+    """La configuración ya no es un modelo: nada debe referenciarlo."""
+    for path in glob.glob('**/*.py', recursive=True) + glob.glob('**/*.xml', recursive=True) + \
+            glob.glob('security/*.csv'):
+        if path in ('verificar.py',) or path.startswith('migrations'):
+            continue
+        if re.search(r"fe_py_recepcion[._]configuracion", leer(path)):
+            errores.append(f"[config] {path} todavía referencia el modelo configuracion")
+
+
+def check_migracion():
+    carpetas = glob.glob('migrations/*')
+    for c in carpetas:
+        nombre = os.path.basename(c)
+        if not nombre.startswith('19.0.'):
+            errores.append(f"[migracion] '{nombre}' debe empezar con 19.0. (si no, Odoo no la ejecuta)")
+        if not os.path.exists(os.path.join(c, 'pre-migration.py')):
+            errores.append(f"[migracion] {c} sin pre-migration.py")
 
 
 if __name__ == '__main__':
     pruebas = (check_python, check_imports, check_xml, check_odoo19, check_vistas,
                check_referencias_internas, check_permisos, check_manifest, check_acciones_menus,
-               check_pruebas)
+               check_ajustes, check_sin_modelo_configuracion, check_migracion, check_pruebas)
     for f in pruebas:
         f()
     if errores:

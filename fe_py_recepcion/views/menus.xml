@@ -7,13 +7,6 @@
               sequence="25"
               groups="account.group_account_readonly"/>
 
-    <menuitem id="menu_fe_py_recepcion_configuracion"
-              name="Recepción de Facturas Electrónicas"
-              parent="account.menu_finance_configuration"
-              action="action_fe_py_recepcion_configuracion"
-              sequence="95"
-              groups="account.group_account_manager"/>
-
     <menuitem id="menu_fe_py_recepcion_equivalencia"
               name="Equivalencias de Productos (Proveedores)"
               parent="account.menu_finance_configuration"

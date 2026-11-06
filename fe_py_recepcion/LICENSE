@@ -1,0 +1,18 @@
+FE_Py Recepción de Facturas (fe_py_recepcion y fe_py_recepcion_purchase)
+Copyright (c) 2026 FC_Py. Todos los derechos reservados.
+
+Este software se distribuye bajo la Odoo Proprietary License v1.0 (OPL-1).
+Texto oficial: https://www.odoo.com/documentation/19.0/legal/licenses.html
+
+Resumen (no reemplaza al texto oficial):
+
+  * Se permite usar el software en las bases de datos del cliente licenciado, con una
+    licencia vigente emitida por FC_Py y atada a cada base de datos.
+  * Se permite modificarlo para uso propio del cliente licenciado.
+  * No se permite copiarlo, redistribuirlo, revenderlo, sublicenciarlo ni publicarlo,
+    en forma original o modificada, salvo autorización escrita de FC_Py.
+  * No se permite eludir, desactivar o alterar el control de licencia.
+  * Las modificaciones del cliente no se pueden entregar a terceros sin el acuerdo de FC_Py.
+
+Si existe un contrato firmado entre FC_Py y el cliente (o su partner), ese contrato
+prevalece sobre este archivo en todo lo que lo contradiga.

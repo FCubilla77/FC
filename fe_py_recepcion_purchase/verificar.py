@@ -40,6 +40,10 @@ def check_manifest():
             errores.append(f"[manifest] no está listado: {f}")
     if not re.fullmatch(r'2026\.19\.\d{3}', m['version']):
         errores.append("[manifest] versión fuera de formato")
+    if m.get('license') != 'OPL-1':
+        errores.append(f"[manifest] la licencia debe ser OPL-1: {m.get('license')}")
+    if not os.path.exists('LICENSE'):
+        errores.append("[manifest] falta el archivo LICENSE")
     if not m.get('auto_install'):
         errores.append("[manifest] debe ser auto_install")
     if set(m['depends']) != {'fe_py_recepcion', 'purchase'}:
@@ -69,10 +73,28 @@ def check_herencias():
                 errores.append(f"[vista] {p}: campo '{c}' no existe")
 
 
+def check_sin_modelo_configuracion():
+    for p in glob.glob('**/*.py', recursive=True) + glob.glob('**/*.xml', recursive=True):
+        if p != 'verificar.py' and re.search(r"fe_py_recepcion[._]configuracion", leer(p)):
+            errores.append(f"[config] {p} todavía referencia el modelo configuracion")
+
+
+def check_ajustes():
+    ajustes = leer('models/res_config_settings.py')
+    for campo in re.findall(r'<field name="(fe_py_\w+)"', leer('views/res_config_settings_views.xml')):
+        if campo not in ajustes:
+            errores.append(f"[ajustes] '{campo}' no está en res_config_settings.py")
+    company = leer('models/res_company.py')
+    for destino in re.findall(r"related='company_id\.(\w+)'", ajustes):
+        if destino not in company:
+            errores.append(f"[ajustes] res.company no tiene '{destino}'")
+
+
 if __name__ == '__main__':
-    for f in (check_python_xml, check_manifest, check_herencias):
+    for f in (check_python_xml, check_manifest, check_herencias,
+              check_sin_modelo_configuracion, check_ajustes):
         f()
     if errores:
         print("PROBLEMAS ENCONTRADOS:\n" + '\n'.join('  ' + e for e in errores))
         sys.exit(1)
-    print("OK: las 3 verificaciones pasaron sin errores")
+    print("OK: las 5 verificaciones pasaron sin errores")

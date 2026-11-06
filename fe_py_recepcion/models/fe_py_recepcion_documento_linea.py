@@ -66,16 +66,14 @@ class FePyRecepcionDocumentoLinea(models.Model):
         quedan sin impuesto y bloquean la recepción.
         """
         for linea in self:
-            config = self.env['fe_py_recepcion.configuracion']._get_config(
-                linea.company_id or self.env.company, crear=False)
+            company = linea.company_id or self.env.company
             impuesto = self.env['account.tax']
-            if config:
-                if linea.afectacion == '1' and linea.tasa == 10:
-                    impuesto = config.impuesto_iva10_id
-                elif linea.afectacion == '1' and linea.tasa == 5:
-                    impuesto = config.impuesto_iva5_id
-                elif linea.afectacion == '3':
-                    impuesto = config.impuesto_exento_id
+            if linea.afectacion == '1' and linea.tasa == 10:
+                impuesto = company.fe_py_recepcion_impuesto_iva10_id
+            elif linea.afectacion == '1' and linea.tasa == 5:
+                impuesto = company.fe_py_recepcion_impuesto_iva5_id
+            elif linea.afectacion == '3':
+                impuesto = company.fe_py_recepcion_impuesto_exento_id
             linea.impuesto_id = impuesto
 
     @api.depends('producto_id', 'unidad_desc')

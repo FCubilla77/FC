@@ -11,11 +11,6 @@
             <field name="model_id" ref="model_fe_py_recepcion_documento_linea"/>
             <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         </record>
-        <record id="fe_py_recepcion_configuracion_company_rule" model="ir.rule">
-            <field name="name">Configuración de recepción: multicompañía</field>
-            <field name="model_id" ref="model_fe_py_recepcion_configuracion"/>
-            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        </record>
         <record id="fe_py_recepcion_equivalencia_company_rule" model="ir.rule">
             <field name="name">Equivalencia de producto del proveedor: multicompañía</field>
             <field name="model_id" ref="model_fe_py_recepcion_equivalencia"/>

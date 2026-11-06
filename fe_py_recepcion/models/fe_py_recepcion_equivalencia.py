@@ -11,6 +11,7 @@ class FePyRecepcionEquivalencia(models.Model):
     compra de Compras.
     """
     _name = 'fe_py_recepcion.equivalencia'
+    _inherit = ['fe_py_recepcion.mixin.licencia']
     _description = 'Equivalencia de producto del proveedor'
     _order = 'partner_id, codigo, descripcion'
 

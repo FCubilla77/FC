@@ -14,11 +14,10 @@ class FePyRecepcionDocumento(models.Model):
         help='Orden de compra confirmada con líneas pendientes de facturar. Como en el estándar '
              'de Odoo, las líneas del XML se pueden vincular o dejar sin vincular.')
 
-    @api.depends('company_id')
+    @api.depends('company_id.fe_py_recepcion_vincular_compras')
     def _compute_vincular_compras(self):
-        Config = self.env['fe_py_recepcion.configuracion']
         for doc in self:
-            doc.vincular_compras = bool(Config._get_config(doc.company_id, crear=False).vincular_compras)
+            doc.vincular_compras = doc.company_id.fe_py_recepcion_vincular_compras
 
     def _diagnostico(self):
         bloqueos, avisos = super()._diagnostico()

@@ -32,7 +32,8 @@ class FePyRecepcionDocumento(models.Model):
     a SIFEN.
     """
     _name = 'fe_py_recepcion.documento'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'fe_py_recepcion.mixin.licencia',
+                'fe_py_recepcion.mixin.licencia.edicion']
     _description = 'Factura Electrónica Recibida'
     _order = 'fecha_emision desc, id desc'
 
@@ -102,9 +103,10 @@ class FePyRecepcionDocumento(models.Model):
         help='Contacto con el mismo RUC que informa el XML.')
     journal_id = fields.Many2one(
         'account.journal', string='Diario', tracking=True,
-        domain="[('type', '=', 'purchase'), ('company_id', '=', company_id), "
-               "('local_py_tipo_fiscal_id.code', '=', '109')]",
-        help='Diario de compra con el que se genera la factura de proveedor.')
+        domain="[('type', '=', 'purchase'), ('company_id', '=', company_id)]",
+        help='Diario de compra con el que se genera la factura de proveedor. Se propone el '
+             'configurado en Ajustes para este tipo de documento. La factura toma el Tipo '
+             'Fiscal de su diario.')
     payment_term_id = fields.Many2one(
         'account.payment.term', string='Término de pago', tracking=True,
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
@@ -184,7 +186,6 @@ class FePyRecepcionDocumento(models.Model):
 
         moneda = self.env['res.currency'].with_context(active_test=False).search(
             [('name', '=', datos['moneda'])], limit=1)
-        config = self.env['fe_py_recepcion.configuracion']._get_config(company)
         totales = datos['totales']
         emisor, receptor = datos['emisor'], datos['receptor']
         credito = datos['credito'] or {}
@@ -220,7 +221,7 @@ class FePyRecepcionDocumento(models.Model):
             'subtotal_10': float(totales['sub10']),
             'subtotal_5': float(totales['sub5']),
             'subtotal_exento': float(totales['exento']),
-            'journal_id': config.diario_id.id or False,
+            'journal_id': company._fe_py_recepcion_diario_por_itide(datos['itide']).id or False,
         }
         redondeo = Decimal(str(moneda.rounding)) if moneda and moneda.rounding else Decimal('1')
         vals['line_ids'] = [Command.create(self._vals_linea_desde_item(item, redondeo))
@@ -384,7 +385,11 @@ class FePyRecepcionDocumento(models.Model):
     # Diagnóstico (impedimentos y avisos)
     # ------------------------------------------------------------------
     def _tipo_fiscal(self):
+        """Tipo Fiscal de la factura: el de su diario; si el diario no tiene, el que
+        corresponde al tipo de documento del XML (registros que ya trae local_py)."""
         self.ensure_one()
+        if self.journal_id.local_py_tipo_fiscal_id:
+            return self.journal_id.local_py_tipo_fiscal_id
         xmlid = TIPO_FISCAL_POR_ITIDE.get(self.itide)
         return self.env.ref(xmlid, raise_if_not_found=False) if xmlid else self.env['local_py.tipo_fiscal']
 
@@ -418,7 +423,9 @@ class FePyRecepcionDocumento(models.Model):
                     receptor=self.receptor_ruc or _('sin RUC'), compania=compania_vat))
 
         if not self.journal_id:
-            bloqueos.append(_('Falta el diario de compra. Configúrelo o elíjalo en la recepción.'))
+            bloqueos.append(_(
+                'Falta el diario de compra. Configúrelo en Ajustes › Configuración FE_Py '
+                'Recepción o elíjalo en la recepción.'))
         if not self.currency_id:
             bloqueos.append(_('La moneda %s del XML no existe en Odoo.', self.moneda_codigo))
         elif not self.currency_id.active:
@@ -674,7 +681,8 @@ class FePyRecepcionDocumento(models.Model):
 
     def _volver_a_cargado_por_factura(self):
         """La factura generada se eliminó o canceló: la recepción vuelve a Cargado."""
-        for doc in self.filtered(lambda d: d.state == 'confirmado'):
+        for doc in self.with_context(fe_py_recepcion_licencia_omitir=True).filtered(
+                lambda d: d.state == 'confirmado'):
             doc.write({'state': 'cargado', 'move_id': False, 'control_hecho': False})
             doc.message_post(body=_(
                 'La factura de proveedor generada se eliminó o canceló; la recepción volvió a Cargado.'))

@@ -15,20 +15,21 @@
         del XML, y las líneas sin vincular se permiten.
 
         Se activa o desactiva con la opción "Vincular con cotizaciones" de
-        la configuración de recepción. No modifica fe_py_recepcion ni
-        local_py: todo es por herencia.
+        Ajustes > Configuración FE_Py Recepción. No modifica fe_py_recepcion
+        ni local_py: todo es por herencia. Lo cubre la misma licencia OPL-1
+        de fe_py_recepcion.
     """,
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.001",
-    "license": "LGPL-3",
+    "version": "2026.19.002",
+    "license": "OPL-1",
     "application": False,
     "installable": True,
     "auto_install": True,
     "depends": ["fe_py_recepcion", "purchase"],
     "data": [
-        "views/fe_py_recepcion_configuracion_views.xml",
+        "views/res_config_settings_views.xml",
         "views/fe_py_recepcion_documento_views.xml",
     ],
 }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+            Sección propia "Configuración FE_Py Recepción" en Ajustes (aparece como ítem
+            propio en la barra lateral de Ajustes, por el name="fe_py_recepcion" del <app>,
+            igual al nombre técnico del módulo). Aloja los diarios, los impuestos y la
+            licencia del producto. Esta pantalla queda siempre disponible, con o sin
+            licencia válida: es la única forma de cargar o renovar el código.
+        -->
+        <record id="res_config_settings_view_form_fe_py_recepcion" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.fe_py_recepcion</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="45"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app data-string="Configuración FE_Py Recepción" string="Configuración FE_Py Recepción"
+                         name="fe_py_recepcion" groups="account.group_account_manager">
+                        <block title="Diarios e impuestos" name="fe_py_recepcion_diarios">
+                            <setting string="Diario para facturas recibidas"
+                                     help="Diario de compra con el que se generan las facturas de proveedor. Se puede cambiar en cada recepción. La factura toma el Tipo Fiscal de su diario.">
+                                <field name="fe_py_recepcion_diario_id" options="{'no_create': True}"/>
+                            </setting>
+                            <setting string="Diario para notas de crédito recibidas"
+                                     help="Diario de compra con el que se generan las notas de crédito de proveedor.">
+                                <field name="fe_py_recepcion_diario_nc_id" options="{'no_create': True}"/>
+                            </setting>
+                            <setting string="Diario para notas de débito recibidas"
+                                     help="Diario de compra con el que se generan las notas de débito de proveedor.">
+                                <field name="fe_py_recepcion_diario_nd_id" options="{'no_create': True}"/>
+                            </setting>
+                            <setting string="Impuesto IVA 10%"
+                                     help="Impuesto de compra para las líneas con IVA 10%. Los precios del XML ya incluyen el IVA: debe tener «Incluido en el precio».">
+                                <field name="fe_py_recepcion_impuesto_iva10_id" options="{'no_create': True}"/>
+                            </setting>
+                            <setting string="Impuesto IVA 5%"
+                                     help="Impuesto de compra para las líneas con IVA 5%, con IVA incluido en el precio.">
+                                <field name="fe_py_recepcion_impuesto_iva5_id" options="{'no_create': True}"/>
+                            </setting>
+                            <setting string="Impuesto Exento"
+                                     help="Impuesto de compra (0%) para las líneas exentas.">
+                                <field name="fe_py_recepcion_impuesto_exento_id" options="{'no_create': True}"/>
+                            </setting>
+                        </block>
+                        <block title="Licencia" name="fe_py_recepcion_licencia">
+                            <setting string="Código de la base"
+                                     help="Versión del módulo e identificador único de esta base de datos. Envíeselo a FC_Py, tal cual, para que emita o renueve la licencia.">
+                                <field name="fe_py_recepcion_licencia_uuid" readonly="1" widget="CopyClipboardChar"/>
+                            </setting>
+                            <setting string="Código de licencia"
+                                     help="Pegue acá el código que le entregó FC_Py, tal cual lo recibió.">
+                                <field name="fe_py_recepcion_licencia_codigo" nolabel="1"/>
+                                <div class="content-group mt16">
+                                    <div class="row mt4">
+                                        <label for="fe_py_recepcion_licencia_estado" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_recepcion_licencia_estado" widget="badge"
+                                               decoration-success="fe_py_recepcion_licencia_estado == 'valida'"
+                                               decoration-warning="fe_py_recepcion_licencia_estado == 'sin_licencia'"
+                                               decoration-danger="fe_py_recepcion_licencia_estado in ('vencida', 'invalida', 'otra_version')"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not fe_py_recepcion_licencia_cliente">
+                                        <label for="fe_py_recepcion_licencia_cliente" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_recepcion_licencia_cliente" readonly="1"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not fe_py_recepcion_licencia_vencimiento">
+                                        <label for="fe_py_recepcion_licencia_vencimiento" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_recepcion_licencia_vencimiento" readonly="1"/>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="fe_py_recepcion_licencia_estado != 'otra_version'">
+                                    Este código de licencia corresponde a otra versión del módulo. Después de actualizar FE_Py Recepción hay que pedirle a FC_Py un código nuevo, usando el «Código de la base» actual.
+                                </div>
+                                <div class="alert alert-danger mt-2" role="alert"
+                                     invisible="fe_py_recepcion_licencia_estado == 'valida'">
+                                    Sin una licencia válida, FE_Py Recepción bloquea la creación de equivalencias de productos y la creación y edición de las facturas electrónicas recibidas (cargar XML, verificar, confirmar, cancelar y reabrir). La lectura, las líneas, la factura de proveedor ya generada y esta pantalla de Ajustes quedan siempre disponibles.
+                                </div>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

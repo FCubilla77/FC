@@ -2,10 +2,10 @@
 from odoo import fields, models
 
 
-class FePyRecepcionConfiguracion(models.Model):
-    _inherit = 'fe_py_recepcion.configuracion'
+class ResCompany(models.Model):
+    _inherit = 'res.company'
 
-    vincular_compras = fields.Boolean(
+    fe_py_recepcion_vincular_compras = fields.Boolean(
         string='Vincular con cotizaciones', default=True,
         help='Permite asignar una cotización (orden de compra) a cada factura electrónica '
              'recibida y una línea de la cotización a cada línea del XML. La factura de '

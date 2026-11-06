@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_fe_py_recepcion_purchase" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.fe_py_recepcion_purchase</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="fe_py_recepcion.res_config_settings_view_form_fe_py_recepcion"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='fe_py_recepcion_diarios']" position="after">
+                <block title="Compras" name="fe_py_recepcion_compras">
+                    <setting help="Permite asignar una cotización a cada factura electrónica recibida y una línea de la cotización a cada línea del XML. La factura de proveedor generada queda vinculada con la cotización, igual que si se hubiera cargado a mano.">
+                        <field name="fe_py_recepcion_vincular_compras"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
