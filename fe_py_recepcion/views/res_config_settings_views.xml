@@ -46,7 +46,7 @@
                         <block title="Correo de recepción" name="fe_py_recepcion_correo" groups="base.group_system">
                             <setting string="Cuenta de correo de recepción"
                                      help="Casilla (IMAP/POP) donde llegan las facturas electrónicas de los proveedores. Debe ser exclusiva de esta compañía y distinta de las que usa el resto del sistema: solo se leen los correos no leídos. Cada XML adjunto crea una recepción; lo que no se puede cargar queda con estado Error.">
-                                <field name="fe_py_recepcion_fetchmail_id" options="{'no_create': True}"/>
+                                <field name="fe_py_recepcion_fetchmail_id" readonly="1"/>
                                 <div class="mt8">
                                     <button name="fe_py_recepcion_abrir_cuenta_correo" type="object"
                                             string="Configurar cuenta de correo" class="btn-link"

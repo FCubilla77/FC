@@ -870,17 +870,34 @@ class FePyRecepcionDocumento(models.Model):
     def message_new(self, msg_dict, custom_values=None):
         """Cada correo recibido en la cuenta de la compañía crea un registro por cada XML
         adjunto. Odoo necesita un registro donde guardar el correo: se devuelve el primero."""
-        servidor_id = self.env.context.get('default_fetchmail_server_id')
-        company = self.env['res.company'].sudo().search(
-            [('fe_py_recepcion_fetchmail_id', '=', servidor_id)], limit=1) if servidor_id else False
-        if not company:
-            raise UserError(_('El servidor de correo no está asignado a ninguna compañía en '
-                              'Ajustes > Configuración FE_Py Recepción.'))
-        nuevos, existentes = self._procesar_correo(msg_dict, company)
+        company, motivo = self._company_del_correo(msg_dict)
+        nuevos, existentes = self._procesar_correo(msg_dict, company, motivo_previo=motivo)
         return (nuevos or existentes)[:1]
 
     @api.model
-    def _procesar_correo(self, msg_dict, company):
+    def _company_del_correo(self, msg_dict):
+        """(compañía, motivo). Identifica la cuenta de correo que recibió el mensaje: por el
+        contexto de Odoo, por la dirección del destinatario o, si hay una sola cuenta de
+        recepción, esa. Si no se puede saber a qué compañía pertenece, devuelve la compañía
+        actual y el motivo: el correo queda como registro con error, no se pierde."""
+        Servidor = self.env['fetchmail.server'].sudo()
+        servidor = Servidor.browse(self.env.context.get('default_fetchmail_server_id') or 0).exists()
+        if not servidor:
+            propios = Servidor.search([('object_id.model', '=', self._name)])
+            recibido = ' '.join(filter(None, [
+                msg_dict.get('to'), msg_dict.get('recipients'), msg_dict.get('cc')])).lower()
+            coincide = propios.filtered(lambda s: s.user and s.user.lower() in recibido)
+            servidor = coincide if len(coincide) == 1 else (propios if len(propios) == 1 else Servidor)
+        company = servidor._fe_py_recepcion_company() if servidor else self.env['res.company']
+        if company:
+            return company, False
+        return self.env.company, _(
+            'No se pudo saber a qué compañía pertenece la cuenta de correo que recibió este mensaje. '
+            'Revise en Ajustes > Configuración FE_Py Recepción que la cuenta esté asignada a la '
+            'compañía y use "Reintentar lectura".')
+
+    @api.model
+    def _procesar_correo(self, msg_dict, company, motivo_previo=False):
         adjuntos = [(a[0], a[1]) for a in (msg_dict.get('attachments') or [])]
         correo = {
             'remitente': msg_dict.get('email_from'), 'asunto': msg_dict.get('subject'),
@@ -889,6 +906,14 @@ class FePyRecepcionDocumento(models.Model):
         xmls = [a for a in adjuntos if utilidades.es_adjunto_xml(a[0])]
         pdfs = [a for a in adjuntos if utilidades.es_adjunto_pdf(a[0])]
         nuevos, existentes = self.browse(), self.browse()
+        if motivo_previo:
+            for nombre, contenido in (xmls or [(None, None)]):
+                doc = self._registrar_error(
+                    nombre, utilidades.a_bytes(contenido) if contenido else None, company,
+                    motivo_previo, correo)
+                doc._adjuntar_pdfs(pdfs)
+                nuevos |= doc
+            return nuevos, existentes
         if not xmls:
             motivo = (_('El correo no trae archivos XML.') if adjuntos
                       else _('El correo no trae adjuntos.'))

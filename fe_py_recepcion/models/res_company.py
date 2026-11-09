@@ -44,6 +44,15 @@ class ResCompany(models.Model):
         self.ensure_one()
         servidor = self.sudo().fe_py_recepcion_fetchmail_id
         if not servidor:
+            # reutiliza una cuenta de recepción que haya quedado sin compañía, antes de crear otra
+            Company = self.env['res.company'].sudo()
+            libres = self.env['fetchmail.server'].sudo().search(
+                [('object_id.model', '=', 'fe_py_recepcion.documento')]).filtered(
+                lambda s: not Company.search_count([('fe_py_recepcion_fetchmail_id', '=', s.id)]))
+            if len(libres) == 1:
+                servidor = libres
+                self.sudo().fe_py_recepcion_fetchmail_id = servidor
+        if not servidor:
             servidor = self.env['fetchmail.server'].sudo().create({
                 'name': _('FE_Py Recepción - %s', self.name),
                 'object_id': self.env['ir.model']._get('fe_py_recepcion.documento').id,

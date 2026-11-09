@@ -31,8 +31,7 @@ class ResConfigSettings(models.TransientModel):
         domain="[('type_tax_use', '=', 'purchase'), ('company_id', '=', company_id)]")
 
     fe_py_recepcion_fetchmail_id = fields.Many2one(
-        related='company_id.fe_py_recepcion_fetchmail_id', readonly=False,
-        domain="[('object_id.model', '=', 'fe_py_recepcion.documento')]")
+        related='company_id.fe_py_recepcion_fetchmail_id', readonly=True)
 
     def fe_py_recepcion_abrir_cuenta_correo(self):
         self.ensure_one()
