@@ -16,8 +16,9 @@
         el usuario lo revise.
 
         El XML lo emite y firma el proveedor: este módulo solo lo LEE y
-        guarda sus datos (incluido el CDC). No genera ni valida CDC, firma
-        digital ni esquema, y no consulta a SIFEN.
+        guarda sus datos (incluido el CDC, que carga en los campos de
+        local_py >= 2026.19.017). No genera ni valida CDC, firma digital ni
+        esquema, y no consulta a SIFEN.
 
         Es independiente de FE_Py (emisión) y no modifica archivos de
         local_py: toda extensión sobre sus modelos es por herencia. La
@@ -31,7 +32,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.010",
+    "version": "2026.19.011",
     "license": "OPL-1",
     "application": False,
     "installable": True,
@@ -50,5 +51,6 @@
         "views/res_config_settings_views.xml",
         "views/menus.xml",
     ],
+    "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
 }

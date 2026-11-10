@@ -38,6 +38,16 @@ class AccountMove(models.Model):
              'número utilizado para el diario (formato 001-001-0000001). '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
+    l10n_py_cdc = fields.Char(
+        string='CDC',
+        size=44,
+        copy=False,
+        index=True,
+        help='Código de Control (44 dígitos) del Documento Electrónico que informó el '
+             'proveedor. Solo aplica a factura/nota de crédito de proveedor: en los '
+             'comprobantes de venta el CDC lo genera el propio sistema de Facturación '
+             'Electrónica. Solo se guarda: no se valida contra SIFEN.',
+    )
     local_py_tipo_fiscal_id = fields.Many2one(
         'local_py.tipo_fiscal',
         string='Tipo Fiscal',
@@ -105,6 +115,19 @@ class AccountMove(models.Model):
         related='reversed_entry_id.l10n_py_nro_documento',
         readonly=True,
         store=False,
+    )
+
+    l10n_py_cdc_asociado = fields.Char(
+        string='CDC del Comprobante Asociado',
+        size=44,
+        copy=False,
+        index=True,
+        help='CDC de la Factura Electrónica que esta Nota de Crédito de proveedor '
+             'afecta, según el documento del proveedor. Se autocompleta desde el '
+             'Comprobante Asociado cuando está vacío, y queda editable: la factura de '
+             'origen puede no estar cargada en Odoo (o ser anterior al CDC), y en ese '
+             'caso el dato igual tiene que poder guardarse. A diferencia de '
+             '"Nro. Documento Comprobante Asociado", este campo se almacena.',
     )
 
     l10n_py_nro_fiscal = fields.Integer(
@@ -334,6 +357,20 @@ class AccountMove(models.Model):
         for move in self:
             if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
                 move.l10n_py_imputacion_tributaria_ids = move.company_id.l10n_py_imputacion_tributaria_ids
+
+    @api.onchange('reversed_entry_id')
+    def _onchange_l10n_py_cdc_asociado_default(self):
+        """En Nota de Crédito de proveedor, autocompleta el CDC del Comprobante
+        Asociado con el CDC de la factura de origen — solo si está vacío, para no
+        pisar el que haya informado el documento del proveedor (que es el dato que
+        manda) ni una carga manual del usuario."""
+        for move in self:
+            if (
+                move.move_type == 'in_refund'
+                and not move.l10n_py_cdc_asociado
+                and move.reversed_entry_id.l10n_py_cdc
+            ):
+                move.l10n_py_cdc_asociado = move.reversed_entry_id.l10n_py_cdc
 
     @api.onchange('reversed_entry_id')
     def _onchange_l10n_py_imputacion_tributaria_comprobante_asociado(self):
@@ -651,6 +688,54 @@ class AccountMove(models.Model):
                         'Ya existe otra %s confirmada con el mismo proveedor, Timbrado, Nro. '
                         'Documento y Tipo Fiscal.' % label
                     )
+
+    # ------------------------------------------------------------------
+    # CDC (Código de Control del Documento Electrónico) - lado proveedor
+    # ------------------------------------------------------------------
+    @api.constrains('l10n_py_cdc', 'l10n_py_cdc_asociado')
+    def _check_l10n_py_cdc_formato(self):
+        """El CDC tiene 44 dígitos (11 tramos: tipo de documento, RUC del emisor y
+        su dígito verificador, establecimiento, punto de expedición, número, tipo de
+        contribuyente, fecha de emisión, tipo de emisión, código de seguridad y
+        dígito verificador). Solo se controla largo y que sean dígitos: no se valida
+        el dígito verificador ni se compara contra SIFEN. Vacío es válido — una
+        factura de proveedor en papel no tiene CDC."""
+        for move in self:
+            for campo in ('l10n_py_cdc', 'l10n_py_cdc_asociado'):
+                valor = move[campo]
+                if valor and not (len(valor) == 44 and valor.isdigit()):
+                    raise exceptions.ValidationError(
+                        'El campo %s debe tener exactamente 44 dígitos.'
+                        % move._fields[campo].string
+                    )
+
+    @api.constrains('l10n_py_cdc', 'company_id', 'state')
+    def _check_l10n_py_cdc_unique(self):
+        """El CDC identifica de manera única a cada Documento Electrónico del SIFEN,
+        así que no puede repetirse dentro de la misma compañía: es la red de
+        seguridad contra cargar dos veces la misma factura electrónica recibida.
+
+        Se controla contra los comprobantes NO cancelados (borrador y confirmados):
+        un comprobante cancelado no debe seguir ocupando su CDC, para que se pueda
+        volver a registrar el documento si hizo falta anular y cargar de nuevo. Por
+        eso es una validación de Python y no un constraint SQL, que no podría
+        distinguir el estado."""
+        for move in self:
+            if not move.l10n_py_cdc or move.state == 'cancel':
+                continue
+            otro = self.search([
+                ('id', '!=', move.id),
+                ('company_id', '=', move.company_id.id),
+                ('l10n_py_cdc', '=', move.l10n_py_cdc),
+                ('state', '!=', 'cancel'),
+            ], limit=1)
+            if otro:
+                raise exceptions.ValidationError(
+                    'El CDC %s ya está registrado en el comprobante "%s" de esta '
+                    'compañía. El CDC identifica de manera única a cada Documento '
+                    'Electrónico, así que no puede repetirse.'
+                    % (move.l10n_py_cdc, otro.display_name)
+                )
 
     # ------------------------------------------------------------------
     # Validación de vencimiento del timbrado (lado venta)

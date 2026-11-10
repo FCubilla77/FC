@@ -97,6 +97,37 @@ class FePyRecepcionDocumento(models.Model):
     cdc_asociado = fields.Char(string='CDC del documento asociado', size=44, readonly=True, copy=False,
                                index=True, help='CDC de la factura que afecta la nota, tal como lo informa el XML.')
 
+    # -- Datos adicionales del XML (pestaña "Datos adicionales del XML") ------------------
+    # Solo se guardan para consulta; no intervienen en la generación de la factura.
+    xml_version = fields.Char(string='Versión del formato', readonly=True)
+    emision_xml = fields.Char(string='Fecha y hora de emisión (XML)', readonly=True)
+    timbrado_inicio = fields.Date(string='Inicio de vigencia del timbrado', readonly=True)
+    emisor_tipo_contribuyente = fields.Selection(
+        [('1', 'Persona física'), ('2', 'Persona jurídica')], string='Tipo de contribuyente',
+        readonly=True)
+    credito_tipo = fields.Selection([('1', 'Plazo'), ('2', 'Cuotas')], string='Tipo de crédito',
+                                    readonly=True)
+    credito_plazo = fields.Char(string='Plazo del crédito', readonly=True)
+    credito_cuotas = fields.Integer(string='Cantidad de cuotas', readonly=True)
+    subtotal_exonerado = fields.Monetary(string='Exonerado (XML)', currency_field='currency_id',
+                                         readonly=True)
+    descuento_total = fields.Monetary(string='Descuento total (XML)', currency_field='currency_id',
+                                      readonly=True)
+    descuento_global = fields.Monetary(string='Descuento global (XML)', currency_field='currency_id',
+                                       readonly=True)
+    anticipo = fields.Monetary(string='Anticipo (XML)', currency_field='currency_id', readonly=True)
+    redondeo = fields.Monetary(string='Redondeo (XML)', currency_field='currency_id', readonly=True)
+    total_gs = fields.Float(string='Total en guaraníes (XML)', digits=(16, 2), readonly=True)
+    motivo_codigo = fields.Char(string='Código del motivo de emisión', readonly=True)
+    asociado_tipo = fields.Selection(
+        [('1', 'Electrónico'), ('2', 'Impreso'), ('3', 'Constancia electrónica')],
+        string='Tipo de documento asociado', readonly=True)
+    asociado_timbrado = fields.Char(string='Timbrado del asociado', readonly=True)
+    asociado_establecimiento = fields.Char(string='Establecimiento del asociado', readonly=True)
+    asociado_punto = fields.Char(string='Punto de expedición del asociado', readonly=True)
+    asociado_numero = fields.Char(string='Número del asociado', readonly=True)
+    asociado_fecha = fields.Date(string='Fecha de emisión del asociado', readonly=True)
+
     total_general = fields.Monetary(string='Total del XML', currency_field='currency_id', readonly=True)
     total_iva = fields.Monetary(string='IVA del XML', currency_field='currency_id', readonly=True)
     subtotal_10 = fields.Monetary(string='Gravado 10% (XML)', currency_field='currency_id', readonly=True)
@@ -269,6 +300,7 @@ class FePyRecepcionDocumento(models.Model):
             'subtotal_10': float(totales['sub10']),
             'subtotal_5': float(totales['sub5']),
             'subtotal_exento': float(totales['exento']),
+            **self._vals_datos_adicionales(datos),
             'journal_id': company._fe_py_recepcion_diario_por_itide(datos['itide']).id or False,
         }
         redondeo = Decimal(str(moneda.rounding)) if moneda and moneda.rounding else Decimal('1')
@@ -308,6 +340,47 @@ class FePyRecepcionDocumento(models.Model):
             'afectacion': item['afectacion'],
             'tasa': item['tasa'] or 0,
             'iva_xml': float(item['liq_iva']),
+            'unidad_codigo': item.get('unidad_codigo') or False,
+            'gtin': item.get('gtin') or False,
+            'gtin_paquete': item.get('gtin_paquete') or False,
+            'lote': item.get('lote') or False,
+            'vencimiento_lote': item.get('vencimiento') or False,
+            'serie': item.get('serie') or False,
+            'info_item': item.get('info_item') or False,
+        }
+
+    @api.model
+    def _vals_datos_adicionales(self, datos):
+        """Valores de la pestaña "Datos adicionales del XML" (cabecera). Solo lectura del XML."""
+        totales, emisor = datos['totales'], datos['emisor']
+        credito = datos['credito'] or {}
+        asociados = datos['asociados']
+        # con varios asociados se guarda el detalle del primero (el texto completo está en
+        # "Documento asociado (XML)")
+        asociado = next((a for a in asociados if a.get('cdc')), asociados[0] if asociados else {})
+        tipo_aso = asociado.get('tipo')
+        tipo_contribuyente = emisor.get('tipo_contribuyente')
+        return {
+            'xml_version': datos.get('version') or False,
+            'emision_xml': datos.get('fecha_emision_xml') or False,
+            'timbrado_inicio': datos.get('timbrado_inicio') or False,
+            'emisor_tipo_contribuyente': str(tipo_contribuyente) if tipo_contribuyente in (1, 2) else False,
+            'credito_tipo': str(credito['tipo']) if credito.get('tipo') in (1, 2) else False,
+            'credito_plazo': credito.get('plazo') or False,
+            'credito_cuotas': credito.get('cantidad_cuotas') or 0,
+            'subtotal_exonerado': float(totales.get('exonerado') or 0),
+            'descuento_total': float(totales.get('descuento') or 0),
+            'descuento_global': float(totales.get('descuento_global') or 0),
+            'anticipo': float(totales.get('anticipo') or 0),
+            'redondeo': float(totales.get('redondeo') or 0),
+            'total_gs': float(totales.get('total_gs') or 0),
+            'motivo_codigo': str(datos['motivo_codigo']) if datos.get('motivo_codigo') is not None else False,
+            'asociado_tipo': str(tipo_aso) if tipo_aso in (1, 2, 3) else False,
+            'asociado_timbrado': asociado.get('timbrado') or False,
+            'asociado_establecimiento': asociado.get('establecimiento') or False,
+            'asociado_punto': asociado.get('punto') or False,
+            'asociado_numero': asociado.get('numero') or False,
+            'asociado_fecha': asociado.get('fecha') or False,
         }
 
     @staticmethod
@@ -363,9 +436,10 @@ class FePyRecepcionDocumento(models.Model):
         """Sugiere el producto de cada línea sin producto.
 
         1) Equivalencia ya confirmada con ese proveedor (la usada más recientemente).
-        2) Si no hay equivalencia (por ejemplo, la primera vez), coincidencia exacta del
-           código del XML con la referencia de la ficha del producto o, si no, de la
-           descripción con el nombre. Esta segunda búsqueda no necesita al proveedor.
+        2) Si no hay equivalencia (por ejemplo, la primera vez), el GTIN del ítem contra el
+           código de barras del producto o de sus unidades/paquetes.
+        3) Coincidencia exacta del código del XML con la referencia de la ficha del producto
+           o, si no, de la descripción con el nombre. Estas búsquedas no necesitan al proveedor.
         Solo se sugiere cuando hay un único candidato. Se pueden recalcular las líneas
         con producto sugerido por el sistema (por ejemplo, al cambiar el proveedor); nunca
         se pisa un producto elegido a mano.
@@ -373,12 +447,15 @@ class FePyRecepcionDocumento(models.Model):
         Equivalencia = self.env['fe_py_recepcion.equivalencia']
         for doc in self:
             for linea in doc.line_ids.filtered(
-                    lambda l: not l.producto_id or l.producto_origen in ('equivalencia', 'referencia', 'descripcion')):
+                    lambda l: not l.producto_id or l.producto_origen in ('equivalencia', 'gtin', 'referencia', 'descripcion')):
                 producto, origen = self.env['product.product'], False
                 if doc.partner_id:
                     producto = Equivalencia.buscar_producto(
                         doc.partner_id, linea.codigo, linea.descripcion, doc.company_id)
                     origen = 'equivalencia' if producto else False
+                if not producto:
+                    producto = doc._buscar_producto_por_gtin(linea.gtin, linea.gtin_paquete)
+                    origen = 'gtin' if producto else False
                 if not producto:
                     producto, origen = doc._buscar_producto_en_ficha(linea.codigo, linea.descripcion)
                 if producto:
@@ -399,6 +476,25 @@ class FePyRecepcionDocumento(models.Model):
                 for doc in cargados:
                     doc._procesar_automatico()
         return res
+
+    def _buscar_producto_por_gtin(self, gtin, gtin_paquete):
+        """Producto cuyo código de barras coincide con el GTIN del ítem (o el de su paquete).
+
+        Se compara con el código de barras del producto y con el de sus unidades de medida
+        (en Odoo 19 los paquetes son `product.uom`). Solo se sugiere cuando todas las
+        coincidencias son del mismo producto; vacío si no hay ninguna o hay dudas."""
+        self.ensure_one()
+        Producto = self.env['product.product']
+        codigos = list({c.strip() for c in (gtin, gtin_paquete) if c and c.strip()})
+        if not codigos:
+            return Producto
+        base = [('purchase_ok', '=', True), '|', ('company_id', '=', False),
+                ('company_id', '=', self.company_id.id)]
+        productos = Producto.search(base + [('barcode', 'in', codigos)])
+        if 'product.uom' in self.env:
+            unidades = self.env['product.uom'].sudo().search([('barcode', 'in', codigos)])
+            productos |= Producto.search(base + [('id', 'in', unidades.product_id.ids)])
+        return productos if len(productos) == 1 else Producto
 
     def _buscar_producto_en_ficha(self, codigo, descripcion):
         """(producto, origen) por coincidencia exacta (sin distinguir mayúsculas ni espacios
@@ -476,7 +572,7 @@ class FePyRecepcionDocumento(models.Model):
         base = [('move_type', '=', 'in_invoice'), ('company_id', '=', self.company_id.id),
                 ('state', '!=', 'cancel'), ('commercial_partner_id', '=', comercial.id)]
         if self.cdc_asociado:
-            encontrada = Move.search(base + [('fe_py_recepcion_cdc', '=', self.cdc_asociado)], limit=1)
+            encontrada = Move.search(base + [('l10n_py_cdc', '=', self.cdc_asociado)], limit=1)
             if encontrada:
                 return encontrada
         candidatos = list(asociados or [])
@@ -593,12 +689,28 @@ class FePyRecepcionDocumento(models.Model):
 
         bloqueos += self._mensajes_diferencias()
 
+        if self.cdc and self.state in ('cargado', 'verificado'):
+            # local_py no admite dos comprobantes con el mismo CDC en la compañía (excepto
+            # cancelados): se avisa antes de que falle al generar la factura.
+            duplicada = self.env['account.move'].sudo().search([
+                ('l10n_py_cdc', '=', self.cdc), ('company_id', '=', company.id),
+                ('state', '!=', 'cancel'), ('id', '!=', self.move_id.id or 0)], limit=1)
+            if duplicada:
+                bloqueos.append(_(
+                    'Ya existe un comprobante con este CDC (%s). Revíselo: si es el mismo '
+                    'documento, cancélelo o elimínelo antes de continuar.', duplicada.display_name))
+        if self.descuento_global or self.anticipo:
+            avisos.append(_(
+                'El XML informa descuento global o anticipo (descuento global %(desc)s, anticipo '
+                '%(ant)s); el módulo no los trata por separado y los totales pueden no coincidir.',
+                desc=self.descuento_global, ant=self.anticipo))
+
         if self.termino_aviso:
             avisos.append(self.termino_aviso)
         if self.itide == '5' and not self.reversed_move_id:
             otra = self.env['account.move'].sudo().search([
                 ('move_type', '=', 'in_invoice'), ('company_id', '=', company.id),
-                ('state', '!=', 'cancel'), ('fe_py_recepcion_cdc', '=', self.cdc_asociado)], limit=1
+                ('state', '!=', 'cancel'), ('l10n_py_cdc', '=', self.cdc_asociado)], limit=1
             ) if self.cdc_asociado else self.env['account.move']
             if otra and self.partner_id and \
                     otra.commercial_partner_id != self.partner_id.commercial_partner_id:
@@ -670,8 +782,8 @@ class FePyRecepcionDocumento(models.Model):
             'local_py_tipo_fiscal_id': tipo_fiscal.id,
             'l10n_py_timbrado': int(self.timbrado) if (self.timbrado or '').isdigit() else 0,
             'l10n_py_nro_documento': self.nro_documento,
-            'fe_py_recepcion_cdc': self.cdc,
-            'fe_py_recepcion_cdc_asociado': self.cdc_asociado or False,
+            'l10n_py_cdc': self.cdc,
+            'l10n_py_cdc_asociado': self.cdc_asociado or False,
             'invoice_line_ids': [Command.create(self._vals_linea_factura(linea))
                                  for linea in self.line_ids.sorted('orden')],
         }

@@ -27,6 +27,14 @@
                                string="Nro. Documento"
                                placeholder="000-000-0000000"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
+                        <!-- CDC: solo del lado proveedor. En los comprobantes de venta
+                             el CDC lo genera el sistema de Facturación Electrónica y
+                             vive en el Documento Electrónico, no acá. -->
+                        <field name="l10n_py_cdc"
+                               string="CDC"
+                               placeholder="44 dígitos"
+                               invisible="move_type not in ('in_invoice', 'in_refund')"
+                               readonly="state != 'draft'"/>
                         <field name="local_py_tipo_fiscal_id"
                                string="Tipo Fiscal"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
@@ -46,6 +54,11 @@
                         <field name="l10n_py_nro_documento_asociado"
                                string="Nro. Documento Comprobante Asociado"
                                invisible="move_type not in ('out_refund', 'in_refund')"/>
+                        <field name="l10n_py_cdc_asociado"
+                               string="CDC del Comprobante Asociado"
+                               placeholder="44 dígitos"
+                               invisible="move_type != 'in_refund'"
+                               readonly="state != 'draft'"/>
                     </group>
                 </xpath>
                 <!-- Comentario: aplica a TODOS los asientos (no solo Facturación), por

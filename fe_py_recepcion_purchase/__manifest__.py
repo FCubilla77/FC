@@ -22,7 +22,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.010",
+    "version": "2026.19.011",
     "license": "OPL-1",
     "application": False,
     "installable": True,

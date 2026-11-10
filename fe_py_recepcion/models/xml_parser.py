@@ -171,7 +171,19 @@ def _buscar_rde(contenido):
     return candidatos[0]
 
 
+def _nodo_rastro(nodo):
+    """Grupo de rastreo de la mercadería (gRasMerc). El Manual v150 lo ubica dentro del ítem
+    (E750); el XSD del proyecto lo muestra dentro de gCamComEsp. Se aceptan las dos ubicaciones."""
+    directo = _hijo(nodo, 'gRasMerc')
+    if directo is not None:
+        return directo
+    for candidato in nodo.iter('{*}gRasMerc'):
+        return candidato
+    return None
+
+
 def _leer_item(nodo, orden):
+    rastro = _nodo_rastro(nodo)
     valor = _hijo(nodo, 'gValorItem')
     resta = _hijo(valor, 'gValorRestaItem')
     iva = _hijo(nodo, 'gCamIVA')
@@ -201,7 +213,12 @@ def _leer_item(nodo, orden):
         'tasa': _entero(_txt(iva, 'dTasaIVA'), 0),
         'base_gravada': _dec(_txt(iva, 'dBasGravIVA'), Decimal(0)),
         'liq_iva': _dec(_txt(iva, 'dLiqIVAItem'), Decimal(0)),
-        'lote': _txt(nodo, 'gRasMerc', 'dNumLote'),
+        'lote': _txt(rastro, 'dNumLote'),
+        'vencimiento': _fecha(_txt(rastro, 'dVencMerc')),
+        'serie': _txt(rastro, 'dNSerie'),
+        'gtin': _txt(nodo, 'dGtin'),
+        'gtin_paquete': _txt(nodo, 'dGtinPq'),
+        'info_item': _txt(nodo, 'dInfItem'),
     }
 
 
@@ -275,6 +292,7 @@ def parsear(contenido):
         'direccion': _txt(emis, 'dDirEmi'),
         'telefono': _txt(emis, 'dTelEmi'),
         'email': _txt(emis, 'dEmailE'),
+        'tipo_contribuyente': _entero(_txt(emis, 'iTipCont')),  # 1 persona física, 2 jurídica
         'departamento': _txt(emis, 'dDesDepEmi'),
         'ciudad': _txt(emis, 'dDesCiuEmi'),
         'actividad': _txt(emis, 'gActEco', 'dDesActEco'),
@@ -378,5 +396,8 @@ def parsear(contenido):
             'total_general': total_general,
             'iva': _dec(_txt(tot, 'dTotIVA'), Decimal(0)),
             'total_gs': _dec(_txt(tot, 'dTotalGs')),
+            'descuento_global': _dec(_txt(tot, 'dTotDescGlotem'), Decimal(0)),
+            'anticipo': _dec(_txt(tot, 'dAnticipo'), Decimal(0)),
+            'redondeo': _dec(_txt(tot, 'dRedon'), Decimal(0)),
         },
     }

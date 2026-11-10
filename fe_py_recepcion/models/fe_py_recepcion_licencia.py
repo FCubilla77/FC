@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Control de licencia del módulo FE_Py Recepción de Facturas (2026.19.010).
+"""Control de licencia del módulo FE_Py Recepción de Facturas (2026.19.011).
 
 La licencia se emite fuera de este módulo, con una herramienta propia de FC_Py que
 conserva la clave privada de firma (nunca viaja con el módulo). Este archivo solo
@@ -163,7 +163,7 @@ def fe_py_recepcion_decodificar_licencia(codigo):
 
 def fe_py_recepcion_version_odoo_instalada():
     """Número central de la versión del módulo instalado, leído en vivo del manifest
-    (el «19» de la versión «2026.19.010»). Devuelve None si no se puede determinar.
+    (el «19» de la versión «2026.19.011»). Devuelve None si no se puede determinar.
 
     Odoo normaliza la versión del manifest (`adapt_version`): una versión de tres
     partes como la de este módulo («AAAA.19.NNN») recibe antepuesta la serie de Odoo

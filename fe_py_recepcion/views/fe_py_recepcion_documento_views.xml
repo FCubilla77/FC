@@ -118,6 +118,13 @@
                                     <field name="cuenta_id" readonly="state != 'cargado'"
                                            options="{'no_create': True}" optional="show"/>
                                     <field name="unidad_desc" optional="show"/>
+                                    <field name="unidad_codigo" optional="hide"/>
+                                    <field name="gtin" optional="hide"/>
+                                    <field name="gtin_paquete" optional="hide"/>
+                                    <field name="lote" optional="hide"/>
+                                    <field name="vencimiento_lote" optional="hide"/>
+                                    <field name="serie" optional="hide"/>
+                                    <field name="info_item" optional="hide"/>
                                     <field name="cantidad"/>
                                     <field name="precio_xml" optional="hide"/>
                                     <field name="precio"/>
@@ -169,6 +176,42 @@
                                 <group string="Receptor">
                                     <field name="receptor_ruc"/>
                                     <field name="receptor_nombre"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Datos adicionales del XML" name="datos_adicionales">
+                            <p class="text-muted">
+                                Datos que informó el proveedor y que no intervienen en la factura
+                                generada. Se guardan solo para consulta.
+                            </p>
+                            <group>
+                                <group string="Documento">
+                                    <field name="xml_version"/>
+                                    <field name="emision_xml"/>
+                                    <field name="timbrado_inicio"/>
+                                    <field name="emisor_tipo_contribuyente"/>
+                                    <field name="motivo_codigo" invisible="not motivo_codigo"/>
+                                </group>
+                                <group string="Condición de crédito" invisible="condicion != '2'">
+                                    <field name="credito_tipo"/>
+                                    <field name="credito_plazo" invisible="not credito_plazo"/>
+                                    <field name="credito_cuotas" invisible="not credito_cuotas"/>
+                                </group>
+                                <group string="Totales informados">
+                                    <field name="subtotal_exonerado"/>
+                                    <field name="descuento_total"/>
+                                    <field name="descuento_global"/>
+                                    <field name="anticipo"/>
+                                    <field name="redondeo"/>
+                                    <field name="total_gs"/>
+                                </group>
+                                <group string="Documento asociado" invisible="not asociado_tipo">
+                                    <field name="asociado_tipo"/>
+                                    <field name="asociado_timbrado" invisible="not asociado_timbrado"/>
+                                    <field name="asociado_establecimiento" invisible="not asociado_establecimiento"/>
+                                    <field name="asociado_punto" invisible="not asociado_punto"/>
+                                    <field name="asociado_numero" invisible="not asociado_numero"/>
+                                    <field name="asociado_fecha" invisible="not asociado_fecha"/>
                                 </group>
                             </group>
                         </page>

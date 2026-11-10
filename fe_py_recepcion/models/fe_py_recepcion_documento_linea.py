@@ -27,6 +27,16 @@ class FePyRecepcionDocumentoLinea(models.Model):
     codigo = fields.Char(string='Código del proveedor', readonly=True)
     descripcion = fields.Char(string='Descripción', readonly=True)
     unidad_desc = fields.Char(string='Unidad del XML', readonly=True)
+    unidad_codigo = fields.Char(string='Código de unidad (XML)', readonly=True)
+    gtin = fields.Char(string='GTIN', readonly=True,
+                       help='Código de barras del producto (GTIN) que informa el proveedor.')
+    gtin_paquete = fields.Char(string='GTIN del paquete', readonly=True)
+    lote = fields.Char(string='Lote', readonly=True)
+    vencimiento_lote = fields.Date(string='Vencimiento del lote', readonly=True)
+    serie = fields.Char(string='Serie', readonly=True)
+    info_item = fields.Char(string='Información del ítem', readonly=True,
+                            help='Texto libre del emisor sobre el ítem (algunos proveedores '
+                                 'indican allí números de serie).')
     cantidad = fields.Float(string='Cantidad', digits=(16, 4), readonly=True)
     precio_xml = fields.Float(string='Precio del XML', digits='Product Price', readonly=True,
                               help='Precio unitario con IVA incluido, como lo informa el XML.')
@@ -51,11 +61,12 @@ class FePyRecepcionDocumentoLinea(models.Model):
         'account.tax', string='Impuesto', compute='_compute_impuesto', store=True, readonly=False,
         domain="[('type_tax_use', '=', 'purchase'), ('company_id', '=', company_id)]")
     producto_origen = fields.Selection(
-        [('manual', 'Manual'), ('equivalencia', 'Equivalencia'), ('referencia', 'Referencia'),
-         ('descripcion', 'Descripción')],
+        [('manual', 'Manual'), ('equivalencia', 'Equivalencia'), ('gtin', 'GTIN'),
+         ('referencia', 'Referencia'), ('descripcion', 'Descripción')],
         string='Producto elegido por', readonly=True, copy=False,
         help='Cómo se eligió el producto: equivalencia ya confirmada con ese proveedor, '
-             'coincidencia con la referencia o el nombre de la ficha del producto, o manualmente.')
+             'coincidencia del GTIN con el código de barras, coincidencia con la referencia o el '
+             'nombre de la ficha del producto, o manualmente.')
     aviso = fields.Char(string='Aviso', compute='_compute_aviso')
 
     def write(self, vals):
