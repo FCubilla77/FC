@@ -1359,7 +1359,6 @@ class FePyRecepcionDocumento(models.Model):
             [('res_model', '=', self._name), ('res_id', 'in', self.ids)])
         adjuntos |= self.mapped('xml_attachment_id').sudo()
         if adjuntos:
-            self.with_context(fe_py_recepcion_licencia_omitir=True).write(
-                {'xml_attachment_id': False, 'message_main_attachment_id': False})
+            self.with_context(fe_py_recepcion_licencia_omitir=True).write({'xml_attachment_id': False})
             adjuntos.unlink()
         return super().unlink()
