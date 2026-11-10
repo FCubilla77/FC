@@ -31,13 +31,26 @@ class FePyRecepcionCargarWizard(models.TransientModel):
                     filas.append(('danger', nombre, _(
                         'No se pudo cargar: %(motivo)s (registro con error: %(doc)s)',
                         motivo=doc.error_detalle, doc=doc.name)))
+                elif doc.state == 'na':
+                    filas.append(('warning', nombre, _(
+                        'No corresponde cargarlo (N/A): %(motivo)s', motivo=doc.na_motivo)))
                 elif doc.state == 'confirmado':
                     filas.append(('success', nombre, _(
-                        'Creada y confirmada automáticamente: %(doc)s (factura %(factura)s)',
+                        'Creada y publicada automáticamente: %(doc)s (factura %(factura)s)',
                         doc=doc.name, factura=doc.move_id.display_name)))
+                elif doc.state == 'borrador':
+                    if doc.confirmacion_auto_motivo:
+                        filas.append(('warning', nombre, _(
+                            'Creada: %(doc)s. Factura %(factura)s en borrador, para revisar: %(motivo)s',
+                            doc=doc.name, factura=doc.move_id.display_name,
+                            motivo=doc.confirmacion_auto_motivo)))
+                    else:
+                        filas.append(('success', nombre, _(
+                            'Creada: %(doc)s. Factura %(factura)s generada en borrador.',
+                            doc=doc.name, factura=doc.move_id.display_name)))
                 elif doc.confirmacion_auto_motivo:
                     filas.append(('warning', nombre, _(
-                        'Creada: %(doc)s. No se confirmó automáticamente: %(motivo)s',
+                        'Creada: %(doc)s. El proceso automático se detuvo: %(motivo)s',
                         doc=doc.name, motivo=doc.confirmacion_auto_motivo)))
                 else:
                     filas.append(('success', nombre, _('Creada: %s', doc.name)))

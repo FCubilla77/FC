@@ -11,4 +11,5 @@ from . import fe_py_recepcion_documento_linea
 from . import fe_py_recepcion_documento_cuota
 from . import res_partner
 from . import fetchmail_server
+from . import mail_thread
 from . import account_move

@@ -37,6 +37,11 @@ class XmlRecepcionError(Exception):
     """El archivo no se pudo leer o le falta un dato imprescindible."""
 
 
+class XmlTipoNoSoportado(XmlRecepcionError):
+    """El XML es un Documento Electrónico válido pero de un tipo que este módulo no recibe
+    (remisión, autofactura, etc.). No es una falla de lectura: se informa aparte."""
+
+
 # ---------------------------------------------------------------------------
 # Utilidades de lectura
 # ---------------------------------------------------------------------------
@@ -235,7 +240,7 @@ def parsear(contenido):
     if itide is None:
         raise XmlRecepcionError('El documento no informa el tipo de documento (iTiDE).')
     if itide not in TIPOS_SOPORTADOS:
-        raise XmlRecepcionError(
+        raise XmlTipoNoSoportado(
             'Tipo de documento no soportado: %s (%s). Solo se reciben factura, '
             'nota de crédito y nota de débito electrónicas.'
             % (itide, _txt(timbre, 'dDesTiDE') or 'sin descripción'))

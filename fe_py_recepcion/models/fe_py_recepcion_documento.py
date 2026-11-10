@@ -8,7 +8,7 @@ from odoo.exceptions import UserError, ValidationError
 
 from . import utilidades, xml_parser
 from .fe_py_recepcion_licencia import fe_py_recepcion_licencia_verificar
-from .xml_parser import XmlRecepcionError
+from .xml_parser import XmlRecepcionError, XmlTipoNoSoportado
 
 _logger = logging.getLogger(__name__)
 
@@ -23,6 +23,11 @@ TIPO_FISCAL_POR_ITIDE = {
 
 class _DescartarSimulacion(Exception):
     """Fuerza el rollback del savepoint de la simulación."""
+
+
+class RecepcionNA(UserError):
+    """El archivo se leyó bien pero no corresponde cargarlo (por ejemplo, un tipo de documento
+    que no se recibe). Queda como registro N/A, no como error."""
 
 
 class FePyRecepcionDocumento(models.Model):
@@ -40,9 +45,15 @@ class FePyRecepcionDocumento(models.Model):
 
     name = fields.Char(string='Documento', compute='_compute_name', store=True)
     state = fields.Selection(
-        [('cargado', 'Cargado'), ('verificado', 'Verificado'),
-         ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('error', 'Error')],
-        string='Estado', default='cargado', required=True, copy=False, tracking=True, index=True)
+        [('cargado', 'Cargado'), ('verificado', 'Verificado'), ('borrador', 'Borrador'),
+         ('confirmado', 'Confirmado'), ('cancelado', 'Cancelado'), ('error', 'Error'),
+         ('na', 'N/A')],
+        string='Estado', default='cargado', required=True, copy=False, tracking=True, index=True,
+        help='Cargado: se leyó el XML, todavía no hay factura. Verificado: totales controlados, '
+             'todavía no hay factura. Borrador: la factura, nota de crédito o nota de débito de '
+             'proveedor está generada pero sin publicar. Confirmado: la factura está publicada. '
+             'N/A: el correo o el archivo no corresponde cargarlo (sin XML, tipo no soportado o '
+             'duplicado). Error: el archivo no se pudo leer.')
     company_id = fields.Many2one('res.company', string='Compañía', required=True, index=True,
                                  default=lambda self: self.env.company, readonly=True)
     currency_id = fields.Many2one('res.currency', string='Moneda', readonly=True)
@@ -97,9 +108,16 @@ class FePyRecepcionDocumento(models.Model):
                                readonly=True, copy=False)
     control_hecho = fields.Boolean(copy=False, readonly=True)
     confirmacion_auto_motivo = fields.Text(
-        string='Motivo por el que no se confirmó automáticamente', copy=False, readonly=True,
-        help='Se completa cuando el proveedor tiene la confirmación automática activada y la '
-             'recepción quedó en Cargado para revisión manual.')
+        string='Pendiente de revisión', copy=False, readonly=True,
+        help='Por qué el proceso automático se detuvo: la recepción quedó en Cargado, o la '
+             'factura quedó en borrador sin publicarse, para que el usuario la revise.')
+    na_motivo = fields.Text(
+        string='Motivo N/A', copy=False, readonly=True,
+        help='Por qué este correo o archivo no se cargó como factura (sin XML, tipo de documento '
+             'no soportado o CDC duplicado).')
+    documento_original_id = fields.Many2one(
+        'fe_py_recepcion.documento', string='Registro original', copy=False, readonly=True,
+        ondelete='set null', help='Si es un duplicado, el registro que ya tenía ese CDC.')
 
     error_detalle = fields.Text(
         string='Motivo del error', copy=False, readonly=True,
@@ -159,17 +177,18 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     # Campos calculados
     # ------------------------------------------------------------------
-    @api.depends('nro_documento', 'emisor_nombre')
+    @api.depends('nro_documento', 'emisor_nombre', 'correo_asunto')
     def _compute_name(self):
         for doc in self:
-            doc.name = ' - '.join(filter(None, [doc.nro_documento, doc.emisor_nombre])) or _('Nueva')
+            doc.name = ' - '.join(filter(None, [doc.nro_documento, doc.emisor_nombre])) \
+                or doc.correo_asunto or _('Nueva')
 
     @api.constrains('state', 'cdc', 'itide')
     def _check_datos_del_xml(self):
         for doc in self:
-            if doc.state != 'error' and not (doc.cdc and doc.itide):
+            if doc.state not in ('error', 'na') and not (doc.cdc and doc.itide):
                 raise ValidationError(_(
-                    'Solo los registros con error pueden quedar sin CDC o sin tipo de documento.'))
+                    'Solo los registros con error o N/A pueden quedar sin CDC o sin tipo de documento.'))
 
     @api.depends('itide')
     def _compute_move_type(self):
@@ -203,6 +222,8 @@ class FePyRecepcionDocumento(models.Model):
         company = company or self.env.company
         try:
             datos = xml_parser.parsear(contenido)
+        except XmlTipoNoSoportado as error:
+            raise RecepcionNA(_('%(archivo)s: %(error)s', archivo=nombre, error=error)) from error
         except XmlRecepcionError as error:
             raise UserError(_('%(archivo)s: %(error)s', archivo=nombre, error=error)) from error
 
@@ -259,13 +280,15 @@ class FePyRecepcionDocumento(models.Model):
 
         vals.update(extra_vals or {})
         doc = self.create(vals)
-        doc._asignar_proveedor()
-        doc._asignar_producto_sugerido()
-        doc._asignar_termino_pago(datos)
-        doc._asignar_asociado(asociados)
+        # las asignaciones iniciales no disparan el proceso automático: se ejecuta al final
+        carga = doc.with_context(fe_py_recepcion_carga_inicial=True)
+        carga._asignar_proveedor()
+        carga._asignar_producto_sugerido()
+        carga._asignar_termino_pago(datos)
+        carga._asignar_asociado(asociados)
         doc._adjuntar_xml(nombre, contenido)
         doc.message_post(body=_('Recepción creada desde el archivo %s.', nombre))
-        doc._confirmacion_automatica()
+        doc._procesar_automatico()
         return doc, True
 
     @api.model
@@ -367,10 +390,14 @@ class FePyRecepcionDocumento(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if 'partner_id' in vals:
+        if 'partner_id' in vals and not self.env.context.get('fe_py_recepcion_carga_inicial'):
             cargados = self.filtered(lambda d: d.state == 'cargado')
             cargados._asignar_producto_sugerido()
             cargados._asignar_asociado()
+            if vals.get('partner_id'):
+                # asignar el proveedor a un XML que quedó en Cargado vuelve a ejecutar el proceso
+                for doc in cargados:
+                    doc._procesar_automatico()
         return res
 
     def _buscar_producto_en_ficha(self, codigo, descripcion):
@@ -505,7 +532,7 @@ class FePyRecepcionDocumento(models.Model):
     def _diagnostico(self):
         """(impedimentos, avisos) de la recepción. No simula la factura."""
         self.ensure_one()
-        if self.state == 'error':
+        if self.state in ('error', 'na'):
             return [], []
         bloqueos, avisos = [], []
         company = self.company_id
@@ -564,16 +591,7 @@ class FePyRecepcionDocumento(models.Model):
             if linea.aviso:
                 avisos.append('%s: %s' % (etiqueta, linea.aviso))
 
-        if self.control_hecho and self.currency_id:
-            tolerancia = self.currency_id.rounding
-            if abs(self.total_odoo - self.total_general) > tolerancia:
-                bloqueos.append(_(
-                    'El total calculado por Odoo (%(odoo)s) difiere del XML (%(xml)s).',
-                    odoo=self.total_odoo, xml=self.total_general))
-            if abs(self.iva_odoo - self.total_iva) > tolerancia:
-                bloqueos.append(_(
-                    'El IVA calculado por Odoo (%(odoo)s) difiere del XML (%(xml)s).',
-                    odoo=self.iva_odoo, xml=self.total_iva))
+        bloqueos += self._mensajes_diferencias()
 
         if self.termino_aviso:
             avisos.append(self.termino_aviso)
@@ -594,14 +612,38 @@ class FePyRecepcionDocumento(models.Model):
                     'sin ella no se podrá confirmar la nota en contabilidad.', self.asociado_texto or '-'))
         return bloqueos, avisos
 
-    def _exigir_sin_bloqueos(self):
-        """Simula la factura, actualiza el control de totales y corta si hay impedimentos."""
+    def _mensajes_diferencias(self):
+        """Diferencias de total e IVA entre el XML y lo que calcula Odoo, más allá de la
+        tolerancia de la compañía. Vacío si todavía no se controlaron los totales."""
+        self.ensure_one()
+        if not (self.control_hecho and self.currency_id):
+            return []
+        tolerancia = self.company_id._fe_py_recepcion_tolerancia_en(self.currency_id)
+        mensajes = []
+        if not utilidades.dentro_de_tolerancia(self.total_odoo - self.total_general, tolerancia):
+            mensajes.append(_(
+                'El total calculado por Odoo (%(odoo)s) difiere del XML (%(xml)s).',
+                odoo=self.total_odoo, xml=self.total_general))
+        if not utilidades.dentro_de_tolerancia(self.iva_odoo - self.total_iva, tolerancia):
+            mensajes.append(_(
+                'El IVA calculado por Odoo (%(odoo)s) difiere del XML (%(xml)s).',
+                odoo=self.iva_odoo, xml=self.total_iva))
+        return mensajes
+
+    def _exigir_sin_bloqueos(self, tolerar_diferencias=False):
+        """Simula la factura, actualiza el control de totales y corta si hay impedimentos.
+
+        Con `tolerar_diferencias` una diferencia de total o IVA no corta: el proceso automático
+        genera igual la factura en borrador y la deja para revisión."""
         for doc in self:
             doc._asignar_proveedor_si_falta()
             bloqueos, _avisos = doc._diagnostico()
             if not bloqueos:
                 doc._controlar_totales()
                 bloqueos, _avisos = doc._diagnostico()
+            if tolerar_diferencias:
+                diferencias = doc._mensajes_diferencias()
+                bloqueos = [b for b in bloqueos if b not in diferencias]
             if bloqueos:
                 raise UserError(_('%(doc)s no se puede continuar:\n%(lista)s',
                                   doc=doc.name, lista='\n'.join('• %s' % b for b in bloqueos)))
@@ -708,6 +750,7 @@ class FePyRecepcionDocumento(models.Model):
             'default_phone': self.emisor_telefono,
             'default_street': self.emisor_direccion,
             'default_city': self.emisor_ciudad,
+            'fe_py_recepcion_proveedor_nuevo': True,
         }
         if tipo_ruc:
             contexto['default_l10n_py_tipo_identificacion_fiscal_id'] = tipo_ruc.id
@@ -738,21 +781,34 @@ class FePyRecepcionDocumento(models.Model):
         return True
 
     def action_confirmar(self):
+        """Genera la factura (o nota) de proveedor. Queda publicada si la compañía deja las
+        facturas leídas en «Confirmado» y el proveedor tiene la confirmación automática; si no,
+        queda en borrador. El usuario ya revisó el registro: no se vuelven a exigir los criterios
+        automáticos, solo los impedimentos y la regla de recepción de mercadería pendiente."""
         for doc in self:
             if doc.state != 'verificado':
                 raise UserError(_('Solo se puede confirmar una recepción Verificada.'))
         self._exigir_sin_bloqueos()
         self.write({'confirmacion_auto_motivo': False})
-        Move = self.env['account.move'].with_context(mail_create_nolog=True)
         for doc in self:
-            move = Move.with_company(doc.company_id).create(doc._vals_factura())
-            doc.write({'move_id': move.id, 'state': 'confirmado'})
-            doc._copiar_xml_a(move)
-            doc._registrar_equivalencias()
-            doc._post_confirmar(move)
-            doc.message_post(body=_('Factura de proveedor %s generada en borrador.', move.display_name))
-            move.message_post(body=_('Generada desde la factura electrónica recibida %s.', doc.name))
+            doc._generar_factura()
+            doc._intentar_publicar(manual=True)
+            doc._enlazar_notas_pendientes()
         return True
+
+    def _generar_factura(self, registrar_equivalencias=True):
+        """Crea la factura de proveedor en borrador y deja el registro en estado Borrador."""
+        self.ensure_one()
+        Move = self.env['account.move'].with_context(mail_create_nolog=True)
+        move = Move.with_company(self.company_id).create(self._vals_factura())
+        self.write({'move_id': move.id, 'state': 'borrador'})
+        self._copiar_xml_a(move)
+        if registrar_equivalencias:
+            self._registrar_equivalencias()
+        self._post_confirmar(move)
+        self.message_post(body=_('Factura de proveedor %s generada en borrador.', move.display_name))
+        move.message_post(body=_('Generada desde la factura electrónica recibida %s.', self.name))
+        return move
 
     def _post_confirmar(self, move):
         """Punto de extensión después de generar la factura (módulo puente)."""
@@ -798,6 +854,9 @@ class FePyRecepcionDocumento(models.Model):
             with self.env.cr.savepoint():
                 doc, creado = self.crear_desde_xml(
                     nombre, contenido, company=company, extra_vals=self._vals_correo(correo))
+        except RecepcionNA as error:
+            motivo = str(error.args[0]) if error.args else str(error)
+            return self._registrar_na(nombre, contenido, company, motivo, correo), True
         except Exception as error:  # el archivo no debe frenar la carga de los demás
             if isinstance(error, UserError):
                 motivo = str(error.args[0]) if error.args else str(error)
@@ -809,7 +868,30 @@ class FePyRecepcionDocumento(models.Model):
             doc.message_post(body=_(
                 'El mismo documento llegó otra vez por correo (%(asunto)s, de %(remitente)s).',
                 asunto=correo.get('asunto') or '-', remitente=correo.get('remitente') or '-'))
+            duplicado = self._registrar_na(
+                nombre, contenido, company,
+                _('El CDC ya fue recibido en %s; este correo es un duplicado.', doc.name),
+                correo, original=doc)
+            return duplicado, True
         return doc, creado
+
+    @api.model
+    def _registrar_na(self, nombre, contenido, company, motivo, correo=None, original=None):
+        """Registro N/A: el correo o archivo se leyó pero no corresponde cargarlo como factura.
+        Conserva el XML (si hay) y el motivo para poder comprobar que se leyó."""
+        vals = {'company_id': company.id, 'state': 'na', 'na_motivo': motivo}
+        vals.update(self._vals_correo(correo))
+        if original:
+            vals['documento_original_id'] = original.id
+        else:
+            cdc = utilidades.extraer_cdc_aproximado(contenido) if contenido else False
+            if cdc and not self.search_count([('cdc', '=', cdc), ('company_id', '=', company.id)]):
+                vals['cdc'] = cdc
+        doc = self.create(vals)
+        if contenido:
+            doc._adjuntar_xml(nombre, contenido)
+        doc.message_post(body=_('Registro N/A: %s', motivo))
+        return doc
 
     @api.model
     def _registrar_error(self, nombre, contenido, company, motivo, correo=None):
@@ -830,7 +912,6 @@ class FePyRecepcionDocumento(models.Model):
         if self.state != 'error' or not self.xml_attachment_id:
             raise UserError(_('Solo se puede reintentar un registro con error que tenga su XML.'))
         nombre, contenido = self.xml_attachment_id.name, self.xml_attachment_id.raw
-        cdc_anterior = self.cdc
         extra = {campo: self[campo] for campo in (
             'origen', 'correo_remitente', 'correo_asunto', 'correo_fecha', 'correo_message_id')}
         try:
@@ -838,15 +919,21 @@ class FePyRecepcionDocumento(models.Model):
                 self.cdc = False  # libera el CDC para poder crear el registro definitivo
                 doc, creado = self.crear_desde_xml(
                     nombre, contenido, company=self.company_id, extra_vals=extra)
+        except RecepcionNA as error:
+            motivo = str(error.args[0]) if error.args else str(error)
+            self.write({'state': 'na', 'na_motivo': motivo, 'error_detalle': False})
+            self.message_post(body=_('Pasó a N/A: %s', motivo))
+            return True
         except UserError as error:
             motivo = str(error.args[0]) if error.args else str(error)
             self.write({'error_detalle': motivo})
             self.message_post(body=_('Reintento sin éxito: %s', motivo))
             return True
         if not creado:
-            self.write({'cdc': cdc_anterior, 'error_detalle': _(
-                'El CDC ya fue recibido en %s; este archivo es un duplicado.', doc.name)})
-            self.message_post(body=self.error_detalle)
+            motivo = _('El CDC ya fue recibido en %s; este archivo es un duplicado.', doc.name)
+            self.write({'state': 'na', 'cdc': False, 'na_motivo': motivo, 'error_detalle': False,
+                        'documento_original_id': doc.id})
+            self.message_post(body=_('Pasó a N/A: %s', motivo))
             return True
         doc.message_post(body=_('Cargada al reintentar la lectura de un registro con error.'))
         self.unlink()
@@ -897,14 +984,29 @@ class FePyRecepcionDocumento(models.Model):
             'compañía y use "Reintentar lectura".')
 
     @api.model
+    def _correo_se_ignora(self, crudo):
+        """True si el correo (sin procesar) no trae XML y la compañía eligió no registrar esos
+        correos. Se consulta antes de procesar el mensaje, para no dejar ningún registro."""
+        company, motivo = self._company_del_correo({})
+        if motivo or not company or company.fe_py_recepcion_registrar_sin_xml:
+            return False
+        try:
+            if hasattr(crudo, 'data'):
+                crudo = bytes(crudo.data)
+            return not utilidades.correo_trae_xml(crudo)
+        except Exception:  # noqa: BLE001 - ante la duda, se procesa normalmente
+            _logger.exception('FE_Py Recepción: no se pudo revisar el correo antes de procesarlo')
+            return False
+
+    @api.model
     def _procesar_correo(self, msg_dict, company, motivo_previo=False):
         adjuntos = [(a[0], a[1]) for a in (msg_dict.get('attachments') or [])]
         correo = {
             'remitente': msg_dict.get('email_from'), 'asunto': msg_dict.get('subject'),
             'fecha': msg_dict.get('date'), 'message_id': msg_dict.get('message_id'),
         }
-        xmls = [a for a in adjuntos if utilidades.es_adjunto_xml(a[0])]
-        pdfs = [a for a in adjuntos if utilidades.es_adjunto_pdf(a[0])]
+        expandido = utilidades.expandir_adjuntos(adjuntos)   # abre los ZIP
+        xmls, pdfs = expandido['xmls'], expandido['pdfs']
         nuevos, existentes = self.browse(), self.browse()
         if motivo_previo:
             for nombre, contenido in (xmls or [(None, None)]):
@@ -915,9 +1017,7 @@ class FePyRecepcionDocumento(models.Model):
                 nuevos |= doc
             return nuevos, existentes
         if not xmls:
-            motivo = (_('El correo no trae archivos XML.') if adjuntos
-                      else _('El correo no trae adjuntos.'))
-            doc = self._registrar_error(None, None, company, motivo, correo)
+            doc = self._registrar_na(None, None, company, utilidades.motivo_sin_xml(expandido), correo)
             doc._adjuntar_pdfs(pdfs)
             return doc, existentes
         for nombre, contenido in xmls:
@@ -942,74 +1042,269 @@ class FePyRecepcionDocumento(models.Model):
             })
 
     # ------------------------------------------------------------------
-    # Confirmación automática (proveedor con el check activado)
+    # Proceso automático: XML leído -> factura en borrador -> publicada
     # ------------------------------------------------------------------
-    def _confirmacion_automatica(self):
-        """Si el proveedor tiene activada la confirmación automática y todos los controles
-        pasan, confirma la recepción y publica la factura. Ante cualquier problema deshace
-        todo lo hecho, deja la recepción en Cargado y guarda el motivo."""
+    def _procesar_automatico(self):
+        """Lleva el XML leído hasta la factura, nota de crédito o nota de débito de proveedor.
+
+        1) Si falta algo imprescindible (proveedor, impuestos, tipo fiscal, cotización dudosa),
+           el registro queda en Cargado con el motivo y no se genera nada.
+        2) Si no, se controlan los totales (Verificado) y se genera la factura en Borrador.
+        3) La factura se publica (Confirmado) solo si la compañía lo permite, el proveedor tiene
+           la confirmación automática y se cumplen los criterios; si no, queda en borrador.
+        """
         self.ensure_one()
-        if self.state != 'cargado' or not self.partner_id:
+        if self.state not in ('cargado', 'verificado'):
             return False
-        if not self.partner_id.sudo().fe_py_recepcion_confirmar_auto:
+        if not self.partner_id:
+            self._guardar_motivo(_(
+                'No hay un proveedor con RUC %s. Elija o cree el contacto: al asignarlo el proceso '
+                'continúa solo.', self.emisor_ruc))
             return False
         try:
             with self.env.cr.savepoint():
-                self._ejecutar_confirmacion_automatica()
+                self._preparar_factura_automatica()
         except Exception as error:  # una recepción no debe frenar la carga de las demás
             if not isinstance(error, UserError):
-                _logger.exception('FE_Py Recepción: falló la confirmación automática de %s', self.name)
+                _logger.exception('FE_Py Recepción: falló el proceso automático de %s', self.name)
             self.env.invalidate_all()
-            motivo = error.args[0] if isinstance(error, UserError) and error.args else str(error)
-            self.write({'confirmacion_auto_motivo': motivo})
-            self.message_post(body=_(
-                'No se confirmó automáticamente. Revise y confirme a mano. Motivo: %s', motivo))
+            self._guardar_motivo(error.args[0] if isinstance(error, UserError) and error.args
+                                 else str(error))
             return False
+        self._intentar_publicar()
+        self._enlazar_notas_pendientes()
         return True
 
-    def _ejecutar_confirmacion_automatica(self):
+    def _preparar_factura_automatica(self):
         self.ensure_one()
-        self._exigir_equivalencias_y_lotes()
         self._preparar_cotizacion_automatica()
-        self._exigir_sin_bloqueos()
-        _bloqueos, avisos = self._diagnostico()
-        if avisos:
-            raise UserError(_('Hay avisos que requieren revisión:\n%s',
-                              '\n'.join('• %s' % a for a in avisos)))
+        self._exigir_sin_bloqueos(tolerar_diferencias=True)
         self.write({'state': 'verificado', 'confirmacion_auto_motivo': False})
-        self.action_confirmar()
-        self.move_id.action_post()
-        self.message_post(body=_(
-            'Confirmada automáticamente: factura de proveedor %s publicada.', self.move_id.display_name))
+        # los productos sugeridos no se registran como equivalencia hasta que una persona los
+        # confirme (al publicar o al usar «Confirmar»)
+        self._generar_factura(registrar_equivalencias=False)
 
-    def _exigir_equivalencias_y_lotes(self):
-        """Solo se confirma sola si todos los productos vienen de equivalencias ya
-        confirmadas y ninguno lleva lote o serie (esos datos se cargan a mano)."""
+    def _guardar_motivo(self, motivo):
         self.ensure_one()
+        self.write({'confirmacion_auto_motivo': motivo})
+        self.message_post(body=_(
+            'El proceso automático se detuvo. Revise el registro y use «Reprocesar» o continúe a '
+            'mano. Motivo: %s', motivo))
+
+    def _intentar_publicar(self, manual=False):
+        """Publica la factura generada si corresponde. Devuelve True si quedó publicada.
+
+        Publica solo con la compañía en «Confirmado» y el proveedor con la confirmación
+        automática. Con `manual` (botón «Confirmar») solo se exige la regla de recepción
+        de mercadería pendiente; en el proceso automático, todos los criterios."""
+        self.ensure_one()
+        if self.state != 'borrador' or not self.move_id or self.move_id.state != 'draft':
+            return False
+        if self.company_id.fe_py_recepcion_estado_facturas != 'confirmado':
+            self.message_post(body=_(
+                'Factura en borrador: la compañía deja las facturas leídas en borrador.'))
+            return False
+        if not self.partner_id.sudo().fe_py_recepcion_confirmar_auto:
+            self.message_post(body=_(
+                'Factura en borrador: el proveedor no tiene marcada la confirmación automática.'))
+            return False
+        if manual:
+            motivos, cumplidos = self._motivos_recepcion_pendiente(), []
+        else:
+            motivos, cumplidos = self._evaluar_publicacion()
+        if motivos:
+            self.write({'confirmacion_auto_motivo': '\n'.join('• %s' % m for m in motivos)})
+            self.message_post(body=_(
+                'La factura quedó en borrador: no se publicó automáticamente. Motivos: %s',
+                ' | '.join(motivos)))
+            return False
+        try:
+            with self.env.cr.savepoint():
+                self.move_id.with_context(
+                    fe_py_recepcion_origen_publicacion='manual' if manual else 'automatico',
+                    fe_py_recepcion_criterios='; '.join(cumplidos),
+                ).action_post()
+        except Exception as error:  # período bloqueado, número repetido, timbrado, etc.
+            if not isinstance(error, UserError):
+                _logger.exception('FE_Py Recepción: falló la publicación de %s', self.name)
+            self.env.invalidate_all()
+            motivo = error.args[0] if isinstance(error, UserError) and error.args else str(error)
+            self.write({'confirmacion_auto_motivo': _('No se pudo publicar: %s', motivo)})
+            self.message_post(body=_(
+                'La factura quedó en borrador: no se pudo publicar. Motivo: %s', motivo))
+            return False
+        if self.state == 'borrador':
+            self._marcar_confirmado('manual' if manual else 'automatico', '; '.join(cumplidos))
+        return True
+
+    def _evaluar_publicacion(self):
+        """(motivos, criterios cumplidos) para publicar automáticamente."""
+        self.ensure_one()
+        motivos, cumplidos = [], []
+        bloqueos, avisos = self._diagnostico()
+        motivos += bloqueos
+        motivos += [_('Aviso: %s', a) for a in avisos]
+        if not bloqueos:
+            tolerancia = self.company_id._fe_py_recepcion_tolerancia_en(self.currency_id)
+            cumplidos.append(_('totales e IVA dentro de la tolerancia (%s)', tolerancia))
+        if not avisos:
+            cumplidos.append(_('sin avisos'))
+        productos = self._motivos_productos()
+        motivos += productos
+        if not productos:
+            cumplidos.append(_('productos de equivalencias confirmadas'))
+        for revisar, criterio in ((self._motivos_nota, _('factura asociada publicada')),
+                                  (self._motivos_remitente, _('remitente validado')),
+                                  (self._motivos_cotizacion, _('cotización coincide exacta')),
+                                  (self._motivos_recepcion_pendiente, _('sin recepción pendiente'))):
+            encontrados = revisar()
+            motivos += encontrados
+            if not encontrados:
+                cumplidos.append(criterio)
+        return motivos, cumplidos
+
+    def _motivos_productos(self):
+        """Todos los productos deben venir de equivalencias ya confirmadas con el proveedor, y
+        los de lote o serie solo se aceptan si el módulo de Compras los cubre."""
+        self.ensure_one()
+        motivos = []
         for linea in self.line_ids:
             etiqueta = _('Línea %s', linea.orden)
             if not linea.producto_id:
-                raise UserError(_('%s: no tiene producto asignado.', etiqueta))
-            if linea.producto_origen != 'equivalencia':
-                raise UserError(_(
+                motivos.append(_('%s: no tiene producto asignado.', etiqueta))
+            elif linea.producto_origen != 'equivalencia':
+                motivos.append(_(
                     '%s: el producto no viene de una equivalencia ya confirmada con este proveedor.',
                     etiqueta))
-            if getattr(linea.producto_id, 'tracking', 'none') in ('lot', 'serial'):
-                raise UserError(_(
-                    '%(linea)s: el producto "%(producto)s" lleva lote o serie; confirme la '
-                    'recepción a mano para cargar esos datos.',
-                    linea=etiqueta, producto=linea.producto_id.display_name))
+            elif getattr(linea.producto_id, 'tracking', 'none') in ('lot', 'serial') \
+                    and not self._linea_con_lote_cubierta(linea):
+                motivos.append(_(
+                    '%(linea)s: el producto "%(producto)s" lleva lote o serie y no está vinculado '
+                    'a una cotización.', linea=etiqueta, producto=linea.producto_id.display_name))
+        return motivos
+
+    def _linea_con_lote_cubierta(self, linea):
+        """Punto de extensión (módulo puente): un producto con lote o serie solo se publica solo
+        si la línea está vinculada a una cotización, donde el lote se asigna al recibir."""
+        return False
+
+    def _motivos_nota(self):
+        """Una nota de crédito se publica solo si su factura asociada ya está publicada."""
+        self.ensure_one()
+        if self.itide == '5' and self.reversed_move_id and self.reversed_move_id.state != 'posted':
+            return [_('La factura asociada %s todavía no está publicada.',
+                      self.reversed_move_id.display_name)]
+        return []
+
+    def _motivos_remitente(self):
+        """El remitente del correo debe coincidir con un correo (o el dominio) del proveedor."""
+        self.ensure_one()
+        if self.origen != 'correo' or not self.company_id.fe_py_recepcion_validar_remitente:
+            return []
+        proveedor = self.partner_id.commercial_partner_id
+        correos = proveedor.sudo().mapped('email') + proveedor.sudo().child_ids.mapped('email')
+        coincide, motivo = utilidades.remitente_coincide(self.correo_remitente, correos)
+        return [] if coincide else [motivo]
+
+    def _motivos_cotizacion(self):
+        """Punto de extensión (módulo puente): la cotización vinculada debe coincidir exacta."""
+        return []
+
+    def _motivos_recepcion_pendiente(self):
+        """Punto de extensión (módulo puente): mercadería que debe recibirse antes de facturar."""
+        return []
+
+    def _marcar_confirmado(self, origen='factura', criterios=False):
+        """La factura generada quedó publicada: el registro pasa a Confirmado."""
+        for doc in self.with_context(fe_py_recepcion_licencia_omitir=True).filtered(
+                lambda d: d.state == 'borrador'):
+            doc.write({'state': 'confirmado', 'confirmacion_auto_motivo': False})
+            doc._registrar_equivalencias()
+            factura = doc.move_id.display_name
+            if origen == 'automatico':
+                doc.message_post(body=_(
+                    'Publicada automáticamente: %(factura)s. Criterios cumplidos: %(criterios)s.',
+                    factura=factura, criterios=criterios or '-'))
+            elif origen == 'manual':
+                doc.message_post(body=_(
+                    'Factura %s publicada al confirmar la recepción.', factura))
+            else:
+                doc.message_post(body=_(
+                    'La factura %s se publicó; la recepción pasó a Confirmado.', factura))
+            doc._reevaluar_notas_asociadas()
+
+    def _volver_a_borrador_por_factura(self):
+        """La factura publicada volvió a borrador: el registro vuelve a Borrador."""
+        for doc in self.with_context(fe_py_recepcion_licencia_omitir=True).filtered(
+                lambda d: d.state == 'confirmado'):
+            doc.write({'state': 'borrador'})
+            doc.message_post(body=_('La factura volvió a borrador; la recepción volvió a Borrador.'))
+
+    def _reevaluar_notas_asociadas(self):
+        """Al publicarse una factura, las notas de crédito que la afectan se re-evalúan."""
+        self.ensure_one()
+        if self.itide == '5' or not self.move_id:
+            return
+        notas = self.sudo().search([
+            ('itide', '=', '5'), ('state', '=', 'borrador'), ('reversed_move_id', '=', self.move_id.id)])
+        for nota in notas.with_context(fe_py_recepcion_licencia_omitir=True):
+            nota._intentar_publicar()
+
+    def _enlazar_notas_pendientes(self):
+        """Una nota de crédito que llegó antes que su factura queda sin factura asociada. Al
+        generarse la factura se busca de nuevo: si ahora la encuentra, se completa el vínculo y
+        se sigue con el proceso (la nota se publica sola si no tiene otra inconsistencia)."""
+        self.ensure_one()
+        if self.itide == '5' or not self.move_id or not self.partner_id:
+            return
+        pendientes = self.sudo().with_context(fe_py_recepcion_licencia_omitir=True).search([
+            ('itide', '=', '5'), ('company_id', '=', self.company_id.id), ('reversed_move_id', '=', False),
+            ('state', 'in', ('cargado', 'verificado', 'borrador')),
+            ('partner_id.commercial_partner_id', '=', self.partner_id.commercial_partner_id.id)])
+        for nota in pendientes:
+            nota._asignar_asociado()
+            if not nota.reversed_move_id:
+                continue
+            nota.message_post(body=_(
+                'Se encontró la factura asociada %s.', nota.reversed_move_id.display_name))
+            if nota.state == 'borrador':
+                if nota.move_id.state == 'draft':
+                    nota.move_id.write({'reversed_entry_id': nota.reversed_move_id.id})
+                nota._intentar_publicar()
+            else:
+                nota._procesar_automatico()
 
     def _preparar_cotizacion_automatica(self):
         """Extensión para el módulo puente de Compras. Sin él no hay cotización que vincular."""
         self.ensure_one()
 
+    def action_reprocesar(self):
+        """Vuelve a ejecutar el proceso automático sobre los registros seleccionados, por
+        ejemplo después de cargar una equivalencia o corregir un proveedor."""
+        procesados = 0
+        for doc in self:
+            if doc.state in ('cargado', 'verificado'):
+                doc._procesar_automatico()
+                procesados += 1
+            elif doc.state == 'borrador':
+                doc._intentar_publicar()
+                procesados += 1
+        return {
+            'type': 'ir.actions.client', 'tag': 'display_notification',
+            'params': {
+                'title': _('Reprocesar'), 'type': 'info', 'sticky': False,
+                'message': _('%s registro(s) reprocesado(s).', procesados),
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
     def action_cancelar(self):
         for doc in self:
-            if doc.state == 'confirmado':
+            if doc.state in ('borrador', 'confirmado'):
                 raise UserError(_(
-                    'La recepción está confirmada. Para anularla, elimine o cancele la factura '
-                    'de proveedor generada: la recepción vuelve sola a Cargado.'))
+                    'Ya se generó la factura de proveedor. Para anular la recepción, cancele o '
+                    'elimine esa factura: la recepción vuelve sola a Cargado y desde ahí se puede '
+                    'cancelar.'))
         self.write({'state': 'cancelado'})
         return True
 
@@ -1045,7 +1340,7 @@ class FePyRecepcionDocumento(models.Model):
     def _volver_a_cargado_por_factura(self):
         """La factura generada se eliminó o canceló: la recepción vuelve a Cargado."""
         for doc in self.with_context(fe_py_recepcion_licencia_omitir=True).filtered(
-                lambda d: d.state == 'confirmado'):
+                lambda d: d.state in ('borrador', 'confirmado')):
             doc.write({'state': 'cargado', 'move_id': False, 'control_hecho': False})
             doc.message_post(body=_(
                 'La factura de proveedor generada se eliminó o canceló; la recepción volvió a Cargado.'))
@@ -1055,9 +1350,10 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     def unlink(self):
         for doc in self:
-            if doc.state not in ('cargado', 'cancelado', 'error') or doc.move_id:
+            if doc.state not in ('cargado', 'cancelado', 'error', 'na') or doc.move_id:
                 raise UserError(_(
-                    'Solo se pueden eliminar recepciones Cargadas, Canceladas o con Error, sin factura generada.'))
+                    'Solo se pueden eliminar recepciones Cargadas, Canceladas, con Error o N/A, '
+                    'sin factura generada.'))
         adjuntos = self.mapped('xml_attachment_id')
         resultado = super().unlink()
         adjuntos.unlink()

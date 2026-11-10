@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas - Compras</h2>
-        <h3 class="oe_slogan">Versión 2026.19.007</h3>
+        <h3 class="oe_slogan">Versión 2026.19.008</h3>
         <p class="text-muted">
             Módulo puente entre FE_Py Recepción de Facturas y Compras. Se instala solo cuando
             ambos están instalados; sin Compras, la recepción funciona igual.
@@ -12,10 +12,11 @@
         <div class="col-md-12">
             <h3>Funcionalidades actuales</h3>
             <ul>
-                <li><strong>Cotización en la recepción:</strong> se elige una orden de compra confirmada con líneas pendientes de facturar.</li>
+                <li><strong>Cotización en la recepción:</strong> se elige a mano una orden de compra confirmada con algo pendiente de facturar, para los casos que requieren intervención del usuario.</li>
                 <li><strong>Vínculo por línea:</strong> cada línea del XML se puede vincular con una línea de la cotización, o dejar sin vincular. Hay una ayuda para vincular automáticamente por producto.</li>
                 <li><strong>Factura de proveedor:</strong> queda vinculada con la cotización igual que una cargada a mano, tomando el precio y la cantidad del XML, y actualiza lo facturado en la orden de compra.</li>
-                <li><strong>Confirmación automática:</strong> si hay una única cotización pendiente de facturar que coincide con los productos, se vincula línea por línea; si hay varias queda en Cargado para elegirla; si no hay ninguna, se confirma sin cotización solo si el proveedor tiene habilitada esa opción.</li>
+                <li><strong>Vínculo automático:</strong> si hay una única cotización que coincide exactamente con el XML (mismos productos, cantidades, totales e IVA), se vincula línea por línea. Si el proveedor no tiene cotizaciones con esos productos, la factura sigue sin vincular. Si las tiene pero ninguna coincide exacto, o coinciden varias, el registro queda en Cargado para elegirla a mano.</li>
+                <li><strong>Mercadería:</strong> el módulo no toca las recepciones de mercadería. Un producto que se factura sobre cantidades recibidas y todavía no se recibió deja la factura en borrador; los productos con lote o serie vinculados a una cotización ya no impiden la publicación automática.</li>
                 <li><strong>Configuración:</strong> la opción "Vincular con cotizaciones", en Ajustes &gt; Configuración FE_Py Recepción, activa o desactiva la funcionalidad por compañía.</li>
                 <li><strong>Licencia:</strong> lo cubre la misma licencia OPL-1 de FE_Py Recepción de Facturas.</li>
                 <li><strong>Independencia:</strong> no modifica fe_py_recepcion ni local_py; todo se agrega por herencia.</li>

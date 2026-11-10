@@ -43,7 +43,25 @@
                                 <field name="fe_py_recepcion_impuesto_exento_id" options="{'no_create': True}"/>
                             </setting>
                         </block>
+                        <block title="Facturas leídas del XML" name="fe_py_recepcion_facturas">
+                            <setting string="Estado de las facturas leídas"
+                                     help="Estado en el que queda la factura, nota de crédito o nota de débito de proveedor generada al leer un XML, de un correo o cargado a mano. Con «Confirmado (publicado)» se publica sola si el proveedor tiene marcada la confirmación automática y se cumplen los criterios (productos de equivalencias confirmadas, totales e IVA dentro de la tolerancia, sin avisos, remitente válido, sin recepción de mercadería pendiente). Si algo falla, queda en borrador con el motivo.">
+                                <field name="fe_py_recepcion_estado_facturas"/>
+                            </setting>
+                            <setting string="Tolerancia de diferencia en totales"
+                                     help="Diferencia máxima, en la moneda del documento, que se acepta al comparar el total y el IVA del XML contra los calculados por Odoo y contra la orden de compra. Con 0 se usa el redondeo de la moneda (por ejemplo, 1 en guaraníes).">
+                                <field name="fe_py_recepcion_tolerancia"/>
+                            </setting>
+                            <setting string="Validar el remitente para publicar automáticamente"
+                                     help="Un correo solo se publica automáticamente si su remitente coincide con un correo del proveedor o con el dominio de su empresa (con gmail, hotmail y similares se exige la dirección exacta). Si no coincide, la factura queda en borrador. No aplica a los XML cargados a mano.">
+                                <field name="fe_py_recepcion_validar_remitente"/>
+                            </setting>
+                        </block>
                         <block title="Correo de recepción" name="fe_py_recepcion_correo" groups="base.group_system">
+                            <setting string="Registrar los correos sin XML"
+                                     help="Cada correo leído que no trae XML (ni dentro de un ZIP) queda como un registro N/A, para poder comprobar que se leyó. Si se desactiva, esos correos se leen y se marcan como leídos pero no dejan registro.">
+                                <field name="fe_py_recepcion_registrar_sin_xml"/>
+                            </setting>
                             <setting string="Cuenta de correo de recepción"
                                      help="Casilla (IMAP/POP) donde llegan las facturas electrónicas de los proveedores. Debe ser exclusiva de esta compañía y distinta de las que usa el resto del sistema: solo se leen los correos no leídos. Cada XML adjunto crea una recepción; lo que no se puede cargar queda con estado Error.">
                                 <field name="fe_py_recepcion_fetchmail_id" readonly="1"/>

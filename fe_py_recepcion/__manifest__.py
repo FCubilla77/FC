@@ -8,11 +8,12 @@
     "description": """
         Recepción de facturas electrónicas (SIFEN) de proveedores.
 
-        El usuario carga uno o varios archivos XML recibidos del proveedor.
-        Cada archivo crea una recepción (cabecera y detalle) en la que se
-        verifican los datos, se elige el producto de cada línea y, al
-        confirmar, se genera la factura de proveedor en borrador, como si se
-        hubiera cargado a mano.
+        El XML llega por correo o lo carga el usuario. Cada archivo crea una
+        recepción (cabecera y detalle) y el proceso automático la lleva hasta
+        la factura, nota de crédito o nota de débito de proveedor: en borrador
+        o, si la compañía y el proveedor lo permiten y se cumplen los
+        criterios, publicada. Lo que no se puede resolver solo queda para que
+        el usuario lo revise.
 
         El XML lo emite y firma el proveedor: este módulo solo lo LEE y
         guarda sus datos (incluido el CDC). No genera ni valida CDC, firma
@@ -30,7 +31,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.007",
+    "version": "2026.19.008",
     "license": "OPL-1",
     "application": False,
     "installable": True,

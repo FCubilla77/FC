@@ -30,6 +30,15 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.fe_py_recepcion_impuesto_exento_id', readonly=False,
         domain="[('type_tax_use', '=', 'purchase'), ('company_id', '=', company_id)]")
 
+    fe_py_recepcion_estado_facturas = fields.Selection(
+        related='company_id.fe_py_recepcion_estado_facturas', readonly=False)
+    fe_py_recepcion_tolerancia = fields.Float(
+        related='company_id.fe_py_recepcion_tolerancia', readonly=False)
+    fe_py_recepcion_validar_remitente = fields.Boolean(
+        related='company_id.fe_py_recepcion_validar_remitente', readonly=False)
+    fe_py_recepcion_registrar_sin_xml = fields.Boolean(
+        related='company_id.fe_py_recepcion_registrar_sin_xml', readonly=False)
+
     fe_py_recepcion_fetchmail_id = fields.Many2one(
         related='company_id.fe_py_recepcion_fetchmail_id', readonly=True)
 

@@ -97,6 +97,45 @@ class ResCompany(models.Model):
         help='Impuesto de compra (0%) para las líneas exentas.')
 
     # ------------------------------------------------------------------
+    # Facturas leídas del XML (estado final, tolerancia y correo)
+    # ------------------------------------------------------------------
+    fe_py_recepcion_estado_facturas = fields.Selection(
+        [('borrador', 'Borrador'), ('confirmado', 'Confirmado (publicado)')],
+        string='Estado de las facturas leídas', default='borrador', required=True,
+        help='Estado en el que queda la factura, nota de crédito o nota de débito de proveedor '
+             'generada al leer un XML (de un correo o cargado a mano). Con «Confirmado» se '
+             'publica solo si el proveedor tiene marcada la confirmación automática y se cumplen '
+             'los criterios de publicación; si no, queda en borrador con el motivo.')
+    fe_py_recepcion_tolerancia = fields.Float(
+        string='Tolerancia de diferencia en totales', digits=(16, 4), default=0.0,
+        help='Diferencia máxima, en la moneda del documento, que se acepta al comparar el total '
+             'y el IVA del XML contra los calculados por Odoo y contra la orden de compra. '
+             'Con 0 se usa el redondeo de la moneda (por ejemplo, 1 en guaraníes).')
+    fe_py_recepcion_validar_remitente = fields.Boolean(
+        string='Validar el remitente para publicar automáticamente', default=True,
+        help='Un correo solo se publica automáticamente si su remitente coincide con un correo '
+             'del proveedor (o con el dominio de su empresa). Si no coincide, la factura queda '
+             'en borrador. No aplica a los XML cargados a mano.')
+    fe_py_recepcion_registrar_sin_xml = fields.Boolean(
+        string='Registrar los correos sin XML', default=True,
+        help='Cada correo leído que no trae XML (ni dentro de un ZIP) queda como un registro N/A, '
+             'para poder comprobar que se leyó. Si se desactiva, esos correos se leen y se '
+             'marcan como leídos pero no dejan registro.')
+
+    @api.constrains('fe_py_recepcion_tolerancia')
+    def _check_fe_py_recepcion_tolerancia(self):
+        for company in self:
+            if company.fe_py_recepcion_tolerancia < 0:
+                raise ValidationError(_('La tolerancia de diferencia no puede ser negativa.'))
+
+    def _fe_py_recepcion_tolerancia_en(self, moneda):
+        """Tolerancia aplicable al comparar importes en la moneda dada."""
+        self.ensure_one()
+        if self.fe_py_recepcion_tolerancia and self.fe_py_recepcion_tolerancia > 0:
+            return self.fe_py_recepcion_tolerancia
+        return moneda.rounding if moneda and moneda.rounding else 1.0
+
+    # ------------------------------------------------------------------
     # Licencia
     # ------------------------------------------------------------------
     fe_py_recepcion_licencia_uuid = fields.Char(

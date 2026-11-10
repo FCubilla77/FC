@@ -42,6 +42,23 @@ class AccountMove(models.Model):
             'target': 'current',
         }
 
+    def _post(self, soft=True):
+        """Al publicarse la factura generada de una recepción (desde el proceso automático o a
+        mano), el registro pasa de Borrador a Confirmado."""
+        posted = super()._post(soft=soft)
+        recepciones = posted.sudo().mapped('fe_py_recepcion_ids').filtered(
+            lambda d: d.state == 'borrador')
+        if recepciones:
+            recepciones._marcar_confirmado(
+                self.env.context.get('fe_py_recepcion_origen_publicacion', 'factura'),
+                self.env.context.get('fe_py_recepcion_criterios'))
+        return posted
+
+    def button_draft(self):
+        resultado = super().button_draft()
+        self.sudo().mapped('fe_py_recepcion_ids')._volver_a_borrador_por_factura()
+        return resultado
+
     def button_cancel(self):
         resultado = super().button_cancel()
         self.sudo().mapped('fe_py_recepcion_ids')._volver_a_cargado_por_factura()

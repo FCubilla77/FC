@@ -261,3 +261,187 @@ def emparejar_pdf(nombre_xml, cdc, nombres_pdf, cantidad_xml):
                 or (cdc and cdc in (nombre_pdf or '')):
             elegidos.append(i)
     return elegidos
+
+
+# ---------------------------------------------------------------------------
+# Adjuntos comprimidos (ZIP) y correos sin XML
+# ---------------------------------------------------------------------------
+MAX_MIEMBROS_ZIP = 100             # archivos que se revisan dentro de un ZIP
+MAX_BYTES_MIEMBRO = 20 * 1024 * 1024    # un archivo descomprimido
+MAX_BYTES_TOTAL = 100 * 1024 * 1024     # todo lo descomprimido de un correo
+EXTENSIONES_COMPRIMIDAS_NO_SOPORTADAS = ('.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2')
+
+
+def es_adjunto_zip(nombre):
+    return (nombre or '').strip().lower().endswith('.zip')
+
+
+def extension_comprimida_no_soportada(nombre):
+    """Extensión (en mayúsculas, sin punto) de un comprimido que no se descomprime, o False."""
+    nombre = (nombre or '').strip().lower()
+    for extension in EXTENSIONES_COMPRIMIDAS_NO_SOPORTADAS:
+        if nombre.endswith(extension):
+            return extension[1:].upper()
+    return False
+
+
+def _nombre_base(nombre):
+    return (nombre or '').replace('\\', '/').rsplit('/', 1)[-1]
+
+
+def expandir_adjuntos(adjuntos):
+    """Separa los adjuntos de un correo en XML y PDF, abriendo los ZIP (un nivel).
+
+    `adjuntos` es una lista de (nombre, contenido). Devuelve un diccionario:
+      xmls, pdfs      listas de (nombre, bytes)
+      no_soportados   extensiones de comprimidos que no se abren (RAR, 7Z, ...)
+      zip_danados     nombres de ZIP que no se pudieron abrir
+      zip_omitidos    avisos de archivos de un ZIP que se saltearon (tamaño o cantidad)
+      trae_adjuntos   si el correo traía algún adjunto
+    Los límites de cantidad y tamaño evitan que un ZIP malicioso consuma la memoria.
+    """
+    import io
+    import zipfile
+
+    resultado = {'xmls': [], 'pdfs': [], 'no_soportados': [], 'zip_danados': [],
+                 'zip_omitidos': [], 'trae_adjuntos': bool(adjuntos)}
+    total = 0
+    for nombre, contenido in adjuntos or []:
+        if es_adjunto_xml(nombre):
+            resultado['xmls'].append((nombre, a_bytes(contenido)))
+        elif es_adjunto_pdf(nombre):
+            resultado['pdfs'].append((nombre, a_bytes(contenido)))
+        elif es_adjunto_zip(nombre):
+            try:
+                archivo = zipfile.ZipFile(io.BytesIO(a_bytes(contenido)))
+                miembros = [m for m in archivo.infolist() if not m.is_dir()]
+            except (zipfile.BadZipFile, OSError, ValueError, NotImplementedError):
+                resultado['zip_danados'].append(nombre)
+                continue
+            for numero, miembro in enumerate(miembros):
+                nombre_miembro = _nombre_base(miembro.filename)
+                if not (es_adjunto_xml(nombre_miembro) or es_adjunto_pdf(nombre_miembro)):
+                    continue
+                if numero >= MAX_MIEMBROS_ZIP:
+                    resultado['zip_omitidos'].append('%s: demasiados archivos' % nombre)
+                    break
+                if miembro.file_size > MAX_BYTES_MIEMBRO or total + miembro.file_size > MAX_BYTES_TOTAL:
+                    resultado['zip_omitidos'].append('%s/%s: demasiado grande' % (nombre, nombre_miembro))
+                    continue
+                try:
+                    datos = archivo.read(miembro)
+                except (zipfile.BadZipFile, OSError, RuntimeError, ValueError, NotImplementedError):
+                    # cifrado, dañado o con método no soportado
+                    resultado['zip_danados'].append('%s/%s' % (nombre, nombre_miembro))
+                    continue
+                if len(datos) > MAX_BYTES_MIEMBRO:
+                    resultado['zip_omitidos'].append('%s/%s: demasiado grande' % (nombre, nombre_miembro))
+                    continue
+                total += len(datos)
+                destino = resultado['xmls'] if es_adjunto_xml(nombre_miembro) else resultado['pdfs']
+                destino.append((nombre_miembro, datos))
+        else:
+            extension = extension_comprimida_no_soportada(nombre)
+            if extension:
+                resultado['no_soportados'].append(extension)
+    return resultado
+
+
+def motivo_sin_xml(expandido):
+    """Texto de por qué un correo no tiene XML que cargar (para el registro N/A)."""
+    if expandido['no_soportados']:
+        tipos = ', '.join(sorted(set(expandido['no_soportados'])))
+        return 'El correo trae un adjunto comprimido %s, que no se descomprime; no se encontró ningún XML.' % tipos
+    if expandido['zip_danados']:
+        return 'No se pudo abrir el ZIP adjunto (%s): está dañado o protegido con contraseña.' % \
+            ', '.join(expandido['zip_danados'])
+    if expandido['zip_omitidos']:
+        return 'El ZIP adjunto supera los límites de tamaño o cantidad de archivos (%s).' % \
+            '; '.join(expandido['zip_omitidos'])
+    if expandido['trae_adjuntos']:
+        return 'El correo no trae archivos XML.'
+    return 'El correo no trae adjuntos.'
+
+
+def adjuntos_de_correo_crudo(crudo):
+    """Lista de (nombre, bytes) de los adjuntos de un correo RFC822 sin procesar.
+    Solo usa la biblioteca estándar."""
+    import email
+    import email.policy
+
+    if isinstance(crudo, str):
+        crudo = crudo.encode('utf-8')
+    mensaje = email.message_from_bytes(bytes(crudo), policy=email.policy.SMTP)
+    adjuntos = []
+    for parte in mensaje.walk():
+        nombre = parte.get_filename()
+        if not nombre or parte.is_multipart():
+            continue
+        try:
+            contenido = parte.get_payload(decode=True)
+        except Exception:  # noqa: BLE001 - un adjunto ilegible no debe frenar el análisis
+            continue
+        adjuntos.append((nombre, contenido or b''))
+    return adjuntos
+
+
+def correo_trae_xml(crudo):
+    """True si el correo sin procesar trae algún XML, suelto o dentro de un ZIP."""
+    return bool(expandir_adjuntos(adjuntos_de_correo_crudo(crudo))['xmls'])
+
+
+# ---------------------------------------------------------------------------
+# Remitente del correo contra el proveedor
+# ---------------------------------------------------------------------------
+# Dominios de correo gratuito o masivo: no identifican a una empresa, así que con ellos
+# se exige la dirección exacta del proveedor.
+DOMINIOS_PUBLICOS = frozenset({
+    'gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.es', 'hotmail.com.ar', 'outlook.com',
+    'outlook.es', 'outlook.com.ar', 'live.com', 'live.com.ar', 'msn.com', 'yahoo.com', 'yahoo.es',
+    'yahoo.com.ar', 'yahoo.com.br', 'ymail.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me',
+    'protonmail.com', 'gmx.com', 'mail.com', 'zoho.com', 'yandex.com',
+})
+
+
+def direcciones_de_correo(texto):
+    """Direcciones (en minúsculas) de un campo de correo como «Nombre <a@b.com>, c@d.com»."""
+    from email.utils import getaddresses
+
+    if not texto:
+        return []
+    direcciones = []
+    for _nombre, direccion in getaddresses([str(texto).replace(';', ',')]):
+        direccion = direccion.strip().lower()
+        if '@' in direccion:
+            direcciones.append(direccion)
+    return direcciones
+
+
+def remitente_coincide(remitente, correos_proveedor):
+    """(coincide, motivo). El remitente aprueba si su dirección es una de las del proveedor
+    o si es del mismo dominio de la empresa (o de un subdominio); con dominios públicos
+    (gmail, hotmail, etc.) solo vale la dirección exacta."""
+    remitentes = direcciones_de_correo(remitente)
+    if not remitentes:
+        return False, 'El correo no informa un remitente que se pueda verificar.'
+    propios = []
+    for texto in correos_proveedor or []:
+        propios += direcciones_de_correo(texto)
+    if not propios:
+        return False, 'El proveedor no tiene ningún correo cargado en su ficha para comparar con el remitente.'
+    dominios = {d.rsplit('@', 1)[1] for d in propios if d.rsplit('@', 1)[1] not in DOMINIOS_PUBLICOS}
+    for origen in remitentes:
+        if origen in propios:
+            return True, ''
+        dominio = origen.rsplit('@', 1)[1]
+        if dominio in DOMINIOS_PUBLICOS:
+            continue
+        if any(dominio == d or dominio.endswith('.' + d) for d in dominios):
+            return True, ''
+    return False, 'El remitente (%s) no coincide con los correos ni el dominio del proveedor.' % \
+        ', '.join(remitentes)
+
+
+def dentro_de_tolerancia(diferencia, tolerancia):
+    """True si |diferencia| no supera la tolerancia (con un margen mínimo por decimales)."""
+    return abs(diferencia) <= tolerancia + 1e-6

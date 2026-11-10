@@ -22,7 +22,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.007",
+    "version": "2026.19.008",
     "license": "OPL-1",
     "application": False,
     "installable": True,
@@ -30,7 +30,6 @@
     "depends": ["fe_py_recepcion", "purchase"],
     "data": [
         "views/res_config_settings_views.xml",
-        "views/res_partner_views.xml",
         "views/fe_py_recepcion_documento_views.xml",
     ],
 }

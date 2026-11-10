@@ -10,7 +10,10 @@
                             invisible="state != 'cargado'" groups="account.group_account_invoice"/>
                     <button name="action_confirmar" type="object" string="Confirmar" class="btn-primary"
                             invisible="state != 'verificado'" groups="account.group_account_manager"
-                            confirm="Se generará la factura de proveedor en borrador. ¿Continuar?"/>
+                            confirm="Se generará la factura de proveedor. Quedará publicada si la compañía deja las facturas leídas en Confirmado y el proveedor tiene la confirmación automática; si no, en borrador. ¿Continuar?"/>
+                    <button name="action_reprocesar" type="object" string="Reprocesar"
+                            invisible="state not in ('cargado', 'verificado', 'borrador')"
+                            groups="account.group_account_invoice"/>
                     <button name="action_controlar" type="object" string="Controlar totales"
                             invisible="state != 'cargado'" groups="account.group_account_invoice"/>
                     <button name="action_buscar_proveedor" type="object" string="Buscar proveedor"
@@ -32,7 +35,7 @@
                             confirm="El registro pasará a Cancelado. ¿Continuar?"/>
                     <button name="action_ver_xml" type="object" string="Descargar XML"
                             invisible="not xml_attachment_id"/>
-                    <field name="state" widget="statusbar" statusbar_visible="cargado,verificado,confirmado,error"/>
+                    <field name="state" widget="statusbar" statusbar_visible="cargado,verificado,borrador,confirmado"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -45,12 +48,12 @@
                         </button>
                     </div>
                     <div class="alert alert-danger" role="alert"
-                         invisible="not hay_bloqueos or state in ('confirmado', 'cancelado')">
+                         invisible="not hay_bloqueos or state in ('borrador', 'confirmado', 'cancelado', 'na')">
                         <strong>Impedimentos para continuar</strong>
                         <field name="bloqueos" class="d-block"/>
                     </div>
                     <div class="alert alert-warning" role="alert"
-                         invisible="not avisos or state in ('confirmado', 'cancelado')">
+                         invisible="not avisos or state in ('confirmado', 'cancelado', 'na')">
                         <strong>Avisos</strong>
                         <field name="avisos" class="d-block"/>
                     </div>
@@ -59,9 +62,14 @@
                         <field name="error_detalle" class="d-block"/>
                     </div>
                     <div class="alert alert-info" role="alert"
-                         invisible="not confirmacion_auto_motivo or state != 'cargado'">
-                        <strong>No se confirmó automáticamente</strong>
+                         invisible="not confirmacion_auto_motivo or state not in ('cargado', 'verificado', 'borrador')">
+                        <strong>Pendiente de revisión</strong>
                         <field name="confirmacion_auto_motivo" class="d-block"/>
+                    </div>
+                    <div class="alert alert-secondary" role="alert" invisible="state != 'na'">
+                        <strong>No corresponde cargarlo (N/A)</strong>
+                        <field name="na_motivo" class="d-block"/>
+                        <field name="documento_original_id" invisible="not documento_original_id"/>
                     </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -97,7 +105,7 @@
                             <field name="move_id" invisible="not move_id"/>
                         </group>
                     </group>
-                    <notebook invisible="state == 'error'">
+                    <notebook invisible="state in ('error', 'na')">
                         <page string="Líneas" name="lineas">
                             <field name="line_ids" readonly="state != 'cargado'">
                                 <list string="Líneas" editable="bottom" create="0" delete="0">
@@ -189,11 +197,14 @@
         <field name="model">fe_py_recepcion.documento</field>
         <field name="arch" type="xml">
             <list string="Facturas electrónicas recibidas"
-                  decoration-muted="state == 'cancelado'" decoration-success="state == 'confirmado'"
-                  decoration-info="state == 'verificado'" decoration-danger="state == 'error'">
+                  decoration-muted="state in ('cancelado', 'na')" decoration-success="state == 'confirmado'"
+                  decoration-info="state == 'verificado'" decoration-warning="state == 'borrador'"
+                  decoration-danger="state == 'error'">
                 <header>
                     <button name="%(action_fe_py_recepcion_cargar_wizard)d" type="action" string="Cargar XML"
                             display="always" class="btn-primary" groups="account.group_account_invoice"/>
+                    <button name="action_reprocesar" type="object" string="Reprocesar"
+                            groups="account.group_account_invoice"/>
                 </header>
                 <field name="fecha_emision"/>
                 <field name="nro_documento"/>
@@ -211,7 +222,8 @@
                 <field name="company_id" groups="base.group_multi_company" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'confirmado'" decoration-info="state == 'verificado'"
-                       decoration-muted="state == 'cancelado'" decoration-danger="state == 'error'"/>
+                       decoration-warning="state == 'borrador'"
+                       decoration-muted="state in ('cancelado', 'na')" decoration-danger="state == 'error'"/>
             </list>
         </field>
     </record>
@@ -230,12 +242,16 @@
                 <field name="correo_asunto"/>
                 <filter name="filtro_cargado" string="Cargadas" domain="[('state', '=', 'cargado')]"/>
                 <filter name="filtro_verificado" string="Verificadas" domain="[('state', '=', 'verificado')]"/>
-                <filter name="filtro_confirmado" string="Confirmadas" domain="[('state', '=', 'confirmado')]"/>
+                <filter name="filtro_borrador" string="Con factura en borrador" domain="[('state', '=', 'borrador')]"/>
+                <filter name="filtro_confirmado" string="Confirmadas (publicadas)" domain="[('state', '=', 'confirmado')]"/>
                 <filter name="filtro_cancelado" string="Canceladas" domain="[('state', '=', 'cancelado')]"/>
                 <filter name="filtro_error" string="Con error" domain="[('state', '=', 'error')]"/>
+                <filter name="filtro_na" string="N/A" domain="[('state', '=', 'na')]"/>
                 <separator/>
+                <filter name="filtro_no_publicados" string="No publicados"
+                        domain="[('state', 'in', ('cargado', 'verificado', 'borrador'))]"/>
                 <filter name="filtro_pendientes" string="Pendientes de revisar"
-                        domain="[('state', 'in', ('cargado', 'verificado', 'error'))]"/>
+                        domain="[('state', 'in', ('cargado', 'verificado', 'borrador', 'error'))]"/>
                 <separator/>
                 <filter name="filtro_correo" string="Recibidas por correo" domain="[('origen', '=', 'correo')]"/>
                 <separator/>

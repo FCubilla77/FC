@@ -1,10 +1,10 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
-        <h3 class="oe_slogan">Versión 2026.19.007</h3>
+        <h3 class="oe_slogan">Versión 2026.19.008</h3>
         <p class="text-muted">
-            Carga de facturas electrónicas de proveedores desde su archivo XML, con verificación
-            y generación de la factura de proveedor. Solo lee y guarda los datos del XML: no
+            Recepción de facturas electrónicas de proveedores desde su archivo XML (por correo o
+            cargado a mano), con generación automática de la factura de proveedor. Solo lee y guarda los datos del XML: no
             genera ni valida CDC, firma digital ni esquema, y no consulta a SIFEN.
         </p>
     </div>
@@ -17,13 +17,13 @@
         </div>
         <div class="col-md-4 text-center">
             <h3>✅</h3>
-            <h5>Verificación y confirmación</h5>
-            <p class="text-muted">Control de proveedor, productos, impuestos y totales antes de generar la factura.</p>
+            <h5>Proceso automático</h5>
+            <p class="text-muted">Control de proveedor, productos, impuestos y totales, y publicación solo si todo coincide.</p>
         </div>
         <div class="col-md-4 text-center">
             <h3>🧾</h3>
             <h5>Factura de proveedor</h5>
-            <p class="text-muted">Se genera en borrador, como si se hubiera cargado a mano, con el XML adjunto.</p>
+            <p class="text-muted">En borrador o publicada, según la configuración, con el XML adjunto.</p>
         </div>
     </div>
 
@@ -33,21 +33,26 @@
             <ul>
                 <li><strong>Documentos recibidos:</strong> factura, nota de crédito y nota de débito electrónicas. Cualquier otro tipo de documento se rechaza con un mensaje claro.</li>
                 <li><strong>Lectura del XML:</strong> cabecera (CDC, timbrado, número, fecha, moneda), proveedor, receptor, condición de pago, cuotas, ítems, totales y documento asociado. Acepta también el XML dentro de un sobre de respuesta.</li>
-                <li><strong>Carga:</strong> varios archivos a la vez, sin comprimir. Un CDC ya recibido no se vuelve a crear; una recepción cancelada se puede reabrir.</li>
-                <li><strong>Recepción por correo:</strong> cada compañía tiene su propia casilla (IMAP/POP, con OAuth de Gmail y Outlook) configurada en Ajustes &gt; Configuración FE_Py Recepción. Cada XML adjunto crea una recepción, con el remitente, el asunto y la fecha del correo, y el PDF que lo acompaña queda adjunto. La casilla debe ser exclusiva de FE_Py Recepción.</li>
-                <li><strong>Estado Error:</strong> un XML que no se puede cargar (dañado, que no es SIFEN o de un tipo no soportado) o un correo sin XML no se pierde: queda un registro con el archivo y el motivo, que se puede reintentar o descartar. Aplica a la carga manual y al correo, con filtros por estado y "Pendientes de revisar".</li>
-                <li><strong>Flujo de estados:</strong> Cargado, Verificado, Confirmado y Cancelado, con historial (chatter) y el XML original adjunto.</li>
+                <li><strong>Carga manual:</strong> varios archivos a la vez. Un CDC ya recibido no se vuelve a crear; una recepción cancelada se puede reabrir.</li>
+                <li><strong>Recepción por correo:</strong> cada compañía tiene su propia casilla (IMAP/POP, con OAuth de Gmail y Outlook) configurada en Ajustes &gt; Configuración FE_Py Recepción. Cada XML adjunto crea una recepción, con el remitente, el asunto y la fecha del correo, y el PDF que lo acompaña queda adjunto. Los XML dentro de archivos ZIP también se leen. La casilla debe ser exclusiva de FE_Py Recepción.</li>
+                <li><strong>Estado Error:</strong> un XML que no se puede leer (dañado o que no es SIFEN) no se pierde: queda un registro con el archivo y el motivo, que se puede reintentar o descartar.</li>
+                <li><strong>Estado N/A:</strong> los correos sin XML, los documentos de un tipo que no se recibe y los reenvíos de un CDC ya recibido quedan registrados como N/A, con su motivo y, en el caso de duplicados, la referencia al registro original. Un ajuste por compañía permite no registrar los correos sin XML.</li>
+                <li><strong>Flujo de estados:</strong> Cargado, Verificado, Borrador (factura generada sin publicar), Confirmado (factura publicada), Cancelado, Error y N/A, con historial (chatter) y el XML original adjunto. Filtros por estado, "No publicados", "Con factura en borrador" y "Pendientes de revisar".</li>
                 <li><strong>Proveedor:</strong> se busca por RUC; si no existe, se abre el formulario completo de Contactos con los datos del XML para que el usuario lo complete.</li>
                 <li><strong>Productos:</strong> cada línea lleva un producto o una cuenta; el producto se sugiere solo con lo elegido antes para ese proveedor o, la primera vez, comparando el código y la descripción del XML con la referencia y el nombre de la ficha del producto.</li>
                 <li><strong>Equivalencias:</strong> relacionan el ítem del proveedor con el producto y guardan también su referencia. Se conservan todas las relaciones (varios ítems del proveedor hacia un mismo producto, o un ítem hacia distintos productos) y se sugiere la usada más recientemente.</li>
-                <li><strong>Confirmación automática:</strong> con la opción "Confirmar Facturas Electrónicas Recibidas - Automáticamente" en la ficha del proveedor, al cargar el XML la recepción se confirma y la factura, nota de crédito o nota de débito de proveedor se publica, siempre que todos los controles pasen y los productos vengan de equivalencias ya confirmadas. Si algo falla queda en Cargado con el motivo indicado.</li>
-                <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML.</li>
+                <li><strong>Proceso automático:</strong> todo XML, de un correo o cargado a mano, se lleva solo hasta la factura, nota de crédito o nota de débito de proveedor. Si falta algo imprescindible (por ejemplo, el proveedor) queda en Cargado con el motivo; al asignarlo el proceso continúa. Si no, se genera la factura y el registro pasa a Borrador.</li>
+                <li><strong>Publicación automática:</strong> la factura se publica sola (estado Confirmado) cuando la compañía deja las facturas leídas en "Confirmado" y el proveedor tiene marcada la opción "Confirmar Facturas Electrónicas Recibidas - Automáticamente", y se cumplen los criterios: productos de equivalencias confirmadas, totales e IVA dentro de la tolerancia, sin avisos, remitente del correo coincidente con el proveedor, cotización exacta si la hay y mercadería recibida si corresponde. Si algo falla, queda en borrador con el motivo, y también si la publicación da error.</li>
+                <li><strong>Seguridad del correo:</strong> el remitente debe coincidir con un correo del proveedor o con el dominio de su empresa (con gmail, hotmail y similares se exige la dirección exacta). Se puede desactivar por compañía.</li>
+                <li><strong>Reprocesar:</strong> acción en la lista y en el formulario para volver a ejecutar el proceso, por ejemplo después de cargar una equivalencia.</li>
+                <li><strong>Notas de crédito que llegan antes que su factura:</strong> cuando la factura llega, la nota se vincula y sigue su proceso; se publica sola si la factura asociada ya está publicada.</li>
+                <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML y una tolerancia de diferencia configurable por compañía.</li>
                 <li><strong>Descuentos:</strong> se cargan como porcentaje de la línea, controlados contra el total del XML.</li>
                 <li><strong>Condición de pago:</strong> se propone el término de pago de Odoo más cercano a la condición del XML, con aviso si no es exacto y modificable por el usuario. Las cuotas del XML quedan como referencia.</li>
                 <li><strong>CDC:</strong> el CDC del documento y el del documento asociado quedan guardados también en la factura de proveedor (visibles junto al Timbrado). En facturas cargadas a mano se pueden escribir (44 dígitos).</li>
                 <li><strong>Nota de crédito:</strong> se vincula con la factura que afecta, primero por el CDC del documento asociado y, si no coincide, por el número de comprobante que forma el CDC. Siempre debe ser el mismo proveedor.</li>
-                <li><strong>Factura de proveedor:</strong> se genera en borrador con Tipo Fiscal, timbrado y número del proveedor. Si la factura se elimina o se cancela, la recepción vuelve a Cargado.</li>
-                <li><strong>Configuración:</strong> en Ajustes &gt; Configuración FE_Py Recepción, por compañía: un diario de compra para facturas, otro para notas de crédito y otro para notas de débito (modificables en cada recepción), e impuestos de IVA 10%, 5% y exento. La factura generada toma el Tipo Fiscal de su diario.</li>
+                <li><strong>Factura de proveedor:</strong> se genera con Tipo Fiscal, timbrado y número del proveedor. Si se publica a mano, el registro pasa a Confirmado; si se elimina o se cancela, vuelve a Cargado.</li>
+                <li><strong>Configuración:</strong> en Ajustes &gt; Configuración FE_Py Recepción, por compañía: diarios de compra para facturas, notas de crédito y notas de débito, impuestos de IVA 10%, 5% y exento, estado de las facturas leídas (borrador o confirmado), tolerancia de diferencia, validación del remitente y registro de correos sin XML.</li>
                 <li><strong>Menú:</strong> Contabilidad &gt; Proveedores &gt; Facturas Electrónicas Recibidas.</li>
                 <li><strong>Seguridad:</strong> consulta (Contabilidad: Solo lectura), carga y verificación (Facturación), confirmación (Asesor). Multicompañía.</li>
                 <li><strong>Licencia:</strong> requiere un código emitido por FC_Py, atado a la base de datos y a la versión de Odoo. Sin licencia válida se bloquea la creación de equivalencias y la creación y edición de recepciones; la lectura y la factura ya generada siguen disponibles.</li>
