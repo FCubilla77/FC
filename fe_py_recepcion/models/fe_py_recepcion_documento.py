@@ -12,6 +12,9 @@ from .xml_parser import XmlRecepcionError, XmlTipoNoSoportado
 
 _logger = logging.getLogger(__name__)
 
+# Origen del producto de una línea que lo sugirió el sistema y que ninguna persona confirmó.
+PRODUCTO_ORIGEN_SUGERIDO = ('gtin', 'referencia', 'descripcion')
+
 # itiDE -> tipo fiscal de local_py (se usan los registros que ya trae local_py,
 # sin depender de FE_Py)
 TIPO_FISCAL_POR_ITIDE = {
@@ -199,6 +202,9 @@ class FePyRecepcionDocumento(models.Model):
     bloqueos = fields.Text(string='Impedimentos', compute='_compute_diagnostico')
     avisos = fields.Text(string='Avisos', compute='_compute_diagnostico')
     hay_bloqueos = fields.Boolean(compute='_compute_diagnostico')
+    hay_productos_sugeridos = fields.Boolean(
+        compute='_compute_hay_productos_sugeridos',
+        help='Hay líneas con un producto sugerido por el sistema que ninguna persona confirmó.')
 
     _cdc_company_uniq = models.Constraint(
         'unique(cdc, company_id)',
@@ -220,6 +226,12 @@ class FePyRecepcionDocumento(models.Model):
             if doc.state not in ('error', 'na') and not (doc.cdc and doc.itide):
                 raise ValidationError(_(
                     'Solo los registros con error o N/A pueden quedar sin CDC o sin tipo de documento.'))
+
+    @api.depends('line_ids.producto_id', 'line_ids.producto_origen')
+    def _compute_hay_productos_sugeridos(self):
+        for doc in self:
+            doc.hay_productos_sugeridos = any(
+                l.producto_id and l.producto_origen in PRODUCTO_ORIGEN_SUGERIDO for l in doc.line_ids)
 
     @api.depends('itide')
     def _compute_move_type(self):
@@ -1264,7 +1276,7 @@ class FePyRecepcionDocumento(models.Model):
         productos = self._motivos_productos()
         motivos += productos
         if not productos:
-            cumplidos.append(_('productos de equivalencias confirmadas'))
+            cumplidos.append(_('productos de equivalencias confirmadas o confirmados por una persona'))
         for revisar, criterio in ((self._motivos_nota, _('factura asociada publicada')),
                                   (self._motivos_remitente, _('remitente validado')),
                                   (self._motivos_cotizacion, _('cotización coincide exacta')),
@@ -1276,24 +1288,56 @@ class FePyRecepcionDocumento(models.Model):
         return motivos, cumplidos
 
     def _motivos_productos(self):
-        """Todos los productos deben venir de equivalencias ya confirmadas con el proveedor, y
-        los de lote o serie solo se aceptan si el módulo de Compras los cubre."""
+        """Los productos deben venir de una equivalencia ya confirmada con el proveedor o haber
+        sido elegidos o confirmados por una persona (origen Manual). Un producto que solo
+        sugirió el sistema (GTIN, referencia o nombre) no alcanza. Los de lote o serie solo se
+        aceptan si el módulo de Compras los cubre."""
         self.ensure_one()
         motivos = []
+        etiquetas = dict(self.env['fe_py_recepcion.documento.linea']._fields[
+            'producto_origen']._description_selection(self.env))
         for linea in self.line_ids:
             etiqueta = _('Línea %s', linea.orden)
             if not linea.producto_id:
                 motivos.append(_('%s: no tiene producto asignado.', etiqueta))
-            elif linea.producto_origen != 'equivalencia':
+            elif linea.producto_origen not in ('equivalencia', 'manual'):
                 motivos.append(_(
-                    '%s: el producto no viene de una equivalencia ya confirmada con este proveedor.',
-                    etiqueta))
+                    '%(linea)s: el producto lo sugirió el sistema (%(origen)s) y ninguna persona '
+                    'lo confirmó. Use «Confirmar productos».',
+                    linea=etiqueta,
+                    origen=etiquetas.get(linea.producto_origen) or _('sin origen')))
             elif getattr(linea.producto_id, 'tracking', 'none') in ('lot', 'serial') \
                     and not self._linea_con_lote_cubierta(linea):
                 motivos.append(_(
                     '%(linea)s: el producto "%(producto)s" lleva lote o serie y no está vinculado '
                     'a una cotización.', linea=etiqueta, producto=linea.producto_id.display_name))
         return motivos
+
+    def action_confirmar_productos(self):
+        """Una persona acepta los productos que sugirió el sistema (GTIN, referencia o nombre):
+        pasan a origen Manual y desde entonces cuentan para la publicación automática. La
+        equivalencia con el proveedor se registra recién al publicarse la factura."""
+        confirmadas = 0
+        for doc in self:
+            if doc.state not in ('cargado', 'verificado', 'borrador'):
+                raise UserError(_('Solo se pueden confirmar productos en una recepción abierta.'))
+            lineas = doc.line_ids.filtered(
+                lambda l: l.producto_id and l.producto_origen in PRODUCTO_ORIGEN_SUGERIDO)
+            if lineas:
+                lineas.write({'producto_origen': 'manual'})
+                confirmadas += len(lineas)
+                doc.message_post(body=_(
+                    '%(usuario)s confirmó los productos sugeridos de las líneas: %(lineas)s.',
+                    usuario=self.env.user.name,
+                    lineas=', '.join(str(n) for n in lineas.sorted('orden').mapped('orden'))))
+        return {
+            'type': 'ir.actions.client', 'tag': 'display_notification',
+            'params': {
+                'title': _('Confirmar productos'), 'type': 'info', 'sticky': False,
+                'message': _('%s línea(s) confirmada(s). Use «Reprocesar» para publicar la factura '
+                             'si corresponde.', confirmadas),
+            },
+        }
 
     def _linea_con_lote_cubierta(self, linea):
         """Punto de extensión (módulo puente): un producto con lote o serie solo se publica solo

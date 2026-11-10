@@ -14,6 +14,9 @@
                     <button name="action_reprocesar" type="object" string="Reprocesar"
                             invisible="state not in ('cargado', 'verificado', 'borrador')"
                             groups="account.group_account_invoice"/>
+                    <button name="action_confirmar_productos" type="object" string="Confirmar productos"
+                            invisible="state not in ('cargado', 'verificado', 'borrador') or not hay_productos_sugeridos"
+                            groups="account.group_account_invoice"/>
                     <button name="action_controlar" type="object" string="Controlar totales"
                             invisible="state != 'cargado'" groups="account.group_account_invoice"/>
                     <button name="action_buscar_proveedor" type="object" string="Buscar proveedor"
