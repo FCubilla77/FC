@@ -205,6 +205,8 @@
                             display="always" class="btn-primary" groups="account.group_account_invoice"/>
                     <button name="action_reprocesar" type="object" string="Reprocesar"
                             groups="account.group_account_invoice"/>
+                    <button name="action_volver_cargado" type="object" string="Volver a Cargado"
+                            groups="account.group_account_invoice"/>
                 </header>
                 <field name="fecha_emision"/>
                 <field name="nro_documento"/>

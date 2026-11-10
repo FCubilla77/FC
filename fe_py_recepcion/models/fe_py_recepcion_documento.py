@@ -1350,11 +1350,16 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     def unlink(self):
         for doc in self:
-            if doc.state not in ('cargado', 'cancelado', 'error', 'na') or doc.move_id:
+            if doc.state not in ('cargado', 'verificado', 'cancelado', 'error', 'na') or doc.move_id:
                 raise UserError(_(
-                    'Solo se pueden eliminar recepciones Cargadas, Canceladas, con Error o N/A, '
-                    'sin factura generada.'))
-        adjuntos = self.mapped('xml_attachment_id')
-        resultado = super().unlink()
-        adjuntos.unlink()
-        return resultado
+                    'Solo se pueden eliminar recepciones Cargadas, Verificadas, Canceladas, con '
+                    'Error o N/A, sin factura generada.'))
+        # primero se eliminan los adjuntos (XML, PDF y los del chatter) y después el registro
+        adjuntos = self.env['ir.attachment'].sudo().search(
+            [('res_model', '=', self._name), ('res_id', 'in', self.ids)])
+        adjuntos |= self.mapped('xml_attachment_id').sudo()
+        if adjuntos:
+            self.with_context(fe_py_recepcion_licencia_omitir=True).write(
+                {'xml_attachment_id': False, 'message_main_attachment_id': False})
+            adjuntos.unlink()
+        return super().unlink()
