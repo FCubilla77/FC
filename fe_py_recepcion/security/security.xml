@@ -16,5 +16,10 @@
             <field name="model_id" ref="model_fe_py_recepcion_equivalencia"/>
             <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         </record>
+        <record id="fe_py_recepcion_mapeo_company_rule" model="ir.rule">
+            <field name="name">Mapeo de campos de la recepción: multicompañía</field>
+            <field name="model_id" ref="model_fe_py_recepcion_mapeo"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
     </data>
 </odoo>

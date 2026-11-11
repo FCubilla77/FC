@@ -6,6 +6,7 @@ from . import fe_py_recepcion_licencia_mixin
 from . import res_company
 from . import res_config_settings
 from . import fe_py_recepcion_equivalencia
+from . import fe_py_recepcion_mapeo
 from . import fe_py_recepcion_documento
 from . import fe_py_recepcion_documento_linea
 from . import fe_py_recepcion_documento_cuota

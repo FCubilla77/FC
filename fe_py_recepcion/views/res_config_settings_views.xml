@@ -19,7 +19,7 @@
                          name="fe_py_recepcion" groups="account.group_account_manager">
                         <block title="Diarios e impuestos" name="fe_py_recepcion_diarios">
                             <setting string="Diario para facturas recibidas"
-                                     help="Diario de compra con el que se generan las facturas de proveedor. Se puede cambiar en cada recepción. La factura toma el Tipo Fiscal de su diario.">
+                                     help="Diario de compra con el que se generan las facturas de proveedor. Se puede cambiar en cada recepción.">
                                 <field name="fe_py_recepcion_diario_id" options="{'no_create': True}"/>
                             </setting>
                             <setting string="Diario para notas de crédito recibidas"
@@ -55,6 +55,35 @@
                             <setting string="Validar el remitente para publicar automáticamente"
                                      help="Un correo solo se publica automáticamente si su remitente coincide con un correo del proveedor o con el dominio de su empresa (con gmail, hotmail y similares se exige la dirección exacta). Si no coincide, la factura queda en borrador. No aplica a los XML cargados a mano.">
                                 <field name="fe_py_recepcion_validar_remitente"/>
+                            </setting>
+                        </block>
+                        <block title="Mapeo de campos" name="fe_py_recepcion_mapeo">
+                            <setting string="Copiar los datos del XML a campos de otros módulos"
+                                     help="Apagado: la factura se genera solo con datos estándar de Odoo y todo lo leído del XML (CDC, timbrado, número, etc.) queda guardado en la recepción. Encendido: además se copian los datos a los campos indicados en el mapeo (por ejemplo, los de local_py).">
+                                <field name="fe_py_recepcion_usar_mapeo"/>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="fe_py_recepcion_mapeo_estado != 'sin_mapeo'">
+                                    No hay un mapeo de campos configurado: las facturas se generan solo con datos estándar de Odoo. El CDC, el timbrado y el número del comprobante quedan únicamente en la recepción.
+                                </div>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="fe_py_recepcion_mapeo_estado != 'apagado'">
+                                    Hay un mapeo configurado pero está apagado: las facturas se generan solo con datos estándar de Odoo.
+                                </div>
+                                <div class="alert alert-success mt-2" role="alert"
+                                     invisible="fe_py_recepcion_mapeo_estado != 'activo'">
+                                    Mapeo activo: al generar la factura se copian los datos a los campos indicados.
+                                </div>
+                                <field name="fe_py_recepcion_mapeo_estado" invisible="1"/>
+                                <div class="mt8">
+                                    <button name="fe_py_recepcion_abrir_mapeo" type="object"
+                                            string="Abrir el mapeo de campos" class="btn-link"
+                                            icon="oi-arrow-right"/>
+                                </div>
+                                <div class="mt4" invisible="fe_py_recepcion_mapeo_estado != 'sin_mapeo'">
+                                    <button name="fe_py_recepcion_cargar_sugerido" type="object"
+                                            string="Cargar mapeo sugerido de local_py" class="btn-link"
+                                            icon="oi-arrow-right"/>
+                                </div>
                             </setting>
                         </block>
                         <block title="Correo de recepción" name="fe_py_recepcion_correo" groups="base.group_system">

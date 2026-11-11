@@ -122,6 +122,34 @@ class ResCompany(models.Model):
              'para poder comprobar que se leyó. Si se desactiva, esos correos se leen y se '
              'marcan como leídos pero no dejan registro.')
 
+    fe_py_recepcion_usar_mapeo = fields.Boolean(
+        string='Copiar los datos del XML a campos de otros módulos', default=False,
+        help='Apagado: la factura se genera solo con los datos estándar de Odoo y todo lo leído '
+             'del XML queda guardado en la recepción. Encendido: además se copian los datos a los '
+             'campos indicados en el mapeo de campos (por ejemplo, los de local_py).')
+    fe_py_recepcion_mapeo_estado = fields.Selection(
+        [('sin_mapeo', 'Sin mapeo configurado'), ('apagado', 'Mapeo configurado, apagado'),
+         ('activo', 'Mapeo activo')],
+        string='Estado del mapeo de campos', compute='_compute_fe_py_recepcion_mapeo_estado')
+
+    @api.depends('fe_py_recepcion_usar_mapeo')
+    def _compute_fe_py_recepcion_mapeo_estado(self):
+        Mapeo = self.env['fe_py_recepcion.mapeo']
+        for company in self:
+            hay = bool(company.id) and bool(Mapeo.sudo().search_count(
+                [('company_id', '=', company.id)], limit=1))
+            if not hay:
+                company.fe_py_recepcion_mapeo_estado = 'sin_mapeo'
+            elif company.fe_py_recepcion_usar_mapeo:
+                company.fe_py_recepcion_mapeo_estado = 'activo'
+            else:
+                company.fe_py_recepcion_mapeo_estado = 'apagado'
+
+    def _fe_py_recepcion_mapeo_activo(self):
+        """True si el mapeo está configurado y encendido para la compañía."""
+        self.ensure_one()
+        return self.fe_py_recepcion_mapeo_estado == 'activo'
+
     @api.constrains('fe_py_recepcion_tolerancia')
     def _check_fe_py_recepcion_tolerancia(self):
         for company in self:

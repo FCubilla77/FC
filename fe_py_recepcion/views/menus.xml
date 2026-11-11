@@ -13,4 +13,11 @@
               action="action_fe_py_recepcion_equivalencia"
               sequence="96"
               groups="account.group_account_invoice"/>
+
+    <menuitem id="menu_fe_py_recepcion_mapeo"
+              name="Mapeo de Campos (Recepción)"
+              parent="account.menu_finance_configuration"
+              action="action_fe_py_recepcion_mapeo"
+              sequence="97"
+              groups="account.group_account_manager"/>
 </odoo>

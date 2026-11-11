@@ -4,19 +4,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-def pre_init_hook(env):
-    """Corta la instalación con un mensaje claro si local_py es anterior a 2026.19.017:
-    desde esa versión local_py declara los campos de CDC (l10n_py_cdc y l10n_py_cdc_asociado)
-    y este módulo solo los carga."""
-    from odoo.exceptions import UserError
-    campos = env['ir.model.fields'].sudo().search_count([
-        ('model', '=', 'account.move'), ('name', 'in', ('l10n_py_cdc', 'l10n_py_cdc_asociado'))])
-    if campos < 2:
-        raise UserError(
-            'FE_Py Recepción requiere local_py 2026.19.017 o posterior (campos l10n_py_cdc y '
-            'l10n_py_cdc_asociado). Actualice local_py primero.')
-
-
 def post_init_hook(env):
     """Propone el diario de compra y los impuestos de IVA 10%, 5% y exento, solo si
     no hay dudas (una única opción posible).

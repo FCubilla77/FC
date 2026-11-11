@@ -5,14 +5,6 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <!-- Los campos de CDC los declara local_py (>= 2026.19.017); este módulo solo los carga.
-                 Si la factura vino de una recepción, el CDC queda bloqueado. -->
-            <field name="l10n_py_cdc" position="attributes">
-                <attribute name="readonly">fe_py_recepcion_count > 0 or state != 'draft'</attribute>
-            </field>
-            <field name="l10n_py_cdc_asociado" position="attributes">
-                <attribute name="readonly">fe_py_recepcion_count > 0 or state != 'draft'</attribute>
-            </field>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <field name="fe_py_recepcion_count" invisible="1"/>
                 <button name="action_ver_fe_py_recepcion" type="object" class="oe_stat_button"

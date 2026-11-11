@@ -445,3 +445,73 @@ def remitente_coincide(remitente, correos_proveedor):
 def dentro_de_tolerancia(diferencia, tolerancia):
     """True si |diferencia| no supera la tolerancia (con un margen mínimo por decimales)."""
     return abs(diferencia) <= tolerancia + 1e-6
+
+
+# ----------------------------------------------------------------------
+# Mapeo de campos (origen: modelo de recepción; destino: factura, línea o proveedor)
+# ----------------------------------------------------------------------
+TIPOS_ESCALARES = ('char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime',
+                   'boolean', 'selection')
+TIPOS_ORIGEN = TIPOS_ESCALARES + ('many2one',)
+TIPOS_DESTINO = TIPOS_ESCALARES + ('many2one',)
+
+# Campos que el módulo completa siempre por su cuenta: no se pueden mapear.
+CAMPOS_RESERVADOS = {
+    'account.move': {
+        'id', 'move_type', 'company_id', 'partner_id', 'journal_id', 'currency_id', 'state',
+        'invoice_line_ids', 'line_ids', 'name', 'reversed_entry_id', 'invoice_origin',
+    },
+    'account.move.line': {
+        'id', 'move_id', 'move_type', 'company_id', 'display_type', 'product_id', 'account_id',
+        'tax_ids', 'quantity', 'price_unit', 'discount', 'sequence', 'purchase_line_id',
+    },
+    'res.partner': {'id', 'company_id', 'user_ids'},
+}
+
+_COMPATIBLES = {
+    'char': set(TIPOS_ORIGEN), 'text': set(TIPOS_ORIGEN),
+    'integer': {'integer', 'float', 'monetary', 'char', 'selection'},
+    'float': {'integer', 'float', 'monetary', 'char', 'selection'},
+    'monetary': {'integer', 'float', 'monetary', 'char', 'selection'},
+    'date': {'date', 'datetime', 'char'},
+    'datetime': {'date', 'datetime', 'char'},
+    'boolean': {'boolean'},
+    'selection': {'char', 'selection'},
+    'many2one': {'char', 'selection', 'many2one'},
+}
+
+
+def tipos_compatibles(tipo_origen, tipo_destino):
+    """True si un campo de tipo `tipo_origen` se puede copiar a uno de tipo `tipo_destino`.
+    El valor fijo cuenta como 'char'."""
+    return tipo_origen in _COMPATIBLES.get(tipo_destino, set())
+
+
+def convertir_valor(valor, tipo_destino):
+    """(ok, resultado) al llevar un valor leído al tipo del campo destino.
+
+    Un valor vacío (None, False o '') no se copia: devuelve (False, None) para no pisar
+    lo que Odoo ya completó. Los campos relacionales (many2one) los resuelve el modelo,
+    acá solo pasan tal cual."""
+    if valor is None or valor is False or valor == '':
+        # False es válido para un boolean destino
+        return (True, False) if (valor is False and tipo_destino == 'boolean') else (False, None)
+    try:
+        if tipo_destino in ('char', 'text'):
+            return True, str(valor)
+        if tipo_destino == 'integer':
+            return True, int(Decimal(str(valor).strip().replace(',', '.')))
+        if tipo_destino in ('float', 'monetary'):
+            return True, float(Decimal(str(valor).strip().replace(',', '.')))
+        if tipo_destino == 'boolean':
+            if isinstance(valor, str):
+                return True, valor.strip().lower() in ('1', 'true', 'si', 'sí', 'x')
+            return True, bool(valor)
+        if tipo_destino in ('date', 'datetime'):
+            texto = valor.isoformat() if hasattr(valor, 'isoformat') else str(valor).strip()
+            if tipo_destino == 'date':
+                return True, texto[:10]
+            return True, texto if len(texto) > 10 else texto + ' 00:00:00'
+    except (ArithmeticError, ValueError):
+        return False, None
+    return True, valor

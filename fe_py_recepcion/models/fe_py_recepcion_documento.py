@@ -3,6 +3,8 @@ import base64
 import logging
 from decimal import Decimal
 
+from markupsafe import Markup, escape
+
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
@@ -14,14 +16,6 @@ _logger = logging.getLogger(__name__)
 
 # Origen del producto de una línea que lo sugirió el sistema y que ninguna persona confirmó.
 PRODUCTO_ORIGEN_SUGERIDO = ('gtin', 'referencia', 'descripcion')
-
-# itiDE -> tipo fiscal de local_py (se usan los registros que ya trae local_py,
-# sin depender de FE_Py)
-TIPO_FISCAL_POR_ITIDE = {
-    '1': 'local_py.tipo_fiscal_factura_electronica',
-    '5': 'local_py.tipo_fiscal_nota_credito',
-    '6': 'local_py.tipo_fiscal_nota_debito',
-}
 
 
 class _DescartarSimulacion(Exception):
@@ -176,8 +170,7 @@ class FePyRecepcionDocumento(models.Model):
         'account.journal', string='Diario', tracking=True,
         domain="[('type', '=', 'purchase'), ('company_id', '=', company_id)]",
         help='Diario de compra con el que se genera la factura de proveedor. Se propone el '
-             'configurado en Ajustes para este tipo de documento. La factura toma el Tipo '
-             'Fiscal de su diario.')
+             'configurado en Ajustes para este tipo de documento.')
     payment_term_id = fields.Many2one(
         'account.payment.term', string='Término de pago', tracking=True,
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
@@ -584,7 +577,9 @@ class FePyRecepcionDocumento(models.Model):
         base = [('move_type', '=', 'in_invoice'), ('company_id', '=', self.company_id.id),
                 ('state', '!=', 'cancel'), ('commercial_partner_id', '=', comercial.id)]
         if self.cdc_asociado:
-            encontrada = Move.search(base + [('l10n_py_cdc', '=', self.cdc_asociado)], limit=1)
+            encontrada = Move.search(
+                base + [('id', 'in', self._moves_por_dato('cdc', self.cdc_asociado, base).ids)],
+                limit=1)
             if encontrada:
                 return encontrada
         candidatos = list(asociados or [])
@@ -601,10 +596,40 @@ class FePyRecepcionDocumento(models.Model):
                 ('nro_documento', '=', numero), ('move_id', '!=', False),
                 ('move_id.state', '!=', 'cancel')], limit=1)
             encontrada = recepcion.move_id or Move.search(
-                base + [('l10n_py_nro_documento', '=', numero)], limit=1)
+                base + [('id', 'in', self._moves_por_dato('nro_documento', numero, base).ids)],
+                limit=1)
             if encontrada:
                 return encontrada
         return Move
+
+    def _campo_mapeado(self, campo_recepcion):
+        """Campo de account.move donde el mapeo (si está activo) copia un dato de la recepción,
+        o False. Permite reconocer también comprobantes que no vinieron de una recepción."""
+        self.ensure_one()
+        if not self.company_id._fe_py_recepcion_mapeo_activo():
+            return False
+        mapeo = self.env['fe_py_recepcion.mapeo'].sudo().search([
+            ('company_id', '=', self.company_id.id), ('destino', '=', 'cabecera'),
+            ('origen', '=', 'campo'), ('campo_origen_id.name', '=', campo_recepcion),
+            ('campo_destino_id.ttype', '=', 'char')], limit=1)
+        return mapeo.campo_destino_id.name or False
+
+    def _moves_por_dato(self, campo_recepcion, valor, dominio_base=None):
+        """Comprobantes (no cancelados) de la compañía con ese dato (CDC o número): los que
+        generó una recepción y, si hay un mapeo activo del dato, también los que lo tengan
+        en el campo mapeado."""
+        self.ensure_one()
+        Move = self.env['account.move'].sudo()
+        recepciones = self.sudo().search([
+            ('company_id', '=', self.company_id.id), (campo_recepcion, '=', valor),
+            ('move_id', '!=', False), ('move_id.state', '!=', 'cancel')])
+        moves = recepciones.move_id
+        campo = self._campo_mapeado(campo_recepcion)
+        if campo and campo in Move._fields:
+            moves |= Move.search(list(dominio_base or [
+                ('company_id', '=', self.company_id.id), ('state', '!=', 'cancel')])
+                + [(campo, '=', valor)])
+        return moves
 
     @staticmethod
     def _cdc_de_asociados(asociados):
@@ -628,15 +653,6 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     # Diagnóstico (impedimentos y avisos)
     # ------------------------------------------------------------------
-    def _tipo_fiscal(self):
-        """Tipo Fiscal de la factura: el de su diario; si el diario no tiene, el que
-        corresponde al tipo de documento del XML (registros que ya trae local_py)."""
-        self.ensure_one()
-        if self.journal_id.local_py_tipo_fiscal_id:
-            return self.journal_id.local_py_tipo_fiscal_id
-        xmlid = TIPO_FISCAL_POR_ITIDE.get(self.itide)
-        return self.env.ref(xmlid, raise_if_not_found=False) if xmlid else self.env['local_py.tipo_fiscal']
-
     def _diagnostico(self):
         """(impedimentos, avisos) de la recepción. No simula la factura."""
         self.ensure_one()
@@ -676,8 +692,6 @@ class FePyRecepcionDocumento(models.Model):
             bloqueos.append(_('La moneda %s del XML no existe en Odoo.', self.moneda_codigo))
         elif not self.currency_id.active:
             bloqueos.append(_('La moneda %s está desactivada en Odoo.', self.currency_id.name))
-        if not self._tipo_fiscal():
-            bloqueos.append(_('No se encontró el Tipo Fiscal de local_py para este documento.'))
 
         for linea in self.line_ids:
             etiqueta = _('Línea %s', linea.orden)
@@ -702,11 +716,10 @@ class FePyRecepcionDocumento(models.Model):
         bloqueos += self._mensajes_diferencias()
 
         if self.cdc and self.state in ('cargado', 'verificado'):
-            # local_py no admite dos comprobantes con el mismo CDC en la compañía (excepto
-            # cancelados): se avisa antes de que falle al generar la factura.
-            duplicada = self.env['account.move'].sudo().search([
-                ('l10n_py_cdc', '=', self.cdc), ('company_id', '=', company.id),
-                ('state', '!=', 'cancel'), ('id', '!=', self.move_id.id or 0)], limit=1)
+            # Un comprobante ya existente con el mismo CDC (de otra recepción o, con el mapeo
+            # activo, cargado a mano): se avisa antes de generar un duplicado.
+            duplicada = self._moves_por_dato('cdc', self.cdc).filtered(
+                lambda m: m != self.move_id)[:1]
             if duplicada:
                 bloqueos.append(_(
                     'Ya existe un comprobante con este CDC (%s). Revíselo: si es el mismo '
@@ -720,10 +733,9 @@ class FePyRecepcionDocumento(models.Model):
         if self.termino_aviso:
             avisos.append(self.termino_aviso)
         if self.itide == '5' and not self.reversed_move_id:
-            otra = self.env['account.move'].sudo().search([
-                ('move_type', '=', 'in_invoice'), ('company_id', '=', company.id),
-                ('state', '!=', 'cancel'), ('l10n_py_cdc', '=', self.cdc_asociado)], limit=1
-            ) if self.cdc_asociado else self.env['account.move']
+            otra = self._moves_por_dato('cdc', self.cdc_asociado).filtered(
+                lambda m: m.move_type == 'in_invoice')[:1] if self.cdc_asociado \
+                else self.env['account.move']
             if otra and self.partner_id and \
                     otra.commercial_partner_id != self.partner_id.commercial_partner_id:
                 avisos.append(_(
@@ -779,9 +791,10 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     # Factura de proveedor
     # ------------------------------------------------------------------
-    def _vals_factura(self):
+    def _vals_factura(self, avisos=None):
+        """Valores de la factura. Solo datos estándar de Odoo; si el mapeo de campos está
+        activo se agregan los campos mapeados. `avisos` (lista) recibe lo que no se pudo copiar."""
         self.ensure_one()
-        tipo_fiscal = self._tipo_fiscal()
         vals = {
             'move_type': self.move_type,
             'company_id': self.company_id.id,
@@ -791,19 +804,20 @@ class FePyRecepcionDocumento(models.Model):
             'invoice_date': self.fecha_emision,
             'ref': self.nro_documento,
             'invoice_payment_term_id': self.payment_term_id.id or False,
-            'local_py_tipo_fiscal_id': tipo_fiscal.id,
-            'l10n_py_timbrado': int(self.timbrado) if (self.timbrado or '').isdigit() else 0,
-            'l10n_py_nro_documento': self.nro_documento,
-            'l10n_py_cdc': self.cdc,
-            'l10n_py_cdc_asociado': self.cdc_asociado or False,
-            'invoice_line_ids': [Command.create(self._vals_linea_factura(linea))
+            'invoice_line_ids': [Command.create(self._vals_linea_factura(linea, avisos))
                                  for linea in self.line_ids.sorted('orden')],
         }
         if self.reversed_move_id:
             vals['reversed_entry_id'] = self.reversed_move_id.id
+        if self.company_id._fe_py_recepcion_mapeo_activo():
+            mapeados, avisos_mapeo = self.env['fe_py_recepcion.mapeo'].valores(
+                self.company_id, 'cabecera', self.itide, self)
+            vals.update(mapeados)
+            if avisos is not None:
+                avisos.extend(avisos_mapeo)
         return vals
 
-    def _vals_linea_factura(self, linea):
+    def _vals_linea_factura(self, linea, avisos=None):
         """Valores de una línea de la factura. Punto de extensión (módulo puente)."""
         vals = {
             'sequence': linea.orden * 10,
@@ -817,6 +831,12 @@ class FePyRecepcionDocumento(models.Model):
             vals['product_id'] = linea.producto_id.id
         if linea.cuenta_id:
             vals['account_id'] = linea.cuenta_id.id
+        if self.company_id._fe_py_recepcion_mapeo_activo():
+            mapeados, avisos_mapeo = self.env['fe_py_recepcion.mapeo'].valores(
+                self.company_id, 'linea', self.itide, linea)
+            vals.update(mapeados)
+            if avisos is not None:
+                avisos.extend('%s %s: %s' % (_('Línea'), linea.orden, a) for a in avisos_mapeo)
         return vals
 
     def _simular_totales(self):
@@ -864,7 +884,6 @@ class FePyRecepcionDocumento(models.Model):
     def action_crear_proveedor(self):
         """Abre el formulario completo de Contactos con los datos del XML."""
         self.ensure_one()
-        tipo_ruc = self.env.ref('local_py.tipo_identificacion_ruc', raise_if_not_found=False)
         contexto = {
             'default_name': self.emisor_nombre,
             'default_company_type': 'company',
@@ -876,8 +895,11 @@ class FePyRecepcionDocumento(models.Model):
             'default_city': self.emisor_ciudad,
             'fe_py_recepcion_proveedor_nuevo': True,
         }
-        if tipo_ruc:
-            contexto['default_l10n_py_tipo_identificacion_fiscal_id'] = tipo_ruc.id
+        if self.company_id._fe_py_recepcion_mapeo_activo():
+            mapeados, _avisos = self.env['fe_py_recepcion.mapeo'].valores(
+                self.company_id, 'proveedor', self.itide, self)
+            for campo, valor in mapeados.items():
+                contexto['default_%s' % campo] = valor
         return {
             'type': 'ir.actions.act_window',
             'name': _('Nuevo proveedor'),
@@ -924,7 +946,8 @@ class FePyRecepcionDocumento(models.Model):
         """Crea la factura de proveedor en borrador y deja el registro en estado Borrador."""
         self.ensure_one()
         Move = self.env['account.move'].with_context(mail_create_nolog=True)
-        move = Move.with_company(self.company_id).create(self._vals_factura())
+        avisos = []
+        move = Move.with_company(self.company_id).create(self._vals_factura(avisos))
         self.write({'move_id': move.id, 'state': 'borrador'})
         self._copiar_xml_a(move)
         if registrar_equivalencias:
@@ -932,7 +955,24 @@ class FePyRecepcionDocumento(models.Model):
         self._post_confirmar(move)
         self.message_post(body=_('Factura de proveedor %s generada en borrador.', move.display_name))
         move.message_post(body=_('Generada desde la factura electrónica recibida %s.', self.name))
+        self._avisar_mapeo(move, avisos)
         return move
+
+    def _avisar_mapeo(self, move, avisos):
+        """Deja en el chatter de la factura si se copiaron datos a otros campos o por qué no."""
+        estado = self.company_id.fe_py_recepcion_mapeo_estado
+        if estado == 'activo':
+            if avisos:
+                texto = _('Mapeo de campos: algunos datos no se copiaron:') + '<ul>%s</ul>' % ''.join(
+                    '<li>%s</li>' % escape(a) for a in avisos)
+                move.message_post(body=Markup(texto))
+                self.message_post(body=Markup(texto))
+            return
+        motivo = _('no hay un mapeo de campos configurado') if estado == 'sin_mapeo' else \
+            _('el mapeo de campos está apagado en Ajustes')
+        move.message_post(body=_(
+            'Generada solo con datos estándar de Odoo (%(motivo)s). El CDC, el timbrado y los demás '
+            'datos del XML quedan en la recepción %(doc)s.', motivo=motivo, doc=self.name))
 
     def _post_confirmar(self, move):
         """Punto de extensión después de generar la factura (módulo puente)."""
@@ -1171,7 +1211,7 @@ class FePyRecepcionDocumento(models.Model):
     def _procesar_automatico(self):
         """Lleva el XML leído hasta la factura, nota de crédito o nota de débito de proveedor.
 
-        1) Si falta algo imprescindible (proveedor, impuestos, tipo fiscal, cotización dudosa),
+        1) Si falta algo imprescindible (proveedor, impuestos, cotización dudosa),
            el registro queda en Cargado con el motivo y no se genera nada.
         2) Si no, se controlan los totales (Verificado) y se genera la factura en Borrador.
         3) La factura se publica (Confirmado) solo si la compañía lo permite, el proveedor tiene

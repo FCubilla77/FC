@@ -32,14 +32,14 @@ class FePyRecepcionDocumento(models.Model):
                     orden=self.purchase_id.name, proveedor=self.purchase_id.partner_id.display_name))
         return bloqueos, avisos
 
-    def _vals_factura(self):
-        vals = super()._vals_factura()
+    def _vals_factura(self, avisos=None):
+        vals = super()._vals_factura(avisos)
         if self.vincular_compras and self.purchase_id:
             vals['invoice_origin'] = self.purchase_id.name
         return vals
 
-    def _vals_linea_factura(self, linea):
-        vals = super()._vals_linea_factura(linea)
+    def _vals_linea_factura(self, linea, avisos=None):
+        vals = super()._vals_linea_factura(linea, avisos)
         if self.vincular_compras and linea.purchase_line_id:
             vals['purchase_line_id'] = linea.purchase_line_id.id
         return vals

@@ -39,6 +39,20 @@ class ResConfigSettings(models.TransientModel):
     fe_py_recepcion_registrar_sin_xml = fields.Boolean(
         related='company_id.fe_py_recepcion_registrar_sin_xml', readonly=False)
 
+    fe_py_recepcion_usar_mapeo = fields.Boolean(
+        related='company_id.fe_py_recepcion_usar_mapeo', readonly=False)
+    fe_py_recepcion_mapeo_estado = fields.Selection(
+        related='company_id.fe_py_recepcion_mapeo_estado', readonly=True)
+
+    def fe_py_recepcion_abrir_mapeo(self):
+        self.ensure_one()
+        return self.env['ir.actions.act_window']._for_xml_id(
+            'fe_py_recepcion.action_fe_py_recepcion_mapeo')
+
+    def fe_py_recepcion_cargar_sugerido(self):
+        self.ensure_one()
+        return self.env['fe_py_recepcion.mapeo'].cargar_sugerido_local_py()
+
     fe_py_recepcion_fetchmail_id = fields.Many2one(
         related='company_id.fe_py_recepcion_fetchmail_id', readonly=True)
 

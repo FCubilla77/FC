@@ -213,6 +213,24 @@ def check_manifest():
         errores.append("[manifest] post_init_hook no se importa en __init__.py")
     if 'FE_Py' in manifest['depends'] or 'fe_py' in manifest['depends']:
         errores.append("[manifest] no debe depender de FE_Py")
+    if manifest['depends'] != ['account']:
+        errores.append(f"[manifest] debe depender solo de account: {manifest['depends']}")
+    if manifest.get('pre_init_hook'):
+        errores.append("[manifest] ya no debe haber pre_init_hook (no hay dependencia de local_py)")
+
+
+def check_sin_acoplamiento():
+    """Ningún modelo ni vista puede usar campos o registros de local_py / l10n_py: solo el
+    mapeo sugerido (fe_py_recepcion_mapeo.py) los nombra, como texto."""
+    for path in glob.glob('models/*.py') + glob.glob('views/*.xml') + glob.glob('wizard/*') + \
+            ['hooks.py']:
+        if not os.path.isfile(path) or path.endswith('fe_py_recepcion_mapeo.py'):
+            continue
+        for n, linea in enumerate(leer(path).splitlines(), 1):
+            if linea.strip().startswith('#'):
+                continue
+            if re.search(r"l10n_py_\w+|local_py_\w+|local_py\.\w+|l10n_py\.\w+", linea):
+                errores.append(f"[acoplamiento] {path}:{n} usa local_py/l10n_py: {linea.strip()[:80]}")
 
 
 def check_acciones_menus():
@@ -227,7 +245,9 @@ def check_acciones_menus():
 
 
 def check_pruebas():
-    for prueba in ('tests/test_xml_parser.py', 'tests/test_licencia_sin_odoo.py'):
+    for prueba in ('tests/test_xml_parser.py', 'tests/test_licencia_sin_odoo.py',
+                   'tests/test_datos_adicionales.py', 'tests/test_adjuntos_remitente.py',
+                   'tests/test_mapeo.py'):
         r = subprocess.run([sys.executable, '-I', prueba], capture_output=True, text=True)
         if r.returncode != 0:
             errores.append(f"[pruebas] {prueba} falló:\n" + r.stderr[-800:])
@@ -273,7 +293,7 @@ def check_migracion():
 
 if __name__ == '__main__':
     pruebas = (check_python, check_imports, check_xml, check_odoo19, check_vistas,
-               check_referencias_internas, check_permisos, check_manifest, check_acciones_menus,
+               check_referencias_internas, check_permisos, check_manifest, check_sin_acoplamiento, check_acciones_menus,
                check_ajustes, check_sin_modelo_configuracion, check_migracion, check_pruebas)
     for f in pruebas:
         f()
