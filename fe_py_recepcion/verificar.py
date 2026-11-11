@@ -261,7 +261,7 @@ def check_acciones_menus():
 def check_pruebas():
     for prueba in ('tests/test_xml_parser.py', 'tests/test_licencia_sin_odoo.py',
                    'tests/test_datos_adicionales.py', 'tests/test_adjuntos_remitente.py',
-                   'tests/test_mapeo.py'):
+                   'tests/test_mapeo.py', 'tests/test_cotizacion.py'):
         r = subprocess.run([sys.executable, '-I', prueba], capture_output=True, text=True)
         if r.returncode != 0:
             errores.append(f"[pruebas] {prueba} falló:\n" + r.stderr[-800:])

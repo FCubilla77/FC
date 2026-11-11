@@ -122,6 +122,13 @@ class ResCompany(models.Model):
              'para poder comprobar que se leyó. Si se desactiva, esos correos se leen y se '
              'marcan como leídos pero no dejan registro.')
 
+    fe_py_recepcion_cotizacion = fields.Selection(
+        [('sistema', 'Cotización del sistema'), ('xml', 'Cotización del XML')],
+        string='Cotización de las facturas en moneda extranjera', default='sistema', required=True,
+        help='Cotización con la que se convierte a la moneda de la compañía una factura en moneda '
+             'extranjera. Sistema: la de la tabla de monedas de Odoo a la fecha de emisión. XML: el '
+             'tipo de cambio que informa el proveedor (solo para esa factura; la tabla de monedas '
+             'no se modifica). Si el XML no informa tipo de cambio, se usa la del sistema.')
     fe_py_recepcion_usar_mapeo = fields.Boolean(
         string='Copiar los datos del XML a campos de otros módulos', default=False,
         help='Apagado: la factura se genera solo con los datos estándar de Odoo y todo lo leído '

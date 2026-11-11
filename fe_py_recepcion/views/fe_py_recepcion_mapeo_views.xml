@@ -31,7 +31,7 @@
                             <field name="tipo_documento"/>
                             <field name="campo_destino_id"
                                    options="{'no_create': True, 'no_open': True}"
-                                   domain="[('model', '=', modelo_destino), ('store', '=', True), ('readonly', '=', False), ('ttype', 'in', ['char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime', 'boolean', 'selection', 'many2one'])]"/>
+                                   domain="[('model', '=', modelo_destino), ('store', '=', True), ('readonly', '=', False), ('ttype', 'in', ['char', 'text', 'html', 'integer', 'float', 'monetary', 'date', 'datetime', 'boolean', 'selection', 'many2one'])]"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                             <field name="active" invisible="1"/>
                             <field name="modelo_origen" invisible="1"/>

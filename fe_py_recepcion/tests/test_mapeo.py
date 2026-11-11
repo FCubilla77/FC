@@ -29,6 +29,10 @@ class TestMapeo(unittest.TestCase):
         self.assertEqual(u.convertir_valor(15, 'char'), (True, '15'))
         self.assertEqual(u.convertir_valor(date(2026, 1, 5), 'char'), (True, '2026-01-05'))
 
+    def test_html(self):
+        self.assertTrue(u.tipos_compatibles('char', 'html'))
+        self.assertEqual(u.convertir_valor('nota', 'html'), (True, 'nota'))
+
     def test_vacios_no_se_copian(self):
         for vacio in (None, False, ''):
             self.assertEqual(u.convertir_valor(vacio, 'char'), (False, None))

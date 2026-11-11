@@ -732,6 +732,10 @@ class FePyRecepcionDocumento(models.Model):
 
         if self.termino_aviso:
             avisos.append(self.termino_aviso)
+        if self._usa_cotizacion_xml() and not utilidades.tasa_odoo_desde_xml(self.tipo_cambio):
+            avisos.append(_(
+                'El XML está en %s pero no informa un tipo de cambio en la cabecera (o lo informa por '
+                'ítem): se usa la cotización del sistema.', self.moneda_codigo or self.currency_id.name))
         if self.itide == '5' and not self.reversed_move_id:
             otra = self._moves_por_dato('cdc', self.cdc_asociado).filtered(
                 lambda m: m.move_type == 'in_invoice')[:1] if self.cdc_asociado \
@@ -791,6 +795,15 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     # Factura de proveedor
     # ------------------------------------------------------------------
+    def _es_moneda_extranjera(self):
+        self.ensure_one()
+        return bool(self.currency_id) and self.currency_id != self.company_id.currency_id
+
+    def _usa_cotizacion_xml(self):
+        """True si la compañía pide la cotización del XML y el documento está en moneda extranjera."""
+        self.ensure_one()
+        return self.company_id.fe_py_recepcion_cotizacion == 'xml' and self._es_moneda_extranjera()
+
     def _vals_factura(self, avisos=None):
         """Valores de la factura. Solo datos estándar de Odoo; si el mapeo de campos está
         activo se agregan los campos mapeados. `avisos` (lista) recibe lo que no se pudo copiar."""
@@ -809,6 +822,10 @@ class FePyRecepcionDocumento(models.Model):
         }
         if self.reversed_move_id:
             vals['reversed_entry_id'] = self.reversed_move_id.id
+        if self._usa_cotizacion_xml():
+            tasa = utilidades.tasa_odoo_desde_xml(self.tipo_cambio)
+            if tasa:
+                vals['invoice_currency_rate'] = tasa
         if self.company_id._fe_py_recepcion_mapeo_activo():
             mapeados, avisos_mapeo = self.env['fe_py_recepcion.mapeo'].valores(
                 self.company_id, 'cabecera', self.itide, self)
@@ -956,7 +973,32 @@ class FePyRecepcionDocumento(models.Model):
         self.message_post(body=_('Factura de proveedor %s generada en borrador.', move.display_name))
         move.message_post(body=_('Generada desde la factura electrónica recibida %s.', self.name))
         self._avisar_mapeo(move, avisos)
+        self._avisar_cotizacion(move)
         return move
+
+    def _avisar_cotizacion(self, move):
+        """Nota informativa (no impide publicar) sobre la cotización aplicada a una factura en
+        moneda extranjera cuando la del XML y la del sistema difieren."""
+        self.ensure_one()
+        if not self._es_moneda_extranjera():
+            return
+        tasa_xml = utilidades.tasa_odoo_desde_xml(self.tipo_cambio)
+        tasa_sistema = move._get_expected_currency_rate_at(move._get_invoice_currency_rate_date())
+        if not (tasa_xml and tasa_sistema) or not utilidades.cotizaciones_difieren(tasa_xml, tasa_sistema):
+            return
+        moneda, base = self.currency_id.name, self.company_id.currency_id.name
+        por_unidad = lambda tasa: '%s %s' % (format(1.0 / tasa, ',.4f'), base)
+        if move.invoice_currency_rate and not utilidades.cotizaciones_difieren(
+                move.invoice_currency_rate, tasa_xml):
+            texto = _('Se aplicó la cotización del XML: 1 %(moneda)s = %(xml)s. La cotización del '
+                      'sistema a la fecha de emisión es 1 %(moneda)s = %(sistema)s.',
+                      moneda=moneda, xml=por_unidad(tasa_xml), sistema=por_unidad(tasa_sistema))
+        else:
+            texto = _('Se aplicó la cotización del sistema: 1 %(moneda)s = %(sistema)s. El XML '
+                      'informa 1 %(moneda)s = %(xml)s.',
+                      moneda=moneda, xml=por_unidad(tasa_xml), sistema=por_unidad(tasa_sistema))
+        move.message_post(body=texto)
+        self.message_post(body=texto)
 
     def _avisar_mapeo(self, move, avisos):
         """Deja en el chatter de la factura si se copiaron datos a otros campos o por qué no."""

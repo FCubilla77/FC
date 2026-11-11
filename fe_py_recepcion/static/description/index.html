@@ -1,7 +1,7 @@
 <section class="oe_container">
     <div class="oe_row oe_spaced text-center" style="margin-top: 20px;">
         <h2 class="oe_slogan">FE_Py Recepción de Facturas</h2>
-        <h3 class="oe_slogan">Versión 2026.19.016</h3>
+        <h3 class="oe_slogan">Versión 2026.19.017</h3>
         <p class="text-muted">
             Recepción de facturas electrónicas de proveedores desde su archivo XML (por correo o
             cargado a mano), con generación automática de la factura de proveedor. Solo lee y guarda los datos del XML: no
@@ -46,6 +46,7 @@
                 <li><strong>Seguridad del correo:</strong> el remitente debe coincidir con un correo del proveedor o con el dominio de su empresa (con gmail, hotmail y similares se exige la dirección exacta). Se puede desactivar por compañía.</li>
                 <li><strong>Reprocesar:</strong> acción en la lista y en el formulario para volver a ejecutar el proceso, por ejemplo después de cargar una equivalencia.</li>
                 <li><strong>Notas de crédito que llegan antes que su factura:</strong> cuando la factura llega, la nota se vincula y sigue su proceso; se publica sola si la factura asociada ya está publicada.</li>
+                <li><strong>Moneda extranjera:</strong> la factura se genera en la moneda del XML. Un parámetro por compañía elige la cotización de conversión: la del sistema (a la fecha de emisión) o la del XML, aplicada solo a esa factura sin modificar la tabla de monedas. Sin tipo de cambio en el XML se usa la del sistema, con aviso. Si las dos cotizaciones difieren queda una nota informativa. El control de totales se hace en la moneda de la operación.</li>
                 <li><strong>Impuestos y totales:</strong> IVA 10%, IVA 5% y exento configurables, con control del total y del IVA contra el XML y una tolerancia de diferencia configurable por compañía.</li>
                 <li><strong>Descuentos:</strong> se cargan como porcentaje de la línea, controlados contra el total del XML.</li>
                 <li><strong>Condición de pago:</strong> se propone el término de pago de Odoo más cercano a la condición del XML, con aviso si no es exacto y modificable por el usuario. Las cuotas del XML quedan como referencia.</li>

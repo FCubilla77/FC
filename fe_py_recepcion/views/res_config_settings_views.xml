@@ -52,6 +52,10 @@
                                      help="Diferencia máxima, en la moneda del documento, que se acepta al comparar el total y el IVA del XML contra los calculados por Odoo y contra la orden de compra. Con 0 se usa el redondeo de la moneda (por ejemplo, 1 en guaraníes).">
                                 <field name="fe_py_recepcion_tolerancia"/>
                             </setting>
+                            <setting string="Cotización de las facturas en moneda extranjera"
+                                     help="Cotización con la que Odoo convierte a la moneda de la compañía una factura en moneda extranjera. «Cotización del sistema»: la de la tabla de monedas a la fecha de emisión del XML. «Cotización del XML»: el tipo de cambio que informa el proveedor, aplicado solo a esa factura (la tabla de monedas no se modifica). Si el XML no informa tipo de cambio en la cabecera, se usa la del sistema y la factura no se publica sola.">
+                                <field name="fe_py_recepcion_cotizacion"/>
+                            </setting>
                             <setting string="Validar el remitente para publicar automáticamente"
                                      help="Un correo solo se publica automáticamente si su remitente coincide con un correo del proveedor o con el dominio de su empresa (con gmail, hotmail y similares se exige la dirección exacta). Si no coincide, la factura queda en borrador. No aplica a los XML cargados a mano.">
                                 <field name="fe_py_recepcion_validar_remitente"/>

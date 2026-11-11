@@ -39,6 +39,8 @@ class ResConfigSettings(models.TransientModel):
     fe_py_recepcion_registrar_sin_xml = fields.Boolean(
         related='company_id.fe_py_recepcion_registrar_sin_xml', readonly=False)
 
+    fe_py_recepcion_cotizacion = fields.Selection(
+        related='company_id.fe_py_recepcion_cotizacion', readonly=False)
     fe_py_recepcion_usar_mapeo = fields.Boolean(
         related='company_id.fe_py_recepcion_usar_mapeo', readonly=False)
     fe_py_recepcion_mapeo_estado = fields.Selection(

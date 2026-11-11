@@ -453,7 +453,7 @@ def dentro_de_tolerancia(diferencia, tolerancia):
 TIPOS_ESCALARES = ('char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime',
                    'boolean', 'selection')
 TIPOS_ORIGEN = TIPOS_ESCALARES + ('many2one',)
-TIPOS_DESTINO = TIPOS_ESCALARES + ('many2one',)
+TIPOS_DESTINO = TIPOS_ESCALARES + ('html', 'many2one')
 
 # Campos que el módulo completa siempre por su cuenta: no se pueden mapear.
 CAMPOS_RESERVADOS = {
@@ -469,7 +469,7 @@ CAMPOS_RESERVADOS = {
 }
 
 _COMPATIBLES = {
-    'char': set(TIPOS_ORIGEN), 'text': set(TIPOS_ORIGEN),
+    'char': set(TIPOS_ORIGEN), 'text': set(TIPOS_ORIGEN), 'html': set(TIPOS_ORIGEN),
     'integer': {'integer', 'float', 'monetary', 'char', 'selection'},
     'float': {'integer', 'float', 'monetary', 'char', 'selection'},
     'monetary': {'integer', 'float', 'monetary', 'char', 'selection'},
@@ -497,7 +497,7 @@ def convertir_valor(valor, tipo_destino):
         # False es válido para un boolean destino
         return (True, False) if (valor is False and tipo_destino == 'boolean') else (False, None)
     try:
-        if tipo_destino in ('char', 'text'):
+        if tipo_destino in ('char', 'text', 'html'):
             return True, str(valor)
         if tipo_destino == 'integer':
             return True, int(Decimal(str(valor).strip().replace(',', '.')))
@@ -515,3 +515,24 @@ def convertir_valor(valor, tipo_destino):
     except (ArithmeticError, ValueError):
         return False, None
     return True, valor
+
+
+# ----------------------------------------------------------------------
+# Cotización de la factura en moneda extranjera
+# ----------------------------------------------------------------------
+def tasa_odoo_desde_xml(tipo_cambio):
+    """Cotización de Odoo (unidades de la moneda del documento por 1 de la moneda de la compañía)
+    a partir del tipo de cambio del XML (moneda de la compañía por 1 de la moneda del documento).
+    Devuelve None si el XML no informa un tipo de cambio válido."""
+    try:
+        valor = float(tipo_cambio or 0)
+    except (TypeError, ValueError):
+        return None
+    return 1.0 / valor if valor > 0 else None
+
+
+def cotizaciones_difieren(tasa_a, tasa_b, relativa=1e-4):
+    """True si dos cotizaciones difieren más que una diferencia relativa mínima."""
+    if not tasa_a or not tasa_b:
+        return False
+    return abs(tasa_a - tasa_b) / max(abs(tasa_a), abs(tasa_b)) > relativa
