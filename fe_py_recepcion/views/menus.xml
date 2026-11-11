@@ -7,17 +7,24 @@
               sequence="25"
               groups="account.group_account_readonly"/>
 
-    <menuitem id="menu_fe_py_recepcion_equivalencia"
-              name="Equivalencias de Productos (Proveedores)"
+    <!-- Grupo de Configuración que reúne las opciones de la recepción -->
+    <menuitem id="menu_fe_py_recepcion_grupo"
+              name="Recepción Documento Electrónico (FC/NC/ND)"
               parent="account.menu_finance_configuration"
-              action="action_fe_py_recepcion_equivalencia"
               sequence="96"
+              groups="account.group_account_invoice"/>
+
+    <menuitem id="menu_fe_py_recepcion_equivalencia"
+              name="Equivalencia de Productos (Proveedores)"
+              parent="menu_fe_py_recepcion_grupo"
+              action="action_fe_py_recepcion_equivalencia"
+              sequence="10"
               groups="account.group_account_invoice"/>
 
     <menuitem id="menu_fe_py_recepcion_mapeo"
               name="Mapeo de Campos (Recepción)"
-              parent="account.menu_finance_configuration"
+              parent="menu_fe_py_recepcion_grupo"
               action="action_fe_py_recepcion_mapeo"
-              sequence="97"
+              sequence="20"
               groups="account.group_account_manager"/>
 </odoo>
