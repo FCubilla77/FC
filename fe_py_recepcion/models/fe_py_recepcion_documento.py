@@ -1518,10 +1518,17 @@ class FePyRecepcionDocumento(models.Model):
 
     def action_reprocesar(self):
         """Vuelve a ejecutar el proceso automático sobre los registros seleccionados, por
-        ejemplo después de cargar una equivalencia o corregir un proveedor."""
+        ejemplo después de cargar una equivalencia, corregir un proveedor o completar el mapeo.
+
+        Con la factura en Borrador, se elimina ese borrador y se genera de nuevo con la
+        configuración actual (los cambios manuales hechos en el borrador se pierden). Si el
+        borrador ya estuvo publicado una vez (tiene número) o no se puede eliminar, no se toca y solo
+        se reintenta publicarlo."""
         procesados = 0
         for doc in self:
-            if doc.state in ('cargado', 'verificado'):
+            if doc.state == 'borrador' and doc._regenerar_borrador():
+                procesados += 1
+            elif doc.state in ('cargado', 'verificado'):
                 doc._procesar_automatico()
                 procesados += 1
             elif doc.state == 'borrador':
@@ -1535,6 +1542,30 @@ class FePyRecepcionDocumento(models.Model):
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
+
+    def _regenerar_borrador(self):
+        """Elimina la factura en borrador de la recepción y vuelve a ejecutar el proceso
+        automático. Devuelve False si el borrador no se pudo eliminar."""
+        self.ensure_one()
+        move = self.move_id
+        if not move or move.state != 'draft' or move.posted_before:
+            # un borrador que ya estuvo publicado tiene número consumido: no se elimina
+            return False
+        nombre = move.display_name
+        try:
+            with self.env.cr.savepoint():
+                move.with_context(fe_py_recepcion_licencia_omitir=True).sudo().unlink()
+        except UserError as error:
+            self.message_post(body=_(
+                'No se pudo eliminar la factura en borrador %(factura)s para generarla de nuevo '
+                '(%(motivo)s); solo se reintenta publicarla.', factura=nombre, motivo=error))
+            return False
+        self.message_post(body=_(
+            'Reprocesar: se eliminó la factura en borrador %s para generarla de nuevo con la '
+            'configuración actual.', nombre))
+        if self.state in ('cargado', 'verificado'):
+            self._procesar_automatico()
+        return True
 
     def action_cancelar(self):
         for doc in self:

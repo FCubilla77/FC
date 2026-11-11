@@ -12,8 +12,11 @@
                             invisible="state != 'verificado'" groups="account.group_account_manager"
                             confirm="Se generará la factura de proveedor. Quedará publicada si la compañía deja las facturas leídas en Confirmado y el proveedor tiene la confirmación automática; si no, en borrador. ¿Continuar?"/>
                     <button name="action_reprocesar" type="object" string="Reprocesar"
-                            invisible="state not in ('cargado', 'verificado', 'borrador')"
+                            invisible="state not in ('cargado', 'verificado')"
                             groups="account.group_account_invoice"/>
+                    <button name="action_reprocesar" type="object" string="Reprocesar"
+                            invisible="state != 'borrador'" groups="account.group_account_invoice"
+                            confirm="Se eliminará la factura en borrador y se generará de nuevo con la configuración actual. Los cambios hechos a mano en ese borrador se perderán. ¿Continuar?"/>
                     <button name="action_confirmar_productos" type="object" string="Confirmar productos"
                             invisible="state not in ('cargado', 'verificado', 'borrador') or not hay_productos_sugeridos"
                             groups="account.group_account_invoice"/>
