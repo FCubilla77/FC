@@ -233,6 +233,20 @@ def check_sin_acoplamiento():
                 errores.append(f"[acoplamiento] {path}:{n} usa local_py/l10n_py: {linea.strip()[:80]}")
 
 
+def check_origenes_mapeo():
+    """Cada dato ofrecido como origen del mapeo debe existir como campo en su modelo."""
+    src = leer('models/fe_py_recepcion_mapeo.py')
+    def nombres(constante):
+        bloque = re.search(constante + r" = \((.*?)\n\)", src, re.S).group(1)
+        return re.findall(r"'(\w+)'", bloque)
+    for constante, archivo in (('ORIGENES_DOCUMENTO', 'models/fe_py_recepcion_documento.py'),
+                               ('ORIGENES_LINEA', 'models/fe_py_recepcion_documento_linea.py')):
+        existentes = set(re.findall(r"^    (\w+)\s*=\s*fields\.", leer(archivo), re.M))
+        for n in nombres(constante):
+            if n not in existentes:
+                errores.append(f"[mapeo] {constante}: '{n}' no es un campo de {archivo}")
+
+
 def check_acciones_menus():
     xml_ids = set()
     for path in glob.glob('views/*.xml') + glob.glob('wizard/*.xml'):
@@ -293,7 +307,7 @@ def check_migracion():
 
 if __name__ == '__main__':
     pruebas = (check_python, check_imports, check_xml, check_odoo19, check_vistas,
-               check_referencias_internas, check_permisos, check_manifest, check_sin_acoplamiento, check_acciones_menus,
+               check_referencias_internas, check_permisos, check_manifest, check_sin_acoplamiento, check_origenes_mapeo, check_acciones_menus,
                check_ajustes, check_sin_modelo_configuracion, check_migracion, check_pruebas)
     for f in pruebas:
         f()

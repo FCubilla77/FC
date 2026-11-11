@@ -4,27 +4,68 @@
         <field name="name">fe_py_recepcion.mapeo.list</field>
         <field name="model">fe_py_recepcion.mapeo</field>
         <field name="arch" type="xml">
-            <list string="Mapeo de campos" editable="bottom">
+            <list string="Mapeo de campos">
                 <header>
                     <button name="cargar_sugerido_local_py" type="object" display="always"
                             string="Cargar mapeo sugerido de local_py"/>
                 </header>
                 <field name="sequence" widget="handle"/>
-                <field name="modelo_origen" column_invisible="1"/>
-                <field name="modelo_destino" column_invisible="1"/>
                 <field name="destino"/>
                 <field name="tipo_documento"/>
+                <field name="descripcion" string="Dato → Campo de destino"/>
                 <field name="origen"/>
-                <field name="campo_origen_id" required="origen == 'campo'" readonly="origen == 'fijo'"
-                       options="{'no_create': True, 'no_open': True}"
-                       domain="[('model', '=', modelo_origen), ('store', '=', True), ('ttype', 'in', ['char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime', 'boolean', 'selection', 'many2one'])]"/>
-                <field name="valor_fijo" required="origen == 'fijo'" readonly="origen == 'campo'"/>
-                <field name="campo_destino_id"
-                       options="{'no_create': True, 'no_open': True}"
-                       domain="[('model', '=', modelo_destino), ('store', '=', True), ('readonly', '=', False), ('ttype', 'in', ['char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime', 'boolean', 'selection', 'many2one'])]"/>
-                <field name="active" column_invisible="1"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_fe_py_recepcion_mapeo_form" model="ir.ui.view">
+        <field name="name">fe_py_recepcion.mapeo.form</field>
+        <field name="model">fe_py_recepcion.mapeo</field>
+        <field name="arch" type="xml">
+            <form string="Mapeo de campo">
+                <sheet>
+                    <group>
+                        <group string="¿Dónde se copia?">
+                            <field name="destino"/>
+                            <field name="tipo_documento"/>
+                            <field name="campo_destino_id"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   domain="[('model', '=', modelo_destino), ('store', '=', True), ('readonly', '=', False), ('ttype', 'in', ['char', 'text', 'integer', 'float', 'monetary', 'date', 'datetime', 'boolean', 'selection', 'many2one'])]"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                            <field name="modelo_origen" invisible="1"/>
+                            <field name="modelo_destino" invisible="1"/>
+                            <field name="modelo_relacion" invisible="1"/>
+                            <field name="tipo_destino" invisible="1"/>
+                            <field name="nombres_origen" invisible="1"/>
+                            <field name="tipos_origen" invisible="1"/>
+                        </group>
+                        <group string="¿Qué se copia?">
+                            <field name="origen" widget="radio" invisible="not campo_destino_id"/>
+                            <field name="campo_origen_id" string="Dato leído del XML"
+                                   invisible="not campo_destino_id or origen != 'campo'"
+                                   required="origen == 'campo'"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   domain="[('model', '=', modelo_origen), ('name', 'in', nombres_origen), ('ttype', 'in', tipos_origen)]"/>
+                            <field name="valor_fijo_id" string="Valor fijo" widget="many2one_reference"
+                                   invisible="origen != 'fijo' or tipo_destino != 'many2one'"
+                                   required="origen == 'fijo' and tipo_destino == 'many2one'"/>
+                            <field name="valor_fijo_opcion_id" string="Valor fijo"
+                                   invisible="origen != 'fijo' or tipo_destino != 'selection'"
+                                   required="origen == 'fijo' and tipo_destino == 'selection'"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="valor_fijo" string="Valor fijo"
+                                   invisible="origen != 'fijo' or tipo_destino in ('many2one', 'selection', False)"
+                                   required="origen == 'fijo' and tipo_destino not in ('many2one', 'selection', False)"/>
+                        </group>
+                    </group>
+                    <p class="text-muted">
+                        Elija primero el campo de destino: la lista de datos del XML muestra solo los
+                        de tipo compatible. Un dato vacío no se copia, para no pisar lo que Odoo ya completó.
+                    </p>
+                </sheet>
+            </form>
         </field>
     </record>
 
@@ -46,7 +87,7 @@
     <record id="action_fe_py_recepcion_mapeo" model="ir.actions.act_window">
         <field name="name">Mapeo de Campos (Recepción)</field>
         <field name="res_model">fe_py_recepcion.mapeo</field>
-        <field name="view_mode">list</field>
+        <field name="view_mode">list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Sin mapeo de campos</p>
             <p>La factura se genera con datos estándar de Odoo. Para copiar además el CDC, el timbrado, el tipo fiscal u otros datos del XML a campos de otro módulo, cargue el mapeo sugerido de local_py o agregue las filas y active la opción en Ajustes.</p>

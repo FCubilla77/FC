@@ -20,6 +20,30 @@ MODELO_ORIGEN = {
     'proveedor': 'fe_py_recepcion.documento',
 }
 
+# Datos de la recepción que se ofrecen como origen del mapeo (nombres técnicos). Los campos
+# internos (estado, adjuntos, ids, diagnóstico) no se ofrecen. Agregar un dato nuevo del XML
+# al mapeo es agregar su nombre acá.
+ORIGENES_DOCUMENTO = (
+    'cdc', 'itide', 'timbrado', 'nro_documento', 'fecha_emision', 'tipo_transaccion',
+    'moneda_codigo', 'tipo_cambio', 'emisor_ruc', 'emisor_nombre', 'emisor_fantasia',
+    'emisor_direccion', 'emisor_telefono', 'emisor_email', 'emisor_ciudad',
+    'emisor_tipo_contribuyente', 'receptor_ruc', 'receptor_nombre', 'condicion',
+    'condicion_detalle', 'entrega_inicial', 'credito_tipo', 'credito_plazo', 'credito_cuotas',
+    'motivo_desc', 'motivo_codigo', 'cdc_asociado', 'asociado_texto', 'asociado_timbrado',
+    'asociado_fecha', 'xml_version', 'emision_xml', 'timbrado_inicio', 'subtotal_exonerado',
+    'descuento_total', 'descuento_global', 'anticipo', 'redondeo', 'total_gs', 'total_general',
+    'total_iva', 'subtotal_10', 'subtotal_5', 'subtotal_exento',
+)
+ORIGENES_PROVEEDOR = tuple(n for n in ORIGENES_DOCUMENTO if n.startswith('emisor_'))
+ORIGENES_LINEA = (
+    'codigo', 'descripcion', 'unidad_desc', 'unidad_codigo', 'gtin', 'gtin_paquete', 'lote',
+    'vencimiento_lote', 'serie', 'info_item', 'cantidad', 'precio_xml', 'descuento', 'total_xml',
+    'iva_xml', 'tasa',
+)
+NOMBRES_ORIGEN = {
+    'cabecera': ORIGENES_DOCUMENTO, 'linea': ORIGENES_LINEA, 'proveedor': ORIGENES_PROVEEDOR,
+}
+
 # Mapeo sugerido para local_py (>= 2026.19.017). Cada fila:
 # (destino, tipo_documento, campo de la recepción o None, valor fijo o None, campo destino)
 SUGERIDO_LOCAL_PY = [
@@ -61,32 +85,60 @@ class FePyRecepcionMapeo(models.Model):
         string='Origen del dato', required=True, default='campo')
     campo_origen_id = fields.Many2one(
         'ir.model.fields', string='Campo de la recepción', ondelete='cascade',
-        help='Campo del modelo de recepción donde quedó guardado el dato leído del XML.')
+        help='Dato leído del XML, guardado en la recepción. Solo se ofrecen los de tipo '
+             'compatible con el campo de destino.')
+    campo_destino_id = fields.Many2one(
+        'ir.model.fields', string='Campo de destino', required=True, ondelete='cascade',
+        help='Campo de la factura, de su línea o del contacto donde se copia el dato.')
     valor_fijo = fields.Char(
         string='Valor fijo',
-        help='Valor que se copia siempre. Para un campo relacional, el identificador externo '
-             '(por ejemplo, modulo.nombre) o el nombre exacto del registro.')
-    campo_destino_id = fields.Many2one(
-        'ir.model.fields', string='Campo de destino', required=True, ondelete='cascade')
+        help='Valor que se copia siempre (texto, número, fecha o sí/no). Para un campo de '
+             'selección o relacional se elige de una lista.')
+    valor_fijo_opcion_id = fields.Many2one(
+        'ir.model.fields.selection', string='Valor fijo (opción)', ondelete='set null',
+        domain="[('field_id', '=', campo_destino_id)]")
+    valor_fijo_id = fields.Many2oneReference(
+        string='Valor fijo (registro)', model_field='modelo_relacion',
+        help='Registro de la tabla relacionada del campo de destino.')
+    modelo_relacion = fields.Char(related='campo_destino_id.relation', store=True)
+    tipo_destino = fields.Selection(related='campo_destino_id.ttype')
     modelo_origen = fields.Char(compute='_compute_modelos')
     modelo_destino = fields.Char(compute='_compute_modelos')
+    nombres_origen = fields.Json(compute='_compute_modelos')
+    tipos_origen = fields.Json(compute='_compute_modelos')
     descripcion = fields.Char(string='Mapeo', compute='_compute_descripcion')
 
     _unico = models.Constraint(
         'unique(company_id, destino, tipo_documento, campo_destino_id)',
         'Ese campo de destino ya está mapeado para ese tipo de documento.')
 
-    @api.depends('destino')
+    @api.depends('destino', 'campo_destino_id')
     def _compute_modelos(self):
         for mapeo in self:
             mapeo.modelo_origen = MODELO_ORIGEN.get(mapeo.destino, False)
             mapeo.modelo_destino = MODELO_DESTINO.get(mapeo.destino, False)
+            mapeo.nombres_origen = list(NOMBRES_ORIGEN.get(mapeo.destino, ()))
+            tipo = mapeo.campo_destino_id.ttype
+            mapeo.tipos_origen = [t for t in utilidades.TIPOS_ORIGEN
+                                  if not tipo or utilidades.tipos_compatibles(t, tipo)]
 
-    @api.depends('origen', 'campo_origen_id', 'valor_fijo', 'campo_destino_id')
+    def _texto_valor_fijo(self):
+        self.ensure_one()
+        tipo = self.campo_destino_id.ttype
+        if tipo == 'many2one':
+            if not (self.modelo_relacion and self.valor_fijo_id):
+                return ''
+            return self.env[self.modelo_relacion].browse(self.valor_fijo_id).exists().display_name or ''
+        if tipo == 'selection':
+            return self.valor_fijo_opcion_id.name or ''
+        return self.valor_fijo or ''
+
+    @api.depends('origen', 'campo_origen_id', 'valor_fijo', 'valor_fijo_id',
+                 'valor_fijo_opcion_id', 'campo_destino_id')
     def _compute_descripcion(self):
         for mapeo in self:
             if mapeo.origen == 'fijo':
-                desde = '"%s"' % (mapeo.valor_fijo or '')
+                desde = '"%s"' % mapeo._texto_valor_fijo()
             else:
                 desde = mapeo.campo_origen_id.field_description or ''
             mapeo.descripcion = '%s → %s' % (desde, mapeo.campo_destino_id.field_description or '')
@@ -95,15 +147,30 @@ class FePyRecepcionMapeo(models.Model):
     def _onchange_destino(self):
         self.campo_origen_id = False
         self.campo_destino_id = False
+        self._limpiar_valor_fijo()
+
+    @api.onchange('campo_destino_id')
+    def _onchange_campo_destino(self):
+        self._limpiar_valor_fijo()
+        origen = self.campo_origen_id
+        tipo = self.campo_destino_id.ttype
+        if origen and tipo and not utilidades.tipos_compatibles(origen.ttype, tipo):
+            self.campo_origen_id = False
 
     @api.onchange('origen')
     def _onchange_origen(self):
         if self.origen == 'fijo':
             self.campo_origen_id = False
         else:
-            self.valor_fijo = False
+            self._limpiar_valor_fijo()
 
-    @api.constrains('destino', 'origen', 'campo_origen_id', 'valor_fijo', 'campo_destino_id')
+    def _limpiar_valor_fijo(self):
+        self.valor_fijo = False
+        self.valor_fijo_id = False
+        self.valor_fijo_opcion_id = False
+
+    @api.constrains('destino', 'origen', 'campo_origen_id', 'valor_fijo', 'valor_fijo_id',
+                    'valor_fijo_opcion_id', 'campo_destino_id')
     def _check_mapeo(self):
         for mapeo in self:
             destino = mapeo.campo_destino_id
@@ -119,16 +186,26 @@ class FePyRecepcionMapeo(models.Model):
                     'El campo «%s» no se puede usar como destino (tipo %s).',
                     destino.field_description, destino.ttype))
             if mapeo.origen == 'fijo':
-                if not (mapeo.valor_fijo or '').strip():
+                if destino.ttype == 'many2one':
+                    registro = self.env[destino.relation].browse(mapeo.valor_fijo_id or 0).exists() \
+                        if mapeo.valor_fijo_id else None
+                    if not registro:
+                        raise ValidationError(_('Elija el valor fijo de la lista.'))
+                elif destino.ttype == 'selection':
+                    if not mapeo.valor_fijo_opcion_id:
+                        raise ValidationError(_('Elija el valor fijo de la lista.'))
+                elif not (mapeo.valor_fijo or '').strip():
                     raise ValidationError(_('Indique el valor fijo.'))
                 tipo_origen = 'char'
             else:
                 origen = mapeo.campo_origen_id
                 if not origen:
                     raise ValidationError(_('Elija el campo de la recepción.'))
-                if origen.model != MODELO_ORIGEN[mapeo.destino]:
+                if origen.model != MODELO_ORIGEN[mapeo.destino] or \
+                        origen.name not in NOMBRES_ORIGEN[mapeo.destino]:
                     raise ValidationError(_(
-                        'El campo de origen debe ser un campo de «%s».', MODELO_ORIGEN[mapeo.destino]))
+                        '«%s» no está entre los datos del XML que se pueden mapear.',
+                        origen.field_description))
                 tipo_origen = origen.ttype
                 if tipo_origen not in utilidades.TIPOS_ORIGEN:
                     raise ValidationError(_(
@@ -173,6 +250,11 @@ class FePyRecepcionMapeo(models.Model):
     def _valor_de(self, origen):
         self.ensure_one()
         if self.origen == 'fijo':
+            tipo = self.campo_destino_id.ttype
+            if tipo == 'many2one':
+                return self.env[self.modelo_relacion].browse(self.valor_fijo_id).exists(), 'many2one'
+            if tipo == 'selection':
+                return self.valor_fijo_opcion_id.value, 'char'
             return (self.valor_fijo or '').strip(), 'char'
         return origen[self.campo_origen_id.name], self.campo_origen_id.ttype
 
@@ -234,8 +316,8 @@ class FePyRecepcionMapeo(models.Model):
             f_origen = Campos.search([('model', '=', MODELO_ORIGEN[destino]),
                                       ('name', '=', campo_origen)], limit=1) if campo_origen \
                 else Campos.browse()
-            if not f_destino or (campo_origen and not f_origen) or \
-                    (fijo and not self.env.ref(fijo, raise_if_not_found=False)):
+            registro_fijo = self.env.ref(fijo, raise_if_not_found=False) if fijo else None
+            if not f_destino or (campo_origen and not f_origen) or (fijo and not registro_fijo):
                 omitidos += 1
                 continue
             if self.with_context(active_test=False).search_count([
@@ -245,7 +327,8 @@ class FePyRecepcionMapeo(models.Model):
             self.create({
                 'company_id': company.id, 'destino': destino, 'tipo_documento': tipo_doc,
                 'origen': 'campo' if campo_origen else 'fijo',
-                'campo_origen_id': f_origen.id or False, 'valor_fijo': fijo or False,
+                'campo_origen_id': f_origen.id or False,
+                'valor_fijo_id': registro_fijo.id if registro_fijo else False,
                 'campo_destino_id': f_destino.id,
             })
             creados += 1
