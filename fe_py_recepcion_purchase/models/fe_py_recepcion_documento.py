@@ -54,10 +54,23 @@ class FePyRecepcionDocumento(models.Model):
     # ------------------------------------------------------------------
     # Coincidencia exacta entre el XML y la cotización
     # ------------------------------------------------------------------
-    @staticmethod
-    def _cantidad_pendiente(linea_compra):
-        """Cantidad de la línea de la cotización que todavía no se facturó."""
-        return linea_compra.product_qty - linea_compra.qty_invoiced
+    def _cantidad_pendiente(self, linea_compra):
+        """Cantidad de la línea de la cotización que todavía no se facturó.
+
+        Odoo cuenta como facturada la cantidad de toda factura no cancelada, también las que
+        están en borrador. La factura que generó esta misma recepción no debe restarse de lo
+        pendiente: si no, después de generarla la cotización parecería no tener nada pendiente
+        y la factura no podría publicarse sola."""
+        pendiente = linea_compra.product_qty - linea_compra.qty_invoiced
+        propia = self.move_id
+        if propia and propia.state != 'cancel':
+            for linea in propia.invoice_line_ids.filtered(
+                    lambda l: l.purchase_line_id == linea_compra):
+                cantidad = linea.product_uom_id._compute_quantity(
+                    linea.quantity, linea_compra.product_uom_id)
+                # Odoo suma las facturas y resta las notas de crédito en qty_invoiced
+                pendiente += cantidad if propia.move_type == 'in_invoice' else -cantidad
+        return pendiente
 
     def _lineas_pendientes(self, orden):
         return orden.order_line.filtered(
