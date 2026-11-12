@@ -2,9 +2,32 @@
 from odoo import models
 from odoo.addons.account.models.chart_template import template
 
+from . import plantilla_excel as excel
+
 
 class AccountChartTemplate(models.AbstractModel):
     _inherit = 'account.chart.template'
+
+    # ------------------------------------------------------------------
+    # Cuentas "con función" (roles). Con el plan estándar salen de los ids fijos
+    # del módulo; con el plan del cliente, de la hoja «Configuración» del Excel.
+    # Un rol vacío en el Excel no se informa: Odoo crea entonces su propia cuenta.
+    # ------------------------------------------------------------------
+    def _py_cuenta_rol(self, clave):
+        datos = self._l10n_py_datos_plantilla()
+        if datos is None:
+            return excel.ROLES_POR_CLAVE[clave][4]
+        return excel.id_rol(datos, clave)
+
+    def _py_impuesto_defecto(self, uso):
+        datos = self._l10n_py_datos_plantilla()
+        if datos is None:
+            return {'Venta': 'tax_iva_10_ventas', 'Compra': 'tax_iva_10_compras'}[uso]
+        return excel.id_impuesto_defecto(datos, uso)
+
+    def _py_parametro(self, clave, estandar):
+        datos = self._l10n_py_datos_plantilla()
+        return estandar if datos is None else datos['parametros'].get(clave) or None
 
     @template('py')
     def _get_py_template_data(self):
@@ -18,17 +41,20 @@ class AccountChartTemplate(models.AbstractModel):
         automática de "próximo código" al crear una cuenta nueva manualmente
         puede no salir perfectamente formateada.
         """
-        return {
+        datos = self._l10n_py_datos_plantilla()
+        # Con el plan del cliente el relleno de ceros de Odoo se anula: 'code_digits' es el
+        # largo del código más largo, así ningún código se altera.
+        valores = {
             'name': 'Paraguay - Plan de Cuentas',
-            'code_digits': '13',
-            'property_account_receivable_id': 'py_1_01_03_01_001',
-            'property_account_payable_id': 'py_2_01_01_01_001',
+            'code_digits': '13' if datos is None else str(excel.code_digits(datos)),
+            'property_account_receivable_id': self._py_cuenta_rol('cuenta_cobrar'),
+            'property_account_payable_id': self._py_cuenta_rol('cuenta_pagar'),
         }
+        return {k: v for k, v in valores.items() if v}
 
     @template('py', 'res.company')
     def _get_py_res_company(self):
-        return {
-            self.env.company.id: {
+        datos_cia = {
                 'account_fiscal_country_id': 'base.py',
                 'currency_id': 'base.PYG',
 
@@ -45,8 +71,8 @@ class AccountChartTemplate(models.AbstractModel):
                 # Odoo los propaga solo internamente vía ir.default a partir
                 # de estos dos). Confirmado contra el código fuente real de
                 # account/models/company.py y chart_template.py (19.0).
-                'income_account_id': 'py_4_01_01_01_001',
-                'expense_account_id': 'py_5_01_01_01_001',
+                'income_account_id': self._py_cuenta_rol('cuenta_ingreso'),
+                'expense_account_id': self._py_cuenta_rol('cuenta_gasto'),
 
                 # Prefijos de banco/caja: DISPONIBILIDADES (1.01.01) se separó
                 # en 3 sub-grupos en el plan V3 (CAJAS/FONDOS FIJOS/BANCOS).
@@ -54,33 +80,33 @@ class AccountChartTemplate(models.AbstractModel):
                 # prefijo de caja al grupo CAJAS. Fondos Fijos queda fuera de
                 # la auto-generación (asignación manual si se crea un diario
                 # de ese tipo) — confirmado por el cliente.
-                'bank_account_code_prefix': '1.01.01.03.',
-                'cash_account_code_prefix': '1.01.01.01.',
+                'bank_account_code_prefix': self._py_parametro('prefijo_banco', '1.01.01.03.'),
+                'cash_account_code_prefix': self._py_parametro('prefijo_caja', '1.01.01.01.'),
 
-                'transfer_account_id': 'py_1_01_01_01_002',
+                'transfer_account_id': self._py_cuenta_rol('cuenta_transferencia'),
 
                 # Diferencia de cambio: a partir de esta versión, Ganancia y
                 # Pérdida usan CUENTAS DISTINTAS (decisión explícita del
                 # cliente, cambio de criterio respecto a versiones previas
                 # donde ambas compartían una sola cuenta).
-                'income_currency_exchange_account_id': 'py_6_01_01_01_005',
-                'expense_currency_exchange_account_id': 'py_7_03_01_02_001',
+                'income_currency_exchange_account_id': self._py_cuenta_rol('dif_cambio_ganancia'),
+                'expense_currency_exchange_account_id': self._py_cuenta_rol('dif_cambio_perdida'),
 
                 # Redondeo: ambos signos comparten la misma cuenta
                 # (confirmado, sin cambios).
-                'default_cash_difference_income_account_id': 'py_7_02_18_01_002',
-                'default_cash_difference_expense_account_id': 'py_7_02_18_01_002',
+                'default_cash_difference_income_account_id': self._py_cuenta_rol('dif_efectivo_ganancia'),
+                'default_cash_difference_expense_account_id': self._py_cuenta_rol('dif_efectivo_perdida'),
 
-                'account_sale_tax_id': 'tax_iva_10_ventas',
-                'account_purchase_tax_id': 'tax_iva_10_compras',
+                'account_sale_tax_id': self._py_impuesto_defecto('Venta'),
+                'account_purchase_tax_id': self._py_impuesto_defecto('Compra'),
 
                 # Descuento por pronto pago. "Loss" = descuento que LA
                 # EMPRESA concede a un cliente que paga antes de tiempo
                 # (reduce nuestra venta). "Gain" = descuento que UN
                 # PROVEEDOR nos concede a nosotros por pagar antes de
                 # tiempo (reduce nuestro costo/gasto).
-                'account_journal_early_pay_discount_loss_account_id': 'py_4_01_98_01_001',
-                'account_journal_early_pay_discount_gain_account_id': 'py_6_01_01_01_003',
+                'account_journal_early_pay_discount_loss_account_id': self._py_cuenta_rol('descuento_pronto_pago_perdida'),
+                'account_journal_early_pay_discount_gain_account_id': self._py_cuenta_rol('descuento_pronto_pago_ganancia'),
 
                 # Contabilidad Anglo-Saxon: el costo se reconoce como activo
                 # (Valoración de Inventario) al COMPRAR, y recién pasa a
@@ -102,7 +128,7 @@ class AccountChartTemplate(models.AbstractModel):
                 # las suyas propias — esto es solo el estándar de fábrica.
                 'inventory_valuation': 'real_time',
                 'cost_method': 'average',
-                'account_stock_valuation_id': 'py_1_01_04_01_001',
+                'account_stock_valuation_id': self._py_cuenta_rol('valoracion_inventario'),
 
                 # Diario de valorización de inventario (account_stock_journal_id):
                 # sin configurar a propósito — Odoo crea uno propio
@@ -125,10 +151,10 @@ class AccountChartTemplate(models.AbstractModel):
                 # Cuenta transitoria de bancos (suspense) a nivel COMPAÑÍA: Odoo
                 # la espera aquí (como l10n_es, l10n_fr, etc.). Si no se define, crea
                 # por su cuenta "Bank Suspense Account" con el prefijo de bancos.
-                'account_journal_suspense_account_id': 'py_1_01_01_03_004',
+                'account_journal_suspense_account_id': self._py_cuenta_rol('cuenta_transitoria_banco'),
 
                 # Cuenta que recibe el resultado en el Cierre de Ejercicio.
-                'l10n_py_cuenta_resultado_ejercicio_id': 'py_3_03_01_01_002',
+                'l10n_py_cuenta_resultado_ejercicio_id': self._py_cuenta_rol('cuenta_resultado_ejercicio'),
 
                 # Recibos/Pagos Pendientes ("Outstanding Receipts/Payments"): NO
                 # son campos de la compañía en Odoo 19 y no se pueden indicar aquí.
@@ -138,8 +164,9 @@ class AccountChartTemplate(models.AbstractModel):
                 # RECIBOS PENDIENTES (1.01.01.03.005) y PAGOS PENDIENTES
                 # (1.01.01.03.006) se declaran en account.account-py.csv con
                 # EXACTAMENTE esos ids: Odoo las encuentra y no crea duplicados.
-            },
         }
+        # Un rol sin cuenta (plan del cliente) no se informa.
+        return {self.env.company.id: {k: v for k, v in datos_cia.items() if v is not None}}
 
     @template('py', 'account.journal')
     def _get_py_account_journal(self):
@@ -154,13 +181,13 @@ class AccountChartTemplate(models.AbstractModel):
             # Clave 'bank' (no 'bank_py'): personaliza el diario de banco que Odoo
             # ya crea por defecto, en lugar de agregar un segundo diario "Bank"
             # (con su propia cuenta 1.01.01.03.007 sobrante).
-            'bank': {
+            'bank': {k: v for k, v in {
                 'name': 'Banco',
                 'type': 'bank',
-                'default_account_id': 'py_1_01_01_03_003',
+                'default_account_id': self._py_cuenta_rol('cuenta_banco_defecto'),
                 # Cuenta transitoria de conciliación (suspense_account_id
                 # SÍ es un campo directo del diario en Odoo 19, a diferencia
                 # de Recibos/Pagos Pendientes — ver nota en _get_py_res_company).
-                'suspense_account_id': 'py_1_01_01_03_004',
-            },
+                'suspense_account_id': self._py_cuenta_rol('cuenta_transitoria_banco'),
+            }.items() if v is not None},
         }

@@ -40,6 +40,17 @@ class ResCompany(models.Model):
              "se asigna sola. Si queda vacía, se usa la cuenta de tipo «Ganancias del "
              "año actual» de la compañía.")
 
+    l10n_py_modo_plan = fields.Selection([
+        ('estandar', "Plan estándar Paraguay"),
+        ('plantilla', "Plan del cliente (plantilla Excel)"),
+    ], string="Plan de cuentas a cargar", default='estandar', required=True,
+        help="Qué se carga al seleccionar el paquete fiscal «Paraguay»: el plan estándar del "
+             "módulo o el plan propio del cliente, leído de la plantilla Excel. Solo se puede "
+             "elegir antes de cargar el plan.")
+    l10n_py_plantilla_id = fields.Many2one(
+        'l10n_py.plantilla', string="Plantilla del cliente", readonly=True, ondelete='set null',
+        copy=False)
+
     @api.constrains('l10n_py_cuenta_resultado_ejercicio_id')
     def _check_l10n_py_cuenta_resultado_ejercicio(self):
         for company in self:

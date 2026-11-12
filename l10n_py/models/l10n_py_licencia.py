@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Control de licencia del módulo Paraguay - Contabilidad (l10n_py), versión 2026.19.017.
+"""Control de licencia del módulo Paraguay - Contabilidad (l10n_py), versión 2026.19.018.
 
 La licencia se emite fuera de este módulo, con una herramienta propia de FC_Py que
 conserva la clave privada de firma (nunca viaja con el módulo). Este archivo solo
@@ -16,7 +16,7 @@ con los datos: producto (`p`, debe ser "l10n_py"), identificador de la base de d
 autorizada (`m`). `l10n_py_decodificar_licencia` lo valida.
 
 Versión de Odoo autorizada: el código queda atado al número central de la versión
-del módulo (el "19" de "2026.19.017"), no a la versión completa. Mientras ese
+del módulo (el "19" de "2026.19.018"), no a la versión completa. Mientras ese
 número no cambie, cualquier cantidad de correcciones o ajustes menores no afectan la
 licencia vigente. Si el módulo pasa a otra versión de Odoo, el código emitido para la
 anterior queda en estado "otra_version" y hay que pedir uno nuevo, sin ningún paso
@@ -158,12 +158,12 @@ def l10n_py_decodificar_licencia(codigo):
 
 
 def l10n_py_version_odoo_instalada():
-    """Número central de la versión del módulo instalado (el «19» de «2026.19.017»),
+    """Número central de la versión del módulo instalado (el «19» de «2026.19.018»),
     leído en vivo del manifest. Devuelve None si no se puede determinar.
 
     OJO: `get_manifest` no devuelve el string tal cual se escribió. Odoo le antepone
-    su propia serie (`adapt_version`, en odoo/modules/module.py): «2026.19.017» se
-    expone como «19.0.2026.19.017». Por eso se toma el anteúltimo segmento (año,
+    su propia serie (`adapt_version`, en odoo/modules/module.py): «2026.19.018» se
+    expone como «19.0.2026.19.018». Por eso se toma el anteúltimo segmento (año,
     número central y correlativo son siempre los últimos tres), nunca una posición
     fija desde el principio del string.
     """

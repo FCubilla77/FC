@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Paraguay - Contabilidad",
-    "version": "2026.19.017",
+    "version": "2026.19.018",
     "category": "Accounting/Localizations/Account Charts",
     "license": "OPL-1",
     "author": "FC_Py",
@@ -36,8 +36,10 @@
         "views/balance_general_views.xml",
         "views/plan_cuentas_report_views.xml",
         "views/cierre_ejercicio_views.xml",
+        "views/plantilla_views.xml",
         "views/res_config_settings_views.xml",
     ],
+    "external_dependencies": {"python": ["openpyxl"]},
     "installable": True,
     "auto_install": False,
 }

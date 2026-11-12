@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_l10n_py_plantilla_wizard_form" model="ir.ui.view">
+            <field name="name">l10n_py.plantilla.wizard.form</field>
+            <field name="model">l10n_py.plantilla.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Plantilla del plan de cuentas (Excel)">
+                    <group>
+                        <field name="company_id" invisible="1"/>
+                        <field name="nombre_archivo" invisible="1"/>
+                        <field name="archivo" filename="nombre_archivo" string="Archivo Excel (.xlsx)"/>
+                    </group>
+                    <group invisible="not resultado">
+                        <field name="estado" widget="badge"
+                               decoration-success="estado == 'validada'"
+                               decoration-danger="estado == 'error'"/>
+                        <field name="resultado" nolabel="1" colspan="2" readonly="1"
+                               style="white-space: pre-wrap; min-height: 200px;"/>
+                    </group>
+                    <footer>
+                        <button name="action_validar" type="object" string="Validar y guardar"
+                                class="btn-primary"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

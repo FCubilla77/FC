@@ -3,6 +3,9 @@ from . import licencia_mixin
 from . import res_company
 from . import res_config_settings
 from . import chart_template_licencia
+from . import plantilla_excel
+from . import plantilla
+from . import chart_template_plantilla
 from . import template_py
 from . import balance_general_report
 from . import plan_cuentas_report

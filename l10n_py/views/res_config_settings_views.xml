@@ -63,6 +63,48 @@
                                        options="{'no_create': True, 'no_open': True}"/>
                             </setting>
                         </block>
+                        <block title="Plan de cuentas del cliente (Excel)" name="l10n_py_plantilla">
+                            <setting string="Plan de cuentas a cargar"
+                                     help="Qué se carga al seleccionar el paquete fiscal «Paraguay» en Ajustes > Facturación > Localización Fiscal. Solo se puede elegir antes de cargar el plan.">
+                                <field name="l10n_py_plan_cargado" invisible="1"/>
+                                <field name="l10n_py_modo_plan" widget="radio"
+                                       readonly="l10n_py_plan_cargado"/>
+                                <div class="text-muted mt8" invisible="not l10n_py_plan_cargado">
+                                    El plan de cuentas ya está cargado. La plantilla del cliente solo sirve para la carga inicial.
+                                </div>
+                            </setting>
+                            <setting string="Plantilla Excel del plan del cliente"
+                                     help="Descargue la plantilla (viene con el plan estándar como ejemplo), complétela con el plan, los impuestos y las cuentas de su empresa, y cárguela para validarla."
+                                     invisible="l10n_py_modo_plan != 'plantilla' or l10n_py_plan_cargado">
+                                <div class="mt8">
+                                    <button name="action_l10n_py_descargar_plantilla" type="object"
+                                            string="Descargar plantilla Excel" icon="fa-download"
+                                            class="btn-link"/>
+                                </div>
+                                <div class="mt8">
+                                    <button name="action_l10n_py_abrir_carga_plantilla" type="object"
+                                            string="Cargar y validar archivo" icon="fa-upload"
+                                            class="btn-link"/>
+                                </div>
+                                <div class="content-group mt16" invisible="not l10n_py_plantilla_estado">
+                                    <div class="row mt4">
+                                        <label for="l10n_py_plantilla_archivo" class="col-lg-4 o_light_label"/>
+                                        <field name="l10n_py_plantilla_archivo" readonly="1"/>
+                                    </div>
+                                    <div class="row mt4">
+                                        <label for="l10n_py_plantilla_estado" class="col-lg-4 o_light_label"/>
+                                        <field name="l10n_py_plantilla_estado" widget="badge" readonly="1"
+                                               decoration-success="l10n_py_plantilla_estado in ('validada', 'cargada')"
+                                               decoration-danger="l10n_py_plantilla_estado == 'error'"/>
+                                    </div>
+                                    <field name="l10n_py_plantilla_log" readonly="1" nolabel="1" class="mt8"/>
+                                </div>
+                                <div class="alert alert-info mt-2" role="alert"
+                                     invisible="l10n_py_plantilla_estado != 'validada'">
+                                    Plantilla validada. Ahora seleccione el paquete «Paraguay» en Ajustes &gt; Facturación &gt; Localización Fiscal para cargarla.
+                                </div>
+                            </setting>
+                        </block>
                     </app>
                 </xpath>
             </field>
