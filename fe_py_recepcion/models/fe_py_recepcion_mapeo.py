@@ -94,6 +94,9 @@ class FePyRecepcionMapeo(models.Model):
         string='Valor fijo',
         help='Valor que se copia siempre (texto, número, fecha o sí/no). Para un campo de '
              'selección o relacional se elige de una lista.')
+    valor_fijo_si_no = fields.Selection(
+        [('si', 'Sí'), ('no', 'No')], string='Valor fijo (sí/no)',
+        help='Para un campo de destino de tipo casilla (sí/no): «Sí» la marca y «No» la desmarca.')
     valor_fijo_opcion_id = fields.Many2one(
         'ir.model.fields.selection', string='Valor fijo (opción)', ondelete='set null',
         domain="[('field_id', '=', campo_destino_id)]")
@@ -131,10 +134,12 @@ class FePyRecepcionMapeo(models.Model):
             return self.env[self.modelo_relacion].browse(self.valor_fijo_id).exists().display_name or ''
         if tipo == 'selection':
             return self.valor_fijo_opcion_id.name or ''
+        if tipo == 'boolean':
+            return dict(self._fields['valor_fijo_si_no'].selection).get(self.valor_fijo_si_no, '')
         return self.valor_fijo or ''
 
     @api.depends('origen', 'campo_origen_id', 'valor_fijo', 'valor_fijo_id',
-                 'valor_fijo_opcion_id', 'campo_destino_id')
+                 'valor_fijo_opcion_id', 'valor_fijo_si_no', 'campo_destino_id')
     def _compute_descripcion(self):
         for mapeo in self:
             if mapeo.origen == 'fijo':
@@ -168,9 +173,10 @@ class FePyRecepcionMapeo(models.Model):
         self.valor_fijo = False
         self.valor_fijo_id = False
         self.valor_fijo_opcion_id = False
+        self.valor_fijo_si_no = False
 
     @api.constrains('destino', 'origen', 'campo_origen_id', 'valor_fijo', 'valor_fijo_id',
-                    'valor_fijo_opcion_id', 'campo_destino_id')
+                    'valor_fijo_opcion_id', 'valor_fijo_si_no', 'campo_destino_id')
     def _check_mapeo(self):
         for mapeo in self:
             destino = mapeo.campo_destino_id
@@ -194,9 +200,12 @@ class FePyRecepcionMapeo(models.Model):
                 elif destino.ttype == 'selection':
                     if not mapeo.valor_fijo_opcion_id:
                         raise ValidationError(_('Elija el valor fijo de la lista.'))
+                elif destino.ttype == 'boolean':
+                    if not mapeo.valor_fijo_si_no:
+                        raise ValidationError(_('Elija el valor fijo: Sí o No.'))
                 elif not (mapeo.valor_fijo or '').strip():
                     raise ValidationError(_('Indique el valor fijo.'))
-                tipo_origen = 'char'
+                tipo_origen = 'boolean' if destino.ttype == 'boolean' else 'char'
             else:
                 origen = mapeo.campo_origen_id
                 if not origen:
@@ -255,6 +264,8 @@ class FePyRecepcionMapeo(models.Model):
                 return self.env[self.modelo_relacion].browse(self.valor_fijo_id).exists(), 'many2one'
             if tipo == 'selection':
                 return self.valor_fijo_opcion_id.value, 'char'
+            if tipo == 'boolean':
+                return self.valor_fijo_si_no == 'si', 'boolean'
             return (self.valor_fijo or '').strip(), 'char'
         return origen[self.campo_origen_id.name], self.campo_origen_id.ttype
 

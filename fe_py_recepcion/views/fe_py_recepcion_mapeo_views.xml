@@ -55,9 +55,12 @@
                                    invisible="origen != 'fijo' or tipo_destino != 'selection'"
                                    required="origen == 'fijo' and tipo_destino == 'selection'"
                                    options="{'no_create': True, 'no_open': True}"/>
+                            <field name="valor_fijo_si_no" string="Valor fijo" widget="radio"
+                                   invisible="origen != 'fijo' or tipo_destino != 'boolean'"
+                                   required="origen == 'fijo' and tipo_destino == 'boolean'"/>
                             <field name="valor_fijo" string="Valor fijo"
-                                   invisible="origen != 'fijo' or tipo_destino in ('many2one', 'selection', False)"
-                                   required="origen == 'fijo' and tipo_destino not in ('many2one', 'selection', False)"/>
+                                   invisible="origen != 'fijo' or tipo_destino in ('many2one', 'selection', 'boolean', False)"
+                                   required="origen == 'fijo' and tipo_destino not in ('many2one', 'selection', 'boolean', False)"/>
                         </group>
                     </group>
                     <p class="text-muted">
