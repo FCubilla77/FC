@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# El nucleo de licencia va primero: otros modelos de este paquete lo importan.
+# Utilidades sin dependencias, y el nucleo de licencia: otros modelos de este
+# paquete los importan, por eso van primero.
+from . import local_py_sql
 from . import local_py_licencia
 from . import local_py_licencia_mixin
 

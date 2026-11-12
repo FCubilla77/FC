@@ -4,6 +4,7 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 from .local_py_libro_report import fmt_pyg
+from .local_py_sql import local_py_tabla_existe
 
 
 class LocalPyRecibo(models.Model):
@@ -13,7 +14,16 @@ class LocalPyRecibo(models.Model):
     _order = 'id desc'
 
     def _default_serie_id(self):
-        series = self.env['local_py.recibo.serie'].search([
+        """Se precarga sola si el Usuario tiene una sola Serie para la Compañía.
+
+        Igual que en res.partner: Odoo evalúa este default al crear la columna
+        durante la instalación, cuando la tabla de Series puede no existir
+        todavía. Hoy el orden de imports hace que exista, pero la comprobación
+        evita que el módulo se rompa si ese orden cambia."""
+        Serie = self.env['local_py.recibo.serie']
+        if not local_py_tabla_existe(self.env.cr, Serie._table):
+            return False
+        series = Serie.search([
             ('user_id', '=', self.env.user.id),
             ('company_id', '=', self.env.company.id),
         ])

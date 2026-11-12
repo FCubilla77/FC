@@ -2,6 +2,8 @@
 from odoo import models, fields, exceptions, api
 import re
 
+from .local_py_sql import local_py_tabla_existe
+
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
@@ -298,7 +300,19 @@ class ResPartner(models.Model):
                 )
 
     def _default_local_py_retencion(self, campo):
-        config = self.env['local_py.configuracion_localizacion'].search(
+        """Valor inicial tomado de Configuraciones Localización Py de la Compañía.
+
+        Durante la INSTALACIÓN del módulo, Odoo evalúa este default al crear la
+        columna, para completar los contactos que ya existen en la base — y ese
+        momento llega antes de que exista la tabla de Configuraciones
+        Localización Py, porque res.partner se inicializa primero. Sin la
+        comprobación previa la consulta falla con UndefinedTable y aborta la
+        instalación completa. En ese caso no hay configuración que leer: el
+        valor queda vacío y el usuario lo define después."""
+        Config = self.env['local_py.configuracion_localizacion']
+        if not local_py_tabla_existe(self.env.cr, Config._table):
+            return False
+        config = Config.search(
             [('company_id', '=', self.env.company.id)], limit=1,
         )
         return config[campo] if config else False
