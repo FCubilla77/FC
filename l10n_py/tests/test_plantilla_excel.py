@@ -112,6 +112,22 @@ class TestPlantillaExcelL10nPy(TransactionCase):
             'Instrucciones', 'Grupos', 'Cuentas', 'Configuración', 'Grupos de impuestos',
             'Impuestos', 'Posiciones fiscales', 'Plazos de pago', 'Tipos de cuenta'])
 
+    def test_02b_las_listas_desplegables_son_compatibles_con_excel(self):
+        """Excel "repara" quitándolas las validaciones en línea de más de 255 caracteres."""
+        from openpyxl import load_workbook
+        libro = load_workbook(io.BytesIO(excel.generar_libro(self.estandar)))
+        total = 0
+        for hoja in libro.worksheets:
+            for validacion in hoja.data_validations.dataValidation:
+                total += 1
+                formula = validacion.formula1
+                if formula.startswith('"'):
+                    self.assertLessEqual(len(formula) - 2, 255, (hoja.title, formula[:40]))
+        self.assertGreater(total, 5)
+        formulas = [v.formula1 for v in libro['Cuentas'].data_validations.dataValidation]
+        self.assertIn("'Tipos de cuenta'!$A$2:$A$20", formulas)
+        self.assertEqual(libro['Tipos de cuenta'].max_row, 20)
+
     def test_03_un_plan_propio_hace_el_recorrido_completo(self):
         datos, errores, _ = excel.leer_libro(excel.generar_libro(_plan_propio()), {'PYG'})
         self.assertEqual(errores, [])

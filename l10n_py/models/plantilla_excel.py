@@ -257,8 +257,16 @@ def generar_libro(datos):
                 hoja.cell(row=fila, column=col).number_format = '@'
 
     def lista(hoja, columna, opciones, hasta_fila):
-        validacion = DataValidation(
-            type='list', formula1='"%s"' % ','.join(opciones), allow_blank=True)
+        # Excel rechaza (y "repara" quitándolas) las listas escritas dentro de la validación
+        # que superan los 255 caracteres: las largas se toman de un rango de otra hoja.
+        texto = ','.join(opciones)
+        if isinstance(opciones, str):
+            formula = opciones
+        elif len(texto) <= 250:
+            formula = '"%s"' % texto
+        else:
+            raise ValueError("Lista demasiado larga para una validación en línea: %s" % texto[:40])
+        validacion = DataValidation(type='list', formula1=formula, allow_blank=True)
         hoja.add_data_validation(validacion)
         validacion.add('%s2:%s%d' % (columna, columna, hasta_fila))
 
@@ -281,7 +289,7 @@ def generar_libro(datos):
                      c['moneda'], c['etiqueta']])
     limite = max(len(datos['cuentas']) + 1, 1000)
     formato_texto(hoja, (1,), limite)
-    lista(hoja, 'C', list(TIPOS_CUENTA), limite)
+    lista(hoja, 'C', "'%s'!$A$2:$A$%d" % (HOJA_TIPOS, len(PLAN_ACCOUNT_TYPE_SELECTION) + 1), limite)
     lista(hoja, 'D', ['SI', 'NO'], limite)
     lista(hoja, 'F', list(ETIQUETAS_IVA), limite)
 
