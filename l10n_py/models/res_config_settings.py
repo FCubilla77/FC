@@ -15,3 +15,6 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.l10n_py_licencia_vencimiento', readonly=True)
     l10n_py_licencia_estado = fields.Selection(
         related='company_id.l10n_py_licencia_estado', readonly=True)
+
+    l10n_py_cuenta_resultado_ejercicio_id = fields.Many2one(
+        related='company_id.l10n_py_cuenta_resultado_ejercicio_id', readonly=False)

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
 
+from .balance_general_report import _info_grupo
+
 # Misma lista de valores que account.account.account_type (Odoo 19), copiada
 # aquí para no depender de que ese modelo esté cargado al definir el campo.
 PLAN_ACCOUNT_TYPE_SELECTION = [
@@ -25,35 +27,10 @@ PLAN_ACCOUNT_TYPE_SELECTION = [
     ('off_balance', 'Off-Balance Sheet'),
 ]
 
-# Etiquetas fijas para el filtro por Nivel 1 del reporte (se calculan a partir
-# del primer segmento del código de cuenta; no dependen de que existan
-# account.group de nivel 1 raíz).
-PLAN_NIVEL_1_LABELS = [
-    ('1', '1 - Activo'),
-    ('2', '2 - Pasivo'),
-    ('3', '3 - Patrimonio Neto'),
-    ('4', '4 - Ingresos Operativos'),
-    ('5', '5 - Costos Operativos'),
-    ('6', '6 - Otros Ingresos'),
-    ('7', '7 - Gastos'),
-]
-PLAN_NIVEL_1_CODES = {code for code, _label in PLAN_NIVEL_1_LABELS}
-
-
-def _plan_nivel_1(code):
-    """Primer segmento del código como 'nivel_1' SOLO si es una de las 7 raíces
-    del plan de Paraguay. Cualquier otra cuenta (técnica, de otro módulo, con
-    códigos numéricos sin puntos) queda sin clasificar (False) en vez de romper
-    el campo Selection."""
-    if not code:
-        return False
-    primer_segmento = code.split('.')[0]
-    return primer_segmento if primer_segmento in PLAN_NIVEL_1_CODES else False
-
-
 class L10nPyPlanCuentasReport(models.Model):
     """Listado único y ordenado del plan de cuentas: Títulos (account.group) e
-    Imputables (account.account) intercalados por código, con filtro por Nivel 1.
+    Imputables (account.account) intercalados por código, con filtro por Grupo raíz
+    (el grupo de nivel 1 de cada cuenta, según la jerarquía de grupos).
 
     Tabla 'scratch': se vacía y reconstruye cada vez que se abre el reporte, a
     partir de los datos actuales, sin importar qué módulo cargó el plan.
@@ -75,7 +52,7 @@ class L10nPyPlanCuentasReport(models.Model):
     nivel = fields.Integer(string='Nivel', readonly=True)
     account_type = fields.Selection(PLAN_ACCOUNT_TYPE_SELECTION, string='Tipo de cuenta', readonly=True)
     group_name = fields.Char(string='Grupo', readonly=True)
-    nivel_1 = fields.Selection(PLAN_NIVEL_1_LABELS, string='Nivel 1', readonly=True)
+    raiz_id = fields.Many2one('account.group', string='Grupo raíz', readonly=True)
     account_id = fields.Many2one('account.account', string='Cuenta', readonly=True)
     group_id = fields.Many2one('account.group', string='Grupo de cuentas', readonly=True)
 
@@ -107,14 +84,15 @@ class L10nPyPlanCuentasReport(models.Model):
         grupos = self.env['account.group'].sudo().search([], order='code_prefix_start')
         for grupo in grupos:
             code = grupo.code_prefix_start or ''
+            nivel, raiz = _info_grupo(grupo)
             vals_list.append({
                 'company_id': grupo.company_id.id,
                 'code': code,
                 'name': grupo.name,
                 'tipo': 'title',
-                'nivel': code.count('.') + 1 if code else 0,
+                'nivel': nivel,
                 'group_name': grupo.parent_id.name or '',
-                'nivel_1': _plan_nivel_1(code),
+                'raiz_id': raiz.id,
                 'group_id': grupo.id,
             })
 
@@ -125,15 +103,16 @@ class L10nPyPlanCuentasReport(models.Model):
                 [('company_ids', 'in', compania.id)], order='code')
             for cuenta in cuentas:
                 code = cuenta.code or ''
+                nivel, raiz = _info_grupo(cuenta.group_id)
                 vals_list.append({
                     'company_id': compania.id,
                     'code': code,
                     'name': cuenta.name,
                     'tipo': 'imputable',
-                    'nivel': code.count('.') + 1 if code else 0,
+                    'nivel': nivel + 1,
                     'account_type': cuenta.account_type,
                     'group_name': cuenta.group_id.name or '',
-                    'nivel_1': _plan_nivel_1(code),
+                    'raiz_id': raiz.id,
                     'account_id': cuenta.id,
                 })
 

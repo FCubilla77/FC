@@ -27,7 +27,7 @@ class TestPlanCuentasReportL10nPy(TransactionCase):
         self.assertEqual(len(titulos), 201)
         self.assertEqual(len(imputables), 228)
         # Las 7 raíces de nivel 1 están presentes y las cuentas se clasifican.
-        self.assertEqual(set(filas.mapped('nivel_1')) - {False}, set('1234567'))
+        self.assertEqual(len(filas.mapped('raiz_id')), 7)
         # Cada imputable apunta a su cuenta real y trae el tipo de cuenta.
         fila = imputables.filtered(lambda f: f.code == '1.01.03.01.001')
         self.assertEqual(fila.name, 'DEUDORES POR VENTAS')

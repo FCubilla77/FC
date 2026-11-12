@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 from .l10n_py_licencia import (
     l10n_py_decodificar_licencia,
@@ -30,6 +31,46 @@ class ResCompany(models.Model):
         ('invalida', "Código inválido"),
         ('otra_version', "No corresponde a esta versión"),
     ], string="Estado de la licencia", compute='_compute_l10n_py_licencia')
+
+    l10n_py_cuenta_resultado_ejercicio_id = fields.Many2one(
+        'account.account', string="Cuenta Resultado del Ejercicio", ondelete='restrict',
+        domain="[('account_type', 'in', ('equity', 'equity_unaffected')), ('company_ids', 'in', id)]",
+        help="Cuenta de Patrimonio donde el proceso de Cierre de Ejercicio deja el "
+             "resultado (ganancia o pérdida) del año. Con el plan de cuentas Paraguay "
+             "se asigna sola. Si queda vacía, se usa la cuenta de tipo «Ganancias del "
+             "año actual» de la compañía.")
+
+    @api.constrains('l10n_py_cuenta_resultado_ejercicio_id')
+    def _check_l10n_py_cuenta_resultado_ejercicio(self):
+        for company in self:
+            cuenta = company.l10n_py_cuenta_resultado_ejercicio_id
+            if not cuenta:
+                continue
+            if cuenta.account_type not in ('equity', 'equity_unaffected'):
+                raise ValidationError(_(
+                    "La cuenta Resultado del Ejercicio debe ser de tipo Patrimonio "
+                    "(Capital o Ganancias del año actual)."))
+            if company not in cuenta.company_ids:
+                raise ValidationError(_(
+                    "La cuenta Resultado del Ejercicio debe pertenecer a la compañía %s.",
+                    company.name))
+
+    def _l10n_py_cuenta_resultado_ejercicio(self):
+        """Cuenta que recibe el resultado en el Cierre de Ejercicio: la configurada en
+        la compañía o, si no hay, la cuenta de tipo «Ganancias del año actual»."""
+        self.ensure_one()
+        cuenta = self.l10n_py_cuenta_resultado_ejercicio_id
+        if not cuenta:
+            cuenta = self.env['account.account'].with_company(self).search([
+                ('company_ids', 'in', self.id),
+                ('account_type', '=', 'equity_unaffected'),
+            ], limit=1)
+        if not cuenta:
+            raise UserError(_(
+                "No hay una cuenta Resultado del Ejercicio para %s. Defínala en "
+                "Ajustes > Configuración l10n_py, o cree una cuenta de tipo «Ganancias "
+                "del año actual».", self.name))
+        return cuenta
 
     def _l10n_py_licencia_uuid_actual(self):
         return self.env['ir.config_parameter'].sudo().get_param('database.uuid') or ''

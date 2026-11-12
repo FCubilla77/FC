@@ -35,7 +35,7 @@
             <field name="model">l10n_py.balance_general.report</field>
             <field name="arch" type="xml">
                 <pivot string="Balance General x Grupos de Cuentas">
-                    <field name="nivel_1" type="row"/>
+                    <field name="raiz_id" type="row"/>
                     <field name="name" type="row"/>
                     <field name="saldo" type="measure"/>
                 </pivot>
@@ -51,7 +51,7 @@
                     <field name="name" decoration-bf="tipo != 'imputable'"/>
                     <field name="tipo" column_invisible="1"/>
                     <field name="nivel" column_invisible="1"/>
-                    <field name="nivel_1"/>
+                    <field name="raiz_id"/>
                     <field name="saldo" sum="Total"/>
                 </list>
             </field>

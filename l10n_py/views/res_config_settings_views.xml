@@ -56,6 +56,13 @@
                                 </div>
                             </setting>
                         </block>
+                        <block title="Cierre de Ejercicio" name="l10n_py_cierre">
+                            <setting string="Cuenta Resultado del Ejercicio"
+                                     help="Cuenta de Patrimonio que recibe el resultado del año al ejecutar el Cierre de Ejercicio. Con el plan de cuentas Paraguay se asigna sola.">
+                                <field name="l10n_py_cuenta_resultado_ejercicio_id"
+                                       options="{'no_create': True, 'no_open': True}"/>
+                            </setting>
+                        </block>
                     </app>
                 </xpath>
             </field>

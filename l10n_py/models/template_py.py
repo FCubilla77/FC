@@ -127,6 +127,9 @@ class AccountChartTemplate(models.AbstractModel):
                 # por su cuenta "Bank Suspense Account" con el prefijo de bancos.
                 'account_journal_suspense_account_id': 'py_1_01_01_03_004',
 
+                # Cuenta que recibe el resultado en el Cierre de Ejercicio.
+                'l10n_py_cuenta_resultado_ejercicio_id': 'py_3_03_01_01_002',
+
                 # Recibos/Pagos Pendientes ("Outstanding Receipts/Payments"): NO
                 # son campos de la compañía en Odoo 19 y no se pueden indicar aquí.
                 # Odoo los busca por xmlid 'account.<id_compañía>_account_journal_

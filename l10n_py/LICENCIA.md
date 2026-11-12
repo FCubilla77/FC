@@ -1,6 +1,6 @@
 # Licencia de l10n_py (OPL-1) — guía de activación y emisión
 
-Módulo: `l10n_py` · Versión 2026.19.016 · © 2026 FC_Py
+Módulo: `l10n_py` · Versión 2026.19.017 · © 2026 FC_Py
 
 ## 1. Qué se licencia
 `l10n_py` se distribuye bajo **OPL-1** (ver `LICENSE`). Además del contrato, el módulo
@@ -25,8 +25,8 @@ editar Cierres de Ejercicio.
 ## 4. Formato del código
 `FC_PY1.<datos base64url>.<firma base64url>` — prefijo fijo y compartido por todos los
 productos de FC_Py. Datos (JSON): `p` = `l10n_py`, `u` = `database.uuid`, `c` = cliente,
-`v` = vencimiento ISO, `m` = número central de versión de Odoo (el «19» de `2026.19.016`; Odoo expone la
-versión como `19.0.2026.19.016`, y se toma el anteúltimo segmento). Firma RSA-PSS/SHA-256 (3072 bits).
+`v` = vencimiento ISO, `m` = número central de versión de Odoo (el «19» de `2026.19.017`; Odoo expone la
+versión como `19.0.2026.19.017`, y se toma el anteúltimo segmento). Firma RSA-PSS/SHA-256 (3072 bits).
 El módulo contiene solo la **clave pública**; la misma clave verifica todos los productos.
 
 ## 5. Qué se bloquea

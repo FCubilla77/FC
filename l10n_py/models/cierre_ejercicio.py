@@ -4,18 +4,8 @@ from datetime import timedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+from .balance_general_report import TIPOS_BALANCE, TIPOS_INGRESO, TIPOS_RESULTADO
 from .l10n_py_licencia import l10n_py_licencia_verificar
-
-
-# Ids de plantilla de las dos cuentas de Patrimonio que este proceso usa
-# (definidos en data/template/account.account-py.csv). Al cargar el paquete
-# de Localización Fiscal, Odoo crea cada cuenta con el xmlid
-# 'account.<id_compañía>_<id_plantilla>' (una por compañía), no con un xmlid
-# del módulo: por eso se resuelven con account.chart.template.ref() para la
-# compañía que corresponda. Se busca el registro, no el string de código, así
-# que si el usuario cambió el código de la cuenta sigue funcionando.
-XMLID_RESULTADO_EJERCICIO = 'py_3_03_01_01_002'
-XMLID_RESULTADOS_ACUMULADOS = 'py_3_03_01_01_001'
 
 
 class L10nPyCierreEjercicio(models.Model):
@@ -95,17 +85,6 @@ class L10nPyCierreEjercicio(models.Model):
                 })
             rec.write({'state': 'deshecho'})
 
-    def _get_cuenta(self, xmlid, company):
-        cuenta = self.env['account.chart.template'].with_company(company).ref(
-            xmlid, raise_if_not_found=False)
-        if not cuenta:
-            raise UserError(
-                'No se encontró la cuenta %s en %s. Verifique que el paquete fiscal '
-                'Paraguay esté asignado a la compañía y que la cuenta no haya sido '
-                'eliminada.' % (xmlid, company.name)
-            )
-        return cuenta
-
     def _get_diario_miscelanea(self, company):
         diario = self.env['account.journal'].search([
             ('company_id', '=', company.id), ('type', '=', 'general'),
@@ -155,11 +134,11 @@ class L10nPyCierreEjercicio(models.Model):
             )
 
         diario = self._get_diario_miscelanea(company)
-        cuenta_resultado_ejercicio = self._get_cuenta(XMLID_RESULTADO_EJERCICIO, company)
+        cuenta_resultado_ejercicio = company._l10n_py_cuenta_resultado_ejercicio()
 
         # ------------------------------------------------------------
-        # 1) Asiento de Cierre: zanja cada cuenta imputable de Ingresos/
-        #    Costos/Gastos (prefijos 4,5,6,7) con movimiento en el año, y
+        # 1) Asiento de Cierre: zanja cada cuenta de Ingresos/Costos/Gastos
+        #    (por tipo de cuenta, no por código) con movimiento en el año, y
         #    lleva el neto a "RESULTADO DEL EJERCICIO" (se ACUMULA sobre
         #    el saldo que ya tuviera esa cuenta de años anteriores todavía
         #    sin asignar — por decisión explícita: no se mueve a
@@ -167,8 +146,8 @@ class L10nPyCierreEjercicio(models.Model):
         #    futuro proceso de Asignación de Resultados).
         # ------------------------------------------------------------
         saldo_resultado = Report._compute_saldo_cuentas(
-            company, fy['date_from'], fecha_cierre, prefijos=('4', '5', '6', '7'),
-            prefijos_signo_invertido=('4', '6'),
+            company, fy['date_from'], fecha_cierre, tipos=TIPOS_RESULTADO,
+            tipos_signo_invertido=TIPOS_INGRESO,
         )
         if not saldo_resultado:
             raise UserError(
@@ -185,8 +164,7 @@ class L10nPyCierreEjercicio(models.Model):
             # +saldo si es Costo/Gasto (no invertido). Se recalcula el
             # signo real para no arrastrar la inversión de exposición
             # al asiento contable.
-            segmento = (account.code or '').split('.')[0]
-            saldo_real = -saldo if segmento in ('4', '6') else saldo
+            saldo_real = -saldo if account.account_type in TIPOS_INGRESO else saldo
             if saldo_real > 0:
                 lineas_cierre.append((0, 0, {
                     'account_id': account.id,
@@ -235,11 +213,12 @@ class L10nPyCierreEjercicio(models.Model):
 
         # ------------------------------------------------------------
         # 2) Asiento de Apertura: reabre, al 1° de enero siguiente, el
-        #    saldo de cada cuenta de Activo/Pasivo/Patrimonio (prefijos
-        #    1,2,3) tal como queda luego del Cierre (incluye ya el nuevo
+        #    saldo de cada cuenta de Activo/Pasivo/Patrimonio (por tipo
+        #    de cuenta) tal como queda luego del Cierre (incluye ya el nuevo
         #    saldo de "RESULTADO DEL EJERCICIO").
         # ------------------------------------------------------------
-        saldo_balance = Report._compute_saldo_cuentas(company, fy['date_from'], fecha_cierre, prefijos=('1', '2', '3'))
+        saldo_balance = Report._compute_saldo_cuentas(
+            company, fy['date_from'], fecha_cierre, tipos=TIPOS_BALANCE)
         lineas_apertura = []
         for account, saldo in saldo_balance.items():
             if saldo > 0:

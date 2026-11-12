@@ -1,29 +1,34 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
 
-# Mismas 7 raíces del plan de cuentas Paraguay. Se duplica acá (en vez de
-# importar de local_py) a propósito: l10n_py no depende de local_py.
-NIVEL_1_LABELS = [
-    ('1', 'ACTIVO'),
-    ('2', 'PASIVO'),
-    ('3', 'PATRIMONIO NETO'),
-    ('4', 'INGRESOS'),
-    ('5', 'COSTOS'),
-    ('6', 'OTROS INGRESOS'),
-    ('7', 'GASTOS'),
-]
-VALID_NIVEL_1_CODES = {code for code, _label in NIVEL_1_LABELS}
+# Clasificación por TIPO de cuenta (account.account.account_type), no por el
+# código: así el informe sirve con el plan Paraguay y con un plan propio del
+# cliente con otra numeración.
+TIPOS_BALANCE = (
+    'asset_receivable', 'asset_cash', 'asset_current', 'asset_non_current',
+    'asset_prepayments', 'asset_fixed',
+    'liability_payable', 'liability_credit_card', 'liability_current',
+    'liability_non_current',
+    'equity', 'equity_unaffected',
+)
+TIPOS_INGRESO = ('income', 'income_other')
+TIPOS_RESULTADO = TIPOS_INGRESO + (
+    'expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost',
+)
 
 
-def _safe_nivel_1(code):
-    """Devuelve el primer segmento del código como 'nivel_1' solo si
-    coincide con una de las 7 raíces esperadas. Cualquier otra cuenta
-    (técnica, de otro módulo, etc.) queda sin clasificar (False) en vez de
-    romper el campo Selection — mismo criterio que local_py.plan_cuentas.report."""
-    if not code:
-        return False
-    primer_segmento = code.split('.')[0]
-    return primer_segmento if primer_segmento in VALID_NIVEL_1_CODES else False
+def _info_grupo(grupo):
+    """(nivel, raíz) de un account.group según su jerarquía de padres: nivel 1 para
+    un grupo raíz, 2 para su hijo, etc. Sin grupo: (0, vacío)."""
+    nivel = 0
+    raiz = grupo
+    vistos = set()
+    while grupo and grupo.id not in vistos:
+        vistos.add(grupo.id)
+        nivel += 1
+        raiz = grupo
+        grupo = grupo.parent_id
+    return nivel, raiz
 
 
 def fmt_pyg(value):
@@ -40,19 +45,19 @@ class L10nPyBalanceGeneralReport(models.Model):
     """Tabla 'scratch' con el último Balance General x Grupos de Cuentas
     generado (se vacía y reconstruye en cada 'Ver' del wizard, para la
     compañía/fecha elegidas). Pensada para explorarse con la vista Pivote
-    nativa de Odoo (agrupar por Nivel 1 / Grupo / Cuenta) y también en
-    lista jerárquica (igual criterio visual que local_py.plan_cuentas.report:
-    Títulos e Imputables intercalados por código, indentados por 'nivel').
+    nativa de Odoo (agrupar por Grupo raíz / Grupo / Cuenta) y también en
+    lista jerárquica (Títulos e Imputables intercalados, indentados por 'nivel').
 
     No depende de local_py: usa únicamente modelos nativos de 'account'."""
     _name = 'l10n_py.balance_general.report'
     _description = 'Balance General x Grupos de Cuentas (Paraguay)'
-    _order = 'code'
+    _order = 'orden, id'
     _rec_name = 'name'
 
     company_id = fields.Many2one('res.company', string='Compañía', readonly=True)
     currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda', readonly=True)
     fecha = fields.Date(string='Fecha', readonly=True)
+    orden = fields.Integer(string='Orden', readonly=True)
     code = fields.Char(string='Código', readonly=True)
     name = fields.Char(string='Nombre', readonly=True)
     tipo = fields.Selection(
@@ -60,7 +65,7 @@ class L10nPyBalanceGeneralReport(models.Model):
         string='Tipo', readonly=True,
     )
     nivel = fields.Integer(string='Nivel', readonly=True)
-    nivel_1 = fields.Selection(NIVEL_1_LABELS, string='Nivel 1', readonly=True)
+    raiz_id = fields.Many2one('account.group', string='Grupo raíz', readonly=True)
     group_id = fields.Many2one('account.group', string='Grupo de cuentas', readonly=True)
     account_id = fields.Many2one('account.account', string='Cuenta', readonly=True)
     saldo = fields.Monetary(string='Saldo', readonly=True, currency_field='currency_id')
@@ -85,40 +90,30 @@ class L10nPyBalanceGeneralReport(models.Model):
     # garantizar que PDF y pantalla muestren siempre el mismo número).
     # ------------------------------------------------------------------
     @api.model
-    def _compute_saldo_cuentas(self, company, fecha_desde, fecha_hasta, prefijos, prefijos_signo_invertido=()):
-        """Devuelve {account: saldo} para las cuentas imputables de la
-        compañía cuyo primer segmento de código esté en 'prefijos', con
-        movimiento validado entre fecha_desde y fecha_hasta (incluidas).
-        Para los prefijos en 'prefijos_signo_invertido' el saldo se calcula
-        Crédito-Débito (se usa en Ingresos, para mostrarlos en positivo);
+    def _compute_saldo_cuentas(self, company, fecha_desde, fecha_hasta, tipos, tipos_signo_invertido=()):
+        """Devuelve {account: saldo} para las cuentas de la compañía cuyo tipo de
+        cuenta esté en 'tipos', con movimiento validado entre fecha_desde y
+        fecha_hasta (incluidas). Para los tipos en 'tipos_signo_invertido' el
+        saldo se calcula Crédito-Débito (Ingresos, para mostrarlos en positivo);
         para el resto, Débito-Crédito."""
-        accounts = self.env['account.account'].search([
-            ('company_ids', 'in', company.id),
-        ])
-        accounts = accounts.filtered(
-            lambda a: (a.code or '').split('.')[0] in prefijos
+        self = self.with_company(company)
+        grupos = self.env['account.move.line']._read_group(
+            [
+                ('company_id', '=', company.id),
+                ('parent_state', '=', 'posted'),
+                ('date', '>=', fecha_desde),
+                ('date', '<=', fecha_hasta),
+                ('account_id.account_type', 'in', list(tipos)),
+            ],
+            groupby=['account_id'],
+            aggregates=['debit:sum', 'credit:sum'],
         )
-        if not accounts:
-            return {}
-
-        domain_base = [
-            ('move_id.company_id', '=', company.id),
-            ('move_id.state', '=', 'posted'),
-            ('date', '>=', fecha_desde),
-            ('date', '<=', fecha_hasta),
-        ]
         saldo_por_cuenta = {}
-        for account in accounts:
-            lines = self.env['account.move.line'].search(
-                domain_base + [('account_id', '=', account.id)]
-            )
-            if not lines:
-                continue
-            segmento = (account.code or '').split('.')[0]
-            if segmento in prefijos_signo_invertido:
-                saldo = sum(lines.mapped('credit')) - sum(lines.mapped('debit'))
+        for account, debito, credito in grupos:
+            if account.account_type in tipos_signo_invertido:
+                saldo = credito - debito
             else:
-                saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
+                saldo = debito - credito
             if saldo:
                 saldo_por_cuenta[account] = saldo
         return saldo_por_cuenta
@@ -140,25 +135,25 @@ class L10nPyBalanceGeneralReport(models.Model):
 
         nodos = []
         for grupo, saldo in saldo_por_grupo.items():
-            code = grupo.code_prefix_start or ''
+            nivel, raiz = _info_grupo(grupo)
             nodos.append({
-                'code': code,
+                'code': grupo.code_prefix_start or '',
                 'tipo': 'titulo',
                 'name': grupo.name,
-                'nivel': code.count('.') + 1 if code else 0,
-                'nivel_1': _safe_nivel_1(code),
+                'nivel': nivel,
+                'raiz_id': raiz.id,
                 'group_id': grupo.id,
                 'account_id': False,
                 'saldo': saldo,
             })
         for account, saldo in saldo_por_cuenta.items():
-            code = account.code or ''
+            nivel, raiz = _info_grupo(account.group_id)
             nodos.append({
-                'code': code,
+                'code': account.code or '',
                 'tipo': 'imputable',
                 'name': account.name,
-                'nivel': code.count('.') + 1 if code else 0,
-                'nivel_1': _safe_nivel_1(code),
+                'nivel': nivel + 1,
+                'raiz_id': raiz.id,
                 'group_id': account.group_id.id,
                 'account_id': account.id,
                 'saldo': saldo,
@@ -171,39 +166,59 @@ class L10nPyBalanceGeneralReport(models.Model):
         """Devuelve la lista de filas (dict) del Balance General x Grupos
         de Cuentas a 'fecha', para 'company':
 
-        - Activo/Pasivo/Patrimonio (prefijos 1,2,3): saldo Débito-Crédito
-          acumulado desde el inicio del ejercicio fiscal que contiene
-          'fecha' (vía Asiento de Apertura) hasta 'fecha'.
-        - Una fila especial adicional, bajo Patrimonio: "RESULTADO DEL
-          EJERCICIO EN CURSO", con el resultado (Ingresos - Costos/Gastos,
-          prefijos 4/5/6/7, signo invertido en 4/6) del ejercicio en curso
-          hasta 'fecha'. Representa el resultado que todavía NO fue
+        - Activo/Pasivo/Patrimonio (cuentas de tipo Activo, Pasivo y Patrimonio):
+          saldo Débito-Crédito acumulado desde el inicio del ejercicio fiscal que
+          contiene 'fecha' (vía Asiento de Apertura) hasta 'fecha'.
+        - Una fila especial adicional, al final del grupo raíz de Patrimonio:
+          "RESULTADO DEL EJERCICIO EN CURSO", con el resultado (cuentas de
+          Ingresos menos Costos/Gastos, por tipo de cuenta) del ejercicio en
+          curso hasta 'fecha'. Representa el resultado que todavía NO fue
           cerrado contablemente (eso solo ocurre al ejecutar el proceso de
           Cierre de Ejercicio, al final del año) — por lo tanto nunca está
           ya incluido en el saldo real de ninguna cuenta de Patrimonio.
         """
+        self = self.with_company(company)
+        company = company.with_company(company)
         fy = company.compute_fiscalyear_dates(fecha)
         fecha_desde = fy['date_from']
 
-        saldo_balance = self._compute_saldo_cuentas(company, fecha_desde, fecha, prefijos=('1', '2', '3'))
+        saldo_balance = self._compute_saldo_cuentas(company, fecha_desde, fecha, tipos=TIPOS_BALANCE)
         rows = self._build_titulo_imputable_rows(saldo_balance)
 
         saldo_resultado = self._compute_saldo_cuentas(
-            company, fecha_desde, fecha, prefijos=('4', '5', '6', '7'),
-            prefijos_signo_invertido=('4', '6'),
+            company, fecha_desde, fecha, tipos=TIPOS_RESULTADO,
+            tipos_signo_invertido=TIPOS_INGRESO,
         )
-        resultado_en_curso = sum(saldo_resultado.values())
-        rows.append({
-            'code': '3.99',
+        # Los saldos de Ingresos vienen en positivo (Crédito-Débito) y los de Costos/
+        # Gastos también (Débito-Crédito): el resultado es Ingresos MENOS Costos/Gastos.
+        resultado_en_curso = sum(
+            saldo if account.account_type in TIPOS_INGRESO else -saldo
+            for account, saldo in saldo_resultado.items())
+
+        # La fila va dentro del grupo raíz de la cuenta Resultado del Ejercicio
+        # (Patrimonio); si no se puede determinar, queda al final.
+        cuenta = company.l10n_py_cuenta_resultado_ejercicio_id
+        if not cuenta:
+            cuenta = self.env['account.account'].search([
+                ('company_ids', 'in', company.id),
+                ('account_type', '=', 'equity_unaffected')], limit=1)
+        nivel, raiz = _info_grupo(cuenta.group_id) if cuenta else (0, self.env['account.group'])
+        fila = {
+            'code': '',
             'tipo': 'especial',
             'name': 'RESULTADO DEL EJERCICIO EN CURSO (no cerrado)',
-            'nivel': 2,
-            'nivel_1': '3',
+            'nivel': 2 if raiz else 1,
+            'raiz_id': raiz.id,
             'group_id': False,
             'account_id': False,
             'saldo': resultado_en_curso,
-        })
-        rows.sort(key=lambda n: n['code'])
+        }
+        posicion = len(rows)
+        if raiz:
+            indices = [i for i, r in enumerate(rows) if r['raiz_id'] == raiz.id]
+            if indices:
+                posicion = indices[-1] + 1
+        rows.insert(posicion, fila)
         return rows
 
     @api.model
@@ -215,15 +230,16 @@ class L10nPyBalanceGeneralReport(models.Model):
         self.search([]).unlink()
         rows = self._build_balance_general_rows(company, fecha)
         vals_list = []
-        for row in rows:
+        for orden, row in enumerate(rows):
             vals_list.append({
+                'orden': orden,
                 'company_id': company.id,
                 'fecha': fecha,
                 'code': row['code'],
                 'name': row['name'],
                 'tipo': row['tipo'],
                 'nivel': row['nivel'],
-                'nivel_1': row['nivel_1'],
+                'raiz_id': row['raiz_id'],
                 'group_id': row['group_id'],
                 'account_id': row['account_id'],
                 'saldo': row['saldo'],
