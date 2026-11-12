@@ -6,8 +6,8 @@
             <field name="inherit_id" ref="account.view_account_journal_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//notebook" position="inside">
-                    <page string="Chequeras" name="l10n_py_chequeras" invisible="type != 'bank'">
-                        <field name="l10n_py_chequera_ids">
+                    <page string="Chequeras" name="local_py_chequeras" invisible="type != 'bank'">
+                        <field name="local_py_chequera_ids">
                             <list editable="bottom">
                                 <field name="name"/>
                                 <field name="bank_id"/>

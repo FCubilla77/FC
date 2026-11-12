@@ -246,7 +246,7 @@ class TestLicenciaLocalPy(TransactionCase):
             'name': "Diario Timbrado Test", 'code': "TBTST", 'type': 'sale'})
         with self.assertRaises(UserError):
             diario.with_context(local_py_licencia_forzar_test=True).write(
-                {'l10n_py_timbrado': 12345678})
+                {'local_py_timbrado': 12345678})
 
     @skipIf(SIN_CONTROL, MOTIVO_SIN_CONTROL)
     def test_20_un_diario_comun_no_requiere_licencia(self):
@@ -262,7 +262,7 @@ class TestLicenciaLocalPy(TransactionCase):
 
     @skipIf(SIN_CONTROL, MOTIVO_SIN_CONTROL)
     def test_21_el_asistente_de_configuracion_requiere_licencia(self):
-        wizard = self.env['l10n_py.config_paraguay.wizard'].create({})
+        wizard = self.env['local_py.config_paraguay.wizard'].create({})
         with self.assertRaises(UserError):
             wizard.with_context(local_py_licencia_forzar_test=True).action_confirm()
 

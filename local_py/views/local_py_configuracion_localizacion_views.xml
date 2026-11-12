@@ -30,7 +30,7 @@
                                 </field>
                             </page>
                             <page string="Imputación Tributaria" name="imputacion_tributaria">
-                                <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags"/>
+                                <field name="local_py_imputacion_tributaria_ids" widget="many2many_tags"/>
                             </page>
                             <page string="Detalle Libro Inventario" name="libro_inventario_detalle">
                                 <field name="libro_inventario_detalle_ids">
@@ -44,45 +44,45 @@
                             </page>
                             <page string="Ajustes Generales" name="ajustes_generales">
                                 <group string="Inventario">
-                                    <field name="l10n_py_asiento_ajuste_inventario"/>
+                                    <field name="local_py_asiento_ajuste_inventario"/>
                                 </group>
                             </page>
                             <page string="Orden de Pago / Recibos" name="retenciones">
                                 <group string="Activación de Pagos">
-                                    <field name="l10n_py_pagos_proveedores_activo"/>
-                                    <field name="l10n_py_pagos_clientes_activo"/>
+                                    <field name="local_py_pagos_proveedores_activo"/>
+                                    <field name="local_py_pagos_clientes_activo"/>
                                 </group>
                                 <group>
                                     <group string="Retención IVA">
-                                        <field name="l10n_py_retencion_iva"/>
-                                        <field name="l10n_py_retencion_iva_porcentaje"
-                                               invisible="not l10n_py_retencion_iva"/>
-                                        <field name="l10n_py_retencion_iva_minimo"
-                                               invisible="not l10n_py_retencion_iva"/>
-                                        <field name="l10n_py_diario_retencion_iva_id"
-                                               invisible="not l10n_py_retencion_iva" options="{'no_create': True}"/>
-                                        <field name="l10n_py_concepto_iva_id"
-                                               invisible="not l10n_py_retencion_iva" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_gasto_absorcion_id"
-                                               invisible="not l10n_py_retencion_iva" options="{'no_create': True}"/>
+                                        <field name="local_py_retencion_iva"/>
+                                        <field name="local_py_retencion_iva_porcentaje"
+                                               invisible="not local_py_retencion_iva"/>
+                                        <field name="local_py_retencion_iva_minimo"
+                                               invisible="not local_py_retencion_iva"/>
+                                        <field name="local_py_diario_retencion_iva_id"
+                                               invisible="not local_py_retencion_iva" options="{'no_create': True}"/>
+                                        <field name="local_py_concepto_iva_id"
+                                               invisible="not local_py_retencion_iva" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_gasto_absorcion_id"
+                                               invisible="not local_py_retencion_iva" options="{'no_create': True}"/>
                                     </group>
                                     <group string="Retención Renta">
-                                        <field name="l10n_py_retencion_renta"/>
-                                        <field name="l10n_py_diario_retencion_renta_id"
-                                               invisible="not l10n_py_retencion_renta" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_gasto_absorcion_renta_id"
-                                               invisible="not l10n_py_retencion_renta" options="{'no_create': True}"/>
+                                        <field name="local_py_retencion_renta"/>
+                                        <field name="local_py_diario_retencion_renta_id"
+                                               invisible="not local_py_retencion_renta" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_gasto_absorcion_renta_id"
+                                               invisible="not local_py_retencion_renta" options="{'no_create': True}"/>
                                     </group>
                                     <group string="Recibo — Retenciones Recibidas">
-                                        <field name="l10n_py_diario_retencion_recibida_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_retencion_a_confirmar_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_retenciones_recibidas_iva_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_retenciones_recibidas_renta_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_retenciones_diferencia_id" options="{'no_create': True}"/>
+                                        <field name="local_py_diario_retencion_recibida_id" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_retencion_a_confirmar_id" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_retenciones_recibidas_iva_id" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_retenciones_recibidas_renta_id" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_retenciones_diferencia_id" options="{'no_create': True}"/>
                                     </group>
                                     <group string="Recibo — Cheques de Clientes">
-                                        <field name="l10n_py_diario_cheque_cliente_id" options="{'no_create': True}"/>
-                                        <field name="l10n_py_cuenta_cheques_rechazados_id" options="{'no_create': True}"/>
+                                        <field name="local_py_diario_cheque_cliente_id" options="{'no_create': True}"/>
+                                        <field name="local_py_cuenta_cheques_rechazados_id" options="{'no_create': True}"/>
                                     </group>
                                 </group>
                                 <field name="company_currency_id" invisible="1"/>
@@ -97,9 +97,9 @@
                                     </list>
                                 </field>
                                 <separator string="Conceptos Renta No Residente"
-                                           invisible="not l10n_py_retencion_renta"/>
+                                           invisible="not local_py_retencion_renta"/>
                                 <field name="concepto_renta_no_residente_ids"
-                                       invisible="not l10n_py_retencion_renta">
+                                       invisible="not local_py_retencion_renta">
                                     <list editable="bottom">
                                         <field name="codigo"/>
                                         <field name="name"/>

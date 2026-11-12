@@ -10,7 +10,7 @@
              El reporte "Plan de Cuentas" (listado jerárquico de Títulos e
              Imputables con filtro por Nivel 1, en Contabilidad > Reportes) lo
              provee el módulo l10n_py; local_py ya no lo duplica. -->
-        <menuitem id="menu_l10n_py_chart_of_accounts"
+        <menuitem id="menu_local_py_chart_of_accounts"
                   name="Plan de Cuentas (editar cuentas)"
                   parent="local_py.menu_local_py_datos_maestros"
                   action="account.action_account_form"

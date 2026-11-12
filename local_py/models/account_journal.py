@@ -16,11 +16,11 @@ TIMBRADO_MAX = 99999999
 # fiscal, pero el resto del diario — y la emisión de facturas con los diarios ya
 # configurados — sigue funcionando.
 CAMPOS_LICENCIA_TIMBRADO = (
-    'l10n_py_timbrado',
-    'l10n_py_nro_documento',
-    'l10n_py_nro_documento_final',
-    'l10n_py_venc_timbrado',
-    'l10n_py_inicio_vigencia_timbrado',
+    'local_py_timbrado',
+    'local_py_nro_documento',
+    'local_py_nro_documento_final',
+    'local_py_venc_timbrado',
+    'local_py_inicio_vigencia_timbrado',
     'local_py_tipo_fiscal_id',
 )
 
@@ -38,17 +38,17 @@ NRO_DOCUMENTO_FULL_PATTERN = re.compile(r'^(\d{3}-\d{3}-)(\d{7})$')
 class AccountJournal(models.Model):
     _inherit = 'account.journal'
 
-    l10n_py_timbrado = fields.Integer(
+    local_py_timbrado = fields.Integer(
         string='Timbrado',
         help='Número de timbrado asignado por la SET (hasta 8 dígitos, sin decimales, sin negativos). '
              'Aplica únicamente a diarios de venta.',
     )
-    l10n_py_chequera_ids = fields.One2many(
+    local_py_chequera_ids = fields.One2many(
         'local_py.chequera', 'diario_id', string='Chequeras',
         help='Chequeras asociadas a este Diario. Puede haber varias, pero solo una puede '
              'estar Activa a la vez.',
     )
-    l10n_py_nro_documento = fields.Char(
+    local_py_nro_documento = fields.Char(
         string='Nro. Documento',
         size=15,
         help='Número de documento/resolución, formato completo 999-999-9999999 '
@@ -58,7 +58,7 @@ class AccountJournal(models.Model):
              'bloqueado (no editable) — evita que el Establecimiento/Punto de '
              'Expedición cambie por debajo de documentos ya existentes.',
     )
-    l10n_py_nro_documento_final = fields.Char(
+    local_py_nro_documento_final = fields.Char(
         string='Nro. Documento Final',
         size=15,
         help='Último número del rango de este Timbrado, mismo formato y mismo '
@@ -66,19 +66,19 @@ class AccountJournal(models.Model):
              'Correlativo). El sistema bloquea la operación cuando la numeración llega '
              'a este límite — hay que habilitar otro Diario para continuar.',
     )
-    l10n_py_venc_timbrado = fields.Date(
+    local_py_venc_timbrado = fields.Date(
         string='Venc. Timbrado',
         help='Fecha de vencimiento del timbrado. Las facturas de venta con fecha posterior '
              'a esta no podrán guardarse. Aplica únicamente a diarios de venta.',
     )
-    l10n_py_inicio_vigencia_timbrado = fields.Date(
+    local_py_inicio_vigencia_timbrado = fields.Date(
         string='Inicio Vigencia Timbrado',
         help='Fecha desde la cual rige este Timbrado — dato exigido por la DNIT (Tesaka) '
              'para declarar comprobantes electrónicos. Aplica a diarios de venta y al '
              'Diario de Retención.',
     )
 
-    def l10n_py_get_punto_expedicion(self):
+    def local_py_get_punto_expedicion(self):
         """El Punto de Expedición no se guarda aparte — el formato oficial
         de la DNIT (999-999-9999999) ya lo trae incluido en Nro.
         Documento: dígitos 1-3 = Establecimiento, dígitos 5-7 = Punto de
@@ -86,7 +86,7 @@ class AccountJournal(models.Model):
         tanto para Facturas/Notas de Crédito/Débito/Remisión como para
         el Diario de Retención."""
         self.ensure_one()
-        nro = (self.l10n_py_nro_documento or '')
+        nro = (self.local_py_nro_documento or '')
         partes = nro.split('-')
         return partes[1] if len(partes) >= 2 else ''
 
@@ -102,14 +102,14 @@ class AccountJournal(models.Model):
     # sin importar en qué modelo termine viviendo, en vez de duplicarla).
     # ------------------------------------------------------------------
     @staticmethod
-    def _l10n_py_correlativo(value):
+    def _local_py_correlativo(value):
         """Extrae el Correlativo (últimos 7 dígitos) de un Nro. Documento en
         formato completo, como entero — o None si no tiene ese formato."""
         match = NRO_DOCUMENTO_FULL_PATTERN.match(value or '')
         return int(match.group(2)) if match else None
 
     @staticmethod
-    def _l10n_py_incrementar_nro_documento(value):
+    def _local_py_incrementar_nro_documento(value):
         """Incrementa en 1 solo el Correlativo (últimos 7 dígitos), manteniendo
         intacto el Establecimiento-Punto de Expedición."""
         match = NRO_DOCUMENTO_FULL_PATTERN.match(value or '')
@@ -118,7 +118,7 @@ class AccountJournal(models.Model):
         prefix, seq = match.groups()
         return '%s%07d' % (prefix, int(seq) + 1)
 
-    def l10n_py_correlativo_maximo_usado(self):
+    def local_py_correlativo_maximo_usado(self):
         """Correlativo más alto entre las Facturas/Notas de Crédito/Débito ya
         creadas en este Diario (cualquier estado, incluido Borrador, ya que el
         número se reserva desde que se crea el comprobante) — o None si
@@ -126,23 +126,23 @@ class AccountJournal(models.Model):
         self.ensure_one()
         ultimo_move = self.env['account.move'].search([
             ('journal_id', '=', self.id),
-            ('l10n_py_nro_documento', '!=', False),
+            ('local_py_nro_documento', '!=', False),
         ], order='id desc', limit=1)
-        return self._l10n_py_correlativo(ultimo_move.l10n_py_nro_documento) if ultimo_move else None
+        return self._local_py_correlativo(ultimo_move.local_py_nro_documento) if ultimo_move else None
 
-    def l10n_py_correlativo_maximo_registrado(self):
-        """Igual que l10n_py_correlativo_maximo_usado, pero además considera los
+    def local_py_correlativo_maximo_registrado(self):
+        """Igual que local_py_correlativo_maximo_usado, pero además considera los
         Documentos Anulados registrados para este Diario — usado para no poder
         bajar el Nro. Documento Final por debajo de ninguno de los dos."""
         self.ensure_one()
-        maximo = self.l10n_py_correlativo_maximo_usado()
+        maximo = self.local_py_correlativo_maximo_usado()
         anulados = self.env['local_py.documento_anulado'].search([('diario_id', '=', self.id)])
-        for correlativo in anulados.mapped(lambda a: self._l10n_py_correlativo(a.numero)):
+        for correlativo in anulados.mapped(lambda a: self._local_py_correlativo(a.numero)):
             if correlativo is not None and (maximo is None or correlativo > maximo):
                 maximo = correlativo
         return maximo
 
-    def l10n_py_siguiente_numero_disponible(self):
+    def local_py_siguiente_numero_disponible(self):
         """Calcula el próximo Nro. Documento a proponer para este Diario:
         parte del Correlativo siguiente al de la última Factura/NC/ND ya
         creada (o el Nro. Documento configurado, si todavía no hay ninguna),
@@ -151,11 +151,11 @@ class AccountJournal(models.Model):
         self.ensure_one()
         ultimo_move = self.env['account.move'].search([
             ('journal_id', '=', self.id),
-            ('l10n_py_nro_documento', '!=', False),
+            ('local_py_nro_documento', '!=', False),
         ], order='id desc', limit=1)
         candidato = (
-            self._l10n_py_incrementar_nro_documento(ultimo_move.l10n_py_nro_documento)
-            if ultimo_move else self.l10n_py_nro_documento
+            self._local_py_incrementar_nro_documento(ultimo_move.local_py_nro_documento)
+            if ultimo_move else self.local_py_nro_documento
         )
         if not candidato:
             return candidato
@@ -166,7 +166,7 @@ class AccountJournal(models.Model):
 
         intentos = 0
         while candidato in anulados:
-            candidato = self._l10n_py_incrementar_nro_documento(candidato)
+            candidato = self._local_py_incrementar_nro_documento(candidato)
             intentos += 1
             if intentos > 100000:
                 raise exceptions.UserError(
@@ -174,55 +174,55 @@ class AccountJournal(models.Model):
                     'Diario "%s" — revise los Documentos Anulados registrados.' % self.name
                 )
 
-        self._l10n_py_controlar_limite(candidato)
+        self._local_py_controlar_limite(candidato)
         return candidato
 
-    def _l10n_py_controlar_limite(self, candidato):
+    def _local_py_controlar_limite(self, candidato):
         self.ensure_one()
-        if not self.l10n_py_nro_documento_final or not candidato:
+        if not self.local_py_nro_documento_final or not candidato:
             return
-        correlativo_candidato = self._l10n_py_correlativo(candidato)
-        correlativo_final = self._l10n_py_correlativo(self.l10n_py_nro_documento_final)
+        correlativo_candidato = self._local_py_correlativo(candidato)
+        correlativo_final = self._local_py_correlativo(self.local_py_nro_documento_final)
         if correlativo_candidato is not None and correlativo_final is not None and correlativo_candidato > correlativo_final:
             raise exceptions.UserError(
                 'El Diario "%s" alcanzó su Nro. Documento Final (%s) — habilite otro '
                 'Diario para continuar facturando con este Tipo Fiscal.'
-                % (self.name, self.l10n_py_nro_documento_final)
+                % (self.name, self.local_py_nro_documento_final)
             )
 
-    def l10n_py_verificar_dentro_de_rango(self, numero):
+    def local_py_verificar_dentro_de_rango(self, numero):
         """Valida que 'numero' comparta Establecimiento-Punto de Expedición con
         este Diario y caiga dentro de [Nro. Documento, Nro. Documento Final] —
         usado por local_py.documento_anulado. Lanza ValidationError si no."""
         self.ensure_one()
-        if not self.l10n_py_nro_documento or not self.l10n_py_nro_documento_final:
+        if not self.local_py_nro_documento or not self.local_py_nro_documento_final:
             raise exceptions.ValidationError(
                 'El Diario "%s" no tiene configurado Nro. Documento y Nro. Documento '
                 'Final — complete esos datos antes de registrar Documentos Anulados '
                 'para este Diario.' % self.name
             )
-        correlativo = self._l10n_py_correlativo(numero)
+        correlativo = self._local_py_correlativo(numero)
         if correlativo is None:
             raise exceptions.ValidationError(
                 'El Número tiene que tener el formato completo 999-999-9999999.'
             )
-        if numero[:7] != self.l10n_py_nro_documento[:7]:
+        if numero[:7] != self.local_py_nro_documento[:7]:
             raise exceptions.ValidationError(
                 'El Número tiene que compartir el mismo Establecimiento y Punto de '
-                'Expedición que el Diario "%s" (%s).' % (self.name, self.l10n_py_nro_documento[:8])
+                'Expedición que el Diario "%s" (%s).' % (self.name, self.local_py_nro_documento[:8])
             )
-        correlativo_inicial = self._l10n_py_correlativo(self.l10n_py_nro_documento)
-        correlativo_final = self._l10n_py_correlativo(self.l10n_py_nro_documento_final)
+        correlativo_inicial = self._local_py_correlativo(self.local_py_nro_documento)
+        correlativo_final = self._local_py_correlativo(self.local_py_nro_documento_final)
         if not (correlativo_inicial <= correlativo <= correlativo_final):
             raise exceptions.ValidationError(
                 'El Número %s está fuera del rango configurado en el Diario "%s" (%s a %s).'
-                % (numero, self.name, self.l10n_py_nro_documento, self.l10n_py_nro_documento_final)
+                % (numero, self.name, self.local_py_nro_documento, self.local_py_nro_documento_final)
             )
 
-    def _l10n_py_tiene_documentos_registrados(self):
+    def _local_py_tiene_documentos_registrados(self):
         self.ensure_one()
         if self.env['account.move'].search_count([
-            ('journal_id', '=', self.id), ('l10n_py_nro_documento', '!=', False),
+            ('journal_id', '=', self.id), ('local_py_nro_documento', '!=', False),
         ]):
             return True
         return bool(self.env['local_py.documento_anulado'].search_count([('diario_id', '=', self.id)]))
@@ -244,20 +244,20 @@ class AccountJournal(models.Model):
         if any(campo in vals for campo in CAMPOS_LICENCIA_TIMBRADO):
             for company in self.mapped('company_id') or self.env.company:
                 local_py_licencia_verificar(self.env, company)
-        if 'l10n_py_nro_documento' in vals:
+        if 'local_py_nro_documento' in vals:
             for journal in self:
-                if vals['l10n_py_nro_documento'] != journal.l10n_py_nro_documento \
-                        and journal._l10n_py_tiene_documentos_registrados():
+                if vals['local_py_nro_documento'] != journal.local_py_nro_documento \
+                        and journal._local_py_tiene_documentos_registrados():
                     raise exceptions.UserError(
                         'No se puede modificar el Nro. Documento del Diario "%s": ya tiene '
                         'Facturas/Notas de Crédito/Débito o Documentos Anulados '
                         'registrados.' % journal.name
                     )
-        if 'l10n_py_nro_documento_final' in vals and vals['l10n_py_nro_documento_final']:
-            nuevo_correlativo = self._l10n_py_correlativo(vals['l10n_py_nro_documento_final'])
+        if 'local_py_nro_documento_final' in vals and vals['local_py_nro_documento_final']:
+            nuevo_correlativo = self._local_py_correlativo(vals['local_py_nro_documento_final'])
             if nuevo_correlativo is not None:
                 for journal in self:
-                    tope = journal.l10n_py_correlativo_maximo_registrado()
+                    tope = journal.local_py_correlativo_maximo_registrado()
                     if tope is not None and nuevo_correlativo < tope:
                         raise exceptions.UserError(
                             'No se puede bajar el Nro. Documento Final del Diario "%s" por '
@@ -269,80 +269,80 @@ class AccountJournal(models.Model):
     # ------------------------------------------------------------------
     # Validaciones
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado')
-    def _check_l10n_py_timbrado(self):
+    @api.constrains('local_py_timbrado')
+    def _check_local_py_timbrado(self):
         for journal in self:
-            if journal.l10n_py_timbrado and journal.l10n_py_timbrado < 0:
+            if journal.local_py_timbrado and journal.local_py_timbrado < 0:
                 raise exceptions.ValidationError(
                     'El campo Timbrado no admite valores negativos.'
                 )
-            if journal.l10n_py_timbrado and journal.l10n_py_timbrado > TIMBRADO_MAX:
+            if journal.local_py_timbrado and journal.local_py_timbrado > TIMBRADO_MAX:
                 raise exceptions.ValidationError(
                     'El campo Timbrado admite un máximo de 8 dígitos.'
                 )
 
-    @api.constrains('l10n_py_nro_documento')
-    def _check_l10n_py_nro_documento(self):
+    @api.constrains('local_py_nro_documento')
+    def _check_local_py_nro_documento(self):
         for journal in self:
-            if journal.l10n_py_nro_documento and not NRO_DOCUMENTO_PATTERN.match(journal.l10n_py_nro_documento):
+            if journal.local_py_nro_documento and not NRO_DOCUMENTO_PATTERN.match(journal.local_py_nro_documento):
                 raise exceptions.ValidationError(
                     'El campo Nro. Documento solo admite números y el carácter "-".'
                 )
 
-    @api.constrains('l10n_py_nro_documento', 'l10n_py_nro_documento_final')
-    def _check_l10n_py_nro_documento_formato_completo(self):
+    @api.constrains('local_py_nro_documento', 'local_py_nro_documento_final')
+    def _check_local_py_nro_documento_formato_completo(self):
         for journal in self:
-            if journal.l10n_py_nro_documento and not NRO_DOCUMENTO_FULL_PATTERN.match(journal.l10n_py_nro_documento):
+            if journal.local_py_nro_documento and not NRO_DOCUMENTO_FULL_PATTERN.match(journal.local_py_nro_documento):
                 raise exceptions.ValidationError(
                     'El campo Nro. Documento tiene que tener el formato completo '
                     '999-999-9999999 (Establecimiento-Punto de Expedición-Correlativo).'
                 )
-            if journal.l10n_py_nro_documento_final and not NRO_DOCUMENTO_FULL_PATTERN.match(journal.l10n_py_nro_documento_final):
+            if journal.local_py_nro_documento_final and not NRO_DOCUMENTO_FULL_PATTERN.match(journal.local_py_nro_documento_final):
                 raise exceptions.ValidationError(
                     'El campo Nro. Documento Final tiene que tener el formato completo '
                     '999-999-9999999 (Establecimiento-Punto de Expedición-Correlativo).'
                 )
 
-    @api.constrains('l10n_py_nro_documento', 'l10n_py_nro_documento_final')
-    def _check_l10n_py_nro_documento_final_coherente(self):
+    @api.constrains('local_py_nro_documento', 'local_py_nro_documento_final')
+    def _check_local_py_nro_documento_final_coherente(self):
         for journal in self:
-            if journal.l10n_py_nro_documento_final:
-                if not journal.l10n_py_nro_documento:
+            if journal.local_py_nro_documento_final:
+                if not journal.local_py_nro_documento:
                     raise exceptions.ValidationError(
                         'No se puede cargar Nro. Documento Final sin haber cargado antes '
                         'Nro. Documento.'
                     )
-                if journal.l10n_py_nro_documento[:7] != journal.l10n_py_nro_documento_final[:7]:
+                if journal.local_py_nro_documento[:7] != journal.local_py_nro_documento_final[:7]:
                     raise exceptions.ValidationError(
                         'Nro. Documento y Nro. Documento Final tienen que compartir el mismo '
                         'Establecimiento y Punto de Expedición (los primeros 6 dígitos).'
                     )
-                correlativo_inicial = journal._l10n_py_correlativo(journal.l10n_py_nro_documento)
-                correlativo_final = journal._l10n_py_correlativo(journal.l10n_py_nro_documento_final)
+                correlativo_inicial = journal._local_py_correlativo(journal.local_py_nro_documento)
+                correlativo_final = journal._local_py_correlativo(journal.local_py_nro_documento_final)
                 if correlativo_inicial is not None and correlativo_final is not None \
                         and correlativo_final < correlativo_inicial:
                     raise exceptions.ValidationError(
                         'Nro. Documento Final tiene que ser mayor o igual a Nro. Documento.'
                     )
 
-    @api.constrains('type', 'local_py_tipo_fiscal_id', 'l10n_py_timbrado', 'l10n_py_nro_documento',
-                     'l10n_py_nro_documento_final', 'l10n_py_venc_timbrado', 'l10n_py_inicio_vigencia_timbrado')
-    def _check_l10n_py_configuracion_completa(self):
+    @api.constrains('type', 'local_py_tipo_fiscal_id', 'local_py_timbrado', 'local_py_nro_documento',
+                     'local_py_nro_documento_final', 'local_py_venc_timbrado', 'local_py_inicio_vigencia_timbrado')
+    def _check_local_py_configuracion_completa(self):
         """Con Tipo Fiscal configurado en un Diario de venta, no puede quedar
         ningún otro dato de la numeración sin completar — evita quedar a
         mitad de configurar (ej. con Nro. Documento pero sin Timbrado)."""
         for journal in self:
             if journal.type == 'sale' and journal.local_py_tipo_fiscal_id:
                 faltantes = []
-                if not journal.l10n_py_timbrado:
+                if not journal.local_py_timbrado:
                     faltantes.append('Timbrado')
-                if not journal.l10n_py_nro_documento:
+                if not journal.local_py_nro_documento:
                     faltantes.append('Nro. Documento')
-                if not journal.l10n_py_nro_documento_final:
+                if not journal.local_py_nro_documento_final:
                     faltantes.append('Nro. Documento Final')
-                if not journal.l10n_py_venc_timbrado:
+                if not journal.local_py_venc_timbrado:
                     faltantes.append('Venc. Timbrado')
-                if not journal.l10n_py_inicio_vigencia_timbrado:
+                if not journal.local_py_inicio_vigencia_timbrado:
                     faltantes.append('Inicio Vigencia Timbrado')
                 if faltantes:
                     raise exceptions.ValidationError(
@@ -350,14 +350,14 @@ class AccountJournal(models.Model):
                         'también: %s.' % ', '.join(faltantes)
                     )
 
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'l10n_py_venc_timbrado', 'l10n_py_nro_documento_final', 'type')
-    def _check_l10n_py_only_sale_journal(self):
+    @api.constrains('local_py_timbrado', 'local_py_nro_documento', 'local_py_venc_timbrado', 'local_py_nro_documento_final', 'type')
+    def _check_local_py_only_sale_journal(self):
         for journal in self:
             if journal.type not in ('sale', 'general') and (
-                journal.l10n_py_timbrado
-                or journal.l10n_py_nro_documento
-                or journal.l10n_py_venc_timbrado
-                or journal.l10n_py_nro_documento_final
+                journal.local_py_timbrado
+                or journal.local_py_nro_documento
+                or journal.local_py_venc_timbrado
+                or journal.local_py_nro_documento_final
             ):
                 raise exceptions.ValidationError(
                     'Los campos Timbrado, Nro. Documento, Nro. Documento Final y Venc. '
@@ -373,8 +373,8 @@ class AccountJournal(models.Model):
                     'El campo Tipo Fiscal solo aplica a diarios de venta y de compra.'
                 )
 
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id', 'type')
-    def _check_l10n_py_unique_timbrado_per_tipo_fiscal(self):
+    @api.constrains('local_py_timbrado', 'local_py_nro_documento', 'local_py_tipo_fiscal_id', 'type')
+    def _check_local_py_unique_timbrado_per_tipo_fiscal(self):
         """No pueden existir dos diarios de venta con el mismo Tipo Fiscal que
         compartan el mismo Timbrado y Nro. Documento. Al comparar siempre
         contra el mismo Tipo Fiscal, la validación queda naturalmente separada
@@ -384,15 +384,15 @@ class AccountJournal(models.Model):
             if (
                 journal.type == 'sale'
                 and journal.local_py_tipo_fiscal_id
-                and journal.l10n_py_timbrado
-                and journal.l10n_py_nro_documento
+                and journal.local_py_timbrado
+                and journal.local_py_nro_documento
             ):
                 domain = [
                     ('id', '!=', journal.id),
                     ('type', '=', 'sale'),
                     ('local_py_tipo_fiscal_id', '=', journal.local_py_tipo_fiscal_id.id),
-                    ('l10n_py_timbrado', '=', journal.l10n_py_timbrado),
-                    ('l10n_py_nro_documento', '=', journal.l10n_py_nro_documento),
+                    ('local_py_timbrado', '=', journal.local_py_timbrado),
+                    ('local_py_nro_documento', '=', journal.local_py_nro_documento),
                     ('company_id', '=', journal.company_id.id),
                 ]
                 if self.search_count(domain):

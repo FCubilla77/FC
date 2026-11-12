@@ -11,7 +11,7 @@ class LocalPyOrdenPagoFactura(models.Model):
     def _compute_display_name(self):
         for linea in self:
             linea.display_name = (
-                linea.move_line_id.move_id.l10n_py_nro_documento
+                linea.move_line_id.move_id.local_py_nro_documento
                 or linea.move_line_id.move_id.name
                 or ''
             )
@@ -25,7 +25,7 @@ class LocalPyOrdenPagoFactura(models.Model):
              'factura con varios vencimientos tiene una línea por cada cuota).',
     )
     move_id = fields.Many2one(related='move_line_id.move_id', string='Factura')
-    nro_documento_factura = fields.Char(related='move_id.l10n_py_nro_documento', string='Nro. Documento')
+    nro_documento_factura = fields.Char(related='move_id.local_py_nro_documento', string='Nro. Documento')
     fecha_factura = fields.Date(related='move_id.invoice_date', string='Fecha Factura')
     cuota = fields.Char(
         related='move_line_id.name', string='Cuota',
@@ -257,7 +257,7 @@ class LocalPyOrdenPagoFactura(models.Model):
         es_orden_retencion = self.orden_pago_id.es_orden_retencion
         importe_factura = self.total_original if es_orden_retencion else self.importe_a_pagar
         linea = self.move_line_id
-        importe_pendiente_factura = max(0.0, importe_factura - linea.l10n_py_renta_importe_cubierto)
+        importe_pendiente_factura = max(0.0, importe_factura - linea.local_py_renta_importe_cubierto)
         importe_header = self.header_currency_id.round(importe_pendiente_factura * (self.cotizacion or 0.0))
         base_header = self.header_currency_id.round(importe_header * (concepto.porcentaje_imputacion / 100.0))
         monto_header = self.header_currency_id.round(base_header * (concepto.porcentaje / 100.0))
@@ -317,8 +317,8 @@ class LocalPyOrdenPagoFactura(models.Model):
 
         resultado = {}
         for tasa, iva_tasa, cubierto in (
-            ('5', iva_5, linea.l10n_py_iva_5_cubierto),
-            ('10', iva_10, linea.l10n_py_iva_10_cubierto),
+            ('5', iva_5, linea.local_py_iva_5_cubierto),
+            ('10', iva_10, linea.local_py_iva_10_cubierto),
         ):
             iva_prop = iva_tasa * proporcion
             iva_pendiente_factura = max(0.0, iva_prop - cubierto)

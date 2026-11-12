@@ -38,7 +38,7 @@ class LocalPyReciboMedio(models.Model):
                 [('company_id', '=', medio.company_id.id)], limit=1,
             )
             medio.es_cheque = bool(
-                config and medio.journal_id and medio.journal_id == config.l10n_py_diario_cheque_cliente_id
+                config and medio.journal_id and medio.journal_id == config.local_py_diario_cheque_cliente_id
             )
 
     # Documento — genérico: se muestra siempre para cualquier tipo de fila (Efectivo,
@@ -58,19 +58,19 @@ class LocalPyReciboMedio(models.Model):
     # Saldo a Favor
     saldo_favor_payment_id = fields.Many2one(
         'account.payment', string='Saldo a Favor',
-        domain="[('l10n_py_es_saldo_favor', '=', True), ('partner_id', '=', recibo_partner_id),"
-               " ('l10n_py_saldo_favor_disponible', '>', 0), ('currency_id', '=', currency_id)]",
+        domain="[('local_py_es_saldo_favor', '=', True), ('partner_id', '=', recibo_partner_id),"
+               " ('local_py_saldo_favor_disponible', '>', 0), ('currency_id', '=', currency_id)]",
         help='Un Cobro de un Recibo anterior que quedó con un sobrante sin conciliar '
              '(Saldo a Favor de este mismo Cliente) — se puede reutilizar acá, total o '
              'parcialmente, en vez de generar un Cobro nuevo.',
     )
     saldo_favor_disponible = fields.Monetary(
-        related='saldo_favor_payment_id.l10n_py_saldo_favor_disponible', string='Disponible',
+        related='saldo_favor_payment_id.local_py_saldo_favor_disponible', string='Disponible',
         currency_field='currency_id',
     )
 
     payment_ids = fields.One2many(
-        'account.payment', 'l10n_py_recibo_medio_id', string='Cobros',
+        'account.payment', 'local_py_recibo_medio_id', string='Cobros',
     )
     documentos_relacionados = fields.Char(
         string='Doc. relacionados', compute='_compute_documentos_relacionados',
@@ -95,10 +95,10 @@ class LocalPyReciboMedio(models.Model):
     @api.constrains('importe', 'saldo_favor_payment_id')
     def _check_saldo_favor_alcanza(self):
         for medio in self:
-            if medio.saldo_favor_payment_id and medio.importe > medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible:
+            if medio.saldo_favor_payment_id and medio.importe > medio.saldo_favor_payment_id.local_py_saldo_favor_disponible:
                 raise ValidationError(
                     'El Importe cargado (%s) supera el Saldo a Favor disponible de ese Cobro (%s).'
-                    % (medio.importe, medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible)
+                    % (medio.importe, medio.saldo_favor_payment_id.local_py_saldo_favor_disponible)
                 )
 
     @api.constrains('journal_id', 'cheque_numero', 'cheque_banco_id', 'cheque_fecha_emision',
@@ -126,7 +126,7 @@ class LocalPyReciboMedio(models.Model):
         for medio in self:
             if medio.saldo_favor_payment_id:
                 medio.journal_id = False
-                medio.importe = medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible
+                medio.importe = medio.saldo_favor_payment_id.local_py_saldo_favor_disponible
 
     @api.onchange('journal_id')
     def _onchange_journal_id(self):

@@ -52,5 +52,5 @@ class LocalPyRetencionAnularWizard(models.TransientModel):
                     'estado': 'anulada',
                     'fecha_anulacion': fields.Date.context_today(self),
                 })
-                orden.with_context(l10n_py_forzar_anulacion_retenciones=True).action_deshacer_confirmacion()
+                orden.with_context(local_py_forzar_anulacion_retenciones=True).action_deshacer_confirmacion()
         return {'type': 'ir.actions.act_window_close'}

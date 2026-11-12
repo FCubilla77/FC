@@ -26,11 +26,11 @@
             <field name="arch" type="xml">
                 <list string="Libro Diario" create="false" edit="false"
                       default_order="date asc, move_id asc">
-                    <field name="l10n_py_nro_asiento_libro" string="Nro. Asiento"/>
+                    <field name="local_py_nro_asiento_libro" string="Nro. Asiento"/>
                     <field name="date" string="Fecha"/>
                     <field name="account_id" string="Cuenta"/>
                     <field name="name" string="Concepto"/>
-                    <field name="l10n_py_comentario" string="Comentario"/>
+                    <field name="local_py_comentario" string="Comentario"/>
                     <field name="debit" string="Débito" sum="Total Débito"/>
                     <field name="credit" string="Crédito" sum="Total Crédito"/>
                 </list>
@@ -44,9 +44,9 @@
                 <list string="Libro Mayor" create="false" edit="false"
                       default_order="account_id asc, date asc, move_id asc">
                     <field name="account_id" string="Cuenta"/>
-                    <field name="l10n_py_nro_asiento_libro" string="Nro. Asiento"/>
+                    <field name="local_py_nro_asiento_libro" string="Nro. Asiento"/>
                     <field name="date" string="Fecha"/>
-                    <field name="l10n_py_comentario" string="Comentario"/>
+                    <field name="local_py_comentario" string="Comentario"/>
                     <field name="debit" string="Débito" sum="Total Débito"/>
                     <field name="credit" string="Crédito" sum="Total Crédito"/>
                 </list>

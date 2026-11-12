@@ -6,8 +6,8 @@ from odoo.addons.local_py.hooks import configure_paraguay
 from odoo.addons.local_py.models.local_py_licencia import local_py_licencia_verificar
 
 
-class L10nPyConfigParaguayWizard(models.TransientModel):
-    _name = 'l10n_py.config_paraguay.wizard'
+class LocalPyConfigParaguayWizard(models.TransientModel):
+    _name = 'local_py.config_paraguay.wizard'
     _description = 'Restablecer configuración predeterminada Paraguay'
 
     def action_confirm(self):

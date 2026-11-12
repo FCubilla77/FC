@@ -11,7 +11,7 @@ class LocalPyReciboFactura(models.Model):
     def _compute_display_name(self):
         for linea in self:
             linea.display_name = (
-                linea.move_line_id.move_id.l10n_py_nro_documento
+                linea.move_line_id.move_id.local_py_nro_documento
                 or linea.move_line_id.move_id.name
                 or ''
             )
@@ -24,7 +24,7 @@ class LocalPyReciboFactura(models.Model):
              'cuota).',
     )
     move_id = fields.Many2one(related='move_line_id.move_id', string='Factura')
-    nro_documento_factura = fields.Char(related='move_id.l10n_py_nro_documento', string='Nro. Documento')
+    nro_documento_factura = fields.Char(related='move_id.local_py_nro_documento', string='Nro. Documento')
     fecha_factura = fields.Date(related='move_id.invoice_date', string='Fecha Factura')
     cuota = fields.Char(related='move_line_id.name', string='Cuota')
     fecha_vencimiento = fields.Date(related='move_line_id.date_maturity', string='Vencimiento')

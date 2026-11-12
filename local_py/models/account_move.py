@@ -24,13 +24,13 @@ REQUIRED_FISCAL_MOVE_TYPES = SALE_MOVE_TYPES + PURCHASE_MOVE_TYPES
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    l10n_py_timbrado = fields.Integer(
+    local_py_timbrado = fields.Integer(
         string='Timbrado',
         copy=False,
         help='En factura/nota de crédito de venta se completa automáticamente desde el diario. '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
-    l10n_py_nro_documento = fields.Char(
+    local_py_nro_documento = fields.Char(
         string='Nro. Documento',
         size=15,
         copy=False,
@@ -38,7 +38,7 @@ class AccountMove(models.Model):
              'número utilizado para el diario (formato 001-001-0000001). '
              'En factura/nota de crédito de proveedor se carga manualmente.',
     )
-    l10n_py_cdc = fields.Char(
+    local_py_cdc = fields.Char(
         string='CDC',
         size=44,
         copy=False,
@@ -56,20 +56,20 @@ class AccountMove(models.Model):
              'En factura/nota de crédito de proveedor se selecciona manualmente.',
     )
     # Campo auxiliar de solo lectura, usado en el reporte Libro Ventas.
-    l10n_py_partner_vat = fields.Char(
+    local_py_partner_vat = fields.Char(
         string='RUT del cliente',
         related='partner_id.vat',
         store=False,
     )
 
-    l10n_py_imputacion_tributaria_ids = fields.Many2many(
+    local_py_imputacion_tributaria_ids = fields.Many2many(
         'local_py.imputacion_tributaria',
         string='Imputación Tributaria',
         help='A qué obligación(es) tributaria(s) se imputa este comprobante '
              '(IVA, IRE, IRP-RSP). "No Imputa" no puede combinarse con las '
              'otras opciones.',
     )
-    l10n_py_concepto_renta_no_residente_id = fields.Many2one(
+    local_py_concepto_renta_no_residente_id = fields.Many2one(
         'local_py.concepto_renta_no_residente', string='Concepto Renta No Residente',
         help='Determina cómo se calcula la Retención Renta (INR) de esta Factura, si el '
              'Proveedor es del exterior. Se copia solo del Concepto Predeterminado '
@@ -78,8 +78,8 @@ class AccountMove(models.Model):
              'ejemplo, servicios profesionales en una factura y servicios digitales '
              'en otra).',
     )
-    l10n_py_mostrar_concepto_renta_nr = fields.Boolean(
-        compute='_compute_l10n_py_mostrar_concepto_renta_nr',
+    local_py_mostrar_concepto_renta_nr = fields.Boolean(
+        compute='_compute_local_py_mostrar_concepto_renta_nr',
         help='Determina si corresponde mostrar el campo "Concepto Renta No Residente" '
              '— solo para Proveedores del exterior: País distinto de Paraguay, Tipo de '
              'Identificación Fiscal = "Identificación Tributaria", y con al menos un '
@@ -87,37 +87,37 @@ class AccountMove(models.Model):
     )
 
     @api.depends(
-        'partner_id', 'partner_id.country_id', 'partner_id.l10n_py_tipo_identificacion_fiscal_id',
-        'partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id',
+        'partner_id', 'partner_id.country_id', 'partner_id.local_py_tipo_identificacion_fiscal_id',
+        'partner_id.local_py_concepto_renta_no_residente_predeterminado_id',
     )
-    def _compute_l10n_py_mostrar_concepto_renta_nr(self):
+    def _compute_local_py_mostrar_concepto_renta_nr(self):
         tipo_tributaria = self.env.ref('local_py.tipo_identificacion_tributaria', raise_if_not_found=False)
         paraguay = self.env.ref('base.py', raise_if_not_found=False)
         for move in self:
             partner = move.partner_id
-            move.l10n_py_mostrar_concepto_renta_nr = bool(
+            move.local_py_mostrar_concepto_renta_nr = bool(
                 partner and tipo_tributaria and paraguay
-                and partner.l10n_py_tipo_identificacion_fiscal_id == tipo_tributaria
+                and partner.local_py_tipo_identificacion_fiscal_id == tipo_tributaria
                 and partner.country_id and partner.country_id != paraguay
-                and partner.l10n_py_concepto_renta_no_residente_predeterminado_id
+                and partner.local_py_concepto_renta_no_residente_predeterminado_id
             )
 
     # El campo nativo reversed_entry_id es readonly=True a nivel de modelo
     # (Odoo lo llena automáticamente solo desde el asistente "Añadir Nota de
     # Crédito"). Se libera acá para que, cuando la Nota de Crédito se cree
     # directamente desde cero (sin ese asistente), el usuario pueda
-    # completarlo a mano — ver _check_l10n_py_comprobante_asociado más abajo,
+    # completarlo a mano — ver _check_local_py_comprobante_asociado más abajo,
     # que lo exige antes de poder confirmar.
     reversed_entry_id = fields.Many2one(readonly=False)
 
-    l10n_py_nro_documento_asociado = fields.Char(
+    local_py_nro_documento_asociado = fields.Char(
         string='Nro. Documento Comprobante Asociado',
-        related='reversed_entry_id.l10n_py_nro_documento',
+        related='reversed_entry_id.local_py_nro_documento',
         readonly=True,
         store=False,
     )
 
-    l10n_py_cdc_asociado = fields.Char(
+    local_py_cdc_asociado = fields.Char(
         string='CDC del Comprobante Asociado',
         size=44,
         copy=False,
@@ -130,7 +130,7 @@ class AccountMove(models.Model):
              '"Nro. Documento Comprobante Asociado", este campo se almacena.',
     )
 
-    l10n_py_nro_fiscal = fields.Integer(
+    local_py_nro_fiscal = fields.Integer(
         string='Nro. Fiscal',
         copy=False,
         readonly=True,
@@ -140,9 +140,9 @@ class AccountMove(models.Model):
              '"Limpiar numeración" de la Configuración de Localización).',
     )
 
-    l10n_py_nro_fiscal_asignado = fields.Boolean(
+    local_py_nro_fiscal_asignado = fields.Boolean(
         string='Nro. Fiscal Asignado',
-        compute='_compute_l10n_py_nro_fiscal_asignado',
+        compute='_compute_local_py_nro_fiscal_asignado',
         store=True,
         help='Campo técnico de uso interno (no se muestra en pantalla). Sirve para que, '
              'al ordenar por "Nro. Fiscal" en el reporte "Asientos Fiscales", los asientos '
@@ -150,14 +150,14 @@ class AccountMove(models.Model):
              'ordena ascendente o descendente.',
     )
 
-    @api.depends('l10n_py_nro_fiscal')
-    def _compute_l10n_py_nro_fiscal_asignado(self):
+    @api.depends('local_py_nro_fiscal')
+    def _compute_local_py_nro_fiscal_asignado(self):
         for move in self:
-            move.l10n_py_nro_fiscal_asignado = bool(move.l10n_py_nro_fiscal)
+            move.local_py_nro_fiscal_asignado = bool(move.local_py_nro_fiscal)
 
-    l10n_py_nro_fiscal_display = fields.Integer(
+    local_py_nro_fiscal_display = fields.Integer(
         string='Nro. Fiscal',
-        compute='_compute_l10n_py_nro_fiscal_display',
+        compute='_compute_local_py_nro_fiscal_display',
         store=False,
         help='Copia de solo lectura de "Nro. Fiscal", usada como columna en los '
              'reportes de Localización Paraguay. Al no estar almacenada en la base '
@@ -166,14 +166,14 @@ class AccountMove(models.Model):
              'primero, sin numerar al final), sin que un clic accidental lo altere.',
     )
 
-    @api.depends('l10n_py_nro_fiscal')
-    def _compute_l10n_py_nro_fiscal_display(self):
+    @api.depends('local_py_nro_fiscal')
+    def _compute_local_py_nro_fiscal_display(self):
         for move in self:
-            move.l10n_py_nro_fiscal_display = move.l10n_py_nro_fiscal
+            move.local_py_nro_fiscal_display = move.local_py_nro_fiscal
 
-    l10n_py_nro_asiento_libro = fields.Char(
+    local_py_nro_asiento_libro = fields.Char(
         string='Nro. Asiento',
-        compute='_compute_l10n_py_nro_asiento_libro',
+        compute='_compute_local_py_nro_asiento_libro',
         store=False,
         help='Para Libro Diario/Libro Mayor: usa "Nro. Fiscal" si ya fue asignado; si '
              'todavía no, muestra el identificador interno de Odoo como referencia '
@@ -181,12 +181,12 @@ class AccountMove(models.Model):
              'exige que todo el rango ya tenga Nro. Fiscal asignado).',
     )
 
-    @api.depends('l10n_py_nro_fiscal')
-    def _compute_l10n_py_nro_asiento_libro(self):
+    @api.depends('local_py_nro_fiscal')
+    def _compute_local_py_nro_asiento_libro(self):
         for move in self:
-            move.l10n_py_nro_asiento_libro = str(move.l10n_py_nro_fiscal or move.id)
+            move.local_py_nro_asiento_libro = str(move.local_py_nro_fiscal or move.id)
 
-    l10n_py_comentario = fields.Char(
+    local_py_comentario = fields.Char(
         string='Comentario',
         copy=False,
         help='Para Facturas, Notas de Crédito y Pagos se autocompleta al confirmar '
@@ -196,23 +196,23 @@ class AccountMove(models.Model):
              'editar después. Se usa en informes contable-fiscales (ej. Libro Diario).',
     )
 
-    l10n_py_ajuste_inventario_quant_id = fields.Many2one(
+    local_py_ajuste_inventario_quant_id = fields.Many2one(
         'stock.quant', string='Ajuste de Inventario Físico origen',
-        compute='_compute_l10n_py_ajuste_inventario_quant_id',
+        compute='_compute_local_py_ajuste_inventario_quant_id',
         help='Si este asiento fue generado automáticamente por un Ajuste de '
              'Inventario Físico, aquí queda la referencia de vuelta a ese registro.',
     )
 
-    def _compute_l10n_py_ajuste_inventario_quant_id(self):
+    def _compute_local_py_ajuste_inventario_quant_id(self):
         Quant = self.env['stock.quant'].sudo()
         for move in self:
-            move.l10n_py_ajuste_inventario_quant_id = Quant.search(
-                [('l10n_py_asiento_ajuste_id', '=', move.id)], limit=1
+            move.local_py_ajuste_inventario_quant_id = Quant.search(
+                [('local_py_asiento_ajuste_id', '=', move.id)], limit=1
             )
 
-    def action_l10n_py_ver_ajuste_inventario(self):
+    def action_local_py_ver_ajuste_inventario(self):
         self.ensure_one()
-        quant = self.l10n_py_ajuste_inventario_quant_id
+        quant = self.local_py_ajuste_inventario_quant_id
         if not quant:
             return False
         return {
@@ -224,22 +224,22 @@ class AccountMove(models.Model):
             'views': [(False, 'form')],
         }
 
-    l10n_py_orden_pago_id = fields.Many2one(
+    local_py_orden_pago_id = fields.Many2one(
         'local_py.orden_pago', string='Orden de Pago origen',
-        compute='_compute_l10n_py_orden_pago_id',
+        compute='_compute_local_py_orden_pago_id',
         help='Si este asiento proviene de un pago generado por una Orden de Pago, aquí '
              'queda la referencia de vuelta a esa Orden de Pago.',
     )
 
-    def _compute_l10n_py_orden_pago_id(self):
+    def _compute_local_py_orden_pago_id(self):
         Payment = self.env['account.payment'].sudo()
         for move in self:
             payment = Payment.search([('move_id', '=', move.id)], limit=1)
-            move.l10n_py_orden_pago_id = payment.l10n_py_orden_pago_id
+            move.local_py_orden_pago_id = payment.local_py_orden_pago_id
 
-    def action_l10n_py_ver_orden_pago(self):
+    def action_local_py_ver_orden_pago(self):
         self.ensure_one()
-        orden = self.l10n_py_orden_pago_id
+        orden = self.local_py_orden_pago_id
         if not orden:
             return False
         return {
@@ -251,18 +251,18 @@ class AccountMove(models.Model):
             'views': [(False, 'form')],
         }
 
-    def _l10n_py_build_comentario(self):
+    def _local_py_build_comentario(self):
         self.ensure_one()
         partner_name = (self.partner_id.name or '').strip()
 
         if self.move_type == 'out_invoice':
-            return ('Factura cliente %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+            return ('Factura cliente %s %s' % (partner_name, self.local_py_nro_documento or '')).strip()
         if self.move_type == 'out_refund':
-            return ('Nota de Credito cliente %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+            return ('Nota de Credito cliente %s %s' % (partner_name, self.local_py_nro_documento or '')).strip()
         if self.move_type == 'in_invoice':
-            return ('Factura proveedor %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+            return ('Factura proveedor %s %s' % (partner_name, self.local_py_nro_documento or '')).strip()
         if self.move_type == 'in_refund':
-            return ('Nota de Credito proveedor %s %s' % (partner_name, self.l10n_py_nro_documento or '')).strip()
+            return ('Nota de Credito proveedor %s %s' % (partner_name, self.local_py_nro_documento or '')).strip()
 
         if self.origin_payment_id:
             etiqueta = 'Pago cliente' if self.origin_payment_id.partner_type == 'customer' else 'Pago proveedor'
@@ -287,53 +287,53 @@ class AccountMove(models.Model):
     def _post(self, soft=True):
         posted = super()._post(soft=soft)
         for move in posted:
-            if not move.l10n_py_comentario:
-                comentario = move._l10n_py_build_comentario()
+            if not move.local_py_comentario:
+                comentario = move._local_py_build_comentario()
                 if comentario:
-                    move.l10n_py_comentario = comentario
+                    move.local_py_comentario = comentario
         return posted
 
     def write(self, vals):
-        if 'l10n_py_nro_fiscal' in vals and not self.env.context.get('l10n_py_allow_nro_fiscal_write'):
+        if 'local_py_nro_fiscal' in vals and not self.env.context.get('local_py_allow_nro_fiscal_write'):
             for move in self:
-                if move.l10n_py_nro_fiscal and move.l10n_py_nro_fiscal != vals['l10n_py_nro_fiscal']:
+                if move.local_py_nro_fiscal and move.local_py_nro_fiscal != vals['local_py_nro_fiscal']:
                     raise exceptions.UserError(
                         'El campo "Nro. Fiscal" no puede modificarse una vez asignado.'
                     )
         return super().write(vals)
 
-    @api.constrains('l10n_py_nro_fiscal', 'company_id', 'date')
-    def _check_l10n_py_nro_fiscal_unique(self):
+    @api.constrains('local_py_nro_fiscal', 'company_id', 'date')
+    def _check_local_py_nro_fiscal_unique(self):
         for move in self:
-            if not move.l10n_py_nro_fiscal or not move.date:
+            if not move.local_py_nro_fiscal or not move.date:
                 continue
             year = move.date.year
             domain = [
                 ('id', '!=', move.id),
                 ('company_id', '=', move.company_id.id),
-                ('l10n_py_nro_fiscal', '=', move.l10n_py_nro_fiscal),
+                ('local_py_nro_fiscal', '=', move.local_py_nro_fiscal),
                 ('date', '>=', '%s-01-01' % year),
                 ('date', '<=', '%s-12-31' % year),
             ]
             if self.search_count(domain):
                 raise exceptions.ValidationError(
                     'Ya existe otro asiento con el mismo "Nro. Fiscal" (%s) en el año %s '
-                    'para esta compañía.' % (move.l10n_py_nro_fiscal, year)
+                    'para esta compañía.' % (move.local_py_nro_fiscal, year)
                 )
 
     @api.onchange('partner_id')
-    def _onchange_l10n_py_concepto_renta_no_residente_default(self):
+    def _onchange_local_py_concepto_renta_no_residente_default(self):
         """Autocompleta el Concepto Renta No Residente con el Predeterminado
         configurado en la ficha del Proveedor — sin pisar una selección
         manual ya hecha por el usuario en esta misma Factura."""
         for move in self:
             if (
                 move.move_type in PURCHASE_MOVE_TYPES
-                and not move.l10n_py_concepto_renta_no_residente_id
-                and move.partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id
+                and not move.local_py_concepto_renta_no_residente_id
+                and move.partner_id.local_py_concepto_renta_no_residente_predeterminado_id
             ):
-                move.l10n_py_concepto_renta_no_residente_id = (
-                    move.partner_id.l10n_py_concepto_renta_no_residente_predeterminado_id
+                move.local_py_concepto_renta_no_residente_id = (
+                    move.partner_id.local_py_concepto_renta_no_residente_predeterminado_id
                 )
 
     @api.onchange('partner_id')
@@ -350,16 +350,16 @@ class AccountMove(models.Model):
                 move.invoice_incoterm_id = move.partner_id.local_py_incoterm_id
 
     @api.onchange('move_type', 'company_id')
-    def _onchange_l10n_py_imputacion_tributaria_default(self):
+    def _onchange_local_py_imputacion_tributaria_default(self):
         """Autocompleta la Imputación Tributaria con la configurada en la
         Empresa (Facturación / Clientes / Proveedores: Factura y Nota de
         Crédito), sin pisar una selección manual ya hecha por el usuario."""
         for move in self:
-            if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
-                move.l10n_py_imputacion_tributaria_ids = move.company_id.l10n_py_imputacion_tributaria_ids
+            if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and not move.local_py_imputacion_tributaria_ids:
+                move.local_py_imputacion_tributaria_ids = move.company_id.local_py_imputacion_tributaria_ids
 
     @api.onchange('reversed_entry_id')
-    def _onchange_l10n_py_cdc_asociado_default(self):
+    def _onchange_local_py_cdc_asociado_default(self):
         """En Nota de Crédito de proveedor, autocompleta el CDC del Comprobante
         Asociado con el CDC de la factura de origen — solo si está vacío, para no
         pisar el que haya informado el documento del proveedor (que es el dato que
@@ -367,42 +367,42 @@ class AccountMove(models.Model):
         for move in self:
             if (
                 move.move_type == 'in_refund'
-                and not move.l10n_py_cdc_asociado
-                and move.reversed_entry_id.l10n_py_cdc
+                and not move.local_py_cdc_asociado
+                and move.reversed_entry_id.local_py_cdc
             ):
-                move.l10n_py_cdc_asociado = move.reversed_entry_id.l10n_py_cdc
+                move.local_py_cdc_asociado = move.reversed_entry_id.local_py_cdc
 
     @api.onchange('reversed_entry_id')
-    def _onchange_l10n_py_imputacion_tributaria_comprobante_asociado(self):
+    def _onchange_local_py_imputacion_tributaria_comprobante_asociado(self):
         """En Nota de Crédito/Reembolso, la Imputación Tributaria siempre
         debe copiarse del Comprobante Asociado (factura de origen), pisando
         cualquier valor previo (incluido el autocompletado desde la
         Empresa)."""
         for move in self:
             if move.move_type in REFUND_MOVE_TYPES and move.reversed_entry_id:
-                move.l10n_py_imputacion_tributaria_ids = move.reversed_entry_id.l10n_py_imputacion_tributaria_ids
+                move.local_py_imputacion_tributaria_ids = move.reversed_entry_id.local_py_imputacion_tributaria_ids
 
-    @api.onchange('l10n_py_imputacion_tributaria_ids')
-    def _onchange_l10n_py_imputacion_tributaria_ids(self):
+    @api.onchange('local_py_imputacion_tributaria_ids')
+    def _onchange_local_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
         if not no_imputa:
             return
         for move in self:
-            current = move.l10n_py_imputacion_tributaria_ids
-            previous = move._origin.l10n_py_imputacion_tributaria_ids
+            current = move.local_py_imputacion_tributaria_ids
+            previous = move._origin.local_py_imputacion_tributaria_ids
             added = current - previous
             if no_imputa in added:
-                move.l10n_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
+                move.local_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
             elif no_imputa in current and (current - no_imputa):
-                move.l10n_py_imputacion_tributaria_ids = current - no_imputa
+                move.local_py_imputacion_tributaria_ids = current - no_imputa
 
-    @api.constrains('l10n_py_imputacion_tributaria_ids')
-    def _check_l10n_py_imputacion_tributaria_exclusiva(self):
+    @api.constrains('local_py_imputacion_tributaria_ids')
+    def _check_local_py_imputacion_tributaria_exclusiva(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
         if not no_imputa:
             return
         for move in self:
-            tags = move.l10n_py_imputacion_tributaria_ids
+            tags = move.local_py_imputacion_tributaria_ids
             if no_imputa in tags and len(tags) > 1:
                 raise exceptions.ValidationError(
                     '"No Imputa" no puede combinarse con IVA, IRE o IRP-RSP en la misma operación.'
@@ -421,8 +421,8 @@ class AccountMove(models.Model):
     # crédito/reembolso: primero hay que completar la Imputación Tributaria
     # de la factura de origen.
     # ------------------------------------------------------------------
-    @api.constrains('reversed_entry_id', 'move_type', 'state', 'l10n_py_imputacion_tributaria_ids')
-    def _check_l10n_py_comprobante_asociado(self):
+    @api.constrains('reversed_entry_id', 'move_type', 'state', 'local_py_imputacion_tributaria_ids')
+    def _check_local_py_comprobante_asociado(self):
         for move in self:
             if move.move_type not in REFUND_MOVE_TYPES or move.state != 'posted':
                 continue
@@ -431,14 +431,14 @@ class AccountMove(models.Model):
                     'No se puede confirmar la nota de crédito sin indicar el Comprobante Asociado '
                     '(la factura de origen).'
                 )
-            origin_tags = move.reversed_entry_id.l10n_py_imputacion_tributaria_ids
+            origin_tags = move.reversed_entry_id.local_py_imputacion_tributaria_ids
             if not origin_tags:
                 raise exceptions.ValidationError(
                     'El Comprobante Asociado (%s) no tiene Imputación Tributaria cargada. '
                     'Complete primero la Imputación Tributaria de esa factura antes de '
                     'confirmar esta nota de crédito/reembolso.' % move.reversed_entry_id.display_name
                 )
-            if set(move.l10n_py_imputacion_tributaria_ids.ids) != set(origin_tags.ids):
+            if set(move.local_py_imputacion_tributaria_ids.ids) != set(origin_tags.ids):
                 raise exceptions.ValidationError(
                     'La Imputación Tributaria de este comprobante debe ser exactamente la '
                     'misma que la del Comprobante Asociado (%s).' % move.reversed_entry_id.display_name
@@ -450,18 +450,18 @@ class AccountMove(models.Model):
     # totales del reporte. Son de uso exclusivo para dichos reportes: no
     # afectan los importes reales de la factura/nota de crédito.
     # ------------------------------------------------------------------
-    l10n_py_amount_untaxed_signed = fields.Monetary(
+    local_py_amount_untaxed_signed = fields.Monetary(
         string='Importe sin impuesto',
-        compute='_compute_l10n_py_amounts_signed',
+        compute='_compute_local_py_amounts_signed',
         currency_field='currency_id',
         store=True,
         help='Importe sin impuesto para los reportes Libro Ventas/Libro Compras. '
              'En notas de crédito se muestra en negativo, solo a efectos de '
              'visualización y totalización en dichos reportes.',
     )
-    l10n_py_amount_total_signed = fields.Monetary(
+    local_py_amount_total_signed = fields.Monetary(
         string='Importe Total',
-        compute='_compute_l10n_py_amounts_signed',
+        compute='_compute_local_py_amounts_signed',
         currency_field='currency_id',
         store=True,
         help='Importe total para los reportes Libro Ventas/Libro Compras. '
@@ -470,11 +470,11 @@ class AccountMove(models.Model):
     )
 
     @api.depends('amount_untaxed', 'amount_total', 'move_type')
-    def _compute_l10n_py_amounts_signed(self):
+    def _compute_local_py_amounts_signed(self):
         for move in self:
             sign = -1 if move.move_type in REFUND_MOVE_TYPES else 1
-            move.l10n_py_amount_untaxed_signed = sign * move.amount_untaxed
-            move.l10n_py_amount_total_signed = sign * move.amount_total
+            move.local_py_amount_untaxed_signed = sign * move.amount_untaxed
+            move.local_py_amount_total_signed = sign * move.amount_total
 
     # ------------------------------------------------------------------
     # Numeración secuencial del Nro. Documento (solo lado venta) — la lógica
@@ -482,13 +482,13 @@ class AccountMove(models.Model):
     # Final) vive en account.journal, reutilizable el día de mañana por
     # Remisión sin duplicar código.
     # ------------------------------------------------------------------
-    def _get_next_l10n_py_nro_documento(self, journal, move_type):
+    def _get_next_local_py_nro_documento(self, journal, move_type):
         """Delega en el Diario el cálculo del siguiente Nro. Documento
         disponible (salta Documentos Anulados, controla Nro. Documento
         Final). move_type queda sin usar — se mantiene el parámetro para no
         romper las 2 llamadas existentes (venta: Factura/Nota de Crédito, un
         único Diario nunca mezcla move_type distinto según su Tipo Fiscal)."""
-        return journal.l10n_py_siguiente_numero_disponible()
+        return journal.local_py_siguiente_numero_disponible()
 
     @api.model
     def _get_suitable_journal_ids(self, move_type, company=False):
@@ -524,14 +524,14 @@ class AccountMove(models.Model):
         return journals
 
     @api.onchange('journal_id')
-    def _onchange_journal_id_l10n_py(self):
+    def _onchange_journal_id_local_py(self):
         # El autocompletado solo aplica al lado de venta (Timbrado, Nro.
         # Documento y Tipo Fiscal se toman del diario). En factura/nota de
         # crédito de proveedor, el usuario carga los tres valores manualmente.
         for move in self:
             if move.journal_id and move.move_type in SALE_MOVE_TYPES:
-                move.l10n_py_timbrado = move.journal_id.l10n_py_timbrado
-                move.l10n_py_nro_documento = move._get_next_l10n_py_nro_documento(
+                move.local_py_timbrado = move.journal_id.local_py_timbrado
+                move.local_py_nro_documento = move._get_next_local_py_nro_documento(
                     move.journal_id, move.move_type
                 )
                 move.local_py_tipo_fiscal_id = move.journal_id.local_py_tipo_fiscal_id
@@ -543,10 +543,10 @@ class AccountMove(models.Model):
             move_type = vals.get('move_type')
             if journal_id and move_type in SALE_MOVE_TYPES:
                 journal = self.env['account.journal'].browse(journal_id)
-                vals.setdefault('l10n_py_timbrado', journal.l10n_py_timbrado)
+                vals.setdefault('local_py_timbrado', journal.local_py_timbrado)
                 vals.setdefault('local_py_tipo_fiscal_id', journal.local_py_tipo_fiscal_id.id)
-                if not vals.get('l10n_py_nro_documento'):
-                    vals['l10n_py_nro_documento'] = self._get_next_l10n_py_nro_documento(
+                if not vals.get('local_py_nro_documento'):
+                    vals['local_py_nro_documento'] = self._get_next_local_py_nro_documento(
                         journal, move_type
                     )
             reversed_entry_id = vals.get('reversed_entry_id')
@@ -555,15 +555,15 @@ class AccountMove(models.Model):
                 # se copia del Comprobante Asociado (pisa el default de la
                 # Empresa que se aplicaría más abajo).
                 origin = self.env['account.move'].browse(reversed_entry_id)
-                vals['l10n_py_imputacion_tributaria_ids'] = [
-                    (6, 0, origin.l10n_py_imputacion_tributaria_ids.ids)
+                vals['local_py_imputacion_tributaria_ids'] = [
+                    (6, 0, origin.local_py_imputacion_tributaria_ids.ids)
                 ]
-            elif move_type in REQUIRED_FISCAL_MOVE_TYPES and not vals.get('l10n_py_imputacion_tributaria_ids'):
+            elif move_type in REQUIRED_FISCAL_MOVE_TYPES and not vals.get('local_py_imputacion_tributaria_ids'):
                 company_id = vals.get('company_id') or self.env.company.id
                 company = self.env['res.company'].browse(company_id)
-                if company.l10n_py_imputacion_tributaria_ids:
-                    vals['l10n_py_imputacion_tributaria_ids'] = [
-                        (6, 0, company.l10n_py_imputacion_tributaria_ids.ids)
+                if company.local_py_imputacion_tributaria_ids:
+                    vals['local_py_imputacion_tributaria_ids'] = [
+                        (6, 0, company.local_py_imputacion_tributaria_ids.ids)
                     ]
         return super().create(vals_list)
 
@@ -574,22 +574,22 @@ class AccountMove(models.Model):
     # 'posted', no al guardar en borrador, para no trabar la carga incremental
     # del comprobante.
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'local_py_tipo_fiscal_id',
-                    'l10n_py_imputacion_tributaria_ids', 'move_type', 'state')
-    def _check_l10n_py_required_fiscal_fields(self):
+    @api.constrains('local_py_timbrado', 'local_py_nro_documento', 'local_py_tipo_fiscal_id',
+                    'local_py_imputacion_tributaria_ids', 'move_type', 'state')
+    def _check_local_py_required_fiscal_fields(self):
         for move in self:
             if move.move_type in REQUIRED_FISCAL_MOVE_TYPES and move.state == 'posted':
                 missing = []
-                if not move.l10n_py_timbrado:
+                if not move.local_py_timbrado:
                     missing.append('Timbrado')
-                if not move.l10n_py_nro_documento:
+                if not move.local_py_nro_documento:
                     missing.append('Nro. Documento')
                 if not move.local_py_tipo_fiscal_id:
                     missing.append('Tipo Fiscal')
                 # En Nota de Crédito/Reembolso, la Imputación Tributaria se
                 # valida aparte (debe coincidir exactamente con la del
-                # Comprobante Asociado): ver _check_l10n_py_comprobante_asociado.
-                if move.move_type not in REFUND_MOVE_TYPES and not move.l10n_py_imputacion_tributaria_ids:
+                # Comprobante Asociado): ver _check_local_py_comprobante_asociado.
+                if move.move_type not in REFUND_MOVE_TYPES and not move.local_py_imputacion_tributaria_ids:
                     missing.append('Imputación Tributaria')
                 if missing:
                     raise exceptions.ValidationError(
@@ -598,7 +598,7 @@ class AccountMove(models.Model):
                     )
 
     @api.constrains('invoice_payment_term_id', 'move_type', 'state')
-    def _check_l10n_py_terminos_pago_proveedor(self):
+    def _check_local_py_terminos_pago_proveedor(self):
         """Factura, Nota de Crédito/Reembolso y Autofactura de Proveedor
         necesitan Términos de Pago cargado — lo usamos, entre otras
         cosas, para saber si la operación es Contado o Crédito al
@@ -609,8 +609,8 @@ class AccountMove(models.Model):
                     'No se puede confirmar el comprobante sin completar: Términos de Pago.'
                 )
 
-    @api.constrains('l10n_py_concepto_renta_no_residente_id', 'move_type', 'state', 'partner_id')
-    def _check_l10n_py_concepto_renta_no_residente_proveedor(self):
+    @api.constrains('local_py_concepto_renta_no_residente_id', 'move_type', 'state', 'partner_id')
+    def _check_local_py_concepto_renta_no_residente_proveedor(self):
         """Si el Proveedor de esta Factura es del exterior (corresponde
         mostrar el campo "Concepto Renta No Residente"), ese dato pasa
         a ser obligatorio para poder confirmar — es la red de seguridad
@@ -620,7 +620,7 @@ class AccountMove(models.Model):
         for move in self:
             if (
                 move.move_type in PURCHASE_MOVE_TYPES and move.state == 'posted'
-                and move.l10n_py_mostrar_concepto_renta_nr and not move.l10n_py_concepto_renta_no_residente_id
+                and move.local_py_mostrar_concepto_renta_nr and not move.local_py_concepto_renta_no_residente_id
             ):
                 raise exceptions.ValidationError(
                     'No se puede confirmar el comprobante sin completar: Concepto Renta No Residente '
@@ -630,22 +630,22 @@ class AccountMove(models.Model):
     # ------------------------------------------------------------------
     # Validaciones de formato (aplican a venta y a proveedor)
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado')
-    def _check_l10n_py_timbrado(self):
+    @api.constrains('local_py_timbrado')
+    def _check_local_py_timbrado(self):
         for move in self:
-            if move.l10n_py_timbrado and move.l10n_py_timbrado < 0:
+            if move.local_py_timbrado and move.local_py_timbrado < 0:
                 raise exceptions.ValidationError(
                     'El campo Timbrado no admite valores negativos.'
                 )
-            if move.l10n_py_timbrado and move.l10n_py_timbrado > TIMBRADO_MAX:
+            if move.local_py_timbrado and move.local_py_timbrado > TIMBRADO_MAX:
                 raise exceptions.ValidationError(
                     'El campo Timbrado admite un máximo de 8 dígitos.'
                 )
 
-    @api.constrains('l10n_py_nro_documento')
-    def _check_l10n_py_nro_documento(self):
+    @api.constrains('local_py_nro_documento')
+    def _check_local_py_nro_documento(self):
         for move in self:
-            if move.l10n_py_nro_documento and not NRO_DOCUMENTO_PATTERN.match(move.l10n_py_nro_documento):
+            if move.local_py_nro_documento and not NRO_DOCUMENTO_PATTERN.match(move.local_py_nro_documento):
                 raise exceptions.ValidationError(
                     'El campo Nro. Documento solo admite números y el carácter "-".'
                 )
@@ -653,7 +653,7 @@ class AccountMove(models.Model):
     # Nota: no hay una validación de unicidad de Nro. Documento a nivel de Factura de
     # Cliente (venta) — Timbrado, Nro. Documento y Tipo Fiscal se completan siempre
     # desde el Diario (no se editan a mano), y ya existe el control correspondiente en
-    # account.journal (_check_l10n_py_unique_timbrado_per_tipo_fiscal), que impide que
+    # account.journal (_check_local_py_unique_timbrado_per_tipo_fiscal), que impide que
     # dos Diarios de venta compartan esa misma combinación. Repetirlo acá sería
     # redundante.
 
@@ -661,24 +661,24 @@ class AccountMove(models.Model):
     # Unicidad - lado proveedor: por proveedor + Timbrado + Nro. Documento,
     # solo entre facturas/notas de crédito CONFIRMADAS, separado por move_type
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_timbrado', 'l10n_py_nro_documento', 'move_type', 'state', 'partner_id',
+    @api.constrains('local_py_timbrado', 'local_py_nro_documento', 'move_type', 'state', 'partner_id',
                      'local_py_tipo_fiscal_id')
-    def _check_l10n_py_duplicate_purchase(self):
+    def _check_local_py_duplicate_purchase(self):
         for move in self:
             if (
                 move.move_type in PURCHASE_MOVE_TYPES
                 and move.state == 'posted'
                 and move.partner_id
-                and move.l10n_py_timbrado
-                and move.l10n_py_nro_documento
+                and move.local_py_timbrado
+                and move.local_py_nro_documento
             ):
                 domain = [
                     ('id', '!=', move.id),
                     ('move_type', '=', move.move_type),
                     ('state', '=', 'posted'),
                     ('partner_id', '=', move.partner_id.id),
-                    ('l10n_py_timbrado', '=', move.l10n_py_timbrado),
-                    ('l10n_py_nro_documento', '=', move.l10n_py_nro_documento),
+                    ('local_py_timbrado', '=', move.local_py_timbrado),
+                    ('local_py_nro_documento', '=', move.local_py_nro_documento),
                     ('local_py_tipo_fiscal_id', '=', move.local_py_tipo_fiscal_id.id),
                     ('company_id', '=', move.company_id.id),
                 ]
@@ -692,8 +692,8 @@ class AccountMove(models.Model):
     # ------------------------------------------------------------------
     # CDC (Código de Control del Documento Electrónico) - lado proveedor
     # ------------------------------------------------------------------
-    @api.constrains('l10n_py_cdc', 'l10n_py_cdc_asociado')
-    def _check_l10n_py_cdc_formato(self):
+    @api.constrains('local_py_cdc', 'local_py_cdc_asociado')
+    def _check_local_py_cdc_formato(self):
         """El CDC tiene 44 dígitos (11 tramos: tipo de documento, RUC del emisor y
         su dígito verificador, establecimiento, punto de expedición, número, tipo de
         contribuyente, fecha de emisión, tipo de emisión, código de seguridad y
@@ -701,7 +701,7 @@ class AccountMove(models.Model):
         el dígito verificador ni se compara contra SIFEN. Vacío es válido — una
         factura de proveedor en papel no tiene CDC."""
         for move in self:
-            for campo in ('l10n_py_cdc', 'l10n_py_cdc_asociado'):
+            for campo in ('local_py_cdc', 'local_py_cdc_asociado'):
                 valor = move[campo]
                 if valor and not (len(valor) == 44 and valor.isdigit()):
                     raise exceptions.ValidationError(
@@ -709,8 +709,8 @@ class AccountMove(models.Model):
                         % move._fields[campo].string
                     )
 
-    @api.constrains('l10n_py_cdc', 'company_id', 'state')
-    def _check_l10n_py_cdc_unique(self):
+    @api.constrains('local_py_cdc', 'company_id', 'state')
+    def _check_local_py_cdc_unique(self):
         """El CDC identifica de manera única a cada Documento Electrónico del SIFEN,
         así que no puede repetirse dentro de la misma compañía: es la red de
         seguridad contra cargar dos veces la misma factura electrónica recibida.
@@ -721,12 +721,12 @@ class AccountMove(models.Model):
         eso es una validación de Python y no un constraint SQL, que no podría
         distinguir el estado."""
         for move in self:
-            if not move.l10n_py_cdc or move.state == 'cancel':
+            if not move.local_py_cdc or move.state == 'cancel':
                 continue
             otro = self.search([
                 ('id', '!=', move.id),
                 ('company_id', '=', move.company_id.id),
-                ('l10n_py_cdc', '=', move.l10n_py_cdc),
+                ('local_py_cdc', '=', move.local_py_cdc),
                 ('state', '!=', 'cancel'),
             ], limit=1)
             if otro:
@@ -734,20 +734,20 @@ class AccountMove(models.Model):
                     'El CDC %s ya está registrado en el comprobante "%s" de esta '
                     'compañía. El CDC identifica de manera única a cada Documento '
                     'Electrónico, así que no puede repetirse.'
-                    % (move.l10n_py_cdc, otro.display_name)
+                    % (move.local_py_cdc, otro.display_name)
                 )
 
     # ------------------------------------------------------------------
     # Validación de vencimiento del timbrado (lado venta)
     # ------------------------------------------------------------------
     @api.constrains('invoice_date', 'journal_id')
-    def _check_l10n_py_venc_timbrado(self):
+    def _check_local_py_venc_timbrado(self):
         for move in self:
             if (
                 move.move_type in SALE_MOVE_TYPES
                 and move.invoice_date
-                and move.journal_id.l10n_py_venc_timbrado
-                and move.invoice_date > move.journal_id.l10n_py_venc_timbrado
+                and move.journal_id.local_py_venc_timbrado
+                and move.invoice_date > move.journal_id.local_py_venc_timbrado
             ):
                 raise exceptions.ValidationError(
                     'La fecha del documento supera la fecha de vencimiento del timbrado'
@@ -756,17 +756,17 @@ class AccountMove(models.Model):
     # ------------------------------------------------------------------
     # Protección de los asientos generados por Ajuste de Inventario Físico
     # ------------------------------------------------------------------
-    def _l10n_py_filtrar_asientos_ajuste_inventario(self):
+    def _local_py_filtrar_asientos_ajuste_inventario(self):
         if not self:
             return self.browse()
         return self.filtered(
             lambda m: self.env['stock.quant'].sudo().search_count(
-                [('l10n_py_asiento_ajuste_id', '=', m.id)]
+                [('local_py_asiento_ajuste_id', '=', m.id)]
             )
         )
 
     def button_draft(self):
-        bloqueados = self._l10n_py_filtrar_asientos_ajuste_inventario()
+        bloqueados = self._local_py_filtrar_asientos_ajuste_inventario()
         if bloqueados:
             raise exceptions.UserError(
                 'No se puede restablecer a borrador: %s asiento(s) provienen de un Ajuste de '
@@ -775,7 +775,7 @@ class AccountMove(models.Model):
         return super().button_draft()
 
     def unlink(self):
-        bloqueados = self._l10n_py_filtrar_asientos_ajuste_inventario()
+        bloqueados = self._local_py_filtrar_asientos_ajuste_inventario()
         if bloqueados:
             raise exceptions.UserError(
                 'No se puede eliminar: %s asiento(s) provienen de un Ajuste de Inventario '

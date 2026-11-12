@@ -152,7 +152,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             for index, line in enumerate(lines):
                 rows.append({
                     'tipo': 'linea',
-                    'nro_asiento': move.l10n_py_nro_asiento_libro if index == 0 else '',
+                    'nro_asiento': move.local_py_nro_asiento_libro if index == 0 else '',
                     'fecha': move.date if index == 0 else None,
                     'cuenta': line.account_id.code,
                     'nombre_cuenta': line.account_id.name,
@@ -161,7 +161,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 })
             rows.append({
                 'tipo': 'comentario',
-                'comentario': move.l10n_py_comentario or '',
+                'comentario': move.local_py_comentario or '',
                 'total_debe': total_debe,
                 'total_haber': total_haber,
             })
@@ -197,8 +197,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             grupo_actual.append({
                 'tipo': 'linea',
                 'fecha': line.date,
-                'nro_asiento': line.move_id.l10n_py_nro_asiento_libro,
-                'comentario': line.move_id.l10n_py_comentario or '',
+                'nro_asiento': line.move_id.local_py_nro_asiento_libro,
+                'comentario': line.move_id.local_py_comentario or '',
                 'debe': line.debit,
                 'haber': line.credit,
                 'saldo': saldo,
@@ -536,7 +536,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'producto_id': producto.id,
                 'cuenta_id': cuenta.id if cuenta else False,
                 'referencia': move.reference or move.name or '',
-                'nro_fiscal': asiento.l10n_py_nro_fiscal if asiento else False,
+                'nro_fiscal': asiento.local_py_nro_fiscal if asiento else False,
                 'cantidad': cantidad_con_signo,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
@@ -669,7 +669,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'fecha': move.date,
                 'fecha_sistema': move.create_date,
                 'referencia': move.reference or move.name or '',
-                'nro_fiscal': asiento.l10n_py_nro_fiscal if asiento else False,
+                'nro_fiscal': asiento.local_py_nro_fiscal if asiento else False,
                 'cantidad': cantidad_con_signo,
                 'costo_unitario': move.price_unit or move.standard_price,
                 'costo_total': move.value,
@@ -746,7 +746,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             )
             if not moves:
                 raise UserError('No hay asientos confirmados en el rango de fechas elegido.')
-            sin_numerar = moves.filtered(lambda m: not m.l10n_py_nro_fiscal)
+            sin_numerar = moves.filtered(lambda m: not m.local_py_nro_fiscal)
             if sin_numerar:
                 raise UserError(
                     'Hay %s asiento(s) en el rango elegido sin "Nro. Fiscal" asignado. '
@@ -1062,7 +1062,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     rows.append({
                         'tipo': 'factura',
                         'factura': factura.move_id.name,
-                        'nro_documento': factura.move_line_id.move_id.l10n_py_nro_documento or '',
+                        'nro_documento': factura.move_line_id.move_id.local_py_nro_documento or '',
                         'importe_aplicado': factura.valor_convertido,
                         'moneda_obj': moneda_actual,
                     })
@@ -1245,7 +1245,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'fecha': r.fecha,
                     'numero': r.numero_comprobante or '',
                     'contacto': r.partner_id.display_name if r.partner_id else '',
-                    'nro_factura': (r.factura_id.l10n_py_nro_documento or '') if r.factura_id else '',
+                    'nro_factura': (r.factura_id.local_py_nro_documento or '') if r.factura_id else '',
                     'importe': r.monto_total,
                 })
         if incluir_recibidas:
@@ -1264,7 +1264,7 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'fecha': r.fecha,
                     'numero': r.numero_comprobante or '',
                     'contacto': r.partner_id.display_name if r.partner_id else '',
-                    'nro_factura': (r.factura_id.l10n_py_nro_documento or '') if r.factura_id else '',
+                    'nro_factura': (r.factura_id.local_py_nro_documento or '') if r.factura_id else '',
                     'importe': r.importe,
                 })
 

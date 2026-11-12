@@ -3,8 +3,8 @@
 from odoo import models, fields, api
 
 
-class L10nPyLibroComprasWizard(models.TransientModel):
-    _name = 'l10n_py.libro_compras.wizard'
+class LocalPyLibroComprasWizard(models.TransientModel):
+    _name = 'local_py.libro_compras.wizard'
     _description = 'Asistente Libro Compras'
 
     date_from = fields.Date(string='Fecha desde', required=True)

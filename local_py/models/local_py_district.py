@@ -3,8 +3,8 @@
 from odoo import api, fields, models
 
 
-class ResDistrict(models.Model):
-    _name = 'res.district'
+class LocalPyDistrict(models.Model):
+    _name = 'local_py.district'
     _description = 'Distrito'
     _order = 'name'
 

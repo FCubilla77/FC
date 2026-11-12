@@ -1,8 +1,8 @@
 <odoo>
     <data>
-        <record id="view_l10n_py_config_paraguay_wizard_form" model="ir.ui.view">
-            <field name="name">l10n_py.config_paraguay.wizard.form</field>
-            <field name="model">l10n_py.config_paraguay.wizard</field>
+        <record id="view_local_py_config_paraguay_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.config_paraguay.wizard.form</field>
+            <field name="model">local_py.config_paraguay.wizard</field>
             <field name="arch" type="xml">
                 <form string="Restablecer configuración Paraguay">
                     <div class="alert alert-warning" role="alert">
@@ -40,17 +40,17 @@
             </field>
         </record>
 
-        <record id="action_l10n_py_config_paraguay_wizard" model="ir.actions.act_window">
+        <record id="action_local_py_config_paraguay_wizard" model="ir.actions.act_window">
             <field name="name">Restablecer configuración Paraguay</field>
-            <field name="res_model">l10n_py.config_paraguay.wizard</field>
+            <field name="res_model">local_py.config_paraguay.wizard</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
 
-        <menuitem id="menu_l10n_py_config_paraguay_wizard"
+        <menuitem id="menu_local_py_config_paraguay_wizard"
                   name="Restablecer configuración Paraguay"
                   parent="local_py.menu_local_py_procesos"
-                  action="action_l10n_py_config_paraguay_wizard"
+                  action="action_local_py_config_paraguay_wizard"
                   groups="account.group_account_manager"
                   sequence="30"/>
     </data>

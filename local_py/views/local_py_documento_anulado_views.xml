@@ -62,7 +62,7 @@
 
         <menuitem id="menu_local_py_documento_anulado"
                   name="Documentos Anulados"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_localizacion"
                   action="action_local_py_documento_anulado"
                   groups="account.group_account_manager"
                   sequence="40"/>
@@ -96,7 +96,7 @@
 
         <menuitem id="menu_local_py_documento_anulado_rango"
                   name="Registrar Doc. Anulados por Rango"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_localizacion"
                   action="action_local_py_documento_anulado_rango_wizard"
                   groups="account.group_account_manager"
                   sequence="41"/>

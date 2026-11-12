@@ -1,17 +1,17 @@
 <odoo>
     <data>
-        <record id="view_account_journal_form_l10n_py" model="ir.ui.view">
+        <record id="view_account_journal_form_local_py" model="ir.ui.view">
             <field name="name">account.journal.form.l10n.py</field>
             <field name="model">account.journal</field>
             <field name="inherit_id" ref="account.view_account_journal_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='name']" position="after">
                     <group string="Localización Paraguay" invisible="type not in ('sale', 'general')">
-                        <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
-                        <field name="l10n_py_nro_documento" string="Nro. Documento" placeholder="000-000-0000000"/>
-                        <field name="l10n_py_nro_documento_final" string="Nro. Documento Final" placeholder="000-000-0000000"/>
-                        <field name="l10n_py_inicio_vigencia_timbrado" string="Inicio Vigencia Timbrado"/>
-                        <field name="l10n_py_venc_timbrado" string="Venc. Timbrado"/>
+                        <field name="local_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
+                        <field name="local_py_nro_documento" string="Nro. Documento" placeholder="000-000-0000000"/>
+                        <field name="local_py_nro_documento_final" string="Nro. Documento Final" placeholder="000-000-0000000"/>
+                        <field name="local_py_inicio_vigencia_timbrado" string="Inicio Vigencia Timbrado"/>
+                        <field name="local_py_venc_timbrado" string="Venc. Timbrado"/>
                     </group>
                     <group invisible="type not in ('sale', 'purchase')">
                         <field name="local_py_tipo_fiscal_id" string="Tipo Fiscal"/>

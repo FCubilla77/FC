@@ -24,8 +24,8 @@ class LocalPyDocumentoAnuladoRangoWizard(models.TransientModel):
     def action_confirmar(self):
         self.ensure_one()
         Journal = self.env['account.journal']
-        correlativo_desde = Journal._l10n_py_correlativo(self.numero_desde)
-        correlativo_hasta = Journal._l10n_py_correlativo(self.numero_hasta)
+        correlativo_desde = Journal._local_py_correlativo(self.numero_desde)
+        correlativo_hasta = Journal._local_py_correlativo(self.numero_hasta)
         if correlativo_desde is None or correlativo_hasta is None:
             raise UserError(
                 'Número Desde y Número Hasta tienen que tener el formato completo '
@@ -44,7 +44,7 @@ class LocalPyDocumentoAnuladoRangoWizard(models.TransientModel):
         prefijo = self.numero_desde[:8]
         vals_list = [{
             'diario_id': self.diario_id.id,
-            'timbrado': self.diario_id.l10n_py_timbrado,
+            'timbrado': self.diario_id.local_py_timbrado,
             'numero': '%s%07d' % (prefijo, correlativo),
             'tipo_fiscal_id': self.diario_id.local_py_tipo_fiscal_id.id,
             'motivo': self.motivo,

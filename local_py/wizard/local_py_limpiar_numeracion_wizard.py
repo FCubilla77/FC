@@ -33,23 +33,23 @@ class LocalPyLimpiarNumeracionWizard(models.TransientModel):
             ('company_id', '=', company.id),
             ('date', '>=', self.fecha_desde),
             ('date', '<=', row.ultima_fecha_procesada),
-            ('l10n_py_nro_fiscal', '!=', False),
+            ('local_py_nro_fiscal', '!=', False),
         ])
-        moves.with_context(l10n_py_allow_nro_fiscal_write=True).write({
-            'l10n_py_nro_fiscal': False,
+        moves.with_context(local_py_allow_nro_fiscal_write=True).write({
+            'local_py_nro_fiscal': False,
         })
 
         remaining = self.env['account.move'].search([
             ('company_id', '=', company.id),
             ('date', '>=', date(year, 1, 1)),
             ('date', '<=', date(year, 12, 31)),
-            ('l10n_py_nro_fiscal', '!=', False),
-        ], order='date desc, l10n_py_nro_fiscal desc', limit=1)
+            ('local_py_nro_fiscal', '!=', False),
+        ], order='date desc, local_py_nro_fiscal desc', limit=1)
 
         if remaining:
             row.write({
                 'ultima_fecha_procesada': remaining.date,
-                'ultimo_nro_utilizado': remaining.l10n_py_nro_fiscal,
+                'ultimo_nro_utilizado': remaining.local_py_nro_fiscal,
             })
         else:
             row.write({

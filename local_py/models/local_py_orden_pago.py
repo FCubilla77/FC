@@ -54,7 +54,7 @@ class LocalPyOrdenPago(models.Model):
     )
     cuenta_pago_id = fields.Many2one(
         'account.account', string='Cuenta',
-        domain="[('l10n_py_pagos_a_cuenta', '=', True), ('company_ids', 'in', company_id)]",
+        domain="[('local_py_pagos_a_cuenta', '=', True), ('company_ids', 'in', company_id)]",
         help='Solo aparecen las Cuentas marcadas con "Pagos a Cuenta" tildado (en su '
              'propia ficha, Contabilidad > Plan de Cuentas) — así se evita elegir por '
              'error una Cuenta de Ingresos, Gastos, Activo Fijo, o cualquier otra que '
@@ -150,11 +150,11 @@ class LocalPyOrdenPago(models.Model):
                 continue
             pagos = self.env['account.payment'].search([
                 ('partner_id', '=', orden.partner_id.id),
-                ('l10n_py_es_saldo_favor', '=', True),
+                ('local_py_es_saldo_favor', '=', True),
                 ('currency_id', '=', orden.currency_id.id),
-                ('l10n_py_saldo_favor_disponible', '>', 0),
+                ('local_py_saldo_favor_disponible', '>', 0),
             ])
-            orden.total_saldo_favor_proveedor = sum(pagos.mapped('l10n_py_saldo_favor_disponible'))
+            orden.total_saldo_favor_proveedor = sum(pagos.mapped('local_py_saldo_favor_disponible'))
 
     @api.constrains('es_pago_a_cuenta', 'es_orden_retencion')
     def _check_pago_a_cuenta_vs_orden_retencion(self):
@@ -206,8 +206,8 @@ class LocalPyOrdenPago(models.Model):
                 # no, se descontarían dos veces). Se separan por Diario para que cada
                 # total (IVA / Renta) muestre lo que realmente le corresponde.
                 config = orden._get_config_retencion()
-                diario_iva = config.l10n_py_diario_retencion_iva_id if config else False
-                diario_renta = config.l10n_py_diario_retencion_renta_id if config else False
+                diario_iva = config.local_py_diario_retencion_iva_id if config else False
+                diario_renta = config.local_py_diario_retencion_renta_id if config else False
                 medios_retencion = orden.medio_ids.filtered('es_retencion')
                 orden.total_retencion_iva_estimada = sum(
                     medios_retencion.filtered(lambda m: m.journal_id == diario_iva).mapped('importe')
@@ -537,61 +537,61 @@ class LocalPyOrdenPago(models.Model):
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
         )
-        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
+        es_exterior = bool(partner.local_py_concepto_iva_id and partner.local_py_concepto_iva_id.codigo == 'IVA.2')
         faltantes = []
 
-        if (partner.l10n_py_retencion_iva or partner.l10n_py_retencion_renta) and not partner.l10n_py_localizacion_validada:
+        if (partner.local_py_retencion_iva or partner.local_py_retencion_renta) and not partner.local_py_localizacion_validada:
             faltantes.append(
                 'Tildar "Localización Validada" en la ficha del Proveedor (pestaña Localización) — '
                 'confirma que alguien revisó sus datos de Retención antes de usarlo en un pago'
             )
 
-        if partner.l10n_py_retencion_iva:
-            if not config or not config.l10n_py_retencion_iva:
+        if partner.local_py_retencion_iva:
+            if not config or not config.local_py_retencion_iva:
                 faltantes.append('Activar "Retención IVA" en Configuraciones Localización Py')
             if config:
-                if not config.l10n_py_diario_retencion_iva_id:
+                if not config.local_py_diario_retencion_iva_id:
                     faltantes.append('Elegir el "Diario de Retención IVA" en Configuraciones Localización Py')
-                elif not config.l10n_py_diario_retencion_iva_id.default_account_id:
+                elif not config.local_py_diario_retencion_iva_id.default_account_id:
                     faltantes.append(
                         'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
-                        % config.l10n_py_diario_retencion_iva_id.name
+                        % config.local_py_diario_retencion_iva_id.name
                     )
-                if not config.l10n_py_concepto_iva_id:
+                if not config.local_py_concepto_iva_id:
                     faltantes.append('Elegir el "Concepto IVA" en Configuraciones Localización Py')
 
-            if es_exterior and partner.l10n_py_se_absorbe_iva:
-                if config and not config.l10n_py_cuenta_gasto_absorcion_id:
+            if es_exterior and partner.local_py_se_absorbe_iva:
+                if config and not config.local_py_cuenta_gasto_absorcion_id:
                     faltantes.append(
                         'Elegir la "Cuenta de Gasto por Absorción (IVA)" en Configuraciones Localización Py'
                     )
             elif not es_exterior:
-                if not partner.l10n_py_retencion_iva_porcentaje:
+                if not partner.local_py_retencion_iva_porcentaje:
                     faltantes.append(
                         'Cargar el "Porcentaje Retención IVA" en la ficha del Proveedor "%s"' % partner.display_name
                     )
 
-        necesita_renta = bool(es_exterior and partner.l10n_py_retencion_renta)
+        necesita_renta = bool(es_exterior and partner.local_py_retencion_renta)
         if necesita_renta:
             facturas_sin_concepto = self.factura_ids.filtered(
-                lambda f: not f.move_id.l10n_py_concepto_renta_no_residente_id
+                lambda f: not f.move_id.local_py_concepto_renta_no_residente_id
             )
             if facturas_sin_concepto:
                 faltantes.append(
                     'Completar el "Concepto Renta No Residente" en la Factura de: %s'
                     % ', '.join(facturas_sin_concepto.mapped('move_id.name'))
                 )
-            if not config or not config.l10n_py_retencion_renta:
+            if not config or not config.local_py_retencion_renta:
                 faltantes.append('Activar "Retención Renta" en Configuraciones Localización Py')
             if config:
-                if not config.l10n_py_diario_retencion_renta_id:
+                if not config.local_py_diario_retencion_renta_id:
                     faltantes.append('Elegir el "Diario de Retención Renta" en Configuraciones Localización Py')
-                elif not config.l10n_py_diario_retencion_renta_id.default_account_id:
+                elif not config.local_py_diario_retencion_renta_id.default_account_id:
                     faltantes.append(
                         'Configurar la Cuenta contable del Diario "%s" (Contabilidad > Diarios)'
-                        % config.l10n_py_diario_retencion_renta_id.name
+                        % config.local_py_diario_retencion_renta_id.name
                     )
-                if partner.l10n_py_se_absorbe_renta and not config.l10n_py_cuenta_gasto_absorcion_renta_id:
+                if partner.local_py_se_absorbe_renta and not config.local_py_cuenta_gasto_absorcion_renta_id:
                     faltantes.append(
                         'Elegir la "Cuenta de Gasto por Absorción (Renta)" en Configuraciones Localización Py'
                     )
@@ -614,12 +614,12 @@ class LocalPyOrdenPago(models.Model):
         self.ensure_one()
         resultado = {}
         partner = self.partner_id
-        if not partner or not partner.l10n_py_retencion_iva or not self.fecha:
+        if not partner or not partner.local_py_retencion_iva or not self.fecha:
             return resultado
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
         )
-        if not config or not config.l10n_py_retencion_iva or not config.l10n_py_diario_retencion_iva_id:
+        if not config or not config.local_py_retencion_iva or not config.local_py_diario_retencion_iva_id:
             return resultado
 
         no_retencion = self.env['local_py.no_retencion'].search([
@@ -634,11 +634,11 @@ class LocalPyOrdenPago(models.Model):
         acumulado_previo = self._get_acumulado_mensual_iva_previo(partner, self.fecha)
         contribucion_esta_op = sum(f._total_gravado_proporcional_gs() for f in self.factura_ids)
         if not self.es_orden_retencion and self.company_id.currency_id.compare_amounts(
-            acumulado_previo + contribucion_esta_op, config.l10n_py_retencion_iva_minimo
+            acumulado_previo + contribucion_esta_op, config.local_py_retencion_iva_minimo
         ) < 0:
             return resultado
 
-        porcentaje = partner.l10n_py_retencion_iva_porcentaje
+        porcentaje = partner.local_py_retencion_iva_porcentaje
         if not porcentaje:
             return resultado
 
@@ -669,8 +669,8 @@ class LocalPyOrdenPago(models.Model):
         for retencion in retenciones_a_limpiar:
             linea = retencion.orden_pago_factura_id.move_line_id
             if linea:
-                linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
-                linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
+                linea.local_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
+                linea.local_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
         retenciones_a_limpiar.unlink()
 
         evaluacion = self._evaluar_retencion_iva()
@@ -692,9 +692,9 @@ class LocalPyOrdenPago(models.Model):
                 'monto_5': por_tasa['5']['monto'],
                 'base_10': por_tasa['10']['base'],
                 'monto_10': por_tasa['10']['monto'],
-                'porcentaje': factura.orden_pago_id.partner_id.l10n_py_retencion_iva_porcentaje,
+                'porcentaje': factura.orden_pago_id.partner_id.local_py_retencion_iva_porcentaje,
                 'monto_gs': datos['monto_gs_total'],
-                'concepto_iva_id': (self.partner_id.l10n_py_concepto_iva_id or config.l10n_py_concepto_iva_id).id,
+                'concepto_iva_id': (self.partner_id.local_py_concepto_iva_id or config.local_py_concepto_iva_id).id,
                 'iva_5_cubierto_aporte': por_tasa['5']['iva_pendiente_factura'],
                 'iva_10_cubierto_aporte': por_tasa['10']['iva_pendiente_factura'],
             })
@@ -705,14 +705,14 @@ class LocalPyOrdenPago(models.Model):
                 # no distingue "de dónde viene" cada porción de la Retención).
                 self.env['local_py.orden_pago.medio'].create({
                     'orden_pago_id': self.id,
-                    'journal_id': config.l10n_py_diario_retencion_iva_id.id,
+                    'journal_id': config.local_py_diario_retencion_iva_id.id,
                     'importe': datos['monto_total'],
                     'es_retencion': True,
                     'retencion_factura_id': factura.id,
                 })
             linea = factura.move_line_id
-            linea.l10n_py_iva_5_cubierto += por_tasa['5']['iva_pendiente_factura']
-            linea.l10n_py_iva_10_cubierto += por_tasa['10']['iva_pendiente_factura']
+            linea.local_py_iva_5_cubierto += por_tasa['5']['iva_pendiente_factura']
+            linea.local_py_iva_10_cubierto += por_tasa['10']['iva_pendiente_factura']
 
     def _evaluar_retencion_exterior(self):
         """Evalúa la Retención IVA (a Proveedores del exterior, Concepto
@@ -729,7 +729,7 @@ class LocalPyOrdenPago(models.Model):
         partner = self.partner_id
         if not partner or not self.fecha:
             return resultado
-        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
+        es_exterior = bool(partner.local_py_concepto_iva_id and partner.local_py_concepto_iva_id.codigo == 'IVA.2')
         if not es_exterior:
             return resultado
         config = self._get_config_retencion()
@@ -737,10 +737,10 @@ class LocalPyOrdenPago(models.Model):
             return resultado
 
         calcular_iva = bool(
-            partner.l10n_py_retencion_iva and config.l10n_py_retencion_iva
-            and config.l10n_py_cuenta_gasto_absorcion_id
+            partner.local_py_retencion_iva and config.local_py_retencion_iva
+            and config.local_py_cuenta_gasto_absorcion_id
         )
-        calcular_renta = bool(partner.l10n_py_retencion_renta and config.l10n_py_retencion_renta)
+        calcular_renta = bool(partner.local_py_retencion_renta and config.local_py_retencion_renta)
 
         for factura in self.factura_ids:
             datos_factura = {}
@@ -749,13 +749,13 @@ class LocalPyOrdenPago(models.Model):
                 if not self.currency_id.is_zero(monto_header):
                     datos_factura['iva'] = {
                         'base': iva_nocional, 'monto': monto_header, 'monto_gs': monto_gs,
-                        'se_absorbe': partner.l10n_py_se_absorbe_iva,
+                        'se_absorbe': partner.local_py_se_absorbe_iva,
                     }
             if calcular_renta:
-                concepto = factura.move_id.l10n_py_concepto_renta_no_residente_id
+                concepto = factura.move_id.local_py_concepto_renta_no_residente_id
                 if concepto:
                     calc = factura._retencion_renta_no_residente_calcular(concepto)
-                    se_absorbe_renta = partner.l10n_py_se_absorbe_renta
+                    se_absorbe_renta = partner.local_py_se_absorbe_renta
                     monto_usar = calc['monto_absorcion'] if se_absorbe_renta else calc['monto']
                     monto_gs_usar = calc['monto_absorcion_gs'] if se_absorbe_renta else calc['monto_gs']
                     if not self.currency_id.is_zero(monto_usar):
@@ -777,7 +777,7 @@ class LocalPyOrdenPago(models.Model):
         Proveedor)."""
         self.ensure_one()
         partner = self.partner_id
-        es_exterior = bool(partner.l10n_py_concepto_iva_id and partner.l10n_py_concepto_iva_id.codigo == 'IVA.2')
+        es_exterior = bool(partner.local_py_concepto_iva_id and partner.local_py_concepto_iva_id.codigo == 'IVA.2')
         viejas = self.env['local_py.retencion_emitida'].search([
             ('orden_pago_id', '=', self.id), ('estado', '=', 'pendiente'),
         ]) if es_exterior else self.env['local_py.retencion_emitida']
@@ -790,7 +790,7 @@ class LocalPyOrdenPago(models.Model):
                 vieja.absorcion_move_id_renta.unlink()
             linea = vieja.orden_pago_factura_id.move_line_id
             if linea:
-                linea.l10n_py_renta_importe_cubierto -= vieja.renta_importe_cubierto_aporte
+                linea.local_py_renta_importe_cubierto -= vieja.renta_importe_cubierto_aporte
         viejas.unlink()
 
         evaluacion = self._evaluar_retencion_exterior()
@@ -815,20 +815,20 @@ class LocalPyOrdenPago(models.Model):
                     'base_10': iva_datos['base'],
                     'monto_10': iva_datos['monto'],
                     'porcentaje': 100.0,
-                    'concepto_iva_id': partner.l10n_py_concepto_iva_id.id,
+                    'concepto_iva_id': partner.local_py_concepto_iva_id.id,
                     'es_absorcion_iva': iva_datos['se_absorbe'],
                     'monto_gs': iva_datos['monto_gs'],
                 })
                 if iva_datos['se_absorbe']:
                     move = self._crear_movimiento_absorcion(
                         factura, iva_datos['monto'], 'IVA',
-                        config.l10n_py_diario_retencion_iva_id, config.l10n_py_cuenta_gasto_absorcion_id,
+                        config.local_py_diario_retencion_iva_id, config.local_py_cuenta_gasto_absorcion_id,
                     )
                     vals['absorcion_move_id_iva'] = move.id
                 else:
                     self.env['local_py.orden_pago.medio'].create({
                         'orden_pago_id': self.id,
-                        'journal_id': config.l10n_py_diario_retencion_iva_id.id,
+                        'journal_id': config.local_py_diario_retencion_iva_id.id,
                         'importe': iva_datos['monto'],
                         'es_retencion': True,
                         'retencion_factura_id': factura.id,
@@ -847,18 +847,18 @@ class LocalPyOrdenPago(models.Model):
                 if renta_datos['se_absorbe']:
                     move = self._crear_movimiento_absorcion(
                         factura, renta_datos['monto'], 'Renta',
-                        config.l10n_py_diario_retencion_renta_id, config.l10n_py_cuenta_gasto_absorcion_renta_id,
+                        config.local_py_diario_retencion_renta_id, config.local_py_cuenta_gasto_absorcion_renta_id,
                     )
                     vals['absorcion_move_id_renta'] = move.id
                 else:
                     self.env['local_py.orden_pago.medio'].create({
                         'orden_pago_id': self.id,
-                        'journal_id': config.l10n_py_diario_retencion_renta_id.id,
+                        'journal_id': config.local_py_diario_retencion_renta_id.id,
                         'importe': renta_datos['monto'],
                         'es_retencion': True,
                         'retencion_factura_id': factura.id,
                     })
-                factura.move_line_id.l10n_py_renta_importe_cubierto += renta_datos['importe_pendiente_factura']
+                factura.move_line_id.local_py_renta_importe_cubierto += renta_datos['importe_pendiente_factura']
 
             Retencion.create(vals)
 
@@ -924,7 +924,7 @@ class LocalPyOrdenPago(models.Model):
         self.ensure_one()
         if self.state != 'confirmado':
             raise UserError('Solo se puede deshacer la confirmación de una Orden de Pago Confirmada.')
-        if not self.env.context.get('l10n_py_forzar_anulacion_retenciones'):
+        if not self.env.context.get('local_py_forzar_anulacion_retenciones'):
             retenciones_comprometidas = self.env['local_py.retencion_emitida'].search([
                 ('orden_pago_id', '=', self.id), ('estado', 'in', ('levantada', 'json_generado')),
             ])
@@ -943,9 +943,9 @@ class LocalPyOrdenPago(models.Model):
                 'bancario. Deshaga esa conciliación manualmente en Contabilidad > Banco antes '
                 'de continuar.'
             )
-        pagos_saldo_favor = pagos.filtered('l10n_py_es_saldo_favor')
+        pagos_saldo_favor = pagos.filtered('local_py_es_saldo_favor')
         if pagos_saldo_favor:
-            medios_que_lo_usan = pagos_saldo_favor.mapped('l10n_py_medios_saldo_favor_ids')
+            medios_que_lo_usan = pagos_saldo_favor.mapped('local_py_medios_saldo_favor_ids')
             ordenes_dependientes = medios_que_lo_usan.mapped('orden_pago_id') - self
             if ordenes_dependientes:
                 raise UserError(
@@ -958,7 +958,7 @@ class LocalPyOrdenPago(models.Model):
             ('payment_id', 'in', pagos.ids), ('estado', '=', 'emitido'),
         ])
         if cheques_emitidos:
-            if self.env.context.get('l10n_py_forzar_anulacion_retenciones'):
+            if self.env.context.get('local_py_forzar_anulacion_retenciones'):
                 # Esta llamada viene del flujo "Anular la Orden de Pago
                 # completa" (wizard de Retenciones) — no hay nadie del otro
                 # lado para responder la pregunta de "reutilizar o anular"
@@ -985,8 +985,8 @@ class LocalPyOrdenPago(models.Model):
         pagos = self.medio_ids.mapped('payment_ids')
         for pago in pagos:
             pago.move_id.line_ids.remove_move_reconcile()
-            pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
-            pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+            pago.with_context(local_py_allow_orden_pago_write=True).action_draft()
+            pago.with_context(local_py_allow_orden_pago_write=True).unlink()
         medios_saldo_favor = self.medio_ids.filtered('saldo_favor_payment_id')
         if medios_saldo_favor:
             lineas_origen = medios_saldo_favor.mapped('saldo_favor_payment_id.move_id.line_ids').filtered(
@@ -1022,9 +1022,9 @@ class LocalPyOrdenPago(models.Model):
         for retencion in retenciones_pendientes:
             linea = retencion.orden_pago_factura_id.move_line_id
             if linea:
-                linea.l10n_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
-                linea.l10n_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
-                linea.l10n_py_renta_importe_cubierto -= retencion.renta_importe_cubierto_aporte
+                linea.local_py_iva_5_cubierto -= retencion.iva_5_cubierto_aporte
+                linea.local_py_iva_10_cubierto -= retencion.iva_10_cubierto_aporte
+                linea.local_py_renta_importe_cubierto -= retencion.renta_importe_cubierto_aporte
         retenciones_pendientes.unlink()
         medios_retencion.unlink()
         self.write({'state': 'en_proceso', 'fecha_confirmacion': False})
@@ -1058,7 +1058,7 @@ class LocalPyOrdenPago(models.Model):
         y los Medios que no son de Retención) se arma el reparto
         genérico, como siempre."""
         self.ensure_one()
-        AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
+        AccountPayment = self.env['account.payment'].with_context(local_py_allow_orden_pago_write=True)
         currency = self.currency_id
 
         medios_retencion = self.medio_ids.filtered('es_retencion')
@@ -1154,12 +1154,12 @@ class LocalPyOrdenPago(models.Model):
                 'date': self.fecha,
                 'company_id': self.company_id.id,
                 'memo': comentario,
-                'l10n_py_orden_pago_id': self.id,
-                'l10n_py_orden_pago_medio_id': medio.id,
+                'local_py_orden_pago_id': self.id,
+                'local_py_orden_pago_medio_id': medio.id,
             })
             payment.action_post()
             if payment.move_id:
-                payment.move_id.l10n_py_comentario = comentario
+                payment.move_id.local_py_comentario = comentario
             pagos_por_medio.setdefault(medio.id, []).append(payment.id)
 
             if medio.cheque_reutilizar_id:
@@ -1204,18 +1204,18 @@ class LocalPyOrdenPago(models.Model):
                 'date': self.fecha,
                 'company_id': self.company_id.id,
                 'memo': comentario,
-                'l10n_py_orden_pago_id': self.id,
-                'l10n_py_orden_pago_medio_id': medio.id,
-                'l10n_py_es_saldo_favor': True,
+                'local_py_orden_pago_id': self.id,
+                'local_py_orden_pago_medio_id': medio.id,
+                'local_py_es_saldo_favor': True,
             })
             payment.action_post()
             # El saldo disponible depende del saldo pendiente de la línea
             # contable del Pago, que recién queda definitivo al contabilizar
             # (arriba) — se fuerza el recálculo acá para no dejar guardado
             # un 0 de un instante anterior a que existiera el asiento real.
-            payment._compute_l10n_py_saldo_favor_disponible()
+            payment._compute_local_py_saldo_favor_disponible()
             if payment.move_id:
-                payment.move_id.l10n_py_comentario = comentario
+                payment.move_id.local_py_comentario = comentario
             pagos_por_medio.setdefault(medio.id, []).append(payment.id)
             # No se concilia contra ninguna Factura a propósito — es la porción
             # que excede lo que se le debía al Proveedor, y queda disponible
@@ -1277,7 +1277,7 @@ class LocalPyOrdenPago(models.Model):
         — revisar con atención los primeros asientos que genere en la
         práctica."""
         self.ensure_one()
-        AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
+        AccountPayment = self.env['account.payment'].with_context(local_py_allow_orden_pago_write=True)
 
         for medio in self.medio_ids:
             comentario = '%s - Orden de Pago %s' % (self.referencia_pago_cuenta, self.name)
@@ -1291,12 +1291,12 @@ class LocalPyOrdenPago(models.Model):
                 'date': self.fecha,
                 'company_id': self.company_id.id,
                 'memo': comentario,
-                'l10n_py_orden_pago_id': self.id,
-                'l10n_py_orden_pago_medio_id': medio.id,
+                'local_py_orden_pago_id': self.id,
+                'local_py_orden_pago_medio_id': medio.id,
             })
             payment.action_post()
             if payment.move_id:
-                payment.move_id.l10n_py_comentario = comentario
+                payment.move_id.local_py_comentario = comentario
 
             if medio.cheque_reutilizar_id:
                 cheque = medio.cheque_reutilizar_id
@@ -1346,7 +1346,7 @@ class LocalPyOrdenPago(models.Model):
         else:
             monto_moneda_factura = monto_company
 
-        tipo_label = 'Renta' if journal == self._get_config_retencion().l10n_py_diario_retencion_renta_id else 'IVA'
+        tipo_label = 'Renta' if journal == self._get_config_retencion().local_py_diario_retencion_renta_id else 'IVA'
         concepto = 'Retención %s - %s' % (tipo_label, self.name)
         move = self.env['account.move'].create({
             'journal_id': journal.id,

@@ -141,10 +141,10 @@ def _backfill_partner_tipo_identificacion(env):
         return
     partners = env['res.partner'].sudo().search([
         ('is_company', '=', True),
-        ('l10n_py_tipo_identificacion_fiscal_id', '=', False),
+        ('local_py_tipo_identificacion_fiscal_id', '=', False),
     ])
     if partners:
-        partners.write({'l10n_py_tipo_identificacion_fiscal_id': ruc.id})
+        partners.write({'local_py_tipo_identificacion_fiscal_id': ruc.id})
         _logger.info(
             "local_py: %s contacto(s) de tipo Empresa recibieron 'RUC' como Tipo de "
             "Identificación Fiscal por defecto.",
@@ -172,19 +172,19 @@ def _buscar_cuenta(env, company, code):
 # del timbrado asignado por la DNIT, que solo puede cargar el usuario.
 DIARIOS_LOCAL_PY = [
     # (campo en Configuración, nombre, código, tipo, código de cuenta)
-    ('l10n_py_diario_retencion_iva_id', 'Retención IVA', 'RIVA', 'general', '2.01.03.01.004'),
-    ('l10n_py_diario_retencion_renta_id', 'Retención Renta', 'RRTA', 'general', '2.01.03.01.004'),
-    ('l10n_py_diario_retencion_recibida_id', 'Retención Recibida', 'RREC', 'general', '1.01.03.02.006'),
-    ('l10n_py_diario_cheque_cliente_id', 'Cheques de Clientes', 'CHCL', 'bank', '1.01.01.01.004'),
+    ('local_py_diario_retencion_iva_id', 'Retención IVA', 'RIVA', 'general', '2.01.03.01.004'),
+    ('local_py_diario_retencion_renta_id', 'Retención Renta', 'RRTA', 'general', '2.01.03.01.004'),
+    ('local_py_diario_retencion_recibida_id', 'Retención Recibida', 'RREC', 'general', '1.01.03.02.006'),
+    ('local_py_diario_cheque_cliente_id', 'Cheques de Clientes', 'CHCL', 'bank', '1.01.01.01.004'),
 ]
 
 # Cuentas de Configuraciones Localización Py, por Código del plan de l10n_py.
 CUENTAS_LOCAL_PY = [
-    ('l10n_py_cuenta_gasto_absorcion_id', '7.02.17.01.001'),
-    ('l10n_py_cuenta_gasto_absorcion_renta_id', '7.02.17.01.001'),
-    ('l10n_py_cuenta_retencion_a_confirmar_id', '1.01.03.02.006'),
-    ('l10n_py_cuenta_retenciones_recibidas_iva_id', '1.01.03.02.002'),
-    ('l10n_py_cuenta_retenciones_recibidas_renta_id', '1.01.03.02.005'),
+    ('local_py_cuenta_gasto_absorcion_id', '7.02.17.01.001'),
+    ('local_py_cuenta_gasto_absorcion_renta_id', '7.02.17.01.001'),
+    ('local_py_cuenta_retencion_a_confirmar_id', '1.01.03.02.006'),
+    ('local_py_cuenta_retenciones_recibidas_iva_id', '1.01.03.02.002'),
+    ('local_py_cuenta_retenciones_recibidas_renta_id', '1.01.03.02.005'),
 ]
 
 

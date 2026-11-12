@@ -20,7 +20,7 @@ class ResUsers(models.Model):
         for vals in vals_list:
             if not vals.get('partner_id'):
                 partner = Partner.with_context(
-                    l10n_py_partner_from_user_or_employee=True,
+                    local_py_partner_from_user_or_employee=True,
                 ).create({
                     'name': vals.get('name') or vals.get('login') or 'Usuario',
                     'email': vals.get('email'),

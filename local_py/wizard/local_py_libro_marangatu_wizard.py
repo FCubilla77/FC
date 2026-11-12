@@ -90,7 +90,7 @@ class LocalPyLibroMarangatuWizard(models.TransientModel):
         buffer = io.StringIO()
         writer = csv.writer(buffer, delimiter=',', lineterminator='\r\n')
         for move in moves:
-            writer.writerow(move.l10n_py_mkt_row_values())
+            writer.writerow(move.local_py_mkt_row_values())
         csv_bytes = buffer.getvalue().encode('utf-8')
 
         zip_buffer = io.BytesIO()

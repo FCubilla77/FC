@@ -100,11 +100,11 @@ class LocalPyRecibo(models.Model):
                 continue
             pagos = self.env['account.payment'].search([
                 ('partner_id', '=', recibo.partner_id.id),
-                ('l10n_py_es_saldo_favor', '=', True),
+                ('local_py_es_saldo_favor', '=', True),
                 ('currency_id', '=', recibo.currency_id.id),
-                ('l10n_py_saldo_favor_disponible', '>', 0),
+                ('local_py_saldo_favor_disponible', '>', 0),
             ])
-            recibo.total_saldo_favor_cliente = sum(pagos.mapped('l10n_py_saldo_favor_disponible'))
+            recibo.total_saldo_favor_cliente = sum(pagos.mapped('local_py_saldo_favor_disponible'))
 
     @api.depends('factura_ids.valor_convertido', 'factura_ids.retencion_valor_convertido',
                  'factura_ids.currency_id', 'medio_ids.importe', 'currency_id')
@@ -255,7 +255,7 @@ class LocalPyRecibo(models.Model):
         Pago (waterfall exacto, prioridad por tipo de Medio), adaptado
         al sentido Cliente (Cobro entrante, Cuenta Por Cobrar)."""
         self.ensure_one()
-        AccountPayment = self.env['account.payment'].with_context(l10n_py_allow_orden_pago_write=True)
+        AccountPayment = self.env['account.payment'].with_context(local_py_allow_orden_pago_write=True)
         currency = self.currency_id
 
         def _prioridad_medio(medio):
@@ -351,12 +351,12 @@ class LocalPyRecibo(models.Model):
         self.ensure_one()
         config = self._get_config_recibo()
         if medio.es_cheque:
-            if not config or not config.l10n_py_diario_cheque_cliente_id:
+            if not config or not config.local_py_diario_cheque_cliente_id:
                 raise UserError(
                     'Falta configurar el "Diario de Cheques de Clientes" en Configuraciones '
                     'Localización Py.'
                 )
-            journal = config.l10n_py_diario_cheque_cliente_id
+            journal = config.local_py_diario_cheque_cliente_id
         else:
             journal = medio.journal_id
             if not journal:
@@ -375,13 +375,13 @@ class LocalPyRecibo(models.Model):
             'date': self.fecha,
             'company_id': self.company_id.id,
             'memo': comentario,
-            'l10n_py_recibo_id': self.id,
-            'l10n_py_recibo_medio_id': medio.id,
-            'l10n_py_es_saldo_favor': es_sobrante,
+            'local_py_recibo_id': self.id,
+            'local_py_recibo_medio_id': medio.id,
+            'local_py_es_saldo_favor': es_sobrante,
         })
         payment.action_post()
         if payment.move_id:
-            payment.move_id.l10n_py_comentario = comentario
+            payment.move_id.local_py_comentario = comentario
 
         if medio.es_cheque and not medio.cheque_cliente_id:
             cheque = self.env['local_py.cheque_cliente'].create({
@@ -416,13 +416,13 @@ class LocalPyRecibo(models.Model):
         DNIT/Marangatu más adelante. Devuelve (asiento, retención)."""
         self.ensure_one()
         config = self._get_config_recibo()
-        if not config or not config.l10n_py_diario_retencion_recibida_id or not config.l10n_py_cuenta_retencion_a_confirmar_id:
+        if not config or not config.local_py_diario_retencion_recibida_id or not config.local_py_cuenta_retencion_a_confirmar_id:
             raise UserError(
                 'Falta configurar el "Diario de Retención Recibida" y/o la Cuenta '
                 '"Retenido a Confirmar" en Configuraciones Localización Py.'
             )
-        journal = config.l10n_py_diario_retencion_recibida_id
-        cuenta_a_confirmar = config.l10n_py_cuenta_retencion_a_confirmar_id
+        journal = config.local_py_diario_retencion_recibida_id
+        cuenta_a_confirmar = config.local_py_cuenta_retencion_a_confirmar_id
         cuenta_receivable = factura.move_line_id.account_id
 
         monto_header = factura.retencion_valor_convertido
@@ -489,9 +489,9 @@ class LocalPyRecibo(models.Model):
             )
 
         pagos = self.medio_ids.mapped('payment_ids')
-        pagos_saldo_favor = pagos.filtered('l10n_py_es_saldo_favor')
+        pagos_saldo_favor = pagos.filtered('local_py_es_saldo_favor')
         if pagos_saldo_favor:
-            medios_que_lo_usan = pagos_saldo_favor.mapped('l10n_py_recibo_medios_saldo_favor_ids')
+            medios_que_lo_usan = pagos_saldo_favor.mapped('local_py_recibo_medios_saldo_favor_ids')
             recibos_dependientes = medios_que_lo_usan.mapped('recibo_id') - self
             if recibos_dependientes:
                 raise UserError(
@@ -539,9 +539,9 @@ class LocalPyRecibo(models.Model):
                 )
 
             pagos = recibo.medio_ids.mapped('payment_ids')
-            pagos_saldo_favor = pagos.filtered('l10n_py_es_saldo_favor')
+            pagos_saldo_favor = pagos.filtered('local_py_es_saldo_favor')
             if pagos_saldo_favor:
-                medios_que_lo_usan = pagos_saldo_favor.mapped('l10n_py_recibo_medios_saldo_favor_ids')
+                medios_que_lo_usan = pagos_saldo_favor.mapped('local_py_recibo_medios_saldo_favor_ids')
                 recibos_dependientes = medios_que_lo_usan.mapped('recibo_id') - recibo
                 if recibos_dependientes:
                     raise UserError(
@@ -561,8 +561,8 @@ class LocalPyRecibo(models.Model):
 
             for pago in pagos:
                 pago.move_id.line_ids.remove_move_reconcile()
-                pago.with_context(l10n_py_allow_orden_pago_write=True).action_draft()
-                pago.with_context(l10n_py_allow_orden_pago_write=True).unlink()
+                pago.with_context(local_py_allow_orden_pago_write=True).action_draft()
+                pago.with_context(local_py_allow_orden_pago_write=True).unlink()
 
             medios_saldo_favor = recibo.medio_ids.filtered('saldo_favor_payment_id')
             if medios_saldo_favor:

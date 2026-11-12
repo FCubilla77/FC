@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
-    l10n_py_asiento_ajuste_id = fields.Many2one(
+    local_py_asiento_ajuste_id = fields.Many2one(
         'account.move', string='Asiento Ajuste Inventario', readonly=True, copy=False,
         help='Asiento contable generado automáticamente al aplicar este ajuste de '
              'Inventario Físico (solo si la funcionalidad está activa en Configuraciones '
@@ -15,15 +15,15 @@ class StockQuant(models.Model):
              'borrador.',
     )
 
-    def _l10n_py_get_config_ajuste_inventario(self):
+    def _local_py_get_config_ajuste_inventario(self):
         company = self.env.company
         return self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', company.id)], limit=1
         )
 
     def _apply_inventory(self, date=None):
-        config = self._l10n_py_get_config_ajuste_inventario()
-        generar = bool(config and config.l10n_py_asiento_ajuste_inventario)
+        config = self._local_py_get_config_ajuste_inventario()
+        generar = bool(config and config.local_py_asiento_ajuste_inventario)
 
         quants_con_diff = self.filtered(
             lambda q: q.product_uom_id.compare(q.inventory_diff_quantity, 0) != 0
@@ -47,11 +47,11 @@ class StockQuant(models.Model):
 
         if generar:
             for quant in quants_con_diff:
-                quant._l10n_py_crear_asiento_ajuste_inventario(diffs[quant.id])
+                quant._local_py_crear_asiento_ajuste_inventario(diffs[quant.id])
 
         return result
 
-    def _l10n_py_crear_asiento_ajuste_inventario(self, diff_qty):
+    def _local_py_crear_asiento_ajuste_inventario(self, diff_qty):
         self.ensure_one()
         product = self.product_id
         categ = product.categ_id
@@ -82,14 +82,14 @@ class StockQuant(models.Model):
             'journal_id': journal.id,
             'company_id': company.id,
             'date': fields.Date.context_today(self),
-            'l10n_py_comentario': comentario,
+            'local_py_comentario': comentario,
             'line_ids': [
                 (0, 0, {'account_id': cuenta_debito.id, 'debit': valor, 'credit': 0.0, 'name': comentario}),
                 (0, 0, {'account_id': cuenta_credito.id, 'debit': 0.0, 'credit': valor, 'name': comentario}),
             ],
         })
         move.action_post()
-        self.l10n_py_asiento_ajuste_id = move.id
+        self.local_py_asiento_ajuste_id = move.id
 
         # Vincula también el movimiento de stock correspondiente (el que aparece en
         # "Historial de movimientos"), para poder verlo desde esa pantalla también.
@@ -103,4 +103,4 @@ class StockQuant(models.Model):
             ('location_dest_id', '=', self.location_id.id),
         ], order='id desc', limit=1)
         if move_stock:
-            move_stock.l10n_py_asiento_ajuste_id = move.id
+            move_stock.local_py_asiento_ajuste_id = move.id

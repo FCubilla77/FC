@@ -84,7 +84,7 @@ class LocalPyCuentaCorrienteWizard(models.TransientModel):
                     'fecha': linea.date,
                     'fecha_creacion': fields.Datetime.context_timestamp(self, linea.create_date),
                     'diario': linea.journal_id.name,
-                    'comentario': linea.move_id.l10n_py_comentario or linea.name or '',
+                    'comentario': linea.move_id.local_py_comentario or linea.name or '',
                     'debito': linea.debit,
                     'credito': linea.credit,
                     'saldo': saldo,

@@ -3,7 +3,7 @@
 from odoo import models, fields
 
 
-class L10nPyTipoFiscal(models.Model):
+class LocalPyTipoFiscal(models.Model):
     _name = 'local_py.tipo_fiscal'
     _inherit = ['local_py.mixin.licencia']
     _description = 'Tipo Fiscal (Paraguay)'

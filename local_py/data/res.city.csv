@@ -1,4 +1,4 @@
-id,state_id/id,district_id/id,code,name,country_id/id
+id,state_id/id,local_py_district_id/id,local_py_code,name,country_id/id
 city_4699,state_alto_paraguay,distrito_196,4699,BAHIA NEGRA,base.py
 city_4701,state_alto_paraguay,distrito_196,4701,BLANQUITA,base.py
 city_4702,state_alto_paraguay,distrito_196,4702,BUENA VISTA,base.py

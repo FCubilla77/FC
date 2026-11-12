@@ -11,9 +11,9 @@ class ResPartner(models.Model):
     # seleccionado.
     city_id = fields.Many2one(domain="[('state_id', '=', state_id)]")
 
-    omitir_validacion = fields.Boolean(string='Omitir control de RUT', default=False)
+    local_py_omitir_validacion = fields.Boolean(string='Omitir control de RUT', default=False)
     vat = fields.Char(string="RUT", index=True)
-    l10n_py_tipo_identificacion_fiscal_id = fields.Many2one(
+    local_py_tipo_identificacion_fiscal_id = fields.Many2one(
         'local_py.tipo_identificacion_fiscal',
         string='Tipo de Identificación Fiscal',
         help='Clasificación fiscal del contacto según la Tabla 3 de la '
@@ -26,7 +26,7 @@ class ResPartner(models.Model):
              'defecto en cada Factura/Nota de Crédito nueva que se le haga (editable '
              'por operación). Pensado para Clientes de exportación.',
     )
-    l10n_py_creado_desde_usuario_empleado = fields.Boolean(
+    local_py_creado_desde_usuario_empleado = fields.Boolean(
         string='Creado desde Usuario',
         default=False,
         copy=False,
@@ -36,19 +36,19 @@ class ResPartner(models.Model):
              'exigir Empresa relacionada. Se deja en 0/Falso para contactos '
              'creados normalmente desde Contactos.',
     )
-    l10n_py_retencion_iva = fields.Boolean(
-        string='Retención IVA', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_iva'),
+    local_py_retencion_iva = fields.Boolean(
+        string='Retención IVA', default=lambda self: self._default_local_py_retencion('local_py_retencion_iva'),
     )
-    l10n_py_retencion_iva_porcentaje = fields.Float(
+    local_py_retencion_iva_porcentaje = fields.Float(
         string='Porcentaje Retención IVA', digits=(5, 2),
-        default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_iva_porcentaje'),
+        default=lambda self: self._default_local_py_retencion('local_py_retencion_iva_porcentaje'),
     )
-    l10n_py_retencion_renta = fields.Boolean(
-        string='Retención Renta (Exterior)', default=lambda self: self._default_l10n_py_retencion('l10n_py_retencion_renta'),
+    local_py_retencion_renta = fields.Boolean(
+        string='Retención Renta (Exterior)', default=lambda self: self._default_local_py_retencion('local_py_retencion_renta'),
     )
-    l10n_py_concepto_iva_id = fields.Many2one(
+    local_py_concepto_iva_id = fields.Many2one(
         'local_py.concepto_iva', string='Concepto IVA',
-        default=lambda self: self._default_l10n_py_retencion('l10n_py_concepto_iva_id'),
+        default=lambda self: self._default_local_py_retencion('local_py_concepto_iva_id'),
         help='Determina cómo se calcula la Retención IVA para este Proveedor: '
              '"IVA.1" (el predeterminado, proveedores locales) sigue el régimen habitual '
              '(acumulado mensual, Mínimo Imponible, Porcentaje configurado). Cualquier '
@@ -57,37 +57,37 @@ class ResPartner(models.Model):
              'temporalmente al 10%, sin acumulado ni mínimo, como un Gasto aparte para '
              'la Compañía (no se le descuenta nada al Proveedor).',
     )
-    l10n_py_se_absorbe_iva = fields.Boolean(
+    local_py_se_absorbe_iva = fields.Boolean(
         string='Se Absorbe IVA',
         help='Solo aplica a Proveedores del exterior (Concepto IVA = IVA.2). Si está '
              'tildado, la Retención IVA queda como un Gasto aparte para la Compañía, '
              'sin descontarle nada al Proveedor. Si no está tildado, se descuenta '
              'directo del pago (como una Retención local más).',
     )
-    l10n_py_se_absorbe_renta = fields.Boolean(
+    local_py_se_absorbe_renta = fields.Boolean(
         string='Se Absorbe Renta',
         help='Solo aplica a Proveedores del exterior con Concepto Renta No Residente '
              'configurado. Si está tildado, la Retención Renta queda como un Gasto '
              'aparte para la Compañía, sin descontarle nada al Proveedor. Si no está '
              'tildado, se descuenta directo del pago (como una Retención local más).',
     )
-    l10n_py_concepto_renta_no_residente_ids = fields.Many2many(
+    local_py_concepto_renta_no_residente_ids = fields.Many2many(
         'local_py.concepto_renta_no_residente', string='Conceptos Renta No Residente',
         help='Los distintos tipos de operación por los que este Proveedor del exterior '
              'puede facturar (por ejemplo, servicios profesionales y también servicios '
              'digitales) — cada Factura puede elegir cuál de estos le corresponde.',
     )
-    l10n_py_concepto_renta_no_residente_predeterminado_id = fields.Many2one(
+    local_py_concepto_renta_no_residente_predeterminado_id = fields.Many2one(
         'local_py.concepto_renta_no_residente', string='Concepto Renta No Residente Predeterminado',
         help='Se copia solo en cada Factura nueva de este Proveedor — queda editable '
              'por Factura, para cuando una factura puntual corresponda a otro Concepto '
              'de los configurados arriba.',
     )
-    l10n_py_concepto_renta_no_residente_porcentaje = fields.Float(
-        related='l10n_py_concepto_renta_no_residente_predeterminado_id.porcentaje',
+    local_py_concepto_renta_no_residente_porcentaje = fields.Float(
+        related='local_py_concepto_renta_no_residente_predeterminado_id.porcentaje',
         string='Porcentaje (%)', readonly=True,
     )
-    l10n_py_localizacion_validada = fields.Boolean(
+    local_py_localizacion_validada = fields.Boolean(
         string='Localización Validada', default=False, copy=False,
         help='Confirma que un humano revisó (y completó o corrigió si hacía falta) los '
              'datos de Retención de este Proveedor — nace destildada en cualquier '
@@ -96,13 +96,13 @@ class ResPartner(models.Model):
              'tildada, Orden de Pago bloquea a este Proveedor si tiene alguna Retención '
              'activa (evita pagar con datos fiscales sin revisar).',
     )
-    l10n_py_move_line_count = fields.Integer(
-        string='Movimientos Contables', compute='_compute_l10n_py_move_line_count',
+    local_py_move_line_count = fields.Integer(
+        string='Movimientos Contables', compute='_compute_local_py_move_line_count',
     )
 
-    def _compute_l10n_py_move_line_count(self):
+    def _compute_local_py_move_line_count(self):
         for partner in self:
-            partner.l10n_py_move_line_count = self.env['account.move.line'].search_count([
+            partner.local_py_move_line_count = self.env['account.move.line'].search_count([
                 ('partner_id', '=', partner.id),
                 ('account_id.account_type', 'in', ('liability_payable', 'asset_receivable')),
                 ('move_id.state', '=', 'posted'),
@@ -170,30 +170,30 @@ class ResPartner(models.Model):
             [('company_id', '=', self.env.company.id)], limit=1,
         )
         if self.country_id == company_country:
-            self.l10n_py_retencion_renta = False
-            self.l10n_py_se_absorbe_iva = False
-            self.l10n_py_se_absorbe_renta = False
+            self.local_py_retencion_renta = False
+            self.local_py_se_absorbe_iva = False
+            self.local_py_se_absorbe_renta = False
             if config:
-                self.l10n_py_retencion_iva = config.l10n_py_retencion_iva
-                self.l10n_py_retencion_iva_porcentaje = config.l10n_py_retencion_iva_porcentaje
-                self.l10n_py_concepto_iva_id = config.l10n_py_concepto_iva_id
+                self.local_py_retencion_iva = config.local_py_retencion_iva
+                self.local_py_retencion_iva_porcentaje = config.local_py_retencion_iva_porcentaje
+                self.local_py_concepto_iva_id = config.local_py_concepto_iva_id
         else:
-            self.l10n_py_retencion_iva = True
-            self.l10n_py_retencion_renta = True
+            self.local_py_retencion_iva = True
+            self.local_py_retencion_renta = True
             concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
             if concepto_iva_2:
-                self.l10n_py_concepto_iva_id = concepto_iva_2
-            if config and config.l10n_py_retencion_iva_porcentaje:
-                self.l10n_py_retencion_iva_porcentaje = config.l10n_py_retencion_iva_porcentaje
-        self.l10n_py_localizacion_validada = False
+                self.local_py_concepto_iva_id = concepto_iva_2
+            if config and config.local_py_retencion_iva_porcentaje:
+                self.local_py_retencion_iva_porcentaje = config.local_py_retencion_iva_porcentaje
+        self.local_py_localizacion_validada = False
 
-    @api.onchange('l10n_py_tipo_identificacion_fiscal_id')
-    def _onchange_l10n_py_tipo_identificacion_fiscal_id(self):
+    @api.onchange('local_py_tipo_identificacion_fiscal_id')
+    def _onchange_local_py_tipo_identificacion_fiscal_id(self):
         ruc = self.env.ref('local_py.tipo_identificacion_ruc', raise_if_not_found=False)
         for partner in self:
-            tipo = partner.l10n_py_tipo_identificacion_fiscal_id
+            tipo = partner.local_py_tipo_identificacion_fiscal_id
             if tipo:
-                partner.omitir_validacion = not (ruc and tipo.id == ruc.id)
+                partner.local_py_omitir_validacion = not (ruc and tipo.id == ruc.id)
 
     def clear_vat(self, vat):
         allowed_characters = '1234567890-'
@@ -203,7 +203,7 @@ class ResPartner(models.Model):
                     vat = vat.replace(vat_character, '')
         return vat
 
-    @api.depends('vat', 'omitir_validacion', 'is_company')
+    @api.depends('vat', 'local_py_omitir_validacion', 'is_company')
     def val_ruc(self):
         for this in self:
             # El campo RUT y sus validaciones (formato, dígito verificador,
@@ -214,7 +214,7 @@ class ResPartner(models.Model):
             if not this.is_company:
                 continue
             ruc = this.clear_vat(this.vat)
-            if not this.omitir_validacion:
+            if not this.local_py_omitir_validacion:
                 if ruc:
                     pattern = "^[0-9]+-[0-9]$"
                     if re.match(pattern, ruc):
@@ -273,7 +273,7 @@ class ResPartner(models.Model):
         relacionada debe ser, a su vez, un contacto de tipo empresa.
 
         Excepción: no aplica a contactos originados al crear un Usuario
-        (l10n_py_creado_desde_usuario_empleado = True), ya que ese flujo no
+        (local_py_creado_desde_usuario_empleado = True), ya que ese flujo no
         tiene por qué tener una Empresa asociada.
 
         Esta validación se revisa siempre antes que cualquier otra del
@@ -284,7 +284,7 @@ class ResPartner(models.Model):
         for this in self:
             if this.is_company:
                 continue
-            if this.l10n_py_creado_desde_usuario_empleado:
+            if this.local_py_creado_desde_usuario_empleado:
                 continue
             if not this.parent_id:
                 raise exceptions.ValidationError(
@@ -297,7 +297,7 @@ class ResPartner(models.Model):
                     "contacto de tipo Empresa. Seleccione una Empresa relacionada."
                 )
 
-    def _default_l10n_py_retencion(self, campo):
+    def _default_local_py_retencion(self, campo):
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.env.company.id)], limit=1,
         )
@@ -305,16 +305,16 @@ class ResPartner(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        if self.env.context.get('l10n_py_partner_from_user_or_employee'):
+        if self.env.context.get('local_py_partner_from_user_or_employee'):
             for vals in vals_list:
-                vals.setdefault('l10n_py_creado_desde_usuario_empleado', True)
+                vals.setdefault('local_py_creado_desde_usuario_empleado', True)
         result = super(ResPartner, self).create(vals_list)
         result.val_ruc()
         return result
 
     @api.constrains(
         'is_company', 'name', 'street', 'country_id', 'state_id', 'city_id',
-        'l10n_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
+        'local_py_tipo_identificacion_fiscal_id', 'property_payment_term_id',
         'property_supplier_payment_term_id', 'vat',
     )
     def _check_datos_obligatorios_empresa(self):
@@ -341,7 +341,7 @@ class ResPartner(models.Model):
                 faltantes.append('Departamento')
             if not partner.city_id:
                 faltantes.append('Ciudad')
-            if not partner.l10n_py_tipo_identificacion_fiscal_id:
+            if not partner.local_py_tipo_identificacion_fiscal_id:
                 faltantes.append('Tipo de Identificación Fiscal')
             if not partner.property_payment_term_id:
                 faltantes.append('Términos de Pago Venta')
@@ -355,7 +355,7 @@ class ResPartner(models.Model):
                     % ', '.join(faltantes)
                 )
 
-    def _l10n_py_tipos_identificacion_exterior(self):
+    def _local_py_tipos_identificacion_exterior(self):
         """Tipos de Identificación Fiscal que cuentan como señal de
         "exterior" — comunes a Cliente y Proveedor."""
         tipo_tributaria = self.env.ref('local_py.tipo_identificacion_tributaria', raise_if_not_found=False)
@@ -364,7 +364,7 @@ class ResPartner(models.Model):
             | (tipo_cedula_extranjero or self.env['local_py.tipo_identificacion_fiscal'])
 
     @api.constrains(
-        'is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id',
+        'is_company', 'local_py_tipo_identificacion_fiscal_id', 'country_id',
         'property_account_position_id', 'local_py_incoterm_id', 'customer_rank',
     )
     def _check_consistencia_cliente_exterior(self):
@@ -377,13 +377,13 @@ class ResPartner(models.Model):
         Proveedor puro no tiene por qué cumplir esto (ver
         _check_consistencia_proveedor_exterior, que agrega además el
         Concepto IVA, propio de Proveedor)."""
-        tipos_exterior = self._l10n_py_tipos_identificacion_exterior()
+        tipos_exterior = self._local_py_tipos_identificacion_exterior()
         company_country = self.env.company.country_id
         for partner in self:
             if not partner.is_company or partner.customer_rank <= 0:
                 continue
             es_pais_exterior = bool(partner.country_id) and partner.country_id != company_country
-            es_tipo_exterior = bool(tipos_exterior) and partner.l10n_py_tipo_identificacion_fiscal_id in tipos_exterior
+            es_tipo_exterior = bool(tipos_exterior) and partner.local_py_tipo_identificacion_fiscal_id in tipos_exterior
             es_posicion_exterior = bool(
                 partner.property_account_position_id and partner.property_account_position_id.local_py_es_exterior
             )
@@ -408,8 +408,8 @@ class ResPartner(models.Model):
                 )
 
     @api.constrains(
-        'is_company', 'l10n_py_tipo_identificacion_fiscal_id', 'country_id',
-        'property_account_position_id', 'local_py_incoterm_id', 'l10n_py_concepto_iva_id', 'supplier_rank',
+        'is_company', 'local_py_tipo_identificacion_fiscal_id', 'country_id',
+        'property_account_position_id', 'local_py_incoterm_id', 'local_py_concepto_iva_id', 'supplier_rank',
     )
     def _check_consistencia_proveedor_exterior(self):
         """Mismo criterio que _check_consistencia_cliente_exterior, para
@@ -417,19 +417,19 @@ class ResPartner(models.Model):
         Concepto IVA = "IVA.2" (motor de cálculo de Retención IVA del
         exterior). Un Contacto que es Cliente y Proveedor a la vez queda
         evaluado por los 2 métodos en simultáneo."""
-        tipos_exterior = self._l10n_py_tipos_identificacion_exterior()
+        tipos_exterior = self._local_py_tipos_identificacion_exterior()
         concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
         company_country = self.env.company.country_id
         for partner in self:
             if not partner.is_company or partner.supplier_rank <= 0:
                 continue
             es_pais_exterior = bool(partner.country_id) and partner.country_id != company_country
-            es_tipo_exterior = bool(tipos_exterior) and partner.l10n_py_tipo_identificacion_fiscal_id in tipos_exterior
+            es_tipo_exterior = bool(tipos_exterior) and partner.local_py_tipo_identificacion_fiscal_id in tipos_exterior
             es_posicion_exterior = bool(
                 partner.property_account_position_id and partner.property_account_position_id.local_py_es_exterior
             )
             es_incoterm_cargado = bool(partner.local_py_incoterm_id)
-            es_concepto_exterior = bool(concepto_iva_2) and partner.l10n_py_concepto_iva_id == concepto_iva_2
+            es_concepto_exterior = bool(concepto_iva_2) and partner.local_py_concepto_iva_id == concepto_iva_2
             señales = (es_pais_exterior, es_tipo_exterior, es_posicion_exterior, es_incoterm_cargado, es_concepto_exterior)
             if any(señales) and not all(señales):
                 faltantes = []
@@ -452,9 +452,9 @@ class ResPartner(models.Model):
                 )
 
     @api.constrains(
-        'is_company', 'country_id', 'l10n_py_retencion_iva', 'l10n_py_retencion_iva_porcentaje',
-        'l10n_py_concepto_iva_id', 'l10n_py_se_absorbe_iva', 'l10n_py_retencion_renta',
-        'l10n_py_concepto_renta_no_residente_predeterminado_id', 'supplier_rank',
+        'is_company', 'country_id', 'local_py_retencion_iva', 'local_py_retencion_iva_porcentaje',
+        'local_py_concepto_iva_id', 'local_py_se_absorbe_iva', 'local_py_retencion_renta',
+        'local_py_concepto_renta_no_residente_predeterminado_id', 'supplier_rank',
     )
     def _check_retenciones_local_o_exterior(self):
         """Reglas de Retención según el Proveedor sea local o del
@@ -486,27 +486,27 @@ class ResPartner(models.Model):
             es_local = partner.country_id == company_country
             faltantes = []
             if es_local:
-                if partner.l10n_py_retencion_renta:
+                if partner.local_py_retencion_renta:
                     faltantes.append('un Proveedor local no puede tener "Retención Renta (Exterior)" activada')
-                if partner.l10n_py_retencion_iva:
-                    if not partner.l10n_py_retencion_iva_porcentaje:
+                if partner.local_py_retencion_iva:
+                    if not partner.local_py_retencion_iva_porcentaje:
                         faltantes.append('Porcentaje Retención IVA')
-                    if not partner.l10n_py_concepto_iva_id:
+                    if not partner.local_py_concepto_iva_id:
                         faltantes.append('Concepto IVA')
-                    if partner.l10n_py_se_absorbe_iva:
+                    if partner.local_py_se_absorbe_iva:
                         faltantes.append('un Proveedor local no puede tener "Se Absorbe IVA" tildado')
             else:
-                if not partner.l10n_py_retencion_iva:
+                if not partner.local_py_retencion_iva:
                     faltantes.append('un Proveedor del exterior debe tener "Retención IVA" activada')
-                if not partner.l10n_py_retencion_renta:
+                if not partner.local_py_retencion_renta:
                     faltantes.append('un Proveedor del exterior debe tener "Retención Renta (Exterior)" activada')
-                if partner.l10n_py_retencion_iva:
-                    if not partner.l10n_py_retencion_iva_porcentaje:
+                if partner.local_py_retencion_iva:
+                    if not partner.local_py_retencion_iva_porcentaje:
                         faltantes.append('Porcentaje Retención IVA')
-                    if not concepto_iva_2 or partner.l10n_py_concepto_iva_id != concepto_iva_2:
+                    if not concepto_iva_2 or partner.local_py_concepto_iva_id != concepto_iva_2:
                         faltantes.append('Concepto IVA tiene que ser puntualmente "IVA.2"')
-                if partner.l10n_py_retencion_renta:
-                    if not partner.l10n_py_concepto_renta_no_residente_predeterminado_id:
+                if partner.local_py_retencion_renta:
+                    if not partner.local_py_concepto_renta_no_residente_predeterminado_id:
                         faltantes.append('Concepto Renta No Residente Predeterminado')
             if faltantes:
                 raise exceptions.ValidationError(
@@ -515,12 +515,12 @@ class ResPartner(models.Model):
                 )
 
     @api.constrains(
-        'l10n_py_concepto_renta_no_residente_predeterminado_id', 'l10n_py_concepto_renta_no_residente_ids',
+        'local_py_concepto_renta_no_residente_predeterminado_id', 'local_py_concepto_renta_no_residente_ids',
     )
     def _check_concepto_renta_predeterminado(self):
         for partner in self:
-            predeterminado = partner.l10n_py_concepto_renta_no_residente_predeterminado_id
-            if predeterminado and predeterminado not in partner.l10n_py_concepto_renta_no_residente_ids:
+            predeterminado = partner.local_py_concepto_renta_no_residente_predeterminado_id
+            if predeterminado and predeterminado not in partner.local_py_concepto_renta_no_residente_ids:
                 raise exceptions.ValidationError(
                     'El Concepto Renta No Residente Predeterminado tiene que ser uno de los '
                     'que están cargados en "Conceptos Renta No Residente", en la misma ficha '

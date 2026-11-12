@@ -45,7 +45,7 @@ class LocalPyDocumentoAnulado(models.Model):
     def _onchange_diario_id(self):
         for doc in self:
             if doc.diario_id:
-                doc.timbrado = doc.diario_id.l10n_py_timbrado
+                doc.timbrado = doc.diario_id.local_py_timbrado
                 doc.tipo_fiscal_id = doc.diario_id.local_py_tipo_fiscal_id
 
     @api.constrains('diario_id')
@@ -62,7 +62,7 @@ class LocalPyDocumentoAnulado(models.Model):
     def _check_numero_dentro_de_rango(self):
         for doc in self:
             if doc.diario_id and doc.numero:
-                doc.diario_id.l10n_py_verificar_dentro_de_rango(doc.numero)
+                doc.diario_id.local_py_verificar_dentro_de_rango(doc.numero)
 
     @api.constrains('diario_id', 'numero')
     def _check_numero_no_usado(self):
@@ -70,7 +70,7 @@ class LocalPyDocumentoAnulado(models.Model):
             if doc.diario_id and doc.numero:
                 if self.env['account.move'].search_count([
                     ('journal_id', '=', doc.diario_id.id),
-                    ('l10n_py_nro_documento', '=', doc.numero),
+                    ('local_py_nro_documento', '=', doc.numero),
                 ]):
                     raise exceptions.ValidationError(
                         'El Número %s ya fue utilizado en una Factura/Nota de Crédito/Débito '
@@ -86,8 +86,8 @@ class LocalPyDocumentoAnulado(models.Model):
         self.ensure_one()
         if not self.diario_id or not self.numero:
             return False
-        maximo = self.diario_id.l10n_py_correlativo_maximo_usado()
-        correlativo = self.diario_id._l10n_py_correlativo(self.numero)
+        maximo = self.diario_id.local_py_correlativo_maximo_usado()
+        correlativo = self.diario_id._local_py_correlativo(self.numero)
         return maximo is not None and correlativo is not None and correlativo <= maximo
 
     def write(self, vals):

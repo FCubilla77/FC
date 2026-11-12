@@ -6,7 +6,7 @@ from odoo import fields, models
 class AccountAccount(models.Model):
     _inherit = 'account.account'
 
-    l10n_py_pagos_a_cuenta = fields.Boolean(
+    local_py_pagos_a_cuenta = fields.Boolean(
         string='Pagos a Cuenta',
         help='Tilde esta opción para que la Cuenta aparezca como elegible en el '
              'selector de "Cuenta" de una Orden de Pago de tipo "Pago a Cuenta" — '

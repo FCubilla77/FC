@@ -66,7 +66,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
 
     def _condicion_compra(self, retencion):
         term = retencion.factura_id.invoice_payment_term_id
-        condicion = term.l10n_py_condicion if term else False
+        condicion = term.local_py_condicion if term else False
         if condicion == 'contado':
             return 'CONTADO'
         if condicion == 'credito':
@@ -110,7 +110,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         else:
             ruc, dv = vat, ''
         return {
-            'situacion': partner.l10n_py_tipo_identificacion_fiscal_id.name or False,
+            'situacion': partner.local_py_tipo_identificacion_fiscal_id.name or False,
             'ruc': ruc or None,
             'dv': dv or None,
             'nombre': partner.name,
@@ -122,9 +122,9 @@ class LocalPyTesakaExportWizard(models.TransientModel):
         return {
             'condicionCompra': self._condicion_compra(retencion),
             'tipoComprobante': move.local_py_tipo_fiscal_id.tipo_comprobante_retencion or False,
-            'numeroComprobanteVenta': move.l10n_py_nro_documento or '',
+            'numeroComprobanteVenta': move.local_py_nro_documento or '',
             'fecha': move.invoice_date.strftime('%Y-%m-%d') if move.invoice_date else '',
-            'numeroTimbrado': str(move.journal_id.l10n_py_timbrado or 0).zfill(8),
+            'numeroTimbrado': str(move.journal_id.local_py_timbrado or 0).zfill(8),
         }
 
     def _retencion_json(self, retencion):
@@ -174,7 +174,7 @@ class LocalPyTesakaExportWizard(models.TransientModel):
                 'Falta el Concepto Renta No Residente (ficha del Proveedor o de la Factura) en: %s'
                 % ', '.join(sin_concepto_renta.mapped('factura_id.name'))
             )
-        sin_situacion = retenciones.filtered(lambda r: not r.partner_id.l10n_py_tipo_identificacion_fiscal_id)
+        sin_situacion = retenciones.filtered(lambda r: not r.partner_id.local_py_tipo_identificacion_fiscal_id)
         if sin_situacion:
             errores.append(
                 'Falta el Tipo de Identificación Fiscal en la ficha del Proveedor de: %s'

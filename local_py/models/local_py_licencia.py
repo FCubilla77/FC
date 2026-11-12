@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Control de licencia del módulo Local_Py (localización Paraguay), 2026.19.016.
+"""Control de licencia del módulo Local_Py (localización Paraguay), 2026.19.018.
 
 La licencia se emite fuera de este módulo, con una herramienta propia de FC_Py que
 conserva la clave privada de firma (nunca viaja con el módulo). Este archivo solo
@@ -16,7 +16,7 @@ con los datos: producto (`p`, debe ser "local_py"), identificador de la base de 
 autorizada (`m`). `local_py_decodificar_licencia` lo valida.
 
 Versión de Odoo autorizada: el código queda atado al número central de la versión del
-módulo (el "19" de "2026.19.016"), no a la versión completa. Mientras ese número no
+módulo (el "19" de "2026.19.018"), no a la versión completa. Mientras ese número no
 cambie, cualquier cantidad de correcciones o ajustes menores no afectan la licencia
 vigente. Si el módulo pasa a otra versión de Odoo, el código emitido para la anterior
 queda en estado "otra_version" y hay que pedir uno nuevo, sin ningún paso manual
@@ -169,7 +169,7 @@ def local_py_decodificar_licencia(codigo):
 
 def local_py_version_odoo_instalada():
     """Número central de la versión del módulo instalado, leído en vivo del manifest
-    (el «19» de la versión «2026.19.016»). Devuelve None si no se puede determinar.
+    (el «19» de la versión «2026.19.018»). Devuelve None si no se puede determinar.
 
     Odoo normaliza la versión del manifest (`adapt_version`): una versión de tres
     partes como la de este módulo ("AAAA.19.NNN") recibe antepuesta la serie de Odoo

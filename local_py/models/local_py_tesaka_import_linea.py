@@ -46,7 +46,7 @@ class LocalPyTesakaImportLinea(models.Model):
             ('company_id', '=', self.company_id.id),
             ('estado', 'in', estados),
             ('tipo_retencion', '=', 'iva'),
-            ('factura_id.l10n_py_nro_documento', '=', self.comprobante_venta),
+            ('factura_id.local_py_nro_documento', '=', self.comprobante_venta),
         ]
         candidatos = Retencion.search(domain)
         if self.fecha_emision_dnit:

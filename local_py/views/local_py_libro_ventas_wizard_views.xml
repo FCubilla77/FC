@@ -1,8 +1,8 @@
 <odoo>
     <data>
-        <record id="view_l10n_py_libro_ventas_wizard_form" model="ir.ui.view">
-            <field name="name">l10n_py.libro_ventas.wizard.form</field>
-            <field name="model">l10n_py.libro_ventas.wizard</field>
+        <record id="view_local_py_libro_ventas_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.libro_ventas.wizard.form</field>
+            <field name="model">local_py.libro_ventas.wizard</field>
             <field name="arch" type="xml">
                 <form string="Libro Ventas Ant.">
                     <group>
@@ -17,9 +17,9 @@
             </field>
         </record>
 
-        <record id="action_l10n_py_libro_ventas_wizard" model="ir.actions.act_window">
+        <record id="action_local_py_libro_ventas_wizard" model="ir.actions.act_window">
             <field name="name">Libro Ventas Ant.</field>
-            <field name="res_model">l10n_py.libro_ventas.wizard</field>
+            <field name="res_model">local_py.libro_ventas.wizard</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
@@ -31,21 +31,21 @@
             <field name="arch" type="xml">
                 <list string="Libro Ventas Ant." create="false" edit="false" delete="false" export_xlsx="1">
                     <field name="partner_id" string="Cliente"/>
-                    <field name="l10n_py_partner_vat" string="RUT del cliente"/>
-                    <field name="l10n_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
-                    <field name="l10n_py_nro_documento" string="Nro. Documento"/>
+                    <field name="local_py_partner_vat" string="RUT del cliente"/>
+                    <field name="local_py_timbrado" string="Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="local_py_nro_documento" string="Nro. Documento"/>
                     <field name="invoice_date" string="Fecha"/>
-                    <field name="l10n_py_amount_untaxed_signed" string="Importe sin impuesto" sum="Total"/>
-                    <field name="l10n_py_amount_total_signed" string="Importe Total" sum="Total"/>
+                    <field name="local_py_amount_untaxed_signed" string="Importe sin impuesto" sum="Total"/>
+                    <field name="local_py_amount_total_signed" string="Importe Total" sum="Total"/>
                     <field name="local_py_tipo_fiscal_id" string="Tipo Fiscal" column_invisible="1"/>
                 </list>
             </field>
         </record>
 
-        <menuitem id="menu_l10n_py_libro_ventas"
+        <menuitem id="menu_local_py_libro_ventas"
                   name="Libro Ventas Ant."
                   parent="account.menu_finance_reports"
-                  action="action_l10n_py_libro_ventas_wizard"
+                  action="action_local_py_libro_ventas_wizard"
                   sequence="50"/>
     </data>
 </odoo>

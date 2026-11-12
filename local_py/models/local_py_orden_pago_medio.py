@@ -19,15 +19,15 @@ class LocalPyOrdenPagoMedio(models.Model):
     )
     saldo_favor_payment_id = fields.Many2one(
         'account.payment', string='Saldo a Favor',
-        domain="[('l10n_py_es_saldo_favor', '=', True), ('partner_id', '=', orden_pago_partner_id),"
-               " ('l10n_py_saldo_favor_disponible', '>', 0), ('currency_id', '=', currency_id)]",
+        domain="[('local_py_es_saldo_favor', '=', True), ('partner_id', '=', orden_pago_partner_id),"
+               " ('local_py_saldo_favor_disponible', '>', 0), ('currency_id', '=', currency_id)]",
         help='Un Pago de una Orden de Pago anterior que quedó con un sobrante sin '
              'conciliar (Saldo a Favor de este mismo Proveedor) — se puede reutilizar '
              'acá, total o parcialmente, en vez de generar un Medio nuevo. Filtrado por '
              'Proveedor y por Moneda: solo aparecen los que coinciden con esta Orden.',
     )
     saldo_favor_disponible = fields.Monetary(
-        related='saldo_favor_payment_id.l10n_py_saldo_favor_disponible', string='Disponible',
+        related='saldo_favor_payment_id.local_py_saldo_favor_disponible', string='Disponible',
         currency_field='currency_id',
     )
     company_id = fields.Many2one(related='orden_pago_id.company_id')
@@ -71,7 +71,7 @@ class LocalPyOrdenPagoMedio(models.Model):
     )
 
     payment_ids = fields.One2many(
-        'account.payment', 'l10n_py_orden_pago_medio_id', string='Pago(s)',
+        'account.payment', 'local_py_orden_pago_medio_id', string='Pago(s)',
         help='Pago(s) generado(s) por esta fila al Confirmar la Orden de Pago. Normalmente '
              'es uno solo — si esta fila tuvo que repartirse entre varias facturas (por '
              'ejemplo, un solo cheque que alcanza para pagar dos facturas), va a haber más '
@@ -138,7 +138,7 @@ class LocalPyOrdenPagoMedio(models.Model):
                     medio.chequera_id = False
                     medio.banco = False
                     medio.cuenta_banco = False
-                medio.importe = medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible
+                medio.importe = medio.saldo_favor_payment_id.local_py_saldo_favor_disponible
 
     @api.constrains('importe')
     def _check_importe(self):
@@ -149,10 +149,10 @@ class LocalPyOrdenPagoMedio(models.Model):
     @api.constrains('importe', 'saldo_favor_payment_id')
     def _check_saldo_favor_alcanza(self):
         for medio in self:
-            if medio.saldo_favor_payment_id and medio.importe > medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible:
+            if medio.saldo_favor_payment_id and medio.importe > medio.saldo_favor_payment_id.local_py_saldo_favor_disponible:
                 raise ValidationError(
                     'El Importe cargado (%s) supera el Saldo a Favor disponible de ese Pago (%s).'
-                    % (medio.importe, medio.saldo_favor_payment_id.l10n_py_saldo_favor_disponible)
+                    % (medio.importe, medio.saldo_favor_payment_id.local_py_saldo_favor_disponible)
                 )
 
     @api.constrains('journal_id', 'saldo_favor_payment_id', 'es_retencion')

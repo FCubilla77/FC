@@ -49,25 +49,25 @@
             <field name="model">account.move</field>
             <field name="arch" type="xml">
                 <list string="Libro Ventas" create="false" edit="false" delete="false" export_xlsx="1">
-                    <field name="l10n_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
-                    <field name="l10n_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Comprador"/>
-                    <field name="l10n_py_mkt_numero_identificacion" string="Nro. Identif. Comprador"/>
-                    <field name="l10n_py_mkt_nombre_razon_social" string="Nombre o Razón Social Comprador"/>
-                    <field name="l10n_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
+                    <field name="local_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
+                    <field name="local_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Comprador"/>
+                    <field name="local_py_mkt_numero_identificacion" string="Nro. Identif. Comprador"/>
+                    <field name="local_py_mkt_nombre_razon_social" string="Nombre o Razón Social Comprador"/>
+                    <field name="local_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
                     <field name="invoice_date" string="Fecha Emisión"/>
-                    <field name="l10n_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
-                    <field name="l10n_py_nro_documento" string="Nro. Comprobante"/>
-                    <field name="l10n_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
-                    <field name="l10n_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
-                    <field name="l10n_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
+                    <field name="local_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="local_py_nro_documento" string="Nro. Comprobante"/>
+                    <field name="local_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
+                    <field name="local_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
+                    <field name="local_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
                     <field name="amount_total" string="Monto Total" sum="Total"/>
-                    <field name="l10n_py_mkt_codigo_condicion" string="Cód. Condición de Venta"/>
-                    <field name="l10n_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
-                    <field name="l10n_py_mkt_imputa_iva" string="Imputa IVA"/>
-                    <field name="l10n_py_mkt_imputa_ire" string="Imputa IRE"/>
-                    <field name="l10n_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
-                    <field name="l10n_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
-                    <field name="l10n_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
+                    <field name="local_py_mkt_codigo_condicion" string="Cód. Condición de Venta"/>
+                    <field name="local_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
+                    <field name="local_py_mkt_imputa_iva" string="Imputa IVA"/>
+                    <field name="local_py_mkt_imputa_ire" string="Imputa IRE"/>
+                    <field name="local_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
+                    <field name="local_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
+                    <field name="local_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
                 </list>
             </field>
         </record>
@@ -78,26 +78,26 @@
             <field name="model">account.move</field>
             <field name="arch" type="xml">
                 <list string="Libro Compras" create="false" edit="false" delete="false" export_xlsx="1">
-                    <field name="l10n_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
-                    <field name="l10n_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Proveedor"/>
-                    <field name="l10n_py_mkt_numero_identificacion" string="Nro. Identif. Proveedor"/>
-                    <field name="l10n_py_mkt_nombre_razon_social" string="Nombre o Razón Social Proveedor"/>
-                    <field name="l10n_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
+                    <field name="local_py_mkt_codigo_tipo_registro" string="Cód. Tipo Registro"/>
+                    <field name="local_py_mkt_codigo_tipo_identificacion" string="Cód. Tipo Identif. Proveedor"/>
+                    <field name="local_py_mkt_numero_identificacion" string="Nro. Identif. Proveedor"/>
+                    <field name="local_py_mkt_nombre_razon_social" string="Nombre o Razón Social Proveedor"/>
+                    <field name="local_py_mkt_codigo_tipo_comprobante" string="Cód. Tipo Comprobante"/>
                     <field name="invoice_date" string="Fecha Emisión"/>
-                    <field name="l10n_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
-                    <field name="l10n_py_nro_documento" string="Nro. Comprobante"/>
-                    <field name="l10n_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
-                    <field name="l10n_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
-                    <field name="l10n_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
+                    <field name="local_py_timbrado" string="Nro. Timbrado" options="{'enable_formatting': False}"/>
+                    <field name="local_py_nro_documento" string="Nro. Comprobante"/>
+                    <field name="local_py_mkt_monto_gravado_10" string="Monto Gravado 10% (IVA inc.)" sum="Total"/>
+                    <field name="local_py_mkt_monto_gravado_5" string="Monto Gravado 5% (IVA inc.)" sum="Total"/>
+                    <field name="local_py_mkt_monto_exento" string="Monto no Gravado/Exento" sum="Total"/>
                     <field name="amount_total" string="Monto Total" sum="Total"/>
-                    <field name="l10n_py_mkt_codigo_condicion" string="Cód. Condición de Compra"/>
-                    <field name="l10n_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
-                    <field name="l10n_py_mkt_imputa_iva" string="Imputa IVA"/>
-                    <field name="l10n_py_mkt_imputa_ire" string="Imputa IRE"/>
-                    <field name="l10n_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
-                    <field name="l10n_py_mkt_no_imputa" string="No Imputa"/>
-                    <field name="l10n_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
-                    <field name="l10n_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
+                    <field name="local_py_mkt_codigo_condicion" string="Cód. Condición de Compra"/>
+                    <field name="local_py_mkt_moneda_extranjera" string="Moneda Extranjera"/>
+                    <field name="local_py_mkt_imputa_iva" string="Imputa IVA"/>
+                    <field name="local_py_mkt_imputa_ire" string="Imputa IRE"/>
+                    <field name="local_py_mkt_imputa_irp_rsp" string="Imputa IRP-RSP"/>
+                    <field name="local_py_mkt_no_imputa" string="No Imputa"/>
+                    <field name="local_py_nro_documento_asociado" string="Nro. Comprobante Asociado"/>
+                    <field name="local_py_mkt_timbrado_comprobante_asociado" string="Timbrado Comprobante Asociado"/>
                 </list>
             </field>
         </record>

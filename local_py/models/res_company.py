@@ -11,7 +11,7 @@ from .local_py_licencia import (
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
-    city_id = fields.Many2one(
+    local_py_city_id = fields.Many2one(
         'res.city', string='Ciudad', domain="[('state_id', '=', state_id)]",
     )
 
@@ -83,7 +83,7 @@ class ResCompany(models.Model):
         self.ensure_one()
         return self.local_py_licencia_estado == 'valida'
 
-    l10n_py_imputacion_tributaria_ids = fields.Many2many(
+    local_py_imputacion_tributaria_ids = fields.Many2many(
         'local_py.imputacion_tributaria',
         string='Imputación Tributaria',
         help='Régimen(es) tributario(s) bajo el/los que opera la compañía '
@@ -91,27 +91,27 @@ class ResCompany(models.Model):
              'otras opciones.',
     )
 
-    @api.onchange('l10n_py_imputacion_tributaria_ids')
-    def _onchange_l10n_py_imputacion_tributaria_ids(self):
+    @api.onchange('local_py_imputacion_tributaria_ids')
+    def _onchange_local_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
         if not no_imputa:
             return
         for company in self:
-            current = company.l10n_py_imputacion_tributaria_ids
-            previous = company._origin.l10n_py_imputacion_tributaria_ids
+            current = company.local_py_imputacion_tributaria_ids
+            previous = company._origin.local_py_imputacion_tributaria_ids
             added = current - previous
             if no_imputa in added:
-                company.l10n_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
+                company.local_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
             elif no_imputa in current and (current - no_imputa):
-                company.l10n_py_imputacion_tributaria_ids = current - no_imputa
+                company.local_py_imputacion_tributaria_ids = current - no_imputa
 
-    @api.constrains('l10n_py_imputacion_tributaria_ids')
-    def _check_l10n_py_imputacion_tributaria_exclusiva(self):
+    @api.constrains('local_py_imputacion_tributaria_ids')
+    def _check_local_py_imputacion_tributaria_exclusiva(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
         if not no_imputa:
             return
         for company in self:
-            tags = company.l10n_py_imputacion_tributaria_ids
+            tags = company.local_py_imputacion_tributaria_ids
             if no_imputa in tags and len(tags) > 1:
                 raise exceptions.ValidationError(
                     '"No Imputa" no puede combinarse con IVA, IRE o IRP-RSP en la '

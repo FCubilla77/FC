@@ -1,6 +1,6 @@
 <odoo>
     <data>
-        <record id="view_move_form_l10n_py" model="ir.ui.view">
+        <record id="view_move_form_local_py" model="ir.ui.view">
             <field name="name">account.move.form.l10n.py</field>
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_form"/>
@@ -19,18 +19,18 @@
                 -->
                 <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]/ancestor::group[last()]" position="after">
                     <group string="Localización Paraguay" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
-                        <field name="l10n_py_timbrado"
+                        <field name="local_py_timbrado"
                                string="Timbrado"
                                options="{'enable_formatting': False}"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
-                        <field name="l10n_py_nro_documento"
+                        <field name="local_py_nro_documento"
                                string="Nro. Documento"
                                placeholder="000-000-0000000"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
                         <!-- CDC: solo del lado proveedor. En los comprobantes de venta
                              el CDC lo genera el sistema de Facturación Electrónica y
                              vive en el Documento Electrónico, no acá. -->
-                        <field name="l10n_py_cdc"
+                        <field name="local_py_cdc"
                                string="CDC"
                                placeholder="44 dígitos"
                                invisible="move_type not in ('in_invoice', 'in_refund')"
@@ -38,23 +38,23 @@
                         <field name="local_py_tipo_fiscal_id"
                                string="Tipo Fiscal"
                                readonly="move_type in ('out_invoice', 'out_refund') or state != 'draft'"/>
-                        <field name="l10n_py_imputacion_tributaria_ids"
+                        <field name="local_py_imputacion_tributaria_ids"
                                string="Imputación Tributaria"
                                widget="many2many_tags"/>
-                        <field name="l10n_py_mostrar_concepto_renta_nr" invisible="1"/>
-                        <field name="l10n_py_concepto_renta_no_residente_id"
+                        <field name="local_py_mostrar_concepto_renta_nr" invisible="1"/>
+                        <field name="local_py_concepto_renta_no_residente_id"
                                string="Concepto Renta No Residente"
-                               invisible="not l10n_py_mostrar_concepto_renta_nr"
+                               invisible="not local_py_mostrar_concepto_renta_nr"
                                options="{'no_create': True}"/>
                         <field name="reversed_entry_id"
                                string="Comprobante Asociado"
                                invisible="move_type not in ('out_refund', 'in_refund')"
                                readonly="state != 'draft'"
                                domain="[('move_type', '=', 'out_invoice' if move_type == 'out_refund' else 'in_invoice'), ('state', '=', 'posted')]"/>
-                        <field name="l10n_py_nro_documento_asociado"
+                        <field name="local_py_nro_documento_asociado"
                                string="Nro. Documento Comprobante Asociado"
                                invisible="move_type not in ('out_refund', 'in_refund')"/>
-                        <field name="l10n_py_cdc_asociado"
+                        <field name="local_py_cdc_asociado"
                                string="CDC del Comprobante Asociado"
                                placeholder="44 dígitos"
                                invisible="move_type != 'in_refund'"
@@ -65,22 +65,22 @@
                      eso se agrega fuera del grupo "Localización Paraguay" de arriba. -->
                 <xpath expr="(//field[@name='journal_id'][not(ancestor::tree) and not(ancestor::notebook)])[last()]/ancestor::group[last()]" position="after">
                     <group string="Comentario">
-                        <field name="l10n_py_comentario" nolabel="1" colspan="2" placeholder="Comentario del asiento..."/>
+                        <field name="local_py_comentario" nolabel="1" colspan="2" placeholder="Comentario del asiento..."/>
                     </group>
                 </xpath>
                 <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
-                    <button name="action_l10n_py_ver_ajuste_inventario" type="object"
+                    <button name="action_local_py_ver_ajuste_inventario" type="object"
                             class="oe_stat_button" icon="fa-cubes"
-                            invisible="not l10n_py_ajuste_inventario_quant_id">
-                        <field name="l10n_py_ajuste_inventario_quant_id" invisible="1"/>
+                            invisible="not local_py_ajuste_inventario_quant_id">
+                        <field name="local_py_ajuste_inventario_quant_id" invisible="1"/>
                         <div class="o_stat_info">
                             <span class="o_stat_text">Ajuste de Inventario Físico</span>
                         </div>
                     </button>
-                    <button name="action_l10n_py_ver_orden_pago" type="object"
+                    <button name="action_local_py_ver_orden_pago" type="object"
                             class="oe_stat_button" icon="fa-money"
-                            invisible="not l10n_py_orden_pago_id">
-                        <field name="l10n_py_orden_pago_id" invisible="1"/>
+                            invisible="not local_py_orden_pago_id">
+                        <field name="local_py_orden_pago_id" invisible="1"/>
                         <div class="o_stat_info">
                             <span class="o_stat_text">Orden de Pago</span>
                         </div>
@@ -89,13 +89,13 @@
             </field>
         </record>
 
-        <record id="view_move_tree_l10n_py" model="ir.ui.view">
+        <record id="view_move_tree_local_py" model="ir.ui.view">
             <field name="name">account.move.list.l10n.py</field>
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_move_tree"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='journal_id']" position="after">
-                    <field name="l10n_py_nro_fiscal_display" string="Nro. Fiscal" optional="show"
+                    <field name="local_py_nro_fiscal_display" string="Nro. Fiscal" optional="show"
                            readonly="1" groups="account.group_account_manager"/>
                 </xpath>
             </field>

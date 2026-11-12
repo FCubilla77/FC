@@ -1,7 +1,7 @@
 <odoo>
     <data>
 
-        <record model="ir.ui.view" id="view_company_form_l10n_py">
+        <record model="ir.ui.view" id="view_company_form_local_py">
             <field name="name">local_py.view_company_form</field>
             <field name="model">res.company</field>
             <field name="inherit_id" ref="base.view_company_form"/>
@@ -10,7 +10,7 @@
                     <field name="vat" string="RUT" required="False"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="after">
-                    <field name="l10n_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria" readonly="1"/>
+                    <field name="local_py_imputacion_tributaria_ids" widget="many2many_tags" string="Imputación Tributaria" readonly="1"/>
                 </xpath>
                 <!-- Reordenar a País > Departamento > Ciudad, y usar el
                      desplegable de Ciudad en lugar del texto libre nativo -->
@@ -33,7 +33,7 @@
             </field>
         </record>
 
-        <record model="ir.ui.view" id="view_partner_form_l10n_py">
+        <record model="ir.ui.view" id="view_partner_form_local_py">
             <field name="name">local_py.view_partner_form</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
@@ -42,7 +42,7 @@
                     <button name="action_ver_cuenta_corriente" type="object"
                             class="oe_stat_button" icon="fa-balance-scale"
                             invisible="not is_company">
-                        <field name="l10n_py_move_line_count" widget="statinfo" string="Cuenta Corriente"/>
+                        <field name="local_py_move_line_count" widget="statinfo" string="Cuenta Corriente"/>
                     </button>
                     <button name="action_abrir_wizard_cuenta_corriente" type="object"
                             class="oe_stat_button" icon="fa-print"
@@ -54,13 +54,13 @@
                     </button>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="before">
-                    <field name="omitir_validacion" string="Omitir control RUT" readonly="parent_id != False" invisible="not is_company"/>
+                    <field name="local_py_omitir_validacion" string="Omitir control RUT" readonly="parent_id != False" invisible="not is_company"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="replace">
                     <field name="vat" string="RUT" readonly="parent_id != False" invisible="not is_company"/>
                 </xpath>
                 <xpath expr="//field[@name='vat']" position="after">
-                    <field name="l10n_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal"
+                    <field name="local_py_tipo_identificacion_fiscal_id" string="Tipo de Identificación Fiscal"
                            invisible="not is_company" required="is_company"/>
                 </xpath>
                 <!-- Reordenar a País > Departamento > Ciudad, y usar el
@@ -95,36 +95,36 @@
                     <attribute name="required">is_company</attribute>
                 </xpath>
                 <xpath expr="//notebook" position="inside">
-                    <page string="Localización" name="l10n_py_localizacion">
+                    <page string="Localización" name="local_py_localizacion">
                         <group>
-                            <field name="l10n_py_localizacion_validada"/>
+                            <field name="local_py_localizacion_validada"/>
                         </group>
                         <group>
                             <group string="Retención IVA">
-                                <field name="l10n_py_retencion_iva"/>
-                                <field name="l10n_py_retencion_iva_porcentaje"
-                                       invisible="not l10n_py_retencion_iva" required="l10n_py_retencion_iva"/>
-                                <field name="l10n_py_concepto_iva_id"
-                                       invisible="not l10n_py_retencion_iva" required="l10n_py_retencion_iva"
+                                <field name="local_py_retencion_iva"/>
+                                <field name="local_py_retencion_iva_porcentaje"
+                                       invisible="not local_py_retencion_iva" required="local_py_retencion_iva"/>
+                                <field name="local_py_concepto_iva_id"
+                                       invisible="not local_py_retencion_iva" required="local_py_retencion_iva"
                                        options="{'no_create': True}"/>
-                                <field name="l10n_py_se_absorbe_iva" invisible="not l10n_py_retencion_iva"/>
+                                <field name="local_py_se_absorbe_iva" invisible="not local_py_retencion_iva"/>
                             </group>
                             <group string="Retención Renta">
-                                <field name="l10n_py_retencion_renta"/>
+                                <field name="local_py_retencion_renta"/>
                             </group>
                             <group string="Exportación">
                                 <field name="local_py_incoterm_id" options="{'no_create': True}"/>
                             </group>
                             <group string="Retención Renta No Residente (Exterior)"
-                                   invisible="not l10n_py_retencion_renta">
-                                <field name="l10n_py_concepto_renta_no_residente_ids"
+                                   invisible="not local_py_retencion_renta">
+                                <field name="local_py_concepto_renta_no_residente_ids"
                                        widget="many2many_tags" options="{'no_create': True}"/>
-                                <field name="l10n_py_concepto_renta_no_residente_predeterminado_id"
+                                <field name="local_py_concepto_renta_no_residente_predeterminado_id"
                                        options="{'no_create': True}"/>
-                                <field name="l10n_py_concepto_renta_no_residente_porcentaje"
-                                       invisible="not l10n_py_concepto_renta_no_residente_predeterminado_id"
+                                <field name="local_py_concepto_renta_no_residente_porcentaje"
+                                       invisible="not local_py_concepto_renta_no_residente_predeterminado_id"
                                        readonly="1"/>
-                                <field name="l10n_py_se_absorbe_renta"/>
+                                <field name="local_py_se_absorbe_renta"/>
                             </group>
                         </group>
                     </page>

@@ -6,7 +6,7 @@ from odoo import models, fields
 class AccountPaymentTerm(models.Model):
     _inherit = 'account.payment.term'
 
-    l10n_py_condicion = fields.Selection(
+    local_py_condicion = fields.Selection(
         [('contado', 'Contado'), ('credito', 'Crédito')],
         string='Condición (Paraguay)', required=True,
         help='Clasifica este término de pago como Contado o Crédito, según '

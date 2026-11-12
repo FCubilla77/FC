@@ -73,13 +73,13 @@ class LocalPyRenumeracionFiscalWizard(models.TransientModel):
             ('state', '=', 'posted'),
             ('date', '>=', fecha_inicial),
             ('date', '<=', fecha_final),
-            ('l10n_py_nro_fiscal', '=', False),
+            ('local_py_nro_fiscal', '=', False),
         ], order='date asc, id asc')
 
         next_num = start_num
         for move in moves:
-            move.with_context(l10n_py_allow_nro_fiscal_write=True).write({
-                'l10n_py_nro_fiscal': next_num,
+            move.with_context(local_py_allow_nro_fiscal_write=True).write({
+                'local_py_nro_fiscal': next_num,
             })
             next_num += 1
 

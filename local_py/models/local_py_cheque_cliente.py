@@ -101,14 +101,14 @@ class LocalPyChequeCliente(models.Model):
         config = self.env['local_py.configuracion_localizacion'].search(
             [('company_id', '=', self.company_id.id)], limit=1,
         )
-        if not config or not config.l10n_py_diario_cheque_cliente_id or not config.l10n_py_cuenta_cheques_rechazados_id:
+        if not config or not config.local_py_diario_cheque_cliente_id or not config.local_py_cuenta_cheques_rechazados_id:
             raise UserError(
                 'Falta configurar el Diario de Cheques de Clientes y/o la Cuenta '
                 '"Cheques Rechazados" en Configuraciones Localización Py.'
             )
-        diario = config.l10n_py_diario_cheque_cliente_id
+        diario = config.local_py_diario_cheque_cliente_id
         cuenta_cartera = diario.default_account_id
-        cuenta_rechazados = config.l10n_py_cuenta_cheques_rechazados_id
+        cuenta_rechazados = config.local_py_cuenta_cheques_rechazados_id
         if not cuenta_cartera:
             raise UserError(
                 'El Diario de Cheques de Clientes ("%s") no tiene una Cuenta configurada '

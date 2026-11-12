@@ -16,8 +16,8 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         'local_py.configuracion_localizacion.renumeracion', 'config_id',
         string='Renumeración de Asiento',
     )
-    l10n_py_imputacion_tributaria_ids = fields.Many2many(
-        related='company_id.l10n_py_imputacion_tributaria_ids',
+    local_py_imputacion_tributaria_ids = fields.Many2many(
+        related='company_id.local_py_imputacion_tributaria_ids',
         string='Imputación Tributaria',
         readonly=False,
         help='Mismo campo que en Ajustes > Empresas > Empresas: el régimen '
@@ -28,7 +28,7 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         'local_py.libro_inventario.detalle_cuenta', 'config_id',
         string='Detalle Libro Inventario',
     )
-    l10n_py_asiento_ajuste_inventario = fields.Boolean(
+    local_py_asiento_ajuste_inventario = fields.Boolean(
         string='Generar Asiento por Ajuste de Inventario Físico',
         help='Si está activo, al aplicar un ajuste desde Inventario > Operaciones > '
              'Ajustes > Inventario físico, se genera automáticamente un asiento contable '
@@ -36,7 +36,7 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'gastos configuradas en la Categoría del producto). Ese asiento queda '
              'protegido: no se puede eliminar ni restablecer a borrador.',
     )
-    l10n_py_pagos_proveedores_activo = fields.Boolean(
+    local_py_pagos_proveedores_activo = fields.Boolean(
         string='Activar Pagos - Proveedores', default=True,
         help='Si está desactivado, no se puede crear un Pago a Proveedor por fuera de '
              'Orden de Pago (ni desde el menú de Pagos, ni desde el botón "Registrar '
@@ -44,28 +44,28 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'evita que una Retención se omita por error, al forzar que todos los '
              'pagos a Proveedores pasen por Orden de Pago.',
     )
-    l10n_py_pagos_clientes_activo = fields.Boolean(
+    local_py_pagos_clientes_activo = fields.Boolean(
         string='Activar Pagos - Clientes', default=True,
         help='Mismo criterio que "Activar Pagos - Proveedores", para Clientes — cuando '
              'se desactive, va a exigir usar "Recibo Cliente" en su lugar.',
     )
-    l10n_py_retencion_iva = fields.Boolean(string='Retención IVA')
-    l10n_py_retencion_iva_porcentaje = fields.Float(
+    local_py_retencion_iva = fields.Boolean(string='Retención IVA')
+    local_py_retencion_iva_porcentaje = fields.Float(
         string='Porcentaje Retención Predeterminado (IVA)', digits=(5, 2),
     )
-    l10n_py_retencion_iva_minimo = fields.Monetary(
+    local_py_retencion_iva_minimo = fields.Monetary(
         string='Valor Imponible Mínimo (IVA)', currency_field='company_currency_id',
         help='Monto mínimo de la operación (en la moneda de la empresa) a partir del '
              'cual corresponde retener. Por debajo de este valor, no se retiene.',
     )
-    l10n_py_diario_retencion_iva_id = fields.Many2one(
+    local_py_diario_retencion_iva_id = fields.Many2one(
         'account.journal', string='Diario de Retención IVA',
         domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
         help='Diario de tipo Misceláneo. La Retención no genera un Pago (Odoo no lo '
              'permite sobre Diarios Misceláneos) — genera un asiento contable propio, '
              'conciliado directamente contra la factura.',
     )
-    l10n_py_concepto_iva_id = fields.Many2one(
+    local_py_concepto_iva_id = fields.Many2one(
         'local_py.concepto_iva', string='Concepto IVA',
         default=lambda self: self.env.ref('local_py.concepto_iva_1', raise_if_not_found=False),
         help='Código exigido por la DNIT (Tesaka) para clasificar la Retención IVA. '
@@ -74,7 +74,7 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'en Orden de Pago) — los demás códigos son para situaciones puntuales '
              'distintas (inmuebles, exterior, casos excepcionales).',
     )
-    l10n_py_cuenta_gasto_absorcion_id = fields.Many2one(
+    local_py_cuenta_gasto_absorcion_id = fields.Many2one(
         'account.account', string='Cuenta de Gasto por Absorción (IVA)',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta contable de Gasto donde se absorbe la Retención IVA a proveedores '
@@ -82,8 +82,8 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'IVA" — a diferencia de la Retención local, no se le descuenta nada al '
              'Proveedor: la retención pasa a ser un costo aparte para la Compañía.',
     )
-    l10n_py_retencion_renta = fields.Boolean(string='Retención Renta')
-    l10n_py_diario_retencion_renta_id = fields.Many2one(
+    local_py_retencion_renta = fields.Boolean(string='Retención Renta')
+    local_py_diario_retencion_renta_id = fields.Many2one(
         'account.journal', string='Diario de Retención Renta',
         domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
         help='Diario de tipo Misceláneo — se usa tanto para la fila de Medios cuando la '
@@ -91,28 +91,28 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'cuando se absorbe. Tiene que ser distinto al Diario de Retención IVA, '
              'para poder diferenciar una de otra en la grilla de Medios.',
     )
-    l10n_py_cuenta_gasto_absorcion_renta_id = fields.Many2one(
+    local_py_cuenta_gasto_absorcion_renta_id = fields.Many2one(
         'account.account', string='Cuenta de Gasto por Absorción (Renta)',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta contable de Gasto donde se absorbe la Retención Renta a '
              'proveedores del exterior, cuando ese Proveedor la tenga configurada como '
              '"Se Absorbe Renta".',
     )
-    l10n_py_diario_retencion_recibida_id = fields.Many2one(
+    local_py_diario_retencion_recibida_id = fields.Many2one(
         'account.journal', string='Diario de Retención Recibida',
         domain="[('type', '=', 'general'), ('company_id', '=', company_id)]",
         help='Diario de tipo Misceláneo — se usa para el asiento que genera la '
              'columna "Importe Retención" de la solapa Facturas en Recibo, cuando un '
              'Cliente informa que retuvo parte del pago.',
     )
-    l10n_py_cuenta_retencion_a_confirmar_id = fields.Many2one(
+    local_py_cuenta_retencion_a_confirmar_id = fields.Many2one(
         'account.account', string='Cuenta "Retenido a Confirmar"',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta de Activo donde queda el monto de una Retención Recibida hasta '
              'que se confirme contra el archivo de Marangatu de la DNIT (o se mapee a '
              'mano) — recién ahí se reclasifica a "Retenciones Recibidas".',
     )
-    l10n_py_cuenta_retenciones_recibidas_iva_id = fields.Many2one(
+    local_py_cuenta_retenciones_recibidas_iva_id = fields.Many2one(
         'account.account', string='Cuenta "Retenciones Recibidas" (IVA)',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta de Activo (crédito fiscal) donde se reclasifica la porción de IVA '
@@ -120,13 +120,13 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'desglose IVA/Renta se toma del archivo de Marangatu al procesarlo '
              '(Fase 2) — un mismo comprobante de retención puede traer las dos.',
     )
-    l10n_py_cuenta_retenciones_recibidas_renta_id = fields.Many2one(
+    local_py_cuenta_retenciones_recibidas_renta_id = fields.Many2one(
         'account.account', string='Cuenta "Retenciones Recibidas" (Renta)',
         domain="[('company_ids', 'in', company_id)]",
         help='Igual que la Cuenta "Retenciones Recibidas" (IVA), para la porción de '
              'Renta del mismo comprobante.',
     )
-    l10n_py_cuenta_retenciones_diferencia_id = fields.Many2one(
+    local_py_cuenta_retenciones_diferencia_id = fields.Many2one(
         'account.account', string='Cuenta "Diferencia" (Retenciones Recibidas)',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta donde se ajusta la diferencia entre el Importe que se cargó en '
@@ -134,14 +134,14 @@ class LocalPyConfiguracionLocalizacion(models.Model):
              'confirma a mano (emparejamiento manual contra el archivo de Marangatu, '
              'Fase 2) con un monto distinto al original.',
     )
-    l10n_py_diario_cheque_cliente_id = fields.Many2one(
+    local_py_diario_cheque_cliente_id = fields.Many2one(
         'account.journal', string='Diario de Cheques de Clientes',
         domain="[('type', '=', 'bank'), ('company_id', '=', company_id)]",
         help='Diario que se usa para la fila de Medios "Cheque" en Recibo — su Cuenta '
              'contable configurada en el Diario es la que se usa como "Cheques en '
              'Cartera".',
     )
-    l10n_py_cuenta_cheques_rechazados_id = fields.Many2one(
+    local_py_cuenta_cheques_rechazados_id = fields.Many2one(
         'account.account', string='Cuenta "Cheques Rechazados"',
         domain="[('company_ids', 'in', company_id)]",
         help='Cuenta de Activo donde se reclasifica un Cheque de Cliente cuando se '
@@ -168,13 +168,13 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         # lectura por no tener "inverse" definido.
         pass
 
-    @api.constrains('l10n_py_diario_retencion_iva_id', 'l10n_py_diario_retencion_renta_id')
+    @api.constrains('local_py_diario_retencion_iva_id', 'local_py_diario_retencion_renta_id')
     def _check_diarios_retencion_distintos(self):
         for config in self:
             if (
-                config.l10n_py_diario_retencion_iva_id
-                and config.l10n_py_diario_retencion_renta_id
-                and config.l10n_py_diario_retencion_iva_id == config.l10n_py_diario_retencion_renta_id
+                config.local_py_diario_retencion_iva_id
+                and config.local_py_diario_retencion_renta_id
+                and config.local_py_diario_retencion_iva_id == config.local_py_diario_retencion_renta_id
             ):
                 raise exceptions.ValidationError(
                     'El Diario de Retención IVA y el Diario de Retención Renta tienen que '
@@ -184,19 +184,19 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                 )
 
     @api.constrains(
-        'l10n_py_cuenta_retencion_a_confirmar_id',
-        'l10n_py_cuenta_retenciones_recibidas_iva_id',
-        'l10n_py_cuenta_retenciones_recibidas_renta_id',
-        'l10n_py_cuenta_retenciones_diferencia_id',
+        'local_py_cuenta_retencion_a_confirmar_id',
+        'local_py_cuenta_retenciones_recibidas_iva_id',
+        'local_py_cuenta_retenciones_recibidas_renta_id',
+        'local_py_cuenta_retenciones_diferencia_id',
     )
     def _check_cuentas_retencion_recibida_distintas(self):
         for config in self:
             cuentas_cargadas = [
                 c for c in (
-                    config.l10n_py_cuenta_retencion_a_confirmar_id,
-                    config.l10n_py_cuenta_retenciones_recibidas_iva_id,
-                    config.l10n_py_cuenta_retenciones_recibidas_renta_id,
-                    config.l10n_py_cuenta_retenciones_diferencia_id,
+                    config.local_py_cuenta_retencion_a_confirmar_id,
+                    config.local_py_cuenta_retenciones_recibidas_iva_id,
+                    config.local_py_cuenta_retenciones_recibidas_renta_id,
+                    config.local_py_cuenta_retenciones_diferencia_id,
                 ) if c
             ]
             cuentas = self.env['account.account'].browse([c.id for c in cuentas_cargadas])
@@ -230,8 +230,8 @@ class LocalPyConfiguracionLocalizacion(models.Model):
                 )
 
     @api.constrains(
-        'l10n_py_retencion_iva', 'l10n_py_diario_retencion_iva_id', 'l10n_py_concepto_iva_id',
-        'l10n_py_cuenta_gasto_absorcion_id',
+        'local_py_retencion_iva', 'local_py_diario_retencion_iva_id', 'local_py_concepto_iva_id',
+        'local_py_cuenta_gasto_absorcion_id',
     )
     def _check_retencion_iva_configuracion_completa(self):
         """No se puede activar Retención IVA sin elegir, al mismo tiempo,
@@ -240,42 +240,42 @@ class LocalPyConfiguracionLocalizacion(models.Model):
         bloqueadas al Confirmar sin ninguna pista de qué falta hasta
         ese momento."""
         for config in self:
-            if config.l10n_py_retencion_iva and (
-                not config.l10n_py_diario_retencion_iva_id or not config.l10n_py_concepto_iva_id
-                or not config.l10n_py_cuenta_gasto_absorcion_id
+            if config.local_py_retencion_iva and (
+                not config.local_py_diario_retencion_iva_id or not config.local_py_concepto_iva_id
+                or not config.local_py_cuenta_gasto_absorcion_id
             ):
                 raise exceptions.ValidationError(
                     'Para activar "Retención IVA" hay que elegir, al mismo tiempo, el Diario de '
                     'Retención IVA, el Concepto IVA, y la Cuenta de Gasto por Absorción (IVA).'
                 )
 
-    @api.constrains('l10n_py_retencion_renta', 'l10n_py_diario_retencion_renta_id', 'l10n_py_cuenta_gasto_absorcion_renta_id')
+    @api.constrains('local_py_retencion_renta', 'local_py_diario_retencion_renta_id', 'local_py_cuenta_gasto_absorcion_renta_id')
     def _check_retencion_renta_configuracion_completa(self):
         """Mismo criterio que Retención IVA: no se puede activar
         Retención Renta sin el Diario de Retención y la Cuenta de Gasto
         por Absorción completos."""
         for config in self:
-            if config.l10n_py_retencion_renta and (
-                not config.l10n_py_diario_retencion_renta_id or not config.l10n_py_cuenta_gasto_absorcion_renta_id
+            if config.local_py_retencion_renta and (
+                not config.local_py_diario_retencion_renta_id or not config.local_py_cuenta_gasto_absorcion_renta_id
             ):
                 raise exceptions.ValidationError(
                     'Para activar "Retención Renta" hay que elegir, al mismo tiempo, el Diario de '
                     'Retención Renta y la Cuenta de Gasto por Absorción (Renta).'
                 )
 
-    @api.onchange('l10n_py_imputacion_tributaria_ids')
-    def _onchange_l10n_py_imputacion_tributaria_ids(self):
+    @api.onchange('local_py_imputacion_tributaria_ids')
+    def _onchange_local_py_imputacion_tributaria_ids(self):
         no_imputa = self.env.ref('local_py.imputacion_no_imputa', raise_if_not_found=False)
         if not no_imputa:
             return
         for rec in self:
-            current = rec.l10n_py_imputacion_tributaria_ids
-            previous = rec._origin.l10n_py_imputacion_tributaria_ids
+            current = rec.local_py_imputacion_tributaria_ids
+            previous = rec._origin.local_py_imputacion_tributaria_ids
             added = current - previous
             if no_imputa in added:
-                rec.l10n_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
+                rec.local_py_imputacion_tributaria_ids = current.filtered(lambda t: t.id == no_imputa.id)
             elif no_imputa in current and (current - no_imputa):
-                rec.l10n_py_imputacion_tributaria_ids = current - no_imputa
+                rec.local_py_imputacion_tributaria_ids = current - no_imputa
 
 
 class LocalPyConfiguracionLocalizacionRenumeracion(models.Model):
