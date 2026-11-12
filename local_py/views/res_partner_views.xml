@@ -21,7 +21,7 @@
                            options="{'no_open': True, 'no_create': True}" required="True"/>
                 </xpath>
                 <xpath expr="//field[@name='state_id'][hasclass('o_address_state')]" position="after">
-                    <field name="city_id" placeholder="Ciudad" class="o_address_city"
+                    <field name="local_py_city_id" placeholder="Ciudad" class="o_address_city"
                            domain="[('state_id', '=', state_id)]"/>
                 </xpath>
                 <xpath expr="//field[@name='street']" position="attributes">
