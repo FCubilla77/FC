@@ -185,6 +185,36 @@ class TestPlantillaExcelL10nPy(TransactionCase):
         self.assertTrue(any('repetido' in e for e in errores), errores)
         self.assertTrue(any('mayor' in e for e in errores), errores)
 
+    def test_08b_avisos_de_grupos(self):
+        # El plan estándar y el plan propio de prueba no generan avisos de grupos.
+        for datos in (self.estandar, _plan_propio()):
+            _d, errores, avisos = excel.leer_libro(excel.generar_libro(datos), {'PYG', 'USD'})
+            self.assertEqual(errores, [])
+            self.assertFalse([a for a in avisos if any(t in a for t in (
+                'no pertenecen a ningún grupo', 'falta un grupo raíz', 'no hay ningún grupo'))], avisos)
+
+        def sin_raiz(libro):
+            hoja = libro['Grupos']
+            for fila in range(hoja.max_row, 1, -1):
+                if hoja.cell(row=fila, column=1).value == '2':
+                    hoja.delete_rows(fila)
+        # Se quita la raíz «2» pero queda un grupo «21»: hace falta avisar.
+        def sin_raiz_con_hijo(libro):
+            sin_raiz(libro)
+            libro['Grupos'].append(['21', '21', 'PASIVO CORRIENTE PROPIO'])
+        errores, avisos = self._errores(sin_raiz_con_hijo)
+        self.assertEqual(errores, [])
+        self.assertTrue(any('falta un grupo raíz' in a and '21' in a for a in avisos), avisos)
+        # Cuentas cuyo código no cae en ningún grupo.
+        errores, avisos = self._errores(sin_raiz)
+        self.assertTrue(any('no pertenecen a ningún grupo' in a and '21001' in a for a in avisos), avisos)
+
+        def sin_grupos(libro):
+            libro['Grupos'].delete_rows(2, libro['Grupos'].max_row)
+        errores, avisos = self._errores(sin_grupos)
+        self.assertEqual(errores, [])
+        self.assertTrue(any('no hay ningún grupo' in a for a in avisos), avisos)
+
     def test_09_impuestos_plazos_y_posiciones(self):
         def modificar(libro):
             libro['Impuestos']['H2'] = 'Grupo inexistente'
@@ -240,10 +270,31 @@ class TestPlantillaExcelL10nPy(TransactionCase):
             'company_id': empresa.id, 'nombre_archivo': 'plan.xlsx',
             'archivo': base64.b64encode(excel.generar_libro(_plan_propio()))})
         accion = asistente.action_validar()
-        self.assertEqual(accion['res_id'], asistente.id)
-        self.assertEqual(asistente.estado, 'validada')
+        # Sin errores: se cierra la ventana y se confirma con un aviso.
+        self.assertEqual(accion['tag'], 'display_notification')
+        self.assertEqual(accion['params']['type'], 'success')
+        self.assertEqual(accion['params']['next'], {'type': 'ir.actions.act_window_close'})
+        self.assertEqual(empresa.l10n_py_plantilla_id.state, 'validada')
+        # Con errores: la ventana queda abierta con el detalle.
+        malo = self.env['l10n_py.plantilla.wizard'].create({
+            'company_id': empresa.id, 'nombre_archivo': 'mal.xlsx',
+            'archivo': base64.b64encode(b'no es excel')})
+        accion = malo.action_validar()
+        self.assertEqual(accion['res_id'], malo.id)
+        self.assertEqual(malo.estado, 'error')
+        self.assertIn('NO se guardó como válida', malo.resultado)
+        self.assertEqual(empresa.l10n_py_plantilla_id.state, 'validada')
         with self.assertRaises(UserError):
             self.env['l10n_py.plantilla.wizard'].create({'company_id': empresa.id}).action_validar()
+
+    def test_13b_la_plantilla_descargada_viene_ordenada_por_codigo(self):
+        datos, errores, _ = excel.leer_libro(excel.generar_libro(self.estandar), {'PYG', 'USD'})
+        self.assertEqual(errores, [])
+        codigos = [c['codigo'] for c in datos['cuentas']]
+        self.assertEqual(codigos, sorted(codigos))
+        rangos = [(g['desde'], g['hasta']) for g in datos['grupos']]
+        self.assertEqual(rangos, sorted(rangos))
+        self.assertLess(codigos.index('1.01.01.03.003'), codigos.index('1.01.03.01.001'))
 
     def test_14_la_descarga_genera_un_excel_valido(self):
         ajustes = self.env['res.config.settings'].create({})
@@ -360,3 +411,15 @@ class TestPlantillaExcelL10nPy(TransactionCase):
         plazos = self.env['account.payment.term'].search([('company_id', '=', empresa.id)])
         self.assertIn('30 - 60 - 90 días', plazos.mapped('name'))
         self.assertEqual(len(plazos), 6)
+
+    def test_19_permisos_contables_automaticos_del_administrador(self):
+        """Los usuarios «Contabilidad / Administrador» ven y editan el plan de cuentas, los
+        grupos y las cuentas de productos y de clientes/proveedores sin ajustes manuales."""
+        manager = self.env.ref('account.group_account_manager')
+        self.assertIn(self.env.ref('account.group_account_user'), manager.implied_ids)
+        usuario = self.env['res.users'].create({
+            'name': 'Administrador Contable Test', 'login': 'adm_contable_py_test',
+            'group_ids': [(6, 0, [manager.id])]})
+        for xmlid in ('account.group_account_user', 'account.group_account_readonly',
+                      'account.group_account_invoice'):
+            self.assertTrue(usuario.has_group(xmlid), xmlid)

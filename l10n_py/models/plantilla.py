@@ -67,7 +67,9 @@ class L10nPyPlantilla(models.Model):
                 g=len(datos['grupos']), c=len(datos['cuentas']), i=len(datos['impuestos']),
                 p=len(datos['posiciones_fiscales']), t=len(datos['plazos_pago'])))
         if errores:
-            lineas.append(_("ERRORES (hay que corregirlos para poder cargar la plantilla):"))
+            lineas.append(_("La plantilla tiene errores y NO se guardó como válida: no se puede "
+                            "cargar hasta corregirlos. Corrija el Excel y vuelva a subirlo."))
+            lineas.append(_("ERRORES:"))
             lineas += ['  • %s' % e for e in errores]
         if avisos:
             lineas.append(_("AVISOS (no impiden la carga):"))

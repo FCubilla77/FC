@@ -142,6 +142,8 @@ def datos_estandar(ruta_modulo):
     id_a_codigo = {f['id']: f['code'] for f in filas_cuentas}
     etiqueta_inv = {v: k for k, v in ETIQUETAS_IVA.items()}
 
+    # Ordenados por código: así la planilla descargada se lee como un plan de cuentas.
+    filas_grupos = sorted(filas_grupos, key=lambda f: (f['code_prefix_start'], f['code_prefix_end']))
     datos = {
         'grupos': [{'desde': f['code_prefix_start'], 'hasta': f['code_prefix_end'],
                     'nombre': f['name']} for f in filas_grupos],
@@ -150,7 +152,7 @@ def datos_estandar(ruta_modulo):
             'conciliable': _bool(f['reconcile']),
             'moneda': (f['currency_id'] or '').replace('base.', ''),
             'etiqueta': etiqueta_inv.get(f['tag_ids'], ''),
-        } for f in filas_cuentas],
+        } for f in sorted(filas_cuentas, key=lambda f: f['code'])],
         'roles': {r[0]: id_a_codigo.get(r[4], '') for r in ROLES},
         'parametros': {clave: valor for clave, _desc, valor in PARAMETROS},
     }
@@ -393,6 +395,43 @@ def _filas(libro, nombre, lector):
     return resultado
 
 
+def _grupo_contiene(grupo, codigo):
+    """True si el código (de cuenta o de otro grupo) cae en el rango del grupo, igual que
+    Odoo: se compara el prefijo del código, del largo del rango, contra desde/hasta."""
+    largo = len(grupo['desde'])
+    return len(codigo) >= largo and grupo['desde'] <= codigo[:largo] <= grupo['hasta']
+
+
+def _avisos_de_grupos(datos):
+    """Avisos (no bloquean la carga) sobre cómo quedarán agrupadas las cuentas."""
+    avisos = []
+    grupos, cuentas = datos['grupos'], datos['cuentas']
+    if not cuentas:
+        return avisos
+    if not grupos:
+        return ["Hoja «Grupos»: no hay ningún grupo. Las cuentas se cargarán igual, pero el "
+                "Balance General y el reporte Plan de Cuentas no tendrán agrupación ni grupo raíz."]
+    # Grupos sin grupo superior, aunque existan grupos de nivel superior (falta una raíz).
+    largo_raiz = min(len(g['desde']) for g in grupos)
+    for g in grupos:
+        if len(g['desde']) > largo_raiz and not any(
+                len(o['desde']) < len(g['desde']) and _grupo_contiene(o, g['desde']) for o in grupos):
+            avisos.append(
+                "Hoja «Grupos»: el grupo %s «%s» no tiene grupo superior; falta un grupo raíz que "
+                "lo contenga (por ejemplo, de %d carácter(es))." % (
+                    g['desde'] if g['desde'] == g['hasta'] else '%s-%s' % (g['desde'], g['hasta']),
+                    g['nombre'], largo_raiz))
+    sin_grupo = [c['codigo'] for c in cuentas
+                 if not any(_grupo_contiene(g, c['codigo']) for g in grupos)]
+    if sin_grupo:
+        muestra = ', '.join(sin_grupo[:10]) + (' y %d más' % (len(sin_grupo) - 10) if len(sin_grupo) > 10 else '')
+        avisos.append(
+            "Hoja «Cuentas»: %d cuenta(s) no pertenecen a ningún grupo (su código no cae en "
+            "ningún rango de la hoja «Grupos»): %s. Aparecerán sin grupo raíz en los reportes."
+            % (len(sin_grupo), muestra))
+    return avisos
+
+
 def leer_libro(contenido, monedas_validas=None):
     """Lee y valida un .xlsx. Devuelve (datos, errores, advertencias); si hay errores,
     `datos` no debe usarse. `monedas_validas`: códigos ISO existentes (None = no validar)."""
@@ -471,6 +510,8 @@ def leer_libro(contenido, monedas_validas=None):
     for nombre, lista_codigos in nombres.items():
         if len(lista_codigos) > 1:
             lector.aviso(HOJA_CUENTAS, None, "hay cuentas con el mismo nombre «%s»: %s." % (nombre, ', '.join(lista_codigos)))
+
+    lector.advertencias.extend(_avisos_de_grupos(datos))
 
     # --- Configuración (roles y parámetros) -----------------------------
     roles, parametros = {}, {}
