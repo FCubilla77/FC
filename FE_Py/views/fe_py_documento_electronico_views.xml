@@ -47,6 +47,8 @@
                         <field name="estado" widget="statusbar"/>
                     </header>
                     <sheet>
+                        <!-- Usado solo en el modificador invisible del Simulador -->
+                        <field name="ambiente" invisible="1"/>
                         <group>
                             <group>
                                 <field name="move_id"/>
@@ -63,7 +65,7 @@
                                 <field name="motivo_emision_id"/>
                             </group>
                         </group>
-                        <group string="Simulador SIFEN" invisible="fe_py_ambiente != 'simulado'">
+                        <group string="Simulador SIFEN" invisible="ambiente != 'simulado'">
                             <group>
                                 <field name="simular_resultado"/>
                             </group>

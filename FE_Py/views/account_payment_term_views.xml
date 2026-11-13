@@ -1,0 +1,15 @@
+<odoo>
+    <data>
+        <!-- Términos de Pago: condición del crédito -->
+        <record id="view_account_payment_term_form_fe_py" model="ir.ui.view">
+            <field name="name">account.payment.term.form.fe_py</field>
+            <field name="model">account.payment.term</field>
+            <field name="inherit_id" ref="account.view_payment_term_form"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_condicion_credito"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

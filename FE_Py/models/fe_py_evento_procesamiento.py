@@ -76,16 +76,16 @@ class FePyEvento(models.Model):
         help='Solo tiene efecto con Ambiente = Simulado.',
     )
     simular_codigo_rechazo = fields.Char(string='Código a Simular (Rechazo)', default='4000')
-    fe_py_configuracion_id = fields.Many2one(
+    configuracion_id = fields.Many2one(
         'fe_py.configuracion', compute='_compute_fe_py_configuracion')
-    fe_py_ambiente = fields.Selection(
-        related='fe_py_configuracion_id.fe_py_ambiente', string='Ambiente FE')
+    ambiente = fields.Selection(
+        related='configuracion_id.ambiente', string='Ambiente FE')
 
     @api.depends('company_id')
     def _compute_fe_py_configuracion(self):
         Config = self.env['fe_py.configuracion'].sudo()
         for evento in self:
-            evento.fe_py_configuracion_id = Config.search(
+            evento.configuracion_id = Config.search(
                 [('company_id', '=', evento.company_id.id)], limit=1)
     simular_mensaje_rechazo = fields.Char(
         string='Mensaje a Simular (Rechazo)', default='Motivo del Evento inválido',
@@ -225,7 +225,7 @@ class FePyEvento(models.Model):
             raise exceptions.UserError(
                 'El rango a inutilizar no puede superar 1000 números (límite de SIFEN).'
             )
-        if not self.journal_id.l10n_py_timbrado:
+        if not self.journal_id.local_py_timbrado:
             raise exceptions.UserError('El Diario no tiene Timbrado configurado.')
         if not self.tipo_fiscal_id.fe_py_itide:
             raise exceptions.UserError(
@@ -267,7 +267,7 @@ class FePyEvento(models.Model):
             return
         vals_list = [{
             'diario_id': self.journal_id.id,
-            'timbrado': self.journal_id.l10n_py_timbrado,
+            'timbrado': self.journal_id.local_py_timbrado,
             'numero': numero,
             'tipo_fiscal_id': self.tipo_fiscal_id.id,
             'motivo': 'Inutilización SIFEN (Evento #%s) — %s' % (self.id, self.motivo),
@@ -333,7 +333,7 @@ class FePyEvento(models.Model):
             partes_desde = self.nro_documento_desde.split('-')
             partes_hasta = self.nro_documento_hasta.split('-')
             i_tide = self.tipo_fiscal_id.fe_py_itide
-            _sub(r_inu, 'dNumTim', '%08d' % self.journal_id.l10n_py_timbrado)
+            _sub(r_inu, 'dNumTim', '%08d' % self.journal_id.local_py_timbrado)
             _sub(r_inu, 'dEst', partes_desde[0].zfill(3))
             _sub(r_inu, 'dPunExp', partes_desde[1].zfill(3))
             _sub(r_inu, 'dNumIn', partes_desde[2].zfill(7))
@@ -413,7 +413,7 @@ class FePyEvento(models.Model):
         response = requests.post(
             url, data=soap_xml.encode('utf-8'), headers=headers,
             cert=(company.fe_py_cert_path, company.fe_py_private_key_path),
-            timeout=self.env['fe_py.configuracion']._get_config(company).fe_py_timeout or 30,
+            timeout=self.env['fe_py.configuracion']._get_config(company).timeout or 30,
         )
         response.raise_for_status()
         return response.text

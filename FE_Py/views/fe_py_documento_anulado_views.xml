@@ -1,0 +1,26 @@
+<odoo>
+    <data>
+        <!-- Documentos Anulados: trazabilidad hacia el Evento de Inutilización que reservó esos números -->
+        <record id="view_fe_py_documento_anulado_list" model="ir.ui.view">
+            <field name="name">local_py.documento_anulado.list.fe_py</field>
+            <field name="model">local_py.documento_anulado</field>
+            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_list"/>
+            <field name="arch" type="xml">
+                <field name="fecha_registro" position="after">
+                    <field name="fe_py_evento_id" optional="show" readonly="1"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_fe_py_documento_anulado_form" model="ir.ui.view">
+            <field name="name">local_py.documento_anulado.form.fe_py</field>
+            <field name="model">local_py.documento_anulado</field>
+            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_form"/>
+            <field name="arch" type="xml">
+                <field name="fecha_registro" position="after">
+                    <field name="fe_py_evento_id" readonly="1"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

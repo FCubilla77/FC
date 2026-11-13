@@ -20,6 +20,6 @@ class AccountJournal(models.Model):
         están cargados, o los de la Compañía como valor por defecto."""
         self.ensure_one()
         config = self.env['fe_py.configuracion']._get_config(self.company_id)
-        idcsc = self.fe_py_idcsc or config.fe_py_idcsc
-        csc = self.fe_py_csc or config.fe_py_csc
+        idcsc = self.fe_py_idcsc or config.idcsc
+        csc = self.fe_py_csc or config.csc
         return idcsc, csc

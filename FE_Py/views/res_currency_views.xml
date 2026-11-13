@@ -1,0 +1,15 @@
+<odoo>
+    <data>
+        <!-- Monedas: descripción para el XML -->
+        <record id="view_res_currency_form_fe_py" model="ir.ui.view">
+            <field name="name">res.currency.form.fe_py</field>
+            <field name="model">res.currency</field>
+            <field name="inherit_id" ref="base.view_currency_form"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_descripcion"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

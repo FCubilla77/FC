@@ -22,7 +22,7 @@ class FePyDocumentoElectronico(models.Model):
         # de configuración: en res.company esos campos son un espejo NO
         # almacenado, y Odoo no puede filtrar por campos así.
         companias = self.env['fe_py.configuracion'].sudo().search([
-            ('fe_py_reintento_automatico', '=', True),
+            ('reintento_automatico', '=', True),
         ]).mapped('company_id')
         if not companias:
             return
@@ -53,7 +53,7 @@ class FePyEvento(models.Model):
         (Cancelación e Inutilización) en Rechazado o Error de
         Comunicación."""
         companias = self.env['fe_py.configuracion'].sudo().search([
-            ('fe_py_reintento_automatico', '=', True),
+            ('reintento_automatico', '=', True),
         ]).mapped('company_id')
         if not companias:
             return

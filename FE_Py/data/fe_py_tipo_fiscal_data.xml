@@ -12,14 +12,14 @@
         <!-- Nuevas variantes electrónicas, mismo código Marangatu (Tabla 4)
              que su par física — mismo criterio que ya usa local_py para
              Factura / Factura Electronica (ambas código 109). -->
-        <record id="tipo_fiscal_nota_credito_electronica" model="local_py.tipo_fiscal">
+        <record id="fe_py_tipo_fiscal_nota_credito_electronica" model="local_py.tipo_fiscal">
             <field name="name">Nota de Credito Electronica</field>
             <field name="code">110</field>
             <field name="sequence">115</field>
             <field name="fe_py_es_electronico">1</field>
             <field name="local_py_es_fisico">0</field>
         </record>
-        <record id="tipo_fiscal_nota_debito_electronica" model="local_py.tipo_fiscal">
+        <record id="fe_py_tipo_fiscal_nota_debito_electronica" model="local_py.tipo_fiscal">
             <field name="name">Nota de Debito Electronica</field>
             <field name="code">111</field>
             <field name="sequence">125</field>

@@ -1,0 +1,25 @@
+<odoo>
+    <data>
+        <!-- Variantes de Producto: product.product tiene su PROPIO formulario, que no hereda del de product.template -->
+        <record id="view_product_product_form_fe_py" model="ir.ui.view">
+            <field name="name">product.product.form.fe_py</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Facturación Electrónica" name="fe_py_producto">
+                        <group>
+                            <group>
+                                <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                            </group>
+                        </group>
+                        <div class="text-muted">
+                            Unidad que se informa a SIFEN en cada línea de factura de este
+                            producto. Es obligatoria para poder facturarlo electrónicamente.
+                        </div>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

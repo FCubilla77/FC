@@ -1,7 +1,7 @@
 <odoo>
     <data>
 
-        <record id="view_sistema_facturacion_list" model="ir.ui.view">
+        <record id="view_fe_py_sistema_facturacion_list" model="ir.ui.view">
             <field name="name">fe_py.sistema_facturacion.list</field>
             <field name="model">fe_py.sistema_facturacion</field>
             <field name="arch" type="xml">
@@ -14,7 +14,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_emision_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_emision_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_emision.list</field>
             <field name="model">fe_py.tipo_emision</field>
             <field name="arch" type="xml">
@@ -27,7 +27,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_regimen_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_regimen_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_regimen.list</field>
             <field name="model">fe_py.tipo_regimen</field>
             <field name="arch" type="xml">
@@ -40,7 +40,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_operacion_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_operacion_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_operacion.list</field>
             <field name="model">fe_py.tipo_operacion</field>
             <field name="arch" type="xml">
@@ -55,7 +55,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_transaccion_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_transaccion_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_transaccion.list</field>
             <field name="model">fe_py.tipo_transaccion</field>
             <field name="arch" type="xml">
@@ -69,7 +69,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_impuesto_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_impuesto_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_impuesto.list</field>
             <field name="model">fe_py.tipo_impuesto</field>
             <field name="arch" type="xml">
@@ -82,7 +82,7 @@
             </field>
         </record>
 
-        <record id="view_indicador_presencia_list" model="ir.ui.view">
+        <record id="view_fe_py_indicador_presencia_list" model="ir.ui.view">
             <field name="name">fe_py.indicador_presencia.list</field>
             <field name="model">fe_py.indicador_presencia</field>
             <field name="arch" type="xml">
@@ -95,7 +95,7 @@
             </field>
         </record>
 
-        <record id="view_motivo_emision_list" model="ir.ui.view">
+        <record id="view_fe_py_motivo_emision_list" model="ir.ui.view">
             <field name="name">fe_py.motivo_emision.list</field>
             <field name="model">fe_py.motivo_emision</field>
             <field name="arch" type="xml">
@@ -108,7 +108,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_documento_asociado_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_documento_asociado_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_documento_asociado.list</field>
             <field name="model">fe_py.tipo_documento_asociado</field>
             <field name="arch" type="xml">
@@ -121,7 +121,7 @@
             </field>
         </record>
 
-        <record id="view_tipo_contribuyente_receptor_list" model="ir.ui.view">
+        <record id="view_fe_py_tipo_contribuyente_receptor_list" model="ir.ui.view">
             <field name="name">fe_py.tipo_contribuyente_receptor.list</field>
             <field name="model">fe_py.tipo_contribuyente_receptor</field>
             <field name="arch" type="xml">
@@ -134,7 +134,7 @@
             </field>
         </record>
 
-        <record id="view_condicion_tipo_cambio_list" model="ir.ui.view">
+        <record id="view_fe_py_condicion_tipo_cambio_list" model="ir.ui.view">
             <field name="name">fe_py.condicion_tipo_cambio.list</field>
             <field name="model">fe_py.condicion_tipo_cambio</field>
             <field name="arch" type="xml">
@@ -147,7 +147,7 @@
             </field>
         </record>
 
-        <record id="view_afectacion_iva_list" model="ir.ui.view">
+        <record id="view_fe_py_afectacion_iva_list" model="ir.ui.view">
             <field name="name">fe_py.afectacion_iva.list</field>
             <field name="model">fe_py.afectacion_iva</field>
             <field name="arch" type="xml">
@@ -162,7 +162,7 @@
             </field>
         </record>
 
-        <record id="view_actividad_economica_list" model="ir.ui.view">
+        <record id="view_fe_py_actividad_economica_list" model="ir.ui.view">
             <field name="name">fe_py.actividad_economica.list</field>
             <field name="model">fe_py.actividad_economica</field>
             <field name="arch" type="xml">
@@ -175,7 +175,7 @@
             </field>
         </record>
 
-        <record id="view_unidad_medida_list" model="ir.ui.view">
+        <record id="view_fe_py_unidad_medida_list" model="ir.ui.view">
             <field name="name">fe_py.unidad_medida.list</field>
             <field name="model">fe_py.unidad_medida</field>
             <field name="arch" type="xml">

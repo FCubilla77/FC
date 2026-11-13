@@ -104,7 +104,7 @@ class FePyDocumentoElectronico(models.Model):
         i_tide, _desc = self._fe_py_obtener_ite_ide(move)
         ruc_em, dv_em = self._fe_py_split_ruc_dv(company.vat, 'la Compañía')
 
-        nro_doc = move.l10n_py_nro_documento or ''
+        nro_doc = move.local_py_nro_documento or ''
         partes = nro_doc.split('-')
         if len(partes) != 3:
             raise exceptions.UserError(
@@ -119,7 +119,7 @@ class FePyDocumentoElectronico(models.Model):
         fecha_emi = move.invoice_date.strftime('%Y%m%d')
 
         config = self._fe_py_config()
-        tipo_emision = self.tipo_emision_id or config.fe_py_tipo_emision_id
+        tipo_emision = self.tipo_emision_id or config.tipo_emision_id
         tipo_emi_codigo = tipo_emision.codigo if tipo_emision else '1'
         # Siempre se genera un código de seguridad NUEVO acá — no se
         # reutiliza el de un intento anterior. "Generar/Regenerar XML" es
@@ -135,7 +135,7 @@ class FePyDocumentoElectronico(models.Model):
             d_est.zfill(3),
             d_pun_exp.zfill(3),
             d_num_doc.zfill(7),
-            config.fe_py_tipo_contribuyente or '2',
+            config.tipo_contribuyente or '2',
             fecha_emi,
             tipo_emi_codigo,
             cod_seg,
@@ -218,7 +218,7 @@ class FePyDocumentoElectronico(models.Model):
         ahora = fields.Datetime.now()
         _sub(de, 'dDVId', cdc[-1])
         _sub(de, 'dFecFirma', ahora.strftime('%Y-%m-%dT%H:%M:%S'))
-        _sub(de, 'dSisFact', self._fe_py_config().fe_py_sistema_facturacion_id.codigo)
+        _sub(de, 'dSisFact', self._fe_py_config().sistema_facturacion_id.codigo)
 
         self._fe_py_xml_gOpeDE(de, cod_seg)
         self._fe_py_xml_gTimb(de, journal, i_tide, d_des_tide)
@@ -233,7 +233,7 @@ class FePyDocumentoElectronico(models.Model):
     def _fe_py_xml_gOpeDE(self, de, cod_seg):
         g = etree.SubElement(de, '{%s}gOpeDE' % SIFEN_NS)
         config = self._fe_py_config()
-        tipo_emision = self.tipo_emision_id or config.fe_py_tipo_emision_id
+        tipo_emision = self.tipo_emision_id or config.tipo_emision_id
         tipo_emi_codigo = tipo_emision.codigo if tipo_emision else '1'
         _sub(g, 'iTipEmi', tipo_emi_codigo)
         _sub(g, 'dDesTipEmi', tipo_emision.name if tipo_emision else 'Normal')
@@ -244,12 +244,12 @@ class FePyDocumentoElectronico(models.Model):
         g = etree.SubElement(de, '{%s}gTimb' % SIFEN_NS)
         _sub(g, 'iTiDE', i_tide)
         _sub(g, 'dDesTiDE', d_des_tide)
-        _sub(g, 'dNumTim', '%08d' % (move.l10n_py_timbrado or 0))
-        d_est, d_pun_exp, d_num_doc = move.l10n_py_nro_documento.split('-')
+        _sub(g, 'dNumTim', '%08d' % (move.local_py_timbrado or 0))
+        d_est, d_pun_exp, d_num_doc = move.local_py_nro_documento.split('-')
         _sub(g, 'dEst', d_est.zfill(3))
         _sub(g, 'dPunExp', d_pun_exp.zfill(3))
         _sub(g, 'dNumDoc', d_num_doc.zfill(7))
-        _sub(g, 'dFeIniT', journal.l10n_py_inicio_vigencia_timbrado.strftime('%Y-%m-%d'))
+        _sub(g, 'dFeIniT', journal.local_py_inicio_vigencia_timbrado.strftime('%Y-%m-%d'))
 
     def _fe_py_xml_gDatGralOpe(self, de, move, company, partner):
         g = etree.SubElement(de, '{%s}gDatGralOpe' % SIFEN_NS)
@@ -280,7 +280,7 @@ class FePyDocumentoElectronico(models.Model):
         # Moneda extranjera: tipo de cambio global para todo el DE. No se
         # informa nada de esto cuando la operación es en Guaraníes.
         if moneda != move.company_id.currency_id:
-            _sub(g, 'dCondTiCam', config.fe_py_condicion_tipo_cambio_id.codigo)
+            _sub(g, 'dCondTiCam', config.condicion_tipo_cambio_id.codigo)
             _sub(g, 'dTiCam', round(self._fe_py_tipo_cambio(move), 4))
 
     def _fe_py_tipo_cambio(self, move):
@@ -310,8 +310,8 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g, 'dRucEm', ruc_em)
         _sub(g, 'dDVEmi', dv_em)
         config = self._fe_py_config()
-        _sub(g, 'iTipCont', config.fe_py_tipo_contribuyente)
-        _sub(g, 'cTipReg', config.fe_py_tipo_regimen_id.codigo)
+        _sub(g, 'iTipCont', config.tipo_contribuyente)
+        _sub(g, 'cTipReg', config.tipo_regimen_id.codigo)
         _sub(g, 'dNomEmi', company.name)
         _sub(g, 'dDirEmi', company.street)
         _sub(g, 'dNumCas', getattr(company, 'street_number', False) or '0')
@@ -328,7 +328,7 @@ class FePyDocumentoElectronico(models.Model):
         _sub(g, 'dEmailE', company.email)
         # El grupo admite varias actividades económicas: se informan todas
         # las cargadas en la Configuración FEPy.
-        for actividad in config.fe_py_actividad_economica_ids:
+        for actividad in config.actividad_economica_ids:
             g_act = etree.SubElement(g, '{%s}gActEco' % SIFEN_NS)
             _sub(g_act, 'cActEco', actividad.codigo)
             _sub(g_act, 'dDesActEco', actividad.name)
@@ -366,7 +366,7 @@ class FePyDocumentoElectronico(models.Model):
             _sub(g, 'dRucRec', ruc_rec)
             _sub(g, 'dDVRec', dv_rec)
         else:
-            tipo_ident = partner.l10n_py_tipo_identificacion_fiscal_id
+            tipo_ident = partner.local_py_tipo_identificacion_fiscal_id
             codigo = tipo_ident.fe_py_itipidrec if tipo_ident else False
             if not codigo:
                 raise exceptions.UserError(
@@ -410,7 +410,7 @@ class FePyDocumentoElectronico(models.Model):
         respaldo configurada, para líneas cargadas a mano sin producto."""
         if line.product_id and line.product_id.fe_py_unidad_medida_id:
             return line.product_id.fe_py_unidad_medida_id
-        unidad = self._fe_py_config().fe_py_unidad_medida_id
+        unidad = self._fe_py_config().unidad_medida_id
         if not unidad:
             raise exceptions.UserError(
                 'La línea "%s" no tiene unidad de medida SIFEN y tampoco hay '
@@ -490,7 +490,7 @@ class FePyDocumentoElectronico(models.Model):
         Contado -> gPaConEIni (forma de pago) es OBLIGATORIO.
         Crédito  -> gPagCred, con plazo o con detalle de cuotas.
         """
-        condicion = move.invoice_payment_term_id.l10n_py_condicion if move.invoice_payment_term_id else False
+        condicion = move.invoice_payment_term_id.local_py_condicion if move.invoice_payment_term_id else False
         moneda = move.currency_id.name or 'PYG'
         g_cond = etree.SubElement(parent, '{%s}gCamCond' % SIFEN_NS)
 
@@ -596,7 +596,7 @@ class FePyDocumentoElectronico(models.Model):
             Manual:  F014 = F008 - F011 - F012 - F013
             NT 001:  F014 = F008 - F013 + F025   <-- la que se aplica acá
         """
-        montos = move._l10n_py_mkt_montos_por_tasa()
+        montos = move._local_py_mkt_montos_por_tasa()
         base_10 = montos['10'] / 1.10 if montos['10'] else 0
         iva_10 = montos['10'] - base_10
         base_5 = montos['5'] / 1.05 if montos['5'] else 0
@@ -661,7 +661,7 @@ class FePyDocumentoElectronico(models.Model):
             ('move_id', '=', move.reversed_entry_id.id)
         ], limit=1)
         g = etree.SubElement(de, '{%s}gCamDEAsoc' % SIFEN_NS)
-        tipo_aso = self._fe_py_config().fe_py_tipo_documento_asociado_id
+        tipo_aso = self._fe_py_config().tipo_documento_asociado_id
         _sub(g, 'iTipDocAso', tipo_aso.codigo)
         _sub(g, 'dDesTipDocAso', tipo_aso.name)
         _sub(g, 'dCdCDERef', doc_asociado.cdc)

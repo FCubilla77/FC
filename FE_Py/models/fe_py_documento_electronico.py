@@ -9,10 +9,10 @@ class FePyDocumentoElectronico(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
 
-    @api.depends('move_id', 'move_id.l10n_py_nro_documento', 'move_id.name', 'partner_id')
+    @api.depends('move_id', 'move_id.local_py_nro_documento', 'move_id.name', 'partner_id')
     def _compute_display_name(self):
         for doc in self:
-            nro = doc.move_id.l10n_py_nro_documento or doc.move_id.name or str(doc.id)
+            nro = doc.move_id.local_py_nro_documento or doc.move_id.name or str(doc.id)
             cliente = doc.partner_id.name or ''
             comprobante = doc.move_id.name or ''
             doc.display_name = '%s - %s (%s)' % (nro, cliente, comprobante)
@@ -40,7 +40,7 @@ class FePyDocumentoElectronico(models.Model):
     journal_id = fields.Many2one(
         related='move_id.journal_id', string='Diario', store=True, readonly=True,
     )
-    fe_py_ambiente = fields.Selection(
+    ambiente = fields.Selection(
         related='move_id.fe_py_ambiente', string='Ambiente FE',
     )
 

@@ -31,6 +31,8 @@
                         <field name="estado" widget="statusbar"/>
                     </header>
                     <sheet>
+                        <!-- Usado solo en el modificador invisible del Simulador -->
+                        <field name="ambiente" invisible="1"/>
                         <group>
                             <group>
                                 <field name="tipo_evento"/>
@@ -49,7 +51,7 @@
                             </group>
                         </group>
                         <field name="motivo" placeholder="Motivo del evento..."/>
-                        <group string="Simulador SIFEN" invisible="fe_py_ambiente != 'simulado'">
+                        <group string="Simulador SIFEN" invisible="ambiente != 'simulado'">
                             <group>
                                 <field name="simular_resultado"/>
                             </group>

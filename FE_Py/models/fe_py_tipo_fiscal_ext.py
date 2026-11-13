@@ -58,7 +58,7 @@ class LocalPyTipoFiscal(models.Model):
             tipo.local_py_es_fisico = not tipo.fe_py_es_electronico
 
     @api.onchange('local_py_es_fisico')
-    def _onchange_local_py_es_fisico_fe_py(self):
+    def _onchange_fe_py_es_fisico(self):
         for tipo in self:
             tipo.fe_py_es_electronico = not tipo.local_py_es_fisico
 

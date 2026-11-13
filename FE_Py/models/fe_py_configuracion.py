@@ -56,13 +56,13 @@ class FePyConfiguracion(models.Model):
     # ------------------------------------------------------------------
     # Habilitación y ambiente
     # ------------------------------------------------------------------
-    fe_py_habilitado = fields.Boolean(
+    habilitado = fields.Boolean(
         string='Facturador Electrónico',
         help='Activa el circuito de Facturación Electrónica (SIFEN) para esta '
              'Compañía. No se puede activar sin el Certificado generado y el '
              'IdCSC/CSC completos.',
     )
-    fe_py_ambiente = fields.Selection(
+    ambiente = fields.Selection(
         string='Ambiente FE',
         selection=[
             ('simulado', 'Simulado (sin conexión — pruebas internas)'),
@@ -77,19 +77,19 @@ class FePyConfiguracion(models.Model):
     # ------------------------------------------------------------------
     # Datos del Emisor (van al grupo gEmis del XML)
     # ------------------------------------------------------------------
-    fe_py_tipo_contribuyente = fields.Selection(
+    tipo_contribuyente = fields.Selection(
         string='FEPy Tipo de Contribuyente',
         selection=[('1', 'Persona Física'), ('2', 'Persona Jurídica')],
         default='2',
         help='Se informa como iTipCont. Es un dato de la empresa emisora.',
     )
-    fe_py_tipo_regimen_id = fields.Many2one(
+    tipo_regimen_id = fields.Many2one(
         'fe_py.tipo_regimen', string='FEPy Tipo de Régimen',
         help='Se informa como cTipReg. Distinto de la Imputación Tributaria '
              'de local_py: acá van los 8 regímenes de la Tabla 1 del Manual '
              '(Turismo, Importador, Exportador, Maquila, Ley 60/90, etc.).',
     )
-    fe_py_actividad_economica_ids = fields.Many2many(
+    actividad_economica_ids = fields.Many2many(
         'fe_py.actividad_economica', string='FEPy Actividades Económicas',
         help='Actividades tal como están registradas ante la DNIT. Se informan '
              'todas en el XML (el grupo admite varias).',
@@ -98,71 +98,71 @@ class FePyConfiguracion(models.Model):
     # ------------------------------------------------------------------
     # Certificado digital
     # ------------------------------------------------------------------
-    fe_py_certificado_file = fields.Binary(string='Certificado (.p12 / .pfx)', attachment=True)
-    fe_py_certificado_filename = fields.Char(string='Nombre del Archivo')
-    fe_py_certificado_password = fields.Char(string='Contraseña del Certificado')
-    fe_py_cert_path = fields.Char(string='Ruta Certificado', readonly=True)
-    fe_py_private_key_path = fields.Char(string='Ruta Clave Privada', readonly=True)
-    fe_py_public_key_path = fields.Char(string='Ruta Clave Pública', readonly=True)
-    fe_py_certificado_vencimiento = fields.Date(string='Vencimiento del Certificado', readonly=True)
+    certificado_file = fields.Binary(string='Certificado (.p12 / .pfx)', attachment=True)
+    certificado_filename = fields.Char(string='Nombre del Archivo')
+    certificado_password = fields.Char(string='Contraseña del Certificado')
+    cert_path = fields.Char(string='Ruta Certificado', readonly=True)
+    private_key_path = fields.Char(string='Ruta Clave Privada', readonly=True)
+    public_key_path = fields.Char(string='Ruta Clave Pública', readonly=True)
+    certificado_vencimiento = fields.Date(string='Vencimiento del Certificado', readonly=True)
 
     # ------------------------------------------------------------------
     # Código de Seguridad del Contribuyente
     # ------------------------------------------------------------------
-    fe_py_idcsc = fields.Char(string='IdCSC', default=IDCSC_GENERICO)
-    fe_py_csc = fields.Char(string='CSC', default=CSC_GENERICO)
+    idcsc = fields.Char(string='IdCSC', default=IDCSC_GENERICO)
+    csc = fields.Char(string='CSC', default=CSC_GENERICO)
 
     # ------------------------------------------------------------------
     # Automatización
     # ------------------------------------------------------------------
-    fe_py_envio_automatico = fields.Boolean(
+    envio_automatico = fields.Boolean(
         string='Generar, Firmar y Enviar Automáticamente al Confirmar')
-    fe_py_kude_automatico = fields.Boolean(
+    kude_automatico = fields.Boolean(
         string='Generar KuDE Automáticamente al Aprobarse')
-    fe_py_email_automatico = fields.Boolean(
+    email_automatico = fields.Boolean(
         string='Enviar Email al Cliente Automáticamente al Aprobarse')
-    fe_py_reintento_automatico = fields.Boolean(
+    reintento_automatico = fields.Boolean(
         string='Reintentar Automáticamente Rechazados / Error de Comunicación')
 
     # ------------------------------------------------------------------
     # URLs de los servicios de SIFEN
     # ------------------------------------------------------------------
-    fe_py_ws_recibe_test = fields.Char(
+    ws_recibe_test = fields.Char(
         string='WS Recepción DE (Test)', default=URLS_POR_DEFECTO['ws_recibe_test'])
-    fe_py_ws_recibe_prod = fields.Char(
+    ws_recibe_prod = fields.Char(
         string='WS Recepción DE (Producción)', default=URLS_POR_DEFECTO['ws_recibe_prod'])
-    fe_py_ws_evento_test = fields.Char(
+    ws_evento_test = fields.Char(
         string='WS Eventos (Test)', default=URLS_POR_DEFECTO['ws_evento_test'])
-    fe_py_ws_evento_prod = fields.Char(
+    ws_evento_prod = fields.Char(
         string='WS Eventos (Producción)', default=URLS_POR_DEFECTO['ws_evento_prod'])
-    fe_py_qr_test = fields.Char(
+    qr_test = fields.Char(
         string='URL base del QR (Test)', default=URLS_POR_DEFECTO['qr_test'])
-    fe_py_qr_prod = fields.Char(
+    qr_prod = fields.Char(
         string='URL base del QR (Producción)', default=URLS_POR_DEFECTO['qr_prod'])
-    fe_py_consulta_test = fields.Char(
+    consulta_test = fields.Char(
         string='URL de consulta del KuDE (Test)', default=URLS_POR_DEFECTO['consulta_test'])
-    fe_py_consulta_prod = fields.Char(
+    consulta_prod = fields.Char(
         string='URL de consulta del KuDE (Producción)', default=URLS_POR_DEFECTO['consulta_prod'])
-    fe_py_timeout = fields.Integer(string='Tiempo de espera (segundos)', default=30)
+    timeout = fields.Integer(string='Tiempo de espera (segundos)', default=30)
 
     # ------------------------------------------------------------------
     # Valores por defecto del XML
     # ------------------------------------------------------------------
-    fe_py_sistema_facturacion_id = fields.Many2one(
+    sistema_facturacion_id = fields.Many2one(
         'fe_py.sistema_facturacion', string='FEPy Sistema de Facturación',
         help='Se informa como dSisFact en todos los documentos.')
-    fe_py_condicion_tipo_cambio_id = fields.Many2one(
+    condicion_tipo_cambio_id = fields.Many2one(
         'fe_py.condicion_tipo_cambio', string='FEPy Condición del Tipo de Cambio',
         help='Se informa como dCondTiCam cuando la operación no es en Guaraníes.')
-    fe_py_unidad_medida_id = fields.Many2one(
+    unidad_medida_id = fields.Many2one(
         'fe_py.unidad_medida', string='FEPy Unidad de Medida por Defecto',
         help='Se usa en las líneas de factura que no tienen producto '
              '(cargadas a mano), donde no hay de dónde tomar la unidad.')
-    fe_py_tipo_documento_asociado_id = fields.Many2one(
+    tipo_documento_asociado_id = fields.Many2one(
         'fe_py.tipo_documento_asociado', string='FEPy Tipo de Documento Asociado',
         help='Se informa como iTipDocAso al referenciar la factura original '
              'desde una Nota de Crédito/Débito.')
-    fe_py_tipo_emision_id = fields.Many2one(
+    tipo_emision_id = fields.Many2one(
         'fe_py.tipo_emision', string='FEPy Tipo de Emisión por Defecto',
         help='Se informa como iTipEmi. Normalmente "Normal".')
 
@@ -180,61 +180,61 @@ class FePyConfiguracion(models.Model):
     # (lo normal sería un menú por catálogo), pero es lo que permite
     # mantenerlos agrupados sin duplicar los datos por Compañía.
     # ------------------------------------------------------------------
-    fe_py_sistema_facturacion_ids = fields.Many2many(
+    sistema_facturacion_ids = fields.Many2many(
         'fe_py.sistema_facturacion', string='Sistemas de Facturación',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_emision_ids = fields.Many2many(
+    tipo_emision_ids = fields.Many2many(
         'fe_py.tipo_emision', string='Tipos de Emisión',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_regimen_ids = fields.Many2many(
+    tipo_regimen_ids = fields.Many2many(
         'fe_py.tipo_regimen', string='Tipos de Régimen',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_operacion_ids = fields.Many2many(
+    tipo_operacion_ids = fields.Many2many(
         'fe_py.tipo_operacion', string='Tipos de Operación',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_transaccion_ids = fields.Many2many(
+    tipo_transaccion_ids = fields.Many2many(
         'fe_py.tipo_transaccion', string='Tipos de Transacción',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_impuesto_ids = fields.Many2many(
+    tipo_impuesto_ids = fields.Many2many(
         'fe_py.tipo_impuesto', string='Tipos de Impuesto Afectado',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_indicador_presencia_ids = fields.Many2many(
+    indicador_presencia_ids = fields.Many2many(
         'fe_py.indicador_presencia', string='Indicadores de Presencia',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_motivo_emision_ids = fields.Many2many(
+    motivo_emision_ids = fields.Many2many(
         'fe_py.motivo_emision', string='Motivos de Emisión (NC/ND)',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_documento_asociado_ids = fields.Many2many(
+    tipo_documento_asociado_ids = fields.Many2many(
         'fe_py.tipo_documento_asociado', string='Tipos de Documento Asociado',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_tipo_contribuyente_ids = fields.Many2many(
+    tipo_contribuyente_ids = fields.Many2many(
         'fe_py.tipo_contribuyente_receptor', string='Tipos de Contribuyente (Receptor)',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_condicion_tipo_cambio_ids = fields.Many2many(
+    condicion_tipo_cambio_ids = fields.Many2many(
         'fe_py.condicion_tipo_cambio', string='Condiciones del Tipo de Cambio',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_afectacion_iva_ids = fields.Many2many(
+    afectacion_iva_ids = fields.Many2many(
         'fe_py.afectacion_iva', string='Códigos de Afectación IVA',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
-    fe_py_unidad_medida_ids = fields.Many2many(
+    unidad_medida_ids = fields.Many2many(
         'fe_py.unidad_medida', string='Unidades de Medida',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
 
     # Campo del catálogo -> modelo que muestra
     _CATALOGOS_EN_PESTANAS = {
-        'fe_py_sistema_facturacion_ids': 'fe_py.sistema_facturacion',
-        'fe_py_tipo_emision_ids': 'fe_py.tipo_emision',
-        'fe_py_tipo_regimen_ids': 'fe_py.tipo_regimen',
-        'fe_py_tipo_operacion_ids': 'fe_py.tipo_operacion',
-        'fe_py_tipo_transaccion_ids': 'fe_py.tipo_transaccion',
-        'fe_py_tipo_impuesto_ids': 'fe_py.tipo_impuesto',
-        'fe_py_indicador_presencia_ids': 'fe_py.indicador_presencia',
-        'fe_py_motivo_emision_ids': 'fe_py.motivo_emision',
-        'fe_py_tipo_documento_asociado_ids': 'fe_py.tipo_documento_asociado',
-        'fe_py_tipo_contribuyente_ids': 'fe_py.tipo_contribuyente_receptor',
-        'fe_py_condicion_tipo_cambio_ids': 'fe_py.condicion_tipo_cambio',
-        'fe_py_afectacion_iva_ids': 'fe_py.afectacion_iva',
-        'fe_py_unidad_medida_ids': 'fe_py.unidad_medida',
+        'sistema_facturacion_ids': 'fe_py.sistema_facturacion',
+        'tipo_emision_ids': 'fe_py.tipo_emision',
+        'tipo_regimen_ids': 'fe_py.tipo_regimen',
+        'tipo_operacion_ids': 'fe_py.tipo_operacion',
+        'tipo_transaccion_ids': 'fe_py.tipo_transaccion',
+        'tipo_impuesto_ids': 'fe_py.tipo_impuesto',
+        'indicador_presencia_ids': 'fe_py.indicador_presencia',
+        'motivo_emision_ids': 'fe_py.motivo_emision',
+        'tipo_documento_asociado_ids': 'fe_py.tipo_documento_asociado',
+        'tipo_contribuyente_ids': 'fe_py.tipo_contribuyente_receptor',
+        'condicion_tipo_cambio_ids': 'fe_py.condicion_tipo_cambio',
+        'afectacion_iva_ids': 'fe_py.afectacion_iva',
+        'unidad_medida_ids': 'fe_py.unidad_medida',
     }
 
     @api.depends('company_id')
@@ -287,12 +287,12 @@ class FePyConfiguracion(models.Model):
         defecto que se pueden deducir de los catálogos ya cargados."""
         vals = {'company_id': company.id}
         for campo, modelo, codigo in (
-            ('fe_py_sistema_facturacion_id', 'fe_py.sistema_facturacion', '1'),
-            ('fe_py_tipo_emision_id', 'fe_py.tipo_emision', '1'),
-            ('fe_py_condicion_tipo_cambio_id', 'fe_py.condicion_tipo_cambio', '1'),
-            ('fe_py_tipo_documento_asociado_id', 'fe_py.tipo_documento_asociado', '1'),
-            ('fe_py_unidad_medida_id', 'fe_py.unidad_medida', '77'),
-            ('fe_py_tipo_regimen_id', 'fe_py.tipo_regimen', '8'),
+            ('sistema_facturacion_id', 'fe_py.sistema_facturacion', '1'),
+            ('tipo_emision_id', 'fe_py.tipo_emision', '1'),
+            ('condicion_tipo_cambio_id', 'fe_py.condicion_tipo_cambio', '1'),
+            ('tipo_documento_asociado_id', 'fe_py.tipo_documento_asociado', '1'),
+            ('unidad_medida_id', 'fe_py.unidad_medida', '77'),
+            ('tipo_regimen_id', 'fe_py.tipo_regimen', '8'),
         ):
             registro = self.env[modelo].sudo().search([('codigo', '=', codigo)], limit=1)
             if registro:
@@ -308,39 +308,39 @@ class FePyConfiguracion(models.Model):
         devuelven las de Test: no se usan para conectarse (el Simulador no
         sale a la red), pero sí para armar el link del QR del KuDE."""
         self.ensure_one()
-        es_prod = self.fe_py_ambiente == 'produccion'
+        es_prod = self.ambiente == 'produccion'
         mapa = {
-            'recibe': self.fe_py_ws_recibe_prod if es_prod else self.fe_py_ws_recibe_test,
-            'evento': self.fe_py_ws_evento_prod if es_prod else self.fe_py_ws_evento_test,
-            'qr': self.fe_py_qr_prod if es_prod else self.fe_py_qr_test,
-            'consulta': self.fe_py_consulta_prod if es_prod else self.fe_py_consulta_test,
+            'recibe': self.ws_recibe_prod if es_prod else self.ws_recibe_test,
+            'evento': self.ws_evento_prod if es_prod else self.ws_evento_test,
+            'qr': self.qr_prod if es_prod else self.qr_test,
+            'consulta': self.consulta_prod if es_prod else self.consulta_test,
         }
         return mapa.get(servicio)
 
     # ------------------------------------------------------------------
     # Validaciones
     # ------------------------------------------------------------------
-    @api.constrains('fe_py_habilitado', 'fe_py_cert_path', 'fe_py_idcsc', 'fe_py_csc')
+    @api.constrains('habilitado', 'cert_path', 'idcsc', 'csc')
     def _check_habilitado(self):
         for config in self:
-            if config.fe_py_habilitado and not (
-                config.fe_py_cert_path and config.fe_py_idcsc and config.fe_py_csc
+            if config.habilitado and not (
+                config.cert_path and config.idcsc and config.csc
             ):
                 raise exceptions.ValidationError(
                     'Para activar "Facturador Electrónico" hay que generar el '
                     'Certificado y completar IdCSC y CSC.'
                 )
 
-    @api.onchange('fe_py_ambiente')
+    @api.onchange('ambiente')
     def _onchange_fe_py_ambiente(self):
         """Pasar a Producción propone activar la Automatización, sin forzarla."""
-        if self.fe_py_ambiente == 'produccion' and not (
-            self.fe_py_envio_automatico or self.fe_py_kude_automatico
-            or self.fe_py_email_automatico
+        if self.ambiente == 'produccion' and not (
+            self.envio_automatico or self.kude_automatico
+            or self.email_automatico
         ):
-            self.fe_py_envio_automatico = True
-            self.fe_py_kude_automatico = True
-            self.fe_py_email_automatico = True
+            self.envio_automatico = True
+            self.kude_automatico = True
+            self.email_automatico = True
             return {
                 'warning': {
                     'title': 'Ambiente de Producción',
@@ -365,14 +365,14 @@ class FePyConfiguracion(models.Model):
                 'para poder generar los certificados.'
             )
         for config in self:
-            if not (config.fe_py_certificado_file and config.fe_py_certificado_password):
+            if not (config.certificado_file and config.certificado_password):
                 raise exceptions.UserError(
                     'Cargue el archivo del Certificado (.p12/.pfx) y su '
                     'Contraseña antes de generar los certificados.'
                 )
             try:
-                file_data = base64.b64decode(config.fe_py_certificado_file)
-                password = config.fe_py_certificado_password.encode()
+                file_data = base64.b64decode(config.certificado_file)
+                password = config.certificado_password.encode()
                 private_key, certificate, _extra = pkcs12.load_key_and_certificates(
                     file_data, password
                 )
@@ -418,10 +418,10 @@ class FePyConfiguracion(models.Model):
 
             vencimiento_dt = getattr(certificate, 'not_valid_after_utc', None) or certificate.not_valid_after
             config.write({
-                'fe_py_cert_path': cert_path,
-                'fe_py_private_key_path': private_key_path,
-                'fe_py_public_key_path': public_key_path,
-                'fe_py_certificado_vencimiento': vencimiento_dt.date(),
+                'cert_path': cert_path,
+                'private_key_path': private_key_path,
+                'public_key_path': public_key_path,
+                'certificado_vencimiento': vencimiento_dt.date(),
             })
         return True
 

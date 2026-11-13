@@ -25,27 +25,27 @@ class ResCompany(models.Model):
 
     # -- Espejo de solo lectura, para uso interno del módulo -------------
     fe_py_habilitado = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_habilitado', readonly=True)
+        related='fe_py_configuracion_id.habilitado', readonly=True)
     fe_py_ambiente = fields.Selection(
-        related='fe_py_configuracion_id.fe_py_ambiente', readonly=True)
+        related='fe_py_configuracion_id.ambiente', readonly=True)
     fe_py_cert_path = fields.Char(
-        related='fe_py_configuracion_id.fe_py_cert_path', readonly=True)
+        related='fe_py_configuracion_id.cert_path', readonly=True)
     fe_py_private_key_path = fields.Char(
-        related='fe_py_configuracion_id.fe_py_private_key_path', readonly=True)
+        related='fe_py_configuracion_id.private_key_path', readonly=True)
     fe_py_public_key_path = fields.Char(
-        related='fe_py_configuracion_id.fe_py_public_key_path', readonly=True)
+        related='fe_py_configuracion_id.public_key_path', readonly=True)
     fe_py_idcsc = fields.Char(
-        related='fe_py_configuracion_id.fe_py_idcsc', readonly=True)
+        related='fe_py_configuracion_id.idcsc', readonly=True)
     fe_py_csc = fields.Char(
-        related='fe_py_configuracion_id.fe_py_csc', readonly=True)
+        related='fe_py_configuracion_id.csc', readonly=True)
     fe_py_envio_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_envio_automatico', readonly=True)
+        related='fe_py_configuracion_id.envio_automatico', readonly=True)
     fe_py_kude_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_kude_automatico', readonly=True)
+        related='fe_py_configuracion_id.kude_automatico', readonly=True)
     fe_py_email_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_email_automatico', readonly=True)
+        related='fe_py_configuracion_id.email_automatico', readonly=True)
     fe_py_reintento_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_reintento_automatico', readonly=True)
+        related='fe_py_configuracion_id.reintento_automatico', readonly=True)
 
     @api.depends_context('company')
     def _compute_fe_py_configuracion(self):

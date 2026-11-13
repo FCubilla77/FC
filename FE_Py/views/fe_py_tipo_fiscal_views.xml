@@ -1,7 +1,7 @@
 <odoo>
     <data>
-        <record id="view_local_py_tipo_fiscal_form_fe_py" model="ir.ui.view">
-            <field name="name">local_py.tipo_fiscal.form.fe.py</field>
+        <record id="view_fe_py_tipo_fiscal_form" model="ir.ui.view">
+            <field name="name">local_py.tipo_fiscal.form.fe_py</field>
             <field name="model">local_py.tipo_fiscal</field>
             <field name="inherit_id" ref="local_py.view_local_py_tipo_fiscal_form"/>
             <field name="arch" type="xml">
@@ -13,8 +13,8 @@
             </field>
         </record>
 
-        <record id="view_local_py_tipo_fiscal_list_fe_py" model="ir.ui.view">
-            <field name="name">local_py.tipo_fiscal.list.fe.py</field>
+        <record id="view_fe_py_tipo_fiscal_list" model="ir.ui.view">
+            <field name="name">local_py.tipo_fiscal.list.fe_py</field>
             <field name="model">local_py.tipo_fiscal</field>
             <field name="inherit_id" ref="local_py.view_local_py_tipo_fiscal_list"/>
             <field name="arch" type="xml">

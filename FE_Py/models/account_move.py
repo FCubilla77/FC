@@ -76,13 +76,13 @@ class AccountMove(models.Model):
     fe_py_configuracion_id = fields.Many2one(
         'fe_py.configuracion', compute='_compute_fe_py_configuracion')
     fe_py_ambiente = fields.Selection(
-        related='fe_py_configuracion_id.fe_py_ambiente', string='Ambiente FE')
+        related='fe_py_configuracion_id.ambiente', string='Ambiente FE')
     fe_py_envio_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_envio_automatico')
+        related='fe_py_configuracion_id.envio_automatico')
     fe_py_kude_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_kude_automatico')
+        related='fe_py_configuracion_id.kude_automatico')
     fe_py_email_automatico = fields.Boolean(
-        related='fe_py_configuracion_id.fe_py_email_automatico')
+        related='fe_py_configuracion_id.email_automatico')
 
     @api.depends('company_id')
     def _compute_fe_py_configuracion(self):
@@ -267,17 +267,17 @@ class AccountMove(models.Model):
                     'Generales FEPy)' % company.name]
 
         # -- Configuración general -------------------------------------
-        if not config.fe_py_cert_path:
+        if not config.cert_path:
             faltantes.append('Certificado digital sin generar (Configuraciones Generales FEPy)')
-        if not (config.fe_py_idcsc and config.fe_py_csc):
+        if not (config.idcsc and config.csc):
             faltantes.append('IdCSC / CSC (Configuraciones Generales FEPy)')
-        if not config.fe_py_tipo_regimen_id:
+        if not config.tipo_regimen_id:
             faltantes.append('FEPy Tipo de Régimen (Configuraciones Generales FEPy)')
-        if not config.fe_py_actividad_economica_ids:
+        if not config.actividad_economica_ids:
             faltantes.append('FEPy Actividades Económicas (Configuraciones Generales FEPy)')
-        if not config.fe_py_sistema_facturacion_id:
+        if not config.sistema_facturacion_id:
             faltantes.append('FEPy Sistema de Facturación (Configuraciones Generales FEPy)')
-        if not config.fe_py_tipo_emision_id:
+        if not config.tipo_emision_id:
             faltantes.append('FEPy Tipo de Emisión por Defecto (Configuraciones Generales FEPy)')
 
         # -- Emisor ----------------------------------------------------
@@ -289,7 +289,7 @@ class AccountMove(models.Model):
                 faltantes.append('%s de la Compañía (Ajustes > Empresas)' % etiqueta)
 
         # -- Diario y Timbrado -----------------------------------------
-        if not journal.l10n_py_inicio_vigencia_timbrado:
+        if not journal.local_py_inicio_vigencia_timbrado:
             faltantes.append('Inicio de Vigencia del Timbrado (Diario "%s")' % journal.name)
         tipo_fiscal = journal.local_py_tipo_fiscal_id
         if not tipo_fiscal:
@@ -301,7 +301,7 @@ class AccountMove(models.Model):
             )
 
         # -- Receptor --------------------------------------------------
-        tipo_ident = partner.l10n_py_tipo_identificacion_fiscal_id
+        tipo_ident = partner.local_py_tipo_identificacion_fiscal_id
         if not tipo_ident:
             faltantes.append('Tipo de Identificación Fiscal del Cliente "%s"' % partner.display_name)
         if not partner.vat:
@@ -349,14 +349,14 @@ class AccountMove(models.Model):
                 'FEPy Descripción de Moneda en "%s" (Contabilidad > Monedas)'
                 % self.currency_id.name
             )
-        if self.currency_id != company.currency_id and not config.fe_py_condicion_tipo_cambio_id:
+        if self.currency_id != company.currency_id and not config.condicion_tipo_cambio_id:
             faltantes.append('FEPy Condición del Tipo de Cambio (Configuraciones Generales FEPy)')
 
         # -- Condición de la operación ---------------------------------
         term = self.invoice_payment_term_id
         if not term:
             faltantes.append('Términos de Pago (define si la operación es Contado o Crédito)')
-        elif term.l10n_py_condicion == 'credito':
+        elif term.local_py_condicion == 'credito':
             if term.fe_py_condicion_credito == '2' and not self.fe_py_cuota_ids:
                 faltantes.append(
                     'FEPy Cuotas: el Término de Pago "%s" es por Cuota, hay que '
@@ -377,7 +377,7 @@ class AccountMove(models.Model):
             if line.product_id:
                 if not line.product_id.fe_py_unidad_medida_id:
                     productos_sin_unidad.add(line.product_id.display_name)
-            elif not config.fe_py_unidad_medida_id:
+            elif not config.unidad_medida_id:
                 faltantes.append(
                     'FEPy Unidad de Medida por Defecto (Configuraciones Generales '
                     'FEPy): hay líneas sin producto y no hay unidad de respaldo'
@@ -393,7 +393,7 @@ class AccountMove(models.Model):
         if self.fe_py_es_nc_nd:
             if not self.fe_py_motivo_emision_id:
                 faltantes.append('FEPy Motivo de Emisión')
-            if not config.fe_py_tipo_documento_asociado_id:
+            if not config.tipo_documento_asociado_id:
                 faltantes.append(
                     'FEPy Tipo de Documento Asociado (Configuraciones Generales FEPy)'
                 )
@@ -477,7 +477,7 @@ class AccountMove(models.Model):
                 'motivo_emision_id': move.fe_py_motivo_emision_id.id,
             })
             move.fe_py_documento_id = doc
-            if move.fe_py_configuracion_id.fe_py_envio_automatico:
+            if move.fe_py_configuracion_id.envio_automatico:
                 move._fe_py_procesar_automatico(doc)
         return posted
 
@@ -505,7 +505,7 @@ class AccountMove(models.Model):
         if doc.estado not in ('aprobado', 'aprobado_observacion'):
             return
 
-        if config.fe_py_kude_automatico:
+        if config.kude_automatico:
             try:
                 doc.action_generar_kude()
             except Exception:
@@ -515,7 +515,7 @@ class AccountMove(models.Model):
                 )
                 return
 
-        if config.fe_py_email_automatico:
+        if config.email_automatico:
             try:
                 doc.action_enviar_email_cliente()
             except Exception:

@@ -1,0 +1,15 @@
+<odoo>
+    <data>
+        <!-- Unidades de Medida de Odoo: correspondencia con SIFEN -->
+        <record id="view_uom_form_fe_py" model="ir.ui.view">
+            <field name="name">uom.uom.form.fe_py</field>
+            <field name="model">uom.uom</field>
+            <field name="inherit_id" ref="uom.product_uom_form_view"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_unidad_medida_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

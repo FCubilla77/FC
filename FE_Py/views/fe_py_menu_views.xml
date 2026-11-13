@@ -2,7 +2,7 @@
     <data>
         <menuitem id="menu_fe_py_grupo"
                   name="Facturación Electrónica Py"
-                  parent="local_py.menu_l10n_py_localizacion"
+                  parent="local_py.menu_local_py_localizacion"
                   sequence="90"/>
 
         <!-- Accesos adicionales a pantallas de local_py — no duplican ni

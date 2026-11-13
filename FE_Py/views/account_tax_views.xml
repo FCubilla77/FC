@@ -1,0 +1,26 @@
+<odoo>
+    <data>
+        <!-- Impuestos: código de Afectación IVA -->
+        <record id="view_account_tax_form_fe_py" model="ir.ui.view">
+            <field name="name">account.tax.form.fe_py</field>
+            <field name="model">account.tax</field>
+            <field name="inherit_id" ref="account.view_tax_form"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_afectacion_iva_id" options="{'no_create': True}"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_account_tax_list_fe_py" model="ir.ui.view">
+            <field name="name">account.tax.list.fe_py</field>
+            <field name="model">account.tax</field>
+            <field name="inherit_id" ref="account.view_tax_tree"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="fe_py_afectacion_iva_id" optional="show"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

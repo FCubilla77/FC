@@ -1,5 +1,5 @@
 <odoo>
-    <template id="report_kude_document">
+    <template id="fe_py_report_kude_document">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-call="web.basic_layout">
@@ -33,12 +33,12 @@
                                     </td>
                                     <td style="width:40%; vertical-align:top; padding:6px;">
                                         <div><strong>RUC:</strong> <span t-esc="doc.move_id.company_id.vat"/></div>
-                                        <div><strong>Timbrado N°:</strong> <span t-esc="'%08d' % (doc.move_id.l10n_py_timbrado or 0)"/></div>
+                                        <div><strong>Timbrado N°:</strong> <span t-esc="'%08d' % (doc.move_id.local_py_timbrado or 0)"/></div>
                                         <div><strong>Inicio de vigencia:</strong>
-                                            <span t-esc="doc.move_id.journal_id.l10n_py_inicio_vigencia_timbrado"/>
+                                            <span t-esc="doc.move_id.journal_id.local_py_inicio_vigencia_timbrado"/>
                                         </div>
                                         <div style="font-weight:bold; margin-top:4px;" t-esc="doc._fe_py_get_tipo_fiscal_display()"/>
-                                        <div><strong>N°:</strong> <span t-esc="doc.move_id.l10n_py_nro_documento"/></div>
+                                        <div><strong>N°:</strong> <span t-esc="doc.move_id.local_py_nro_documento"/></div>
                                     </td>
                                 </tr>
                             </table>
@@ -63,10 +63,10 @@
                                         <div>
                                             <strong>Cond. de venta:</strong>
                                             <span style="border:1px solid #000; display:inline-block; width:9px; height:9px; text-align:center; line-height:9px;"
-                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.l10n_py_condicion != 'credito' else ''"/>
+                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.local_py_condicion != 'credito' else ''"/>
                                             Contado
                                             <span style="border:1px solid #000; display:inline-block; width:9px; height:9px; text-align:center; line-height:9px; margin-left:6px;"
-                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.l10n_py_condicion == 'credito' else ''"/>
+                                                  t-esc="'X' if doc.move_id.invoice_payment_term_id.local_py_condicion == 'credito' else ''"/>
                                             Crédito
                                         </div>
                                         <div><strong>RUC/documento de identidad:</strong> <span t-esc="doc.partner_id.vat"/></div>
@@ -116,9 +116,9 @@
                                         <table style="width:100%;">
                                             <tr>
                                                 <td><strong>SUBTOTAL</strong></td>
-                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['exento'])"/>
-                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['5'])"/>
-                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['10'])"/>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._local_py_mkt_montos_por_tasa()['exento'])"/>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._local_py_mkt_montos_por_tasa()['5'])"/>
+                                                <td style="text-align:right;" t-esc="doc._fe_py_formato_gs(doc.move_id._local_py_mkt_montos_por_tasa()['10'])"/>
                                             </tr>
                                             <tr t-if="doc._fe_py_get_redondeo()">
                                                 <td colspan="3"><strong>REDONDEO SEDECO</strong></td>
@@ -135,12 +135,12 @@
                                             <tr>
                                                 <td colspan="4">
                                                     <strong>LIQUIDACIÓN IVA</strong>
-                                                    &#160;&#160;5% <span t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] / 1.05)"/>
-                                                    &#160;&#160;10% <span t-esc="doc._fe_py_formato_gs(doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] / 1.10)"/>
+                                                    &#160;&#160;5% <span t-esc="doc._fe_py_formato_gs(doc.move_id._local_py_mkt_montos_por_tasa()['5'] - doc.move_id._local_py_mkt_montos_por_tasa()['5'] / 1.05)"/>
+                                                    &#160;&#160;10% <span t-esc="doc._fe_py_formato_gs(doc.move_id._local_py_mkt_montos_por_tasa()['10'] - doc.move_id._local_py_mkt_montos_por_tasa()['10'] / 1.10)"/>
                                                     &#160;&#160;<strong>TOTAL IVA</strong>
                                                     <span t-esc="doc._fe_py_formato_gs(
-                                                        (doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['5'] / 1.05)
-                                                        + (doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] - doc.move_id._l10n_py_mkt_montos_por_tasa()['10'] / 1.10)
+                                                        (doc.move_id._local_py_mkt_montos_por_tasa()['5'] - doc.move_id._local_py_mkt_montos_por_tasa()['5'] / 1.05)
+                                                        + (doc.move_id._local_py_mkt_montos_por_tasa()['10'] - doc.move_id._local_py_mkt_montos_por_tasa()['10'] / 1.10)
                                                     )"/>
                                                 </td>
                                             </tr>
@@ -183,12 +183,12 @@
         </t>
     </template>
 
-    <record id="action_report_kude" model="ir.actions.report">
+    <record id="action_fe_py_report_kude" model="ir.actions.report">
         <field name="name">KuDE</field>
         <field name="model">fe_py.documento_electronico</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">FE_Py.report_kude_document</field>
-        <field name="report_file">FE_Py.report_kude_document</field>
+        <field name="report_name">FE_Py.fe_py_report_kude_document</field>
+        <field name="report_file">FE_Py.fe_py_report_kude_document</field>
         <field name="paperformat_id" ref="paperformat_fe_py_kude"/>
         <field name="print_report_name">object._fe_py_get_nombre_base_archivo()</field>
         <field name="binding_model_id" ref="model_fe_py_documento_electronico"/>

@@ -67,7 +67,7 @@ class FePyDocumentoElectronico(models.Model):
 
         self.write({'qr_url': qr_url, 'qr_image': qr_image_b64})
 
-        report = self.env.ref('FE_Py.action_report_kude')
+        report = self.env.ref('FE_Py.action_fe_py_report_kude')
         pdf_content, _report_type = report._render_qweb_pdf(
             report.report_name, res_ids=self.ids
         )
@@ -88,7 +88,7 @@ class FePyDocumentoElectronico(models.Model):
         'Factura Electronica 001-001-0000123'."""
         self.ensure_one()
         tipo = self.tipo_fiscal_id.name or 'Documento Electronico'
-        nro = self.move_id.l10n_py_nro_documento or self.move_id.name or str(self.move_id.id)
+        nro = self.move_id.local_py_nro_documento or self.move_id.name or str(self.move_id.id)
         return '%s %s' % (tipo, nro)
 
     def _fe_py_get_tipo_operacion_desc(self):
@@ -117,7 +117,7 @@ class FePyDocumentoElectronico(models.Model):
         más chica disponible en Guaraníes) — solo muestra la diferencia
         que ya exista entre ambos montos, si la hay."""
         self.ensure_one()
-        montos = self.move_id._l10n_py_mkt_montos_por_tasa()
+        montos = self.move_id._local_py_mkt_montos_por_tasa()
         subtotal = montos['10'] + montos['5'] + montos['exento']
         return subtotal - self.move_id.amount_total
 
@@ -140,7 +140,7 @@ class FePyDocumentoElectronico(models.Model):
         """Actividades económicas de la Compañía, para el encabezado."""
         self.ensure_one()
         config = self.env['fe_py.configuracion']._get_config(self.move_id.company_id)
-        return ' / '.join(config.fe_py_actividad_economica_ids.mapped('name'))
+        return ' / '.join(config.actividad_economica_ids.mapped('name'))
 
     def _fe_py_formato_gs(self, valor):
         """Formato numérico paraguayo: punto como separador de miles, sin

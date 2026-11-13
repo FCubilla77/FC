@@ -1,0 +1,28 @@
+<odoo>
+    <data>
+        <!-- Tipo de Identificación Fiscal (modelo de local_py): mapeo a iTipIDRec de SIFEN -->
+        <record id="view_fe_py_tipo_identificacion_fiscal_form" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.form.fe_py</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_identificacion_fiscal_form"/>
+            <field name="arch" type="xml">
+                <field name="code" position="after">
+                    <field name="fe_py_itipidrec"/>
+                    <field name="fe_py_itipidrec_descripcion"/>
+                    <field name="fe_py_es_ruc"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="view_fe_py_tipo_identificacion_fiscal_list" model="ir.ui.view">
+            <field name="name">local_py.tipo_identificacion_fiscal.list.fe_py</field>
+            <field name="model">local_py.tipo_identificacion_fiscal</field>
+            <field name="inherit_id" ref="local_py.view_local_py_tipo_identificacion_fiscal_list"/>
+            <field name="arch" type="xml">
+                <field name="code" position="after">
+                    <field name="fe_py_itipidrec" optional="show"/>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -29,9 +29,9 @@ def _backfill_csc_generico(env):
     no retroactivamente a las que ya existían antes de instalar FE_Py) —
     así el módulo queda utilizable en modo Simulado apenas se instala, sin
     pasos manuales previos."""
-    configs = env['fe_py.configuracion'].sudo().search([('fe_py_idcsc', '=', False)])
+    configs = env['fe_py.configuracion'].sudo().search([('idcsc', '=', False)])
     if configs:
-        configs.write({'fe_py_idcsc': IDCSC_GENERICO, 'fe_py_csc': CSC_GENERICO})
+        configs.write({'idcsc': IDCSC_GENERICO, 'csc': CSC_GENERICO})
         _logger.info(
             "FE_Py: IdCSC/CSC genérico (Ambiente de Test) aplicado a %s configuración(es).",
             len(configs),

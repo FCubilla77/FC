@@ -190,7 +190,7 @@ class FePyDocumentoElectronico(models.Model):
             data=soap_xml.encode('utf-8'),
             headers=headers,
             cert=(company.fe_py_cert_path, company.fe_py_private_key_path),
-            timeout=self.env['fe_py.configuracion']._get_config(company).fe_py_timeout or 30,
+            timeout=self.env['fe_py.configuracion']._get_config(company).timeout or 30,
         )
         response.raise_for_status()
         return response.text

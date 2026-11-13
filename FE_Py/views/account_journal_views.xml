@@ -1,7 +1,7 @@
 <odoo>
     <data>
         <record id="view_account_journal_form_fe_py" model="ir.ui.view">
-            <field name="name">account.journal.form.fe.py</field>
+            <field name="name">account.journal.form.fe_py</field>
             <field name="model">account.journal</field>
             <field name="inherit_id" ref="account.view_account_journal_form"/>
             <field name="arch" type="xml">

@@ -72,11 +72,11 @@ class ResPartner(models.Model):
                 and partner.property_account_position_id.local_py_es_exterior
             )
 
-    @api.depends('l10n_py_tipo_identificacion_fiscal_id',
-                 'l10n_py_tipo_identificacion_fiscal_id.fe_py_es_ruc')
+    @api.depends('local_py_tipo_identificacion_fiscal_id',
+                 'local_py_tipo_identificacion_fiscal_id.fe_py_es_ruc')
     def _compute_fe_py_es_contribuyente(self):
         for partner in self:
-            tipo = partner.l10n_py_tipo_identificacion_fiscal_id
+            tipo = partner.local_py_tipo_identificacion_fiscal_id
             partner.fe_py_es_contribuyente = bool(tipo and tipo.fe_py_es_ruc)
 
     @api.constrains('fe_py_es_estado', 'property_account_position_id')
