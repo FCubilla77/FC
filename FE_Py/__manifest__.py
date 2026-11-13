@@ -26,7 +26,7 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.013",
+    "version": "2026.19.014",
     "license": "OPL-1",
     "depends": ["local_py"],
     "external_dependencies": {
