@@ -323,7 +323,14 @@ def generar_libro(datos, contexto=None):
     def lista(hoja, columna, opciones, hasta_fila):
         """Desplegable. Excel rechaza (y «repara» quitándolas) las listas escritas dentro
         de la validación que superan los 255 caracteres: las largas se toman de un rango
-        de la hoja «Listas», que se pasa como fórmula ya armada."""
+        de la hoja «Listas», que se pasa como fórmula ya armada.
+
+        Sin opciones no se pone desplegable: pasa cuando la base todavía no tiene nada de
+        eso cargado (ningún banco, ninguna cuenta bancaria), y entonces `rango_listas`
+        devuelve None. La columna queda de texto libre y la validación al cargar la
+        planilla igual controla el valor."""
+        if not opciones:
+            return
         if isinstance(opciones, str):
             formula = opciones
         else:
