@@ -30,6 +30,8 @@ from lxml import etree
 
 from odoo import exceptions, fields, models
 
+from .fe_py_licencia import fe_py_licencia_verificar
+
 _logger = logging.getLogger(__name__)
 
 try:
@@ -51,6 +53,9 @@ class FePyDocumentoElectronico(models.Model):
         """Envía el DE firmado a SIFEN (real o Simulado, según Ambiente).
         Requiere estado 'firmado'. Al terminar queda en 'aprobado',
         'aprobado_observacion', 'rechazado' o 'error_comunicacion'."""
+        # Enviar a SIFEN requiere licencia vigente.
+        for company in self.mapped('company_id'):
+            fe_py_licencia_verificar(self.env, company)
         for doc in self:
             if doc.estado != 'firmado':
                 raise exceptions.UserError(

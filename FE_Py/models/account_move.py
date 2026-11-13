@@ -3,6 +3,8 @@ import logging
 
 from odoo import api, exceptions, fields, models
 
+from .fe_py_licencia import fe_py_licencia_verificar
+
 
 _logger = logging.getLogger(__name__)
 
@@ -450,6 +452,16 @@ class AccountMove(models.Model):
         a_validar = self.filtered(
             lambda m: m.move_type in ('out_invoice', 'out_refund') and m.fe_py_es_electronico
         )
+
+        # Sin licencia válida de FE_Py no se emiten Documentos Electrónicos: el
+        # comprobante queda en Borrador, igual que cuando faltan datos. Se
+        # verifica ANTES de postear para no consumir un número del timbrado
+        # electrónico en un comprobante que nunca podría llegar a SIFEN.
+        # La facturación por Diarios NO electrónicos no entra en este filtro y
+        # por lo tanto no está afectada por la licencia.
+        for company in a_validar.mapped('company_id'):
+            fe_py_licencia_verificar(self.env, company)
+
         errores = []
         for move in a_validar:
             faltantes = move._fe_py_validar_datos_electronicos()

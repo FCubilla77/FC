@@ -26,8 +26,8 @@
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.012",
-    "license": "LGPL-3",
+    "version": "2026.19.013",
+    "license": "OPL-1",
     "depends": ["local_py"],
     "external_dependencies": {
         "python": ["lxml", "cryptography", "signxml", "qrcode"],
@@ -66,6 +66,8 @@
         "views/fe_py_documento_electronico_views.xml",
         "views/fe_py_documento_electronico_log_views.xml",
         "views/fe_py_evento_views.xml",
+        # -- Licencia del producto (OPL-1) -------------------------------
+        "views/res_config_settings_views.xml",
     ],
     "post_init_hook": "post_init_hook",
 }

@@ -97,6 +97,18 @@ def _stub_odoo():
         def depends_context(*a, **k):
             return lambda f: f
 
+        @staticmethod
+        def model_create_multi(f):
+            return f
+
+        @staticmethod
+        def autovacuum(f):
+            return f
+
+        @staticmethod
+        def ondelete(*a, **k):
+            return lambda f: f
+
     odoo.exceptions = exc
     odoo.fields = fields_mod
     odoo.models = ModelsMod
@@ -107,6 +119,34 @@ def _stub_odoo():
     m.UserError = E
     m.ValidationError = E
     sys.modules['odoo.exceptions'] = m
+
+    # odoo.release y odoo.modules.module: los usa el control de licencia para
+    # leer en vivo el número central de versión del manifest.
+    rel = types.ModuleType('odoo.release')
+    rel.major_version = '19.0'
+    odoo.release = rel
+    sys.modules['odoo.release'] = rel
+    mods = types.ModuleType('odoo.modules')
+    modmod = types.ModuleType('odoo.modules.module')
+
+    def _get_manifest(nombre):
+        try:
+            src = open('__manifest__.py', encoding='utf-8').read()
+            man = ast.literal_eval(src[src.index('{'):src.rindex('}') + 1])
+        except Exception:
+            return {}
+        version = str(man.get('version') or '')
+        if not version.startswith(rel.major_version + '.'):
+            version = '%s.%s' % (rel.major_version, version)   # adapt_version
+        man['version'] = version
+        return man
+
+    modmod.get_manifest = _get_manifest
+    modmod.current_test = None
+    mods.module = modmod
+    odoo.modules = mods
+    sys.modules['odoo.modules'] = mods
+    sys.modules['odoo.modules.module'] = modmod
 
 
 def orden_de_modelos():
@@ -389,9 +429,15 @@ def check_permisos():
     """Todo modelo propio debe tener permisos, y todo permiso referenciar
     un modelo que exista."""
     definidos = set()
+    abstractos = set()
     for p in glob.glob('models/*.py'):
-        definidos |= set(re.findall(r"_name\s*=\s*'(fe_py\.[\w.]+)'", open(p, encoding='utf-8').read()))
-    definidos = {m for m in definidos if m != 'fe_py.catalogo.base'}
+        src = open(p, encoding='utf-8').read()
+        definidos |= set(re.findall(r"_name\s*=\s*'(fe_py\.[\w.]+)'", src))
+        # Los AbstractModel no tienen tabla y no llevan ir.model.access.
+        for bloque in re.split(r'\nclass ', src)[1:]:
+            if 'models.AbstractModel' in bloque.split('\n')[0]:
+                abstractos |= set(re.findall(r"_name\s*=\s*'(fe_py\.[\w.]+)'", bloque))
+    definidos -= abstractos
     csv = open('security/ir.model.access.csv', encoding='utf-8').read()
     con_permiso = set(re.findall(r'model_(fe_py_[\w]+)', csv))
     for m in definidos:

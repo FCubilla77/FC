@@ -22,6 +22,8 @@ from lxml import etree
 
 from odoo import api, exceptions, fields, models
 
+from .fe_py_licencia import fe_py_licencia_verificar
+
 
 _logger = logging.getLogger(__name__)
 
@@ -92,6 +94,9 @@ class FePyEvento(models.Model):
     )
 
     def action_enviar(self):
+        # Enviar un Evento a SIFEN requiere licencia vigente.
+        for company in self.mapped('company_id'):
+            fe_py_licencia_verificar(self.env, company)
         for evento in self:
             if evento.estado not in ('borrador', 'error_comunicacion', 'rechazado'):
                 raise exceptions.UserError(

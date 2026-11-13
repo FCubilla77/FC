@@ -10,6 +10,8 @@ from lxml import etree
 
 from odoo import exceptions, fields, models
 
+from .fe_py_licencia import fe_py_licencia_verificar
+
 _logger = logging.getLogger(__name__)
 
 try:
@@ -38,6 +40,9 @@ class FePyDocumentoElectronico(models.Model):
         """Firma el XML ya generado (estado 'xml_generado') con el
         certificado de la Compañía. Deja el resultado en xml_firmado y
         pasa el estado a 'firmado'."""
+        # Firmar requiere licencia vigente.
+        for company in self.mapped('company_id'):
+            fe_py_licencia_verificar(self.env, company)
         for doc in self:
             if doc.estado != 'xml_generado':
                 raise exceptions.UserError(

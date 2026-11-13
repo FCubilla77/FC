@@ -45,6 +45,7 @@ URLS_POR_DEFECTO = {
 
 class FePyConfiguracion(models.Model):
     _name = 'fe_py.configuracion'
+    _inherit = ['fe_py.mixin.licencia', 'fe_py.mixin.licencia.edicion']
     _description = 'Configuraciones Generales FEPy'
     _rec_name = 'company_id'
 

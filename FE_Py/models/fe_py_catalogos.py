@@ -17,6 +17,7 @@ class FePyCatalogoBase(models.AbstractModel):
     """Estructura común de todos los catálogos SIFEN: un código (lo que
     va al XML) y una descripción (lo que va al XML como dDes*)."""
     _name = 'fe_py.catalogo.base'
+    _inherit = ['fe_py.mixin.licencia']
     _description = 'Base de Catálogos SIFEN'
     _order = 'sequence, codigo'
 

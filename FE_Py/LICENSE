@@ -1,0 +1,63 @@
+Copyright (c) 2026 FC_Py. Todos los derechos reservados.
+
+Este módulo — FE_Py (Facturación Electrónica Paraguay) — se distribuye bajo la
+Odoo Proprietary License v1.0 (OPL-1).
+
+Texto oficial de la licencia:
+https://www.odoo.com/documentation/19.0/legal/licenses.html
+
+
+RESUMEN EN ESPAÑOL (no sustituye al texto oficial)
+
+Lo que la licencia PERMITE a quien recibió el módulo de FC_Py:
+
+  * Usar el módulo en las bases de datos para las que FC_Py le haya emitido una
+    licencia, sin límite de usuarios dentro de esas bases.
+  * Modificar el código fuente para adaptarlo a sus propias necesidades, y
+    desarrollar módulos que dependan de este.
+  * Recibir y aplicar las actualizaciones que FC_Py publique mientras su
+    licencia esté vigente.
+
+Lo que la licencia PROHÍBE:
+
+  * Redistribuir el módulo, su código fuente o cualquier obra derivada, a título
+    gratuito u oneroso, a terceros que no hayan contratado la licencia con
+    FC_Py.
+  * Publicar el código en repositorios, foros, marketplaces o cualquier medio de
+    acceso público.
+  * Usar el módulo en bases de datos distintas de las licenciadas.
+  * Remover, desactivar o eludir el control técnico de licencia incorporado al
+    módulo, o alterar los avisos de autoría y copyright.
+  * Sublicenciar, alquilar o ceder la licencia a un tercero sin autorización
+    escrita de FC_Py.
+
+
+CONTROL TÉCNICO DE LICENCIA
+
+El módulo incorpora un control que exige una licencia vigente, emitida por FC_Py
+y atada a la base de datos del cliente (`database.uuid`) y a la versión de Odoo
+del módulo instalado. Sin una licencia válida, el módulo bloquea la emisión de
+documentos electrónicos y la configuración de Facturación Electrónica; la
+lectura, los informes y la facturación por timbrado físico no se ven afectados.
+
+El código de licencia se carga en Ajustes › Configuración FE_Py, sección
+"Licencia", o en Localización Paraguay › Facturación Electrónica Py ›
+Licencia FE_Py.
+
+FE_Py y los demás productos de FC_Py (local_py, l10n_py, Taller) se licencian de
+forma independiente: cada uno exige su propio código.
+
+
+PREVALENCIA DEL CONTRATO
+
+Si existe un contrato firmado entre FC_Py y el cliente o el partner, sus
+términos prevalecen sobre este archivo en todo aquello en que difieran. Este
+archivo es un resumen informativo y una referencia a la licencia aplicable, no
+el acuerdo comercial entre las partes.
+
+
+SIN GARANTÍA
+
+El módulo se entrega "tal cual". FC_Py no garantiza que esté libre de errores ni
+que resulte apto para un propósito particular. La responsabilidad de FC_Py se
+limita a lo establecido en el contrato con el cliente.

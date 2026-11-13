@@ -3,6 +3,8 @@ import logging
 
 from odoo import api, models
 
+from .fe_py_licencia import fe_py_licencia_vigente
+
 _logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,12 @@ class FePyDocumentoElectronico(models.Model):
         companias = self.env['fe_py.configuracion'].sudo().search([
             ('reintento_automatico', '=', True),
         ]).mapped('company_id')
+        # El cron omite en silencio las compañías sin licencia válida de FE_Py:
+        # no tiene sentido reintentar un envío que el control de licencia va a
+        # rechazar, y un cron no es el lugar para avisarle nada al usuario (el
+        # aviso lo da la pantalla de Licencia y el bloqueo al confirmar).
+        companias = companias.filtered(
+            lambda c: fe_py_licencia_vigente(self.env, c))
         if not companias:
             return
         docs = self.search([
@@ -55,6 +63,12 @@ class FePyEvento(models.Model):
         companias = self.env['fe_py.configuracion'].sudo().search([
             ('reintento_automatico', '=', True),
         ]).mapped('company_id')
+        # El cron omite en silencio las compañías sin licencia válida de FE_Py:
+        # no tiene sentido reintentar un envío que el control de licencia va a
+        # rechazar, y un cron no es el lugar para avisarle nada al usuario (el
+        # aviso lo da la pantalla de Licencia y el bloqueo al confirmar).
+        companias = companias.filtered(
+            lambda c: fe_py_licencia_vigente(self.env, c))
         if not companias:
             return
         eventos = self.search([

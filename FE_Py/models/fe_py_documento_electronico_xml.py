@@ -28,6 +28,8 @@ from lxml import etree
 
 from odoo import exceptions, fields, models
 
+from .fe_py_licencia import fe_py_licencia_verificar
+
 
 SIFEN_NS = 'http://ekuatia.set.gov.py/sifen/xsd'
 XSI_NS = 'http://www.w3.org/2001/XMLSchema-instance'
@@ -150,6 +152,10 @@ class FePyDocumentoElectronico(models.Model):
         return cdc, cod_seg, dv_final
 
     def action_generar_xml(self):
+        # Generar o regenerar el XML es producir el Documento Electrónico:
+        # requiere licencia vigente.
+        for company in self.mapped('company_id'):
+            fe_py_licencia_verificar(self.env, company)
         estados_permitidos = ('borrador', 'xml_generado', 'error_comunicacion', 'rechazado')
         for doc in self:
             if doc.estado not in estados_permitidos:

@@ -2,6 +2,10 @@
 # ORDEN IMPORTANTE: los catálogos primero (otros modelos los referencian),
 # y un archivo con _inherit siempre después del que define el _name.
 
+# -- Licencia del producto: ANTES de todo lo que hereda sus mixins ------
+from . import fe_py_licencia
+from . import fe_py_licencia_mixin
+
 # -- Catálogos y configuración propios de FE_Py ------------------------
 from . import fe_py_catalogos
 from . import fe_py_configuracion
@@ -39,3 +43,4 @@ from . import fe_py_cron
 from . import res_company
 from . import account_journal
 from . import account_move
+from . import res_config_settings

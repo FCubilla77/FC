@@ -6,7 +6,8 @@ from odoo import api, exceptions, fields, models
 class FePyEvento(models.Model):
     _name = 'fe_py.evento'
     _description = 'Evento SIFEN (Cancelación / Inutilización)'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin',
+                'fe_py.mixin.licencia', 'fe_py.mixin.licencia.edicion']
     _order = 'id desc'
 
     company_id = fields.Many2one(

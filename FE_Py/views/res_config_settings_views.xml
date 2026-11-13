@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+            Sección propia "Configuración FE_Py" en Ajustes (aparece como ítem
+            propio en la barra lateral de Ajustes, por el name="FE_Py" del <app>,
+            igual al nombre técnico del módulo). Aloja la licencia del producto.
+            Esta pantalla queda siempre disponible, con o sin licencia válida: es la
+            única forma de cargar o renovar el código.
+
+            La configuración funcional de FE_Py no está acá, sino en Localización
+            Paraguay > Facturación Electrónica Py > Configuraciones Generales FEPy.
+        -->
+        <record id="res_config_settings_view_form_fe_py" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.fe_py</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="46"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app data-string="Configuración FE_Py" string="Configuración FE_Py"
+                         name="FE_Py" groups="account.group_account_manager">
+                        <block title="Licencia" name="fe_py_licencia">
+                            <setting string="Código de la base"
+                                     help="Versión del módulo e identificador único de esta base de datos. Envíeselo a FC_Py, tal cual, para que emita o renueve la licencia de FE_Py.">
+                                <field name="fe_py_licencia_uuid" readonly="1" widget="CopyClipboardChar"/>
+                            </setting>
+                            <setting string="Código de licencia"
+                                     help="Pegue acá el código que le entregó FC_Py para FE_Py, tal cual lo recibió. El código de local_py es otro y no sirve en este campo.">
+                                <field name="fe_py_licencia_codigo" nolabel="1"/>
+                                <div class="content-group mt16">
+                                    <div class="row mt4">
+                                        <label for="fe_py_licencia_estado" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_licencia_estado" widget="badge"
+                                               decoration-success="fe_py_licencia_estado == 'valida'"
+                                               decoration-warning="fe_py_licencia_estado == 'sin_licencia'"
+                                               decoration-danger="fe_py_licencia_estado in ('vencida', 'invalida', 'otra_version')"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not fe_py_licencia_cliente">
+                                        <label for="fe_py_licencia_cliente" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_licencia_cliente" readonly="1"/>
+                                    </div>
+                                    <div class="row mt4" invisible="not fe_py_licencia_vencimiento">
+                                        <label for="fe_py_licencia_vencimiento" class="col-lg-4 o_light_label"/>
+                                        <field name="fe_py_licencia_vencimiento" readonly="1"/>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning mt-2" role="alert"
+                                     invisible="fe_py_licencia_estado != 'otra_version'">
+                                    Este código de licencia corresponde a otra versión del módulo. Después de actualizar FE_Py hay que pedirle a FC_Py un código nuevo, usando el «Código de la base» actual.
+                                </div>
+                                <div class="alert alert-danger mt-2" role="alert"
+                                     invisible="fe_py_licencia_estado == 'valida'">
+                                    Sin una licencia válida de FE_Py no se puede Confirmar una Factura, Nota de Crédito o Nota de Débito cuyo Diario tenga un Tipo Fiscal electrónico: el comprobante queda en Borrador. Tampoco se pueden cargar nuevos catálogos DNIT, editar las Configuraciones Generales FEPy, crear o enviar Eventos SIFEN, ni Generar XML, Firmar o Enviar a SIFEN.
+                                    <br/>
+                                    La facturación por Diarios no electrónicos (timbrado físico) no está afectada. La lectura, los informes, el Log de Operaciones, la reimpresión y el reenvío del KuDE de documentos ya aprobados, y esta pantalla de Ajustes, quedan siempre disponibles.
+                                    <br/>
+                                    FE_Py y local_py se licencian por separado: el código de uno no activa el otro.
+                                </div>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Atajo desde el menú propio del módulo, para no obligar al cliente a
+             entrar por Ajustes. Abre la misma pantalla, posicionada en el bloque
+             de FE_Py. -->
+        <record id="action_fe_py_config_settings" model="ir.actions.act_window">
+            <field name="name">Licencia FE_Py</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="context">{'module': 'FE_Py'}</field>
+        </record>
+
+        <menuitem id="menu_fe_py_licencia"
+                  name="Licencia FE_Py"
+                  parent="menu_fe_py_grupo"
+                  action="action_fe_py_config_settings"
+                  groups="account.group_account_manager"
+                  sequence="90"/>
+
+    </data>
+</odoo>
