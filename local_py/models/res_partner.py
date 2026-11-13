@@ -248,11 +248,24 @@ class ResPartner(models.Model):
         else:
             return 0
 
+    def _local_py_validaciones_exentas(self):
+        """True mientras se instala o actualiza el módulo.
+
+        En ese momento local_py escribe sobre contactos que YA existen (el
+        backfill del Tipo de Identificación Fiscal del post_init_hook), y esos
+        datos previos pueden no cumplir las reglas que el módulo recién
+        introduce: exigírselas abortaría la instalación entera. Un módulo tiene
+        que poder instalarse sobre los datos que encuentra. Las validaciones
+        rigen con normalidad desde el primer guardado posterior."""
+        return not self.env.registry.ready
+
     @api.constrains('vat', 'is_company')
     def _check_vat_duplicado(self):
         """No permite dos contactos con el mismo RUT. Esta validación aplica
         únicamente a contactos que corresponden a una empresa (el campo RUT
         solo existe/es visible para ellos)."""
+        if self._local_py_validaciones_exentas():
+            return
         for this in self:
             if not this.is_company or not this.vat:
                 continue
@@ -283,6 +296,8 @@ class ResPartner(models.Model):
         ese orden) — así, si alguna vez un registro llegara a activar
         más de una validación a la vez, la que se muestra es siempre la
         que corresponde a un contacto Individual, nunca la de Empresa."""
+        if self._local_py_validaciones_exentas():
+            return
         for this in self:
             if this.is_company:
                 continue
@@ -340,6 +355,8 @@ class ResPartner(models.Model):
         esta validación NUNCA debe mirar a un contacto Individual — se
         escribe así, en 2 pasos, para que quede sin ninguna ambigüedad
         de lectura."""
+        if self._local_py_validaciones_exentas():
+            return
         for partner in self:
             es_empresa = bool(partner.is_company)
             if not es_empresa:
@@ -391,6 +408,8 @@ class ResPartner(models.Model):
         Proveedor puro no tiene por qué cumplir esto (ver
         _check_consistencia_proveedor_exterior, que agrega además el
         Concepto IVA, propio de Proveedor)."""
+        if self._local_py_validaciones_exentas():
+            return
         tipos_exterior = self._local_py_tipos_identificacion_exterior()
         company_country = self.env.company.country_id
         for partner in self:
@@ -431,6 +450,8 @@ class ResPartner(models.Model):
         Concepto IVA = "IVA.2" (motor de cálculo de Retención IVA del
         exterior). Un Contacto que es Cliente y Proveedor a la vez queda
         evaluado por los 2 métodos en simultáneo."""
+        if self._local_py_validaciones_exentas():
+            return
         tipos_exterior = self._local_py_tipos_identificacion_exterior()
         concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
         company_country = self.env.company.country_id
@@ -492,6 +513,8 @@ class ResPartner(models.Model):
           el porcentaje incluido). "Se Absorbe IVA"/"Se Absorbe Renta"
           quedan libres — pueden estar tildadas las dos, una sola, o
           ninguna."""
+        if self._local_py_validaciones_exentas():
+            return
         concepto_iva_2 = self.env.ref('local_py.concepto_iva_2', raise_if_not_found=False)
         company_country = self.env.company.country_id
         for partner in self:
@@ -532,6 +555,8 @@ class ResPartner(models.Model):
         'local_py_concepto_renta_no_residente_predeterminado_id', 'local_py_concepto_renta_no_residente_ids',
     )
     def _check_concepto_renta_predeterminado(self):
+        if self._local_py_validaciones_exentas():
+            return
         for partner in self:
             predeterminado = partner.local_py_concepto_renta_no_residente_predeterminado_id
             if predeterminado and predeterminado not in partner.local_py_concepto_renta_no_residente_ids:
