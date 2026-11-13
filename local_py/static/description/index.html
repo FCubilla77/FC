@@ -96,12 +96,12 @@
     <div class="row" style="margin-top: 20px;">
         <div class="col-md-6 text-center">
             <h3>⚙️</h3>
-            <h5>Permisos contables y precios</h5>
+            <h5>Configuración por plantilla Excel</h5>
             <p class="text-muted">
-                Refuerza automáticamente los permisos contables necesarios
-                para ver/editar cuentas en productos, categorías, clientes y
-                proveedores, y configura los precios como "Impuestos
-                incluidos".
+                Toda la configuración del módulo se carga desde una planilla:
+                se descarga, se indica qué cuenta del plan propio cumple cada
+                función, se valida y se aplica de una sola vez. No asume
+                ningún plan de cuentas en particular.
             </p>
         </div>
         <div class="col-md-6 text-center">
@@ -190,6 +190,15 @@
                 <li>En nota de crédito de cliente (desde el asistente de Odoo), el campo Diario solo ofrece diarios de venta con Tipo Fiscal "Nota de Credito"</li>
                 <li>Campos Timbrado (hasta 8 dígitos) y Nro. Documento en el diario contable</li>
             </ul>
+            <h5 style="margin-top: 20px;">Configuración por Plantilla Excel</h5>
+            <ul>
+                <li>Plantilla Excel de configuración (Ajustes &gt; Configuración local_py &gt; Configuración por plantilla): descarga de la planilla, carga con validación e informe de errores y avisos, y aplicación de toda la configuración en un solo paso — local_py no asume ningún plan de cuentas, así que cada cuenta se indica por su código del plan del cliente</li>
+                <li>La planilla cubre todo lo que el módulo necesita, en hojas separadas: las 7 cuentas contables de la Configuración, los 4 diarios operativos (Retención IVA, Retención Renta, Retención Recibida, Cheques de Clientes), los parámetros de retención y de pagos, la Imputación Tributaria de la empresa, los diarios fiscales de venta con Timbrado y numeración, las Series de Recibo, las Rúbricas, las Chequeras, el detalle de Libro Inventario, la Renumeración de asientos por año, las Resoluciones de No Retención y los porcentajes de los Conceptos de Renta No Residente</li>
+                <li>Todas las hojas vienen con registros de ejemplo: las de clave/valor con los valores del plan estándar de Paraguay, y las de lista con filas marcadas con «#» que se ignoran al cargar — así la planilla recién descargada se puede subir sin errores y el usuario activa solo lo que necesita</li>
+                <li>Validación completa antes de aplicar: existencia de cada cuenta en el plan de la empresa y coherencia de su tipo, códigos de diario libres y del tipo correcto, formato completo del Nro. Documento (999-999-9999999) y coherencia del rango, Timbrado no repetido por Tipo Fiscal, vigencias, existencia de usuarios, bancos, cuentas bancarias, monedas, Tipos Fiscales, Conceptos IVA y RUT de contactos, y duplicados dentro de la propia planilla</li>
+                <li>Aplicar es idempotente y no invasivo: crea lo que falta, completa las cuentas y diarios que estén vacíos sin pisar una elección hecha a mano, y nunca borra nada — se puede volver a aplicar sin duplicar registros</li>
+                <li>Historial de plantillas cargadas (Localización Paraguay &gt; Configuraciones &gt; Plantillas de Configuración), con el archivo original, el informe de validación y el detalle de lo que se aplicó</li>
+            </ul>
             <h5 style="margin-top: 20px;">Rúbricas</h5>
             <ul>
                 <li>Rúbricas: no se permiten dos registros de la misma compañía con igual combinación de Id, Fecha y Uso (validación activa incluso en Borrador)</li>
@@ -236,6 +245,7 @@
                 <li>Libro Inventario: la vista en pantalla ya no dispara el asistente de configuración de logo/plantilla de Odoo (no corresponde para una vista de control interno)</li>
                 <li>Libro Inventario: la vista en pantalla ahora se renderiza de forma directa (mismo mecanismo confiable que ya usa la descarga del PDF oficial), corrigiendo que no se mostrara ningún dato</li>
                 <li>Libro Inventario: el detalle "Mostrar solo los X mayores" ahora ordena por el valor absoluto del saldo, no por el número con signo — así una cuenta de Pasivo (saldos negativos) también muestra primero a quien más se le debe, no al revés</li>
+                <li>Libro Inventario y Estado de Resultados se guían por el tipo de cuenta y la jerarquía de Grupos de Cuenta, no por el código: sirven igual con el plan estándar de Paraguay o con un plan propio de cualquier numeración (Libro Inventario toma las cuentas de Activo, Pasivo y Patrimonio; Estado de Resultados las de Ingresos, Otros Ingresos, Costos y Gastos, con los Ingresos en positivo). Las cuentas de orden (Off-Balance) quedan fuera de los dos reportes</li>
                 <li>Nuevo submenú "Reportes Localización Py" (Facturación &gt; Reportes), que agrupa Libro Ventas, Libro Compras, Libro Diario, Libro Mayor y Libro Inventario</li>
                 <li>Movimiento de Stock Valorizado: cuando el rango elegido no arranca desde el inicio de la historia de un producto, la primera línea de cada Cuenta es un "Saldo Inicial" con el acumulado de valor y cantidad de todo lo anterior a "Fecha desde" (calculado por agregación en la base de datos, sin traer el detalle histórico completo)</li>
             </ul>

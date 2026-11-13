@@ -83,6 +83,11 @@ class ResCompany(models.Model):
         self.ensure_one()
         return self.local_py_licencia_estado == 'valida'
 
+    local_py_plantilla_id = fields.Many2one(
+        'local_py.plantilla', string='Plantilla de configuración', readonly=True,
+        ondelete='set null', copy=False,
+        help='Última plantilla Excel de configuración validada para esta empresa. '
+             'Se carga desde Ajustes > Configuración local_py.')
     local_py_imputacion_tributaria_ids = fields.Many2many(
         'local_py.imputacion_tributaria',
         string='Imputación Tributaria',

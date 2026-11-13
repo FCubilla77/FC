@@ -52,6 +52,44 @@
                                 </div>
                             </setting>
                         </block>
+                        <block title="Configuración por plantilla" name="local_py_plantilla">
+                            <setting string="Plantilla Excel de configuración"
+                                     help="local_py no asume ningún plan de cuentas. Descargue la plantilla, indique qué cuenta de SU plan cumple cada función, complete los diarios y los parámetros, y cárguela. Si la validación no encuentra errores, se aplica toda la configuración de una sola vez.">
+                                <div class="mt8">
+                                    <button name="action_local_py_descargar_plantilla" type="object"
+                                            string="Descargar plantilla Excel" icon="fa-download"
+                                            class="btn-link"/>
+                                </div>
+                                <div class="mt8">
+                                    <button name="action_local_py_abrir_carga_plantilla" type="object"
+                                            string="Cargar y validar archivo" icon="fa-upload"
+                                            class="btn-link"/>
+                                </div>
+                                <div class="content-group mt16" invisible="not local_py_plantilla_estado">
+                                    <div class="row mt4">
+                                        <label for="local_py_plantilla_archivo" class="col-lg-4 o_light_label"/>
+                                        <field name="local_py_plantilla_archivo" readonly="1"/>
+                                    </div>
+                                    <div class="row mt4">
+                                        <label for="local_py_plantilla_estado" class="col-lg-4 o_light_label"/>
+                                        <field name="local_py_plantilla_estado" widget="badge" readonly="1"
+                                               decoration-success="local_py_plantilla_estado == 'aplicada'"
+                                               decoration-info="local_py_plantilla_estado == 'validada'"
+                                               decoration-danger="local_py_plantilla_estado == 'error'"/>
+                                    </div>
+                                    <field name="local_py_plantilla_log" readonly="1" nolabel="1" class="mt8"/>
+                                </div>
+                                <div class="mt8" invisible="local_py_plantilla_estado != 'validada'">
+                                    <button name="action_local_py_aplicar_plantilla" type="object"
+                                            string="Aplicar configuración" icon="fa-check"
+                                            class="btn-primary"/>
+                                </div>
+                                <div class="alert alert-info mt-2" role="alert"
+                                     invisible="local_py_plantilla_estado != 'aplicada'">
+                                    La configuración de esta plantilla ya se aplicó. Volver a aplicarla no duplica ni borra nada: solo agrega lo que falte.
+                                </div>
+                            </setting>
+                        </block>
                     </app>
                 </xpath>
             </field>

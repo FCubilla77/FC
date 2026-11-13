@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Asistente para subir y validar la plantilla Excel de configuración.
+             Validar no cambia nada en la base: solo lee el archivo, lo controla
+             contra el plan de cuentas y los maestros de la empresa, y guarda el
+             informe. Aplicar la configuración es un paso aparte, desde Ajustes. -->
+        <record id="view_local_py_plantilla_wizard_form" model="ir.ui.view">
+            <field name="name">local_py.plantilla.wizard.form</field>
+            <field name="model">local_py.plantilla.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Plantilla de configuración (Excel)">
+                    <group>
+                        <field name="company_id" invisible="1"/>
+                        <field name="nombre_archivo" invisible="1"/>
+                        <field name="archivo" filename="nombre_archivo" string="Archivo Excel (.xlsx)"/>
+                    </group>
+                    <group invisible="not resultado">
+                        <field name="estado" widget="badge"
+                               decoration-success="estado == 'validada'"
+                               decoration-danger="estado == 'error'"/>
+                        <field name="resultado" nolabel="1" colspan="2" readonly="1"
+                               style="white-space: pre-wrap; min-height: 200px;"/>
+                    </group>
+                    <footer>
+                        <button name="action_validar" type="object" string="Validar y guardar"
+                                class="btn-primary"/>
+                        <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Historial de plantillas cargadas: queda el archivo original, el informe
+             de validación y el detalle de lo que se aplicó. -->
+        <record id="view_local_py_plantilla_list" model="ir.ui.view">
+            <field name="name">local_py.plantilla.list</field>
+            <field name="model">local_py.plantilla</field>
+            <field name="arch" type="xml">
+                <list string="Plantillas de configuración">
+                    <field name="fecha"/>
+                    <field name="nombre_archivo"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="usuario_id"/>
+                    <field name="cantidad_errores"/>
+                    <field name="cantidad_avisos"/>
+                    <field name="state" widget="badge"
+                           decoration-success="state == 'aplicada'"
+                           decoration-info="state == 'validada'"
+                           decoration-danger="state == 'error'"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_local_py_plantilla_form" model="ir.ui.view">
+            <field name="name">local_py.plantilla.form</field>
+            <field name="model">local_py.plantilla</field>
+            <field name="arch" type="xml">
+                <form string="Plantilla de configuración">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="nombre_archivo"/>
+                                <field name="archivo" filename="nombre_archivo"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                            <group>
+                                <field name="fecha"/>
+                                <field name="usuario_id"/>
+                                <field name="state" widget="badge"
+                                       decoration-success="state == 'aplicada'"
+                                       decoration-info="state == 'validada'"
+                                       decoration-danger="state == 'error'"/>
+                                <field name="cantidad_errores"/>
+                                <field name="cantidad_avisos"/>
+                            </group>
+                        </group>
+                        <group string="Resultado">
+                            <field name="log" nolabel="1" colspan="2" readonly="1"
+                                   style="white-space: pre-wrap;"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_local_py_plantilla" model="ir.actions.act_window">
+            <field name="name">Plantillas de Configuración</field>
+            <field name="res_model">local_py.plantilla</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Todavía no se cargó ninguna plantilla de configuración.
+                </p>
+                <p>
+                    La plantilla se descarga, se completa y se carga desde
+                    Ajustes &gt; Configuración local_py.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_local_py_plantilla"
+                  name="Plantillas de Configuración"
+                  parent="local_py.menu_local_py_configuraciones"
+                  action="action_local_py_plantilla"
+                  sequence="90"/>
+    </data>
+</odoo>

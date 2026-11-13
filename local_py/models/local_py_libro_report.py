@@ -6,6 +6,47 @@ from odoo import models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------------
+# Clasificación por TIPO de cuenta (account.account.account_type), no por el
+# primer segmento del código. Así los reportes sirven igual con el plan de
+# cuentas estándar de Paraguay y con un plan propio del cliente, que puede
+# tener cualquier numeración (o ninguna jerarquía en el código).
+#
+# El mapeo contra el plan estándar es exacto: Activo/Pasivo/Patrimonio = 1/2/3,
+# Ingresos + Otros Ingresos = 4/6, Costos + Gastos = 5/7. Los importes no
+# cambian. La única diferencia de alcance es `off_balance` (cuentas de orden),
+# que antes entraba si su código empezaba con 1-7 y ahora queda siempre fuera
+# de los dos reportes — que es lo correcto.
+# ---------------------------------------------------------------------------
+TIPOS_BALANCE = (
+    'asset_receivable', 'asset_cash', 'asset_current', 'asset_non_current',
+    'asset_prepayments', 'asset_fixed',
+    'liability_payable', 'liability_credit_card', 'liability_current',
+    'liability_non_current',
+    'equity', 'equity_unaffected',
+)
+TIPOS_INGRESO = ('income', 'income_other')
+TIPOS_RESULTADO = TIPOS_INGRESO + (
+    'expense', 'expense_other', 'expense_depreciation', 'expense_direct_cost',
+)
+
+
+def _nivel_grupo(grupo):
+    """Profundidad de un account.group según su cadena de padres: 1 para un
+    grupo raíz, 2 para su hijo, etc. Sin grupo devuelve 0.
+
+    Reemplaza al conteo de puntos del código: un plan propio puede numerar sin
+    puntos (11001) o con otra cantidad, y en ese caso el conteo daba siempre el
+    mismo nivel y el reporte salía sin sangrías. La guarda de `vistos` evita un
+    bucle infinito si alguien dejó una jerarquía de grupos circular."""
+    nivel = 0
+    vistos = set()
+    while grupo and grupo.id not in vistos:
+        vistos.add(grupo.id)
+        nivel += 1
+        grupo = grupo.parent_id
+    return nivel
+
 
 LINEAS_POR_PAGINA = 40
 
@@ -205,22 +246,22 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
             })
         return groups
 
-    def _build_balance_style_rows(self, company, fecha, config, detalle_ids, prefijos,
-                                   prefijos_signo_invertido=(), fila_total_label=None):
+    def _build_balance_style_rows(self, company, fecha, config, detalle_ids, tipos,
+                                   tipos_signo_invertido=(), fila_total_label=None):
         """Arma una lista de "filas" con el mismo formato jerárquico de
         Título/Imputable que usa Plan de Cuentas: cada Título muestra la
         suma de los saldos de las cuentas imputables que contiene
         (incluyendo las de sus Títulos hijos), y cada cuenta imputable
         muestra su propio saldo acumulado desde el 1° de enero del año de
         "fecha" hasta "fecha". Método genérico usado tanto por Libro
-        Inventario (prefijos 1/2/3, formato Balance) como por Estado de
-        Resultados (prefijos 4/5/6/7, con signo invertido en Ingresos para
-        mostrarlos en positivo, y una fila de Resultado del Ejercicio al
-        final).
+        Inventario (cuentas de Activo/Pasivo/Patrimonio, formato Balance)
+        como por Estado de Resultados (Ingresos y Costos/Gastos, con signo
+        invertido en Ingresos para mostrarlos en positivo, y una fila de
+        Resultado del Ejercicio al final).
 
-        - prefijos: primeros segmentos de código a incluir (ej. ('1','2','3')).
-        - prefijos_signo_invertido: de esos, cuáles se muestran como
-          Crédito-Débito en vez de Débito-Crédito (ej. Ingresos).
+        - tipos: tipos de cuenta a incluir (ej. TIPOS_BALANCE).
+        - tipos_signo_invertido: de esos, cuáles se muestran como
+          Crédito-Débito en vez de Débito-Crédito (ej. TIPOS_INGRESO).
         - fila_total_label: si se pasa, se agrega una fila final con la
           suma de todo lo relevado (ej. "Resultado del Ejercicio").
         - detalle_ids: registros de configuración de detalle (Contacto/
@@ -244,11 +285,10 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         saldo_por_cuenta = {}
         lines_por_cuenta = {}
         for account in accounts:
-            segmento = (account.code or '').split('.')[0] if account.code else False
-            if segmento not in prefijos:
+            if account.account_type not in tipos:
                 continue
             lines = self.env['account.move.line'].search(domain_base + [('account_id', '=', account.id)])
-            if segmento in prefijos_signo_invertido:
+            if account.account_type in tipos_signo_invertido:
                 saldo = sum(lines.mapped('credit')) - sum(lines.mapped('debit'))
             else:
                 saldo = sum(lines.mapped('debit')) - sum(lines.mapped('credit'))
@@ -262,14 +302,23 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
 
         cuentas_relevantes = self.env['account.account'].browse(list(saldo_por_cuenta.keys()))
 
-        # 2) "Subir" el saldo de cada cuenta a todos sus Títulos ancestros
+        # 2) "Subir" el saldo de cada cuenta a todos sus Títulos ancestros.
+        # Al mismo tiempo se guarda, por Título, el código más bajo de las
+        # cuentas que contiene: es lo que después ordena el reporte. No se usa
+        # el prefijo del Título porque un plan propio puede dejarlo vacío, y en
+        # ese caso todos los Títulos se irían juntos al principio del listado.
         saldo_por_grupo = {}
+        orden_por_grupo = {}
         for account in cuentas_relevantes:
+            codigo = account.code or ''
             grupo = account.group_id
             vistos = set()
             while grupo and grupo.id not in vistos:
                 vistos.add(grupo.id)
                 saldo_por_grupo[grupo.id] = saldo_por_grupo.get(grupo.id, 0.0) + saldo_por_cuenta[account.id]
+                anterior = orden_por_grupo.get(grupo.id)
+                if anterior is None or codigo < anterior:
+                    orden_por_grupo[grupo.id] = codigo
                 grupo = grupo.parent_id
 
         # 3) Armar nodos combinados (Títulos + Imputables), en el mismo orden
@@ -283,6 +332,8 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                     'cuenta': grupo.code_prefix_start or '',
                     'nombre_cuenta': grupo.name,
                     'saldo': saldo_por_grupo[grupo.id],
+                    'nivel': _nivel_grupo(grupo),
+                    '_orden': (orden_por_grupo.get(grupo.id, ''), 0),
                 })
         for account in cuentas_relevantes:
             nodos.append({
@@ -291,19 +342,20 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
                 'cuenta': account.code,
                 'nombre_cuenta': account.name,
                 'saldo': saldo_por_cuenta[account.id],
+                'nivel': _nivel_grupo(account.group_id) + 1,
+                '_orden': (account.code or '', 1),
                 '_account_id': account.id,
             })
-        nodos.sort(key=lambda n: n['code'])
+        nodos.sort(key=lambda n: n['_orden'])
 
         rows = []
         for nodo in nodos:
-            nivel = nodo['code'].count('.') + 1 if nodo['code'] else 0
             rows.append({
                 'tipo': nodo['tipo'],
                 'cuenta': nodo['cuenta'],
                 'nombre_cuenta': nodo['nombre_cuenta'],
                 'saldo': nodo['saldo'],
-                'nivel': nivel,
+                'nivel': nodo['nivel'],
             })
             if nodo['tipo'] == 'cuenta_balance':
                 detalle = detalle_por_cuenta.get(nodo['_account_id'])
@@ -329,20 +381,20 @@ class LocalPyLibroReportBuilder(models.AbstractModel):
         Contacto o por Producto debajo (con "Otros" si el nivel es "Top X")."""
         detalle_ids = config.libro_inventario_detalle_ids if config else self.env['local_py.libro_inventario.detalle_cuenta']
         return self._build_balance_style_rows(
-            company, fecha, config, detalle_ids, prefijos=('1', '2', '3'),
+            company, fecha, config, detalle_ids, tipos=TIPOS_BALANCE,
         )
 
     def _build_estado_resultado_rows(self, company, fecha, config):
-        """Devuelve las filas de Estado de Resultados (Ingresos: prefijos 4
-        y 6; Costos/Gastos: prefijos 5 y 7), con Ingresos mostrados en
+        """Devuelve las filas de Estado de Resultados (cuentas de tipo
+        Ingresos y Otros Ingresos; Costos y Gastos), con Ingresos mostrados en
         positivo (Crédito - Débito) y una fila final de "Resultado del
         Ejercicio". Reutiliza la misma configuración de detalle por cuenta
         que Libro Inventario (Contacto/Producto), por si alguna cuenta de
         Ingresos o Gastos también necesitara detallarse."""
         detalle_ids = config.libro_inventario_detalle_ids if config else self.env['local_py.libro_inventario.detalle_cuenta']
         return self._build_balance_style_rows(
-            company, fecha, config, detalle_ids, prefijos=('4', '5', '6', '7'),
-            prefijos_signo_invertido=('4', '6'),
+            company, fecha, config, detalle_ids, tipos=TIPOS_RESULTADO,
+            tipos_signo_invertido=TIPOS_INGRESO,
             fila_total_label='Resultado del Ejercicio',
         )
 

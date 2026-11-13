@@ -8,15 +8,28 @@
                     <div class="alert alert-warning" role="alert">
                         Esta acción, sobre la compañía principal:
                         <br/>
-                        - Refuerza los permisos contables para que los usuarios con
-                        "Contabilidad / Administrador" puedan ver y editar cuentas de
-                        productos, categorías, clientes y proveedores, y los asientos
-                        contables generados.
-                        <br/>
                         - Configura "Impuestos incluidos" en Ajustes &gt; Facturación &gt;
                         Impuestos &gt; Precios (si la compañía ya tiene contabilidad
                         iniciada, Odoo puede rechazar este cambio puntual; el resto de
                         la acción se aplica igual).
+                        <br/>
+                        - Completa los códigos oficiales de Tipo Fiscal y Tipo de
+                        Identificación Fiscal que falten en los contactos ya existentes.
+                        <br/>
+                        - Crea el registro de Configuraciones Localización Py de cada
+                        compañía, si falta. Lo deja vacío: las cuentas, los diarios y
+                        los parámetros se cargan con la plantilla Excel, en Ajustes &gt;
+                        Configuración local_py &gt; Configuración por plantilla.
+                        <br/>
+                        <br/>
+                        No crea diarios ni completa cuentas contables: local_py no asume
+                        ningún plan de cuentas, así que no puede adivinar qué cuenta de
+                        su plan cumple cada función. Eso lo define la plantilla.
+                        <br/>
+                        <br/>
+                        Los permisos contables (que los usuarios con "Contabilidad /
+                        Administrador" puedan ver y editar las cuentas de productos,
+                        categorías y contactos) los otorga el módulo <b>l10n_py</b>.
                         <br/>
                         <br/>
                         No modifica las validaciones de RUT en contactos, ni los campos

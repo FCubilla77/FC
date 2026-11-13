@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo.fields import Command
-
 _logger = logging.getLogger(__name__)
 
 # NOTA DE MIGRACIÓN: a partir de esta versión, todo lo relacionado al
@@ -13,22 +11,12 @@ _logger = logging.getLogger(__name__)
 # desde Ajustes > Facturación > Localización Fiscal > Paquete).
 #
 # local_py continúa haciéndose cargo de todo lo que ese paquete nativo no
-# cubre: Tipo Fiscal, RUT, Timbrado/Nro. Documento, Libro Ventas/Compras,
-# y el refuerzo de permisos contables. El reporte de Plan de Cuentas lo
-# provee el módulo l10n_py (ver views/local_py_chart_of_accounts_menu.xml).
-
-# Grupo base cuyos usuarios deben recibir automáticamente el grupo
-# complementario de abajo (Requerimiento: acceso contable a cuentas de
-# productos/categorías/clientes/proveedores y asientos, sin ajustes manuales).
-ACCOUNTING_BASE_GROUP_XML_ID = 'account.group_account_manager'
-
-# "Mostrar características de contabilidad completas": implica
-# account.group_account_invoice y account.group_account_readonly. Este
-# último es el que exige la vista nativa de Odoo (account.product_template
-# _form_view) para mostrar las cuentas de ingreso/gasto en productos y
-# categorías, y el que habilita las cuentas por cobrar/pagar en clientes y
-# proveedores. Ver también data/account_groups_data.xml.
-ACCOUNTING_EXTRA_GROUP_XML_ID = 'account.group_account_user'
+# cubre: Tipo Fiscal, RUT, Timbrado/Nro. Documento y Libro Ventas/Compras.
+# El reporte de Plan de Cuentas y el refuerzo de permisos contables (los
+# usuarios con Contabilidad/Administrador reciben también el grupo que
+# habilita las cuentas de ingreso/gasto en productos y categorías y las
+# cuentas por cobrar/pagar en contactos) los provee ahora el módulo
+# l10n_py; local_py ya no los duplica.
 
 # "Ajustes > Facturación > Impuestos > Precios" NO se guarda como un valor
 # simple de ir.config_parameter: se implementa mediante dos grupos de
@@ -38,49 +26,6 @@ ACCOUNTING_EXTRA_GROUP_XML_ID = 'account.group_account_user'
 # ("Impuestos incluidos"). Por eso hay que aplicarlo vía res.config.settings
 # (igual que si se tildara la opción desde la pantalla de Ajustes), no
 # escribiendo un ir.config_parameter directamente.
-
-
-def _configure_accounting_groups(env):
-    """Refuerza, sobre los usuarios existentes, el acceso contable completo
-    para quienes tengan el grupo Contabilidad/Administrador
-    (account.group_account_manager).
-
-    La cobertura "automática hacia adelante" (cualquier usuario que reciba
-    el grupo Manager en el futuro) queda garantizada de forma permanente por
-    el implied_ids agregado en data/account_groups_data.xml. Esta función
-    complementa ese ajuste aplicándolo también, de forma explícita, sobre los
-    usuarios que ya tenían el grupo Manager antes de instalar/actualizar
-    local_py (o antes de que se recalculara el cascada de grupos), y se
-    invoca tanto en la instalación como desde el asistente "Restablecer
-    configuración Paraguay".
-
-    Esto habilita, sin ajustes manuales adicionales:
-      - Ver y editar cuentas de ingreso/gasto en productos y categorías de
-        producto.
-      - Ver y editar cuentas por cobrar/pagar en clientes y proveedores.
-      - Ver los asientos contables generados, incluyendo los de movimientos
-        de stock, y confirmarlos (la confirmación ya la cubre el propio
-        grupo Manager; el grupo complementario solo agrega visibilidad).
-    """
-    manager_group = env.ref(ACCOUNTING_BASE_GROUP_XML_ID, raise_if_not_found=False)
-    extra_group = env.ref(ACCOUNTING_EXTRA_GROUP_XML_ID, raise_if_not_found=False)
-    if not manager_group or not extra_group:
-        _logger.warning(
-            "local_py: no se encontraron los grupos contables esperados (%s / %s); "
-            "se omite el refuerzo de permisos contables.",
-            ACCOUNTING_BASE_GROUP_XML_ID, ACCOUNTING_EXTRA_GROUP_XML_ID,
-        )
-        return
-
-    users_to_update = manager_group.all_user_ids - extra_group.all_user_ids
-    if users_to_update:
-        users_to_update.write({'groups_id': [Command.link(extra_group.id)]})
-        _logger.info(
-            "local_py: %s usuario(s) con Contabilidad/Administrador reforzado(s) con el "
-            "grupo complementario '%s' (acceso a cuentas de productos, categorías, "
-            "clientes/proveedores y asientos contables).",
-            len(users_to_update), extra_group.name,
-        )
 
 
 def _configure_tax_display(env):
@@ -152,146 +97,48 @@ def _backfill_partner_tipo_identificacion(env):
         )
 
 
-def _buscar_cuenta(env, company, code):
-    """Busca una cuenta por su Código dentro de la Compañía.
+def _asegurar_configuracion(env):
+    """Asegura que exista el registro de Configuraciones Localización Py de cada
+    Compañía, vacío.
 
-    No se referencian por ID externo (l10n_py.py_1_01_...) porque el sistema
-    de plantillas de Odoo crea una copia por Compañía, con un ID externo
-    distinto al del template — buscar por Código es lo que funciona igual en
-    mono y multi-compañía."""
-    return env['account.account'].sudo().search([
-        ('code', '=', code),
-        ('company_ids', 'in', company.id),
-    ], limit=1)
+    Antes, acá se creaban los Diarios de Retención y de Cheques de Clientes y se
+    completaban las Cuentas de la Configuración buscándolas por su Código en el plan
+    estándar de Paraguay ('1.01.03.02.006' y compañía). Eso ataba local_py a ese plan:
+    con un plan propio del cliente, ninguno de esos códigos existe y la configuración
+    quedaba vacía sin explicación.
 
-
-# Diarios que local_py necesita para operar, con la Cuenta del plan de
-# l10n_py que les corresponde. Los Diarios de VENTA (Factura, Nota de
-# Crédito, Nota de Débito) quedan deliberadamente afuera: exigen Timbrado,
-# Nro. Documento, Nro. Documento Final y fechas de vigencia — datos reales
-# del timbrado asignado por la DNIT, que solo puede cargar el usuario.
-DIARIOS_LOCAL_PY = [
-    # (campo en Configuración, nombre, código, tipo, código de cuenta)
-    ('local_py_diario_retencion_iva_id', 'Retención IVA', 'RIVA', 'general', '2.01.03.01.004'),
-    ('local_py_diario_retencion_renta_id', 'Retención Renta', 'RRTA', 'general', '2.01.03.01.004'),
-    ('local_py_diario_retencion_recibida_id', 'Retención Recibida', 'RREC', 'general', '1.01.03.02.006'),
-    ('local_py_diario_cheque_cliente_id', 'Cheques de Clientes', 'CHCL', 'bank', '1.01.01.01.004'),
-]
-
-# Cuentas de Configuraciones Localización Py, por Código del plan de l10n_py.
-CUENTAS_LOCAL_PY = [
-    ('local_py_cuenta_gasto_absorcion_id', '7.02.17.01.001'),
-    ('local_py_cuenta_gasto_absorcion_renta_id', '7.02.17.01.001'),
-    ('local_py_cuenta_retencion_a_confirmar_id', '1.01.03.02.006'),
-    ('local_py_cuenta_retenciones_recibidas_iva_id', '1.01.03.02.002'),
-    ('local_py_cuenta_retenciones_recibidas_renta_id', '1.01.03.02.005'),
-]
-
-
-def _configure_diarios_y_cuentas(env):
-    """Crea los Diarios que local_py necesita (Retención IVA, Retención
-    Renta, Retención Recibida y Cheques de Clientes) y completa las Cuentas
-    de Configuraciones Localización Py, tomándolas del plan de cuentas de
-    l10n_py por su Código.
-
-    Es idempotente y no invasiva: solo crea un Diario si no existe otro con
-    el mismo código en esa Compañía, y solo completa un campo de
-    Configuración que esté vacío — nunca pisa una elección hecha a mano.
-    Si el plan de l10n_py todavía no está instalado en una Compañía, esa
-    Compañía se saltea con un aviso en el log, sin cortar el proceso.
+    Ahora la configuración se carga con la plantilla Excel (Ajustes > Configuración
+    local_py > Configuración por plantilla), donde el usuario indica qué cuenta de SU
+    plan cumple cada función. Este hook solo deja el registro creado, para que la
+    pantalla de Configuraciones Localización Py se abra sin tener que crearlo a mano.
     """
-    Journal = env['account.journal'].sudo()
     Config = env['local_py.configuracion_localizacion'].sudo()
-
     for company in env['res.company'].sudo().search([]):
-        # Si no encuentra ni una de las cuentas esperadas, esta Compañía no
-        # tiene cargado el plan de l10n_py — no tiene sentido seguir.
-        if not _buscar_cuenta(env, company, '1.01.03.02.006'):
-            _logger.info(
-                "local_py: la compañía '%s' no tiene el plan de cuentas de l10n_py "
-                "cargado — se omite la configuración automática de Diarios y Cuentas.",
-                company.name,
-            )
-            continue
-
-        config = Config.search([('company_id', '=', company.id)], limit=1)
-        if not config:
-            config = Config.create({'company_id': company.id})
+        if not Config.search([('company_id', '=', company.id)], limit=1):
+            Config.create({'company_id': company.id})
             _logger.info(
                 "local_py: se creó el registro de Configuraciones Localización Py para "
-                "la compañía '%s'.", company.name,
-            )
-
-        vals_config = {}
-
-        for campo, nombre, codigo_diario, tipo, codigo_cuenta in DIARIOS_LOCAL_PY:
-            if config[campo]:
-                continue  # ya configurado a mano — no se toca
-            journal = Journal.search([
-                ('code', '=', codigo_diario), ('company_id', '=', company.id),
-            ], limit=1)
-            if not journal:
-                cuenta = _buscar_cuenta(env, company, codigo_cuenta)
-                if not cuenta:
-                    _logger.warning(
-                        "local_py: no se encontró la Cuenta %s en la compañía '%s' — no se "
-                        "creó el Diario '%s'. Créelo a mano desde Contabilidad > "
-                        "Configuración > Diarios.",
-                        codigo_cuenta, company.name, nombre,
-                    )
-                    continue
-                journal = Journal.create({
-                    'name': nombre,
-                    'code': codigo_diario,
-                    'type': tipo,
-                    'company_id': company.id,
-                    'default_account_id': cuenta.id,
-                })
-                _logger.info(
-                    "local_py: Diario '%s' (%s) creado en la compañía '%s' con la Cuenta %s.",
-                    nombre, codigo_diario, company.name, codigo_cuenta,
-                )
-            vals_config[campo] = journal.id
-
-        for campo, codigo_cuenta in CUENTAS_LOCAL_PY:
-            if config[campo]:
-                continue  # ya configurado a mano — no se toca
-            cuenta = _buscar_cuenta(env, company, codigo_cuenta)
-            if cuenta:
-                vals_config[campo] = cuenta.id
-            else:
-                _logger.warning(
-                    "local_py: no se encontró la Cuenta %s en la compañía '%s' — el campo "
-                    "'%s' queda sin completar.", codigo_cuenta, company.name, campo,
-                )
-
-        if vals_config:
-            config.write(vals_config)
-            _logger.info(
-                "local_py: Configuraciones Localización Py completada automáticamente para "
-                "la compañía '%s' (%s campo(s)).", company.name, len(vals_config),
+                "la compañía '%s'. Complete la configuración con la plantilla Excel "
+                "(Ajustes > Configuración local_py).", company.name,
             )
 
 
 def configure_paraguay(env):
     """Punto de entrada único de los ajustes de local_py que no forman
     parte del paquete nativo de Localización Fiscal (l10n_py):
-      - Refuerzo de permisos contables.
       - Visualización de precios/impuestos incluidos.
       - Códigos oficiales de Tipo Fiscal y Tipo de Identificación Fiscal por
         defecto en contactos existentes.
-      - Creación de los Diarios de Retención (IVA, Renta, Recibida) y de
-        Cheques de Clientes, y completado de las Cuentas de Configuraciones
-        Localización Py desde el plan de cuentas de l10n_py.
+      - Registro de Configuraciones Localización Py de cada Compañía (vacío;
+        se completa con la plantilla Excel de configuración).
 
     Es seguro invocarla más de una vez (instalación y, manualmente, desde el
     asistente de reconfiguración).
     """
-    _configure_accounting_groups(env)
     _configure_tax_display(env)
     _backfill_tipo_fiscal_codes(env)
     _backfill_partner_tipo_identificacion(env)
-    _configure_diarios_y_cuentas(env)
+    _asegurar_configuracion(env)
 
     _logger.info("local_py: configuración de Paraguay (local_py) aplicada correctamente.")
 

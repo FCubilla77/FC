@@ -49,4 +49,6 @@ from . import local_py_cheque_cliente
 from . import local_py_recibo_factura
 from . import local_py_recibo_medio
 from . import local_py_recibo
+from . import local_py_plantilla_excel
+from . import local_py_plantilla
 from . import res_config_settings
