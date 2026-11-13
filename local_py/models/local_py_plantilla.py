@@ -61,6 +61,12 @@ class LocalPyPlantilla(models.Model):
 
         Cada clave que se omite desactiva esa validación, así que se arman todas: es
         mejor que el usuario vea el error en el informe de la planilla que al aplicarla.
+
+        Todas las listas traen solo registros ACTIVOS. Un archivado no se puede elegir
+        en el formulario correspondiente, así que aceptarlo en la planilla validaría
+        algo que después la pantalla rechaza; además llenaría los desplegables de la
+        hoja «Listas» con opciones inservibles (res.currency, por ejemplo, trae más de
+        cien monedas de fábrica y casi todas quedan inactivas).
         """
         company = company.sudo()
         cuentas = self.env['account.account'].sudo().search([('company_ids', 'in', company.id)])
@@ -74,16 +80,14 @@ class LocalPyPlantilla(models.Model):
             'tipos_fiscales': self.env['local_py.tipo_fiscal'].sudo().search([]).mapped('name'),
             'conceptos_iva': self.env['local_py.concepto_iva'].sudo().search([]).mapped('codigo'),
             'imputaciones': self.env['local_py.imputacion_tributaria'].sudo().search([]).mapped('name'),
-            'monedas': self.env['res.currency'].sudo().with_context(
-                active_test=False).search([]).mapped('name'),
+            'monedas': self.env['res.currency'].sudo().search([]).mapped('name'),
             'bancos': self.env['res.bank'].sudo().search([]).mapped('name'),
             'cuentas_bancarias': bancos_propios.mapped('acc_number'),
-            'usuarios': self.env['res.users'].sudo().with_context(
-                active_test=False).search([]).mapped('login'),
+            'usuarios': self.env['res.users'].sudo().search([]).mapped('login'),
             'rucs': [p for p in self.env['res.partner'].sudo().search(
                 [('vat', '!=', False)]).mapped('vat') if p],
-            'codigos_inr': self.env['local_py.concepto_renta_no_residente'].sudo().with_context(
-                active_test=False).search([]).mapped('codigo'),
+            'codigos_inr': self.env['local_py.concepto_renta_no_residente'].sudo().search(
+                []).mapped('codigo'),
         }
 
     # ------------------------------------------------------------------
@@ -317,13 +321,14 @@ class LocalPyPlantilla(models.Model):
 
     def _aplicar_series(self, company, datos):
         Serie = self.env['local_py.recibo.serie'].sudo()
-        usuarios = {u.login: u for u in self.env['res.users'].sudo().with_context(
-            active_test=False).search([])}
+        usuarios = {u.login: u for u in self.env['res.users'].sudo().search([])}
         hechos = []
         for s in datos['series_recibo']:
             usuario = usuarios.get(s['usuario'])
             if not usuario:
                 continue
+            # Acá sí se miran las archivadas: si la serie ya existió y se archivó,
+            # crear otra con el mismo nombre y usuario duplicaría una numeración.
             if Serie.with_context(active_test=False).search([
                     ('name', '=', s['nombre']), ('user_id', '=', usuario.id),
                     ('company_id', '=', company.id)], limit=1):
@@ -357,8 +362,7 @@ class LocalPyPlantilla(models.Model):
         bancos = {b.name: b for b in self.env['res.bank'].sudo().search([])}
         cuentas_bancarias = {b.acc_number: b for b in self.env['res.partner.bank'].sudo().search(
             [('partner_id', '=', company.partner_id.id)])}
-        monedas = {m.name: m for m in self.env['res.currency'].sudo().with_context(
-            active_test=False).search([])}
+        monedas = {m.name: m for m in self.env['res.currency'].sudo().search([])}
         diarios = {d.code: d for d in self.env['account.journal'].sudo().search(
             [('company_id', '=', company.id), ('type', '=', 'bank')])}
         hechos = []
@@ -433,8 +437,7 @@ class LocalPyPlantilla(models.Model):
         Concepto = self.env['local_py.concepto_renta_no_residente'].sudo()
         hechos = []
         for c in datos['conceptos_inr']:
-            concepto = Concepto.with_context(active_test=False).search(
-                [('codigo', '=', c['codigo'])], limit=1)
+            concepto = Concepto.search([('codigo', '=', c['codigo'])], limit=1)
             if not concepto:
                 continue
             vals = {'porcentaje_imputacion': c['porcentaje_imputacion'],

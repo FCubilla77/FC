@@ -615,12 +615,16 @@ def leer_libro(contenido, contexto=None):
         tipos_fiscales     [nombre]
         conceptos_iva      [codigo]
         imputaciones       [nombre]
-        monedas            [nombre]
+        monedas            [nombre]                monedas ACTIVAS
         bancos             [nombre]
         cuentas_bancarias  [acc_number]
-        usuarios           [login]
+        usuarios           [login]                 usuarios ACTIVOS
         rucs               [vat]                   RUT de contactos (para No Retención)
-        codigos_inr        [codigo]
+        codigos_inr        [codigo]                conceptos INR ACTIVOS
+
+    Las listas traen solo registros activos: un archivado no se puede elegir en el
+    formulario correspondiente, así que aceptarlo acá validaría algo que la pantalla
+    después rechaza.
     """
     from openpyxl import load_workbook
 
@@ -870,7 +874,8 @@ def leer_libro(contenido, contexto=None):
             lector.error(HOJA_SERIES, n, "hacen falta la serie y el usuario.")
             continue
         if contexto.get('usuarios') is not None and login.lower() not in usuarios:
-            lector.error(HOJA_SERIES, n, "el usuario «%s» no existe (ver hoja «Listas»)." % login)
+            lector.error(HOJA_SERIES, n, "el usuario «%s» no existe o está archivado "
+                                         "(ver hoja «Listas»)." % login)
             continue
         inicial, final = _entero(f[2]), _entero(f[3])
         if inicial is None or final is None:
@@ -972,7 +977,8 @@ def leer_libro(contenido, contexto=None):
                                             "de la empresa, solapa «Contabilidad»." % cuenta_bco)
             continue
         if contexto.get('monedas') is not None and moneda.lower() not in monedas:
-            lector.error(HOJA_CHEQUERAS, n, "la moneda «%s» no existe." % moneda)
+            lector.error(HOJA_CHEQUERAS, n, "la moneda «%s» no existe o no está activa "
+                                            "(ver hoja «Listas»)." % moneda)
             continue
         if contexto.get('diarios_banco') is not None and diario.lower() not in diarios_banco:
             lector.error(HOJA_CHEQUERAS, n, "no hay un diario de banco con el código «%s»." % diario)
