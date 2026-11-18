@@ -7,6 +7,9 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='name']" position="after">
                     <group string="Facturación Electrónica (SIFEN)" invisible="type != 'sale'">
+                        <field name="fe_py_tipo_documento_id"
+                               options="{'no_create': True}"/>
+                        <field name="fe_py_es_electronico" readonly="1"/>
                         <field name="fe_py_idcsc" placeholder="Vacío = usa el de la Compañía"/>
                         <field name="fe_py_csc" placeholder="Vacío = usa el de la Compañía"/>
                     </group>

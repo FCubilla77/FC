@@ -9,10 +9,10 @@ class FePyDocumentoElectronico(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
 
-    @api.depends('move_id', 'move_id.local_py_nro_documento', 'move_id.name', 'partner_id')
+    @api.depends('move_id', 'move_id.fe_py_nro_documento', 'move_id.name', 'partner_id')
     def _compute_display_name(self):
         for doc in self:
-            nro = doc.move_id.local_py_nro_documento or doc.move_id.name or str(doc.id)
+            nro = doc.move_id.fe_py_nro_documento or doc.move_id.name or str(doc.id)
             cliente = doc.partner_id.name or ''
             comprobante = doc.move_id.name or ''
             doc.display_name = '%s - %s (%s)' % (nro, cliente, comprobante)
@@ -20,8 +20,8 @@ class FePyDocumentoElectronico(models.Model):
     # ------------------------------------------------------------------
     # Relación 1:1 con el comprobante contable. Aplica a Factura Cliente,
     # Nota de Crédito Cliente y Nota de Débito Cliente (estas dos últimas
-    # con move_type distinto/igual según corresponda, filtradas por
-    # local_py_tipo_fiscal_id en la capa de negocio, no acá).
+    # con move_type distinto/igual según corresponda, filtradas por el
+    # Tipo de Documento Electrónico del Diario en la capa de negocio).
     # ------------------------------------------------------------------
     move_id = fields.Many2one(
         'account.move', string='Comprobante', required=True,
@@ -33,9 +33,9 @@ class FePyDocumentoElectronico(models.Model):
     partner_id = fields.Many2one(
         related='move_id.partner_id', string='Cliente', store=True, readonly=True,
     )
-    tipo_fiscal_id = fields.Many2one(
-        related='move_id.local_py_tipo_fiscal_id', string='Tipo Fiscal',
-        store=True, readonly=True,
+    tipo_documento_id = fields.Many2one(
+        related='journal_id.fe_py_tipo_documento_id',
+        string='Tipo de Documento Electrónico', store=True, readonly=True,
     )
     journal_id = fields.Many2one(
         related='move_id.journal_id', string='Diario', store=True, readonly=True,

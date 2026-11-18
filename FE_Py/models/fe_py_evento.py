@@ -23,7 +23,7 @@ class FePyEvento(models.Model):
     # -- Cancelación: se hace sobre un CDC puntual, ya Aprobado ----------
     documento_journal_id = fields.Many2one(
         'account.journal', string='Filtrar por Diario',
-        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.fe_py_es_electronico', '=', True)]",
+        domain="[('type', '=', 'sale'), ('fe_py_es_electronico', '=', True)]",
         help='Solo para acotar la lista de "Documento Electrónico" de más '
              'abajo — no se guarda como parte del Evento en sí. Opcional.',
     )
@@ -42,13 +42,14 @@ class FePyEvento(models.Model):
     # -- Inutilización: se hace sobre un rango de numeración no usado ----
     journal_id = fields.Many2one(
         'account.journal', string='Diario',
-        domain="[('type', '=', 'sale'), ('local_py_tipo_fiscal_id.fe_py_es_electronico', '=', True)]",
+        domain="[('type', '=', 'sale'), ('fe_py_es_electronico', '=', True)]",
         help='Diario (Punto de Expedición) del rango a inutilizar. Solo '
              'aplica a eventos de tipo Inutilización — solo se ofrecen '
-             'diarios cuyo Tipo Fiscal es electrónico.',
+             'diarios que emiten Documentos Electrónicos.',
     )
-    tipo_fiscal_id = fields.Many2one(
-        'local_py.tipo_fiscal', string='Tipo Fiscal', readonly=True,
+    tipo_documento_id = fields.Many2one(
+        'fe_py.tipo_documento', string='Tipo de Documento Electrónico',
+        readonly=True,
         help='Tipo de comprobante del rango a inutilizar. Se completa solo '
              'al elegir el Diario (no editable a mano, para que no pueda '
              'quedar desincronizado del Diario elegido). Solo aplica a '
@@ -64,7 +65,7 @@ class FePyEvento(models.Model):
     @api.onchange('journal_id')
     def _onchange_journal_id(self):
         for evento in self:
-            evento.tipo_fiscal_id = evento.journal_id.local_py_tipo_fiscal_id
+            evento.tipo_documento_id = evento.journal_id.fe_py_tipo_documento_id
 
     motivo = fields.Text(string='Motivo', required=True)
 

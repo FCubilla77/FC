@@ -14,7 +14,7 @@
                 <list string="Documentos Electrónicos">
                     <field name="move_id"/>
                     <field name="partner_id"/>
-                    <field name="tipo_fiscal_id"/>
+                    <field name="tipo_documento_id"/>
                     <field name="cdc"/>
                     <field name="estado"
                            decoration-success="estado in ('aprobado',)"
@@ -53,7 +53,7 @@
                             <group>
                                 <field name="move_id"/>
                                 <field name="partner_id"/>
-                                <field name="tipo_fiscal_id"/>
+                                <field name="tipo_documento_id"/>
                                 <field name="journal_id"/>
                             </group>
                             <group>

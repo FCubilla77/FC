@@ -26,9 +26,19 @@ class ResPartner(models.Model):
     )
     fe_py_identificacion_texto = fields.Char(
         string='FEPy Descripción de la Identificación',
-        help='Solo aplica cuando el Tipo de Identificación Fiscal se informa '
+        help='Solo aplica cuando el Tipo de Identificación SIFEN se informa '
              'a SIFEN como "Otro". Ahí el usuario escribe el dato real: '
              '"CUIT", "RFC", "NIT", "Tax ID".',
+    )
+    fe_py_tipo_identificacion_id = fields.Many2one(
+        'fe_py.tipo_identificacion', string='FEPy Tipo de Identificación SIFEN',
+        ondelete='restrict',
+        help='Tipo de documento de identidad del receptor según la tabla de '
+             'SIFEN (iTipIDRec). Es obligatorio para emitir.\n\n'
+             'No reemplaza al Tipo de Identificación Fiscal de la '
+             'localización: esa clasifica al Contacto para Marangatu, con '
+             'otra tabla de códigos. Son dos datos distintos del mismo '
+             'Contacto, para dos regímenes distintos.',
     )
     fe_py_tipo_impuesto_id = fields.Many2one(
         'fe_py.tipo_impuesto', string='FEPy Tipo de Impuesto Afectado',
@@ -44,8 +54,9 @@ class ResPartner(models.Model):
     fe_py_es_exterior = fields.Boolean(
         string='FEPy Es del Exterior', compute='_compute_fe_py_es_exterior',
         help='Calculado desde la Posición Fiscal marcada como "Es Exterior" '
-             'en local_py, que ya valida su coherencia con el País, el Tipo '
-             'de Identificación Fiscal y el Incoterm del Contacto.',
+             'indicada en el Mapeo de Datos. Si ese mapeo no está '
+             'configurado, se considera del exterior al Contacto cuyo País '
+             'no sea Paraguay.',
     )
     fe_py_es_contribuyente = fields.Boolean(
         string='FEPy Es Contribuyente', compute='_compute_fe_py_es_contribuyente',
@@ -64,20 +75,28 @@ class ResPartner(models.Model):
             if not partner.fe_py_tipo_contribuyente_id:
                 partner.fe_py_tipo_contribuyente_id = juridica if partner.is_company else fisica
 
-    @api.depends('property_account_position_id', 'property_account_position_id.local_py_es_exterior')
+    @api.depends('property_account_position_id', 'country_id')
     def _compute_fe_py_es_exterior(self):
+        Mapeo = self.env['fe_py.mapeo']
+        mapa = Mapeo._mapa()
+        paraguay = self.env.ref('base.py', raise_if_not_found=False)
         for partner in self:
-            partner.fe_py_es_exterior = bool(
-                partner.property_account_position_id
-                and partner.property_account_position_id.local_py_es_exterior
-            )
+            posicion = partner.property_account_position_id
+            if mapa.get('partner_es_exterior') and posicion:
+                partner.fe_py_es_exterior = bool(
+                    Mapeo._leer(posicion, 'partner_es_exterior', mapa))
+            else:
+                # Respaldo nativo: sin mapeo, decide el País del Contacto.
+                partner.fe_py_es_exterior = bool(
+                    partner.country_id and paraguay
+                    and partner.country_id != paraguay)
 
-    @api.depends('local_py_tipo_identificacion_fiscal_id',
-                 'local_py_tipo_identificacion_fiscal_id.fe_py_es_ruc')
+    @api.depends('fe_py_tipo_identificacion_id',
+                 'fe_py_tipo_identificacion_id.es_ruc')
     def _compute_fe_py_es_contribuyente(self):
         for partner in self:
-            tipo = partner.local_py_tipo_identificacion_fiscal_id
-            partner.fe_py_es_contribuyente = bool(tipo and tipo.fe_py_es_ruc)
+            tipo = partner.fe_py_tipo_identificacion_id
+            partner.fe_py_es_contribuyente = bool(tipo and tipo.es_ruc)
 
     @api.constrains('fe_py_es_estado', 'property_account_position_id')
     def _check_fe_py_estado_vs_exterior(self):

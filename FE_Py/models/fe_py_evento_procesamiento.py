@@ -114,7 +114,7 @@ class FePyEvento(models.Model):
             self._fe_py_validar_cancelacion()
         else:
             self._fe_py_validar_inutilizacion()
-            # Se reserva el rango en local_py ANTES de tocar SIFEN — así
+            # Se reserva el rango en la tabla propia ANTES de tocar SIFEN — así
             # ningún otro comprobante puede tomar esos números mientras el
             # evento está en trámite (no recién cuando SIFEN aprueba).
             self._fe_py_registrar_documentos_anulados()
@@ -205,9 +205,9 @@ class FePyEvento(models.Model):
 
     def _fe_py_validar_inutilizacion(self):
         self.ensure_one()
-        if not self.journal_id.local_py_tipo_fiscal_id.fe_py_es_electronico:
+        if not self.journal_id.fe_py_es_electronico:
             raise exceptions.UserError(
-                'El Diario "%s" no tiene un Tipo Fiscal electrónico — los '
+                'El Diario "%s" no emite Documentos Electrónicos — los '
                 'Eventos SIFEN solo aplican a diarios electrónicos.'
                 % self.journal_id.name
             )
@@ -230,24 +230,35 @@ class FePyEvento(models.Model):
             raise exceptions.UserError(
                 'El rango a inutilizar no puede superar 1000 números (límite de SIFEN).'
             )
-        if not self.journal_id.local_py_timbrado:
-            raise exceptions.UserError('El Diario no tiene Timbrado configurado.')
-        if not self.tipo_fiscal_id.fe_py_itide:
+        if not self._fe_py_timbrado():
             raise exceptions.UserError(
-                'El Tipo de Documento Fiscal "%s" no tiene cargado su "FEPy '
-                'Código de Documento Electrónico" (Localización Paraguay > '
-                'Tipos de Documentos Fiscales).' % (self.tipo_fiscal_id.name or '(vacío)')
+                'El Diario no tiene Timbrado, o falta mapearlo en el Mapeo '
+                'de Datos (Doc. Electrónicos Py > Mapeo de Datos).'
+            )
+        if not self.tipo_documento_id.codigo:
+            raise exceptions.UserError(
+                'El Tipo de Documento Electrónico "%s" no tiene cargado su '
+                'Código SIFEN (Configuraciones Generales FEPy > Tipos de '
+                'Documento Electrónico).' % (self.tipo_documento_id.name or '(vacío)')
             )
 
+    def _fe_py_timbrado(self):
+        """Timbrado del Diario, leído por el Mapeo de Datos."""
+        self.ensure_one()
+        valor = self.env['fe_py.mapeo']._leer(self.journal_id, 'journal_timbrado')
+        return int(valor) if valor else 0
+
     # ------------------------------------------------------------------
-    # Integración con local_py.documento_anulado — reserva el rango antes
-    # de tocar SIFEN, para que la numeración de Factura/NC/ND no vuelva a
-    # ofrecer esos números mientras el evento está en trámite.
+    # Reserva del rango en fe_py.documento_anulado, la tabla propia de
+    # FE_Py — antes de tocar SIFEN, para que la numeración de los Diarios
+    # electrónicos no vuelva a ofrecer esos números mientras el evento
+    # está en trámite. Los números de los Diarios físicos los administra
+    # la localización, en su propia tabla: son conjuntos disjuntos.
     # ------------------------------------------------------------------
     def _fe_py_generar_numeros_rango(self):
         """Lista de números completos (999-999-9999999) del rango Desde-
         Hasta — mismo criterio de armado que ya usa el wizard nativo de
-        local_py (Registrar por Rango), para que el formato sea idéntico."""
+        el asistente de carga por rango, para que el formato sea idéntico."""
         self.ensure_one()
         correlativo_desde = int(self.nro_documento_desde.split('-')[2])
         correlativo_hasta = int(self.nro_documento_hasta.split('-')[2])
@@ -255,15 +266,15 @@ class FePyEvento(models.Model):
         return ['%s%07d' % (prefijo, c) for c in range(correlativo_desde, correlativo_hasta + 1)]
 
     def _fe_py_registrar_documentos_anulados(self):
-        """Reserva cada número del rango en local_py.documento_anulado. Si
-        algún número ya fue usado en una Factura/NC/ND real, local_py lo
-        rechaza acá mismo (con su propio mensaje) — antes de gastar un
-        envío real contra SIFEN. Si ya estaban registrados por un intento
-        anterior de este mismo evento (reintento tras Error de
-        Comunicación), no vuelve a crearlos ni falla por duplicado."""
+        """Reserva cada número del rango en fe_py.documento_anulado. Si
+        algún número ya fue usado en una Factura/NC/ND real, se rechaza
+        acá mismo — antes de gastar un envío real contra SIFEN. Si ya
+        estaban registrados por un intento anterior de este mismo evento
+        (reintento tras Error de Comunicación), no vuelve a crearlos ni
+        falla por duplicado."""
         self.ensure_one()
         numeros = self._fe_py_generar_numeros_rango()
-        ya_existentes = self.env['local_py.documento_anulado'].search([
+        ya_existentes = self.env['fe_py.documento_anulado'].search([
             ('diario_id', '=', self.journal_id.id),
             ('numero', 'in', numeros),
         ])
@@ -271,28 +282,28 @@ class FePyEvento(models.Model):
         if not numeros_faltantes:
             return
         vals_list = [{
-            'diario_id': self.journal_id.id,
-            'timbrado': self.journal_id.local_py_timbrado,
+            'journal_id': self.journal_id.id,
+            'timbrado': self._fe_py_timbrado(),
             'numero': numero,
-            'tipo_fiscal_id': self.tipo_fiscal_id.id,
+            'tipo_documento_id': self.tipo_documento_id.id,
             'motivo': 'Inutilización SIFEN (Evento #%s) — %s' % (self.id, self.motivo),
             'fecha_registro': fields.Date.context_today(self),
-            'fe_py_evento_id': self.id,
+            'evento_id': self.id,
         } for numero in sorted(numeros_faltantes)]
-        self.env['local_py.documento_anulado'].sudo().create(vals_list)
+        self.env['fe_py.documento_anulado'].sudo().create(vals_list)
 
     def _fe_py_liberar_documentos_anulados_si_corresponde(self):
         """Tras un Rechazo de SIFEN, intenta liberar los números reservados
-        por ESTE evento. local_py bloquea el unlink() de un Documento
-        Anulado si la numeración real del Diario ya lo superó (liberarlo
-        dejaría un hueco que no se puede volver a llenar) — en ese caso
-        queda reservado tal cual, a la espera de corregir el motivo del
-        rechazo y reenviar sobre este mismo rango."""
+        por ESTE evento. No se libera un número si la numeración real del
+        Diario ya lo superó (liberarlo dejaría un hueco que no se puede
+        volver a llenar) — en ese caso queda reservado tal cual, a la
+        espera de corregir el motivo del rechazo y reenviar sobre este
+        mismo rango."""
         self.ensure_one()
-        registros = self.env['local_py.documento_anulado'].search([
-            ('fe_py_evento_id', '=', self.id),
+        registros = self.env['fe_py.documento_anulado'].search([
+            ('evento_id', '=', self.id),
         ])
-        retenidos = self.env['local_py.documento_anulado']
+        retenidos = self.env['fe_py.documento_anulado']
         for registro in registros:
             try:
                 registro.unlink()
@@ -337,8 +348,8 @@ class FePyEvento(models.Model):
             r_inu = etree.SubElement(g_tipo, '{%s}rGeVeInu' % SIFEN_NS)
             partes_desde = self.nro_documento_desde.split('-')
             partes_hasta = self.nro_documento_hasta.split('-')
-            i_tide = self.tipo_fiscal_id.fe_py_itide
-            _sub(r_inu, 'dNumTim', '%08d' % self.journal_id.local_py_timbrado)
+            i_tide = self.tipo_documento_id.codigo
+            _sub(r_inu, 'dNumTim', '%08d' % self._fe_py_timbrado())
             _sub(r_inu, 'dEst', partes_desde[0].zfill(3))
             _sub(r_inu, 'dPunExp', partes_desde[1].zfill(3))
             _sub(r_inu, 'dNumIn', partes_desde[2].zfill(7))

@@ -9,6 +9,8 @@
                     <page string="Facturación Electrónica" name="fe_py_tab">
                         <group>
                             <group string="Identificación ante SIFEN">
+                                <field name="fe_py_tipo_identificacion_id"
+                                       options="{'no_create': True}"/>
                                 <field name="fe_py_tipo_contribuyente_id" options="{'no_create': True}"/>
                                 <field name="fe_py_identificacion_texto"
                                        placeholder="CUIT, RFC, NIT, Tax ID..."/>

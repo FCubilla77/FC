@@ -114,6 +114,21 @@ def _stub_odoo():
     odoo.models = ModelsMod
     odoo.api = ApiMod
     odoo.SUPERUSER_ID = 1
+
+    # odoo._ : la función de traducción. En Odoo real acepta el texto y,
+    # opcionalmente, los valores de formato — acá alcanza con devolver el
+    # texto ya formateado, que es lo único que mira este verificador.
+    def _traducir(texto, *args, **kwargs):
+        try:
+            if kwargs:
+                return texto % kwargs
+            if args:
+                return texto % args
+        except Exception:
+            pass
+        return texto
+
+    odoo._ = _traducir
     sys.modules['odoo'] = odoo
     m = types.ModuleType('odoo.exceptions')
     m.UserError = E

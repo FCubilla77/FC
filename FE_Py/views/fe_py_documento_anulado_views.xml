@@ -1,26 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Documentos Anulados: trazabilidad hacia el Evento de Inutilización que reservó esos números -->
         <record id="view_fe_py_documento_anulado_list" model="ir.ui.view">
-            <field name="name">local_py.documento_anulado.list.fe_py</field>
-            <field name="model">local_py.documento_anulado</field>
-            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_list"/>
+            <field name="name">fe_py.documento_anulado.list</field>
+            <field name="model">fe_py.documento_anulado</field>
             <field name="arch" type="xml">
-                <field name="fecha_registro" position="after">
-                    <field name="fe_py_evento_id" optional="show" readonly="1"/>
-                </field>
+                <list string="Documentos Anulados">
+                    <field name="journal_id"/>
+                    <field name="numero"/>
+                    <field name="timbrado" optional="show"/>
+                    <field name="tipo_documento_id" optional="show"/>
+                    <field name="motivo"/>
+                    <field name="fecha_registro"/>
+                    <field name="evento_id" optional="show"/>
+                    <field name="company_id" column_invisible="1"/>
+                </list>
             </field>
         </record>
 
         <record id="view_fe_py_documento_anulado_form" model="ir.ui.view">
-            <field name="name">local_py.documento_anulado.form.fe_py</field>
-            <field name="model">local_py.documento_anulado</field>
-            <field name="inherit_id" ref="local_py.view_local_py_documento_anulado_form"/>
+            <field name="name">fe_py.documento_anulado.form</field>
+            <field name="model">fe_py.documento_anulado</field>
             <field name="arch" type="xml">
-                <field name="fecha_registro" position="after">
-                    <field name="fe_py_evento_id" readonly="1"/>
-                </field>
+                <form string="Documento Anulado">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="journal_id"/>
+                                <field name="numero" placeholder="001-001-0000001"/>
+                                <field name="tipo_documento_id" readonly="1"/>
+                                <field name="timbrado" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="fecha_registro"/>
+                                <field name="motivo"/>
+                                <field name="evento_id" readonly="1"/>
+                                <field name="company_id" invisible="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
             </field>
         </record>
+
+        <record id="view_fe_py_documento_anulado_search" model="ir.ui.view">
+            <field name="name">fe_py.documento_anulado.search</field>
+            <field name="model">fe_py.documento_anulado</field>
+            <field name="arch" type="xml">
+                <search string="Documentos Anulados">
+                    <field name="numero"/>
+                    <field name="journal_id"/>
+                    <field name="evento_id"/>
+                    <filter name="fe_py_por_evento" string="Reservados por un Evento"
+                            domain="[('evento_id', '!=', False)]"/>
+                    <filter name="fe_py_manuales" string="Cargados a mano"
+                            domain="[('evento_id', '=', False)]"/>
+                    <separator string="Agrupar por"/>
+                    <group>
+                        <filter name="fe_py_group_journal" string="Diario"
+                                context="{'group_by': 'journal_id'}"/>
+                        <filter name="fe_py_group_evento" string="Evento"
+                                context="{'group_by': 'evento_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_fe_py_documento_anulado" model="ir.actions.act_window">
+            <field name="name">Documentos Anulados (Electrónicos)</field>
+            <field name="res_model">fe_py.documento_anulado</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_fe_py_documento_anulado_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">Todavía no hay números inutilizados</p>
+                <p>
+                    Acá quedan los números de los Diarios electrónicos que se
+                    inutilizaron ante SIFEN. La numeración de esos Diarios los
+                    saltea automáticamente.
+                </p><p>
+                    Los números anulados de un Diario de timbrado físico no van
+                    acá: los administra la localización, en su propia tabla.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_fe_py_documento_anulado"
+                  name="Documentos Anulados (Electrónicos)"
+                  parent="menu_fe_py_grupo"
+                  action="action_fe_py_documento_anulado"
+                  sequence="45"/>
     </data>
 </odoo>

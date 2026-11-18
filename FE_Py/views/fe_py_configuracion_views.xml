@@ -231,6 +231,41 @@
                                     </list>
                                 </field>
                             </page>
+                            <page string="Tipos de Documento Electrónico" name="tipo_documento_ids">
+                                <div class="alert alert-info" role="alert">
+                                    Código <b>iTiDE</b> del XML. Es el que se
+                                    elige en cada Diario para definir qué
+                                    emite. "No aplica" marca los Diarios que
+                                    no emiten electrónicamente.
+                                </div>
+                                <field name="tipo_documento_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name" string="Descripción (va al XML)"/>
+                                        <field name="es_electronico" widget="boolean_toggle"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Tipos de Identificación del Receptor" name="tipo_identificacion_ids">
+                                <div class="alert alert-info" role="alert">
+                                    Código <b>iTipIDRec</b> del XML, que se
+                                    elige en cada Contacto. El RUC no lleva
+                                    código: se informa por dRucRec/dDVRec, y
+                                    su marca "Es RUC" es la que define si el
+                                    receptor se declara Contribuyente.
+                                </div>
+                                <field name="tipo_identificacion_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="codigo"/>
+                                        <field name="name" string="Descripción (va al XML)"/>
+                                        <field name="es_ruc" widget="boolean_toggle"/>
+                                        <field name="active" widget="boolean_toggle"/>
+                                    </list>
+                                </field>
+                            </page>
                             <page string="Unidades de Medida" name="unidad_medida_ids">
                                 <field name="unidad_medida_ids" nolabel="1">
                                     <list editable="bottom">

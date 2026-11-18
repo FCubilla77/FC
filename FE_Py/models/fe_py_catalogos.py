@@ -206,3 +206,64 @@ class FePyActividadEconomica(models.Model):
         string='Descripción de la Actividad', required=True,
         help='Debe coincidir EXACTAMENTE con el texto registrado en la DNIT.',
     )
+
+
+class FePyTipoDocumento(models.Model):
+    """iTiDE (C002) — Tabla 2: tipo de Documento Electrónico.
+
+    Este catálogo reemplaza la lectura del Tipo Fiscal de la localización.
+    Es una tabla EXCLUSIVA de SIFEN: no coincide con la Tabla 4 de
+    Marangatu (que numera 101-112), así que el dato no existe en ninguna
+    localización que no haga facturación electrónica. Por eso lo define
+    FE_Py y no se lee de ningún otro módulo.
+
+    Se enlaza al Diario: el Diario que tenga uno de estos códigos emite
+    electrónicamente, y el que tenga "No aplica" no. Un Diario de timbrado
+    físico usa "No aplica" — así se distingue de uno todavía sin
+    configurar, que no tiene nada elegido.
+    """
+    _name = 'fe_py.tipo_documento'
+    _inherit = 'fe_py.catalogo.base'
+    _description = 'FEPy Tipo de Documento Electrónico'
+
+    codigo = fields.Char(
+        string='Código SIFEN', required=False, index=True,
+        help='Valor que se informa como iTiDE. Se deja vacío solo en '
+             '"No aplica", que marca los Diarios que no emiten '
+             'electrónicamente.',
+    )
+    es_electronico = fields.Boolean(
+        string='Emite Documento Electrónico', default=True,
+        help='Destildado solo en "No aplica". Un Diario con un Tipo de '
+             'Documento destildado no genera Documento Electrónico ni se '
+             'envía a SIFEN: el comprobante se emite como cualquier otro.',
+    )
+
+
+class FePyTipoIdentificacion(models.Model):
+    """iTipIDRec (D210) — Tabla 5: tipo de documento de identidad del receptor.
+
+    Igual que el Tipo de Documento Electrónico, es una tabla exclusiva de
+    SIFEN y no coincide con la Tabla 3 de Marangatu (que numera 11-17).
+    Son dos clasificaciones distintas del mismo contacto, para dos
+    regímenes distintos: por eso el Contacto lleva las dos, y esta no
+    reemplaza a la de la localización.
+    """
+    _name = 'fe_py.tipo_identificacion'
+    _inherit = 'fe_py.catalogo.base'
+    _description = 'FEPy Tipo de Identificación del Receptor'
+
+    codigo = fields.Char(
+        string='Código SIFEN', required=False, index=True,
+        help='Valor que se informa como iTipIDRec. Se deja vacío en "RUC": '
+             'un receptor con RUC se informa por dRucRec/dDVRec y no pasa '
+             'por esta tabla.',
+    )
+    es_ruc = fields.Boolean(
+        string='Es RUC (contribuyente)',
+        help='Marca la fila que corresponde al RUC paraguayo. Un receptor '
+             'con este tipo se informa como Contribuyente (iNatRec=1); '
+             'cualquier otro, como No Contribuyente (iNatRec=2). Es una '
+             'marca explícita y no "el que no tiene código", para no '
+             'confundir el RUC con una fila todavía sin configurar.',
+    )

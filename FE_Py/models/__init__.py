@@ -18,12 +18,11 @@ from . import product_template
 from . import uom_uom
 from . import res_partner
 
-# -- Campos que FE_Py agrega a modelos de local_py ---------------------
-from . import fe_py_tipo_identificacion_fiscal_ext
-from . import fe_py_tipo_fiscal_ext
-from . import fe_py_documento_anulado_ext
+# -- Mapeo de Datos: de dónde salen los datos que no son de FE_Py ------
+from . import fe_py_mapeo
 
 # -- Documento Electrónico -------------------------------------------
+from . import fe_py_documento_anulado
 from . import fe_py_cuota
 from . import fe_py_documento_electronico_log
 from . import fe_py_documento_electronico

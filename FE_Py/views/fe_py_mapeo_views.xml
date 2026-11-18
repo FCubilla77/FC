@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_fe_py_mapeo_list" model="ir.ui.view">
+            <field name="name">fe_py.mapeo.list</field>
+            <field name="model">fe_py.mapeo</field>
+            <field name="arch" type="xml">
+                <list string="Mapeo de Datos" editable="bottom" create="0" delete="0">
+                    <header>
+                        <button name="action_fe_py_cargar_sugeridos" type="object"
+                                string="Cargar sugeridos" class="btn-primary"
+                                display="always"
+                                help="Busca los campos por nombres conocidos y completa los mapeos vacíos. Lo que no encuentre queda para cargar a mano."/>
+                    </header>
+                    <field name="necesidad" readonly="1"/>
+                    <field name="modelo_origen" readonly="1" optional="show"/>
+                    <field name="campo_posible_ids" column_invisible="1"/>
+                    <field name="campo_id" options="{'no_create': True}"/>
+                    <field name="tipo_campo" readonly="1" optional="hide"/>
+                    <field name="escribe" readonly="1" optional="show"
+                           widget="boolean_toggle"/>
+                    <field name="obligatoria" readonly="1" optional="show"
+                           widget="boolean_toggle"/>
+                    <field name="active" column_invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_fe_py_mapeo_form" model="ir.ui.view">
+            <field name="name">fe_py.mapeo.form</field>
+            <field name="model">fe_py.mapeo</field>
+            <field name="arch" type="xml">
+                <form string="Mapeo de Datos">
+                    <sheet>
+                        <group>
+                            <group string="Dato que FE_Py necesita">
+                                <field name="necesidad"/>
+                                <field name="modelo_origen" readonly="1"/>
+                                <field name="obligatoria" readonly="1"/>
+                                <field name="escribe" readonly="1"/>
+                            </group>
+                            <group string="De dónde lo saca">
+                                <field name="campo_posible_ids" invisible="1"/>
+                                <field name="campo_id" options="{'no_create': True}"/>
+                                <field name="tipo_campo" readonly="1"/>
+                                <field name="active"/>
+                            </group>
+                        </group>
+                        <group string="Para qué se usa">
+                            <field name="ayuda" nolabel="1" readonly="1"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_fe_py_mapeo_search" model="ir.ui.view">
+            <field name="name">fe_py.mapeo.search</field>
+            <field name="model">fe_py.mapeo</field>
+            <field name="arch" type="xml">
+                <search string="Mapeo de Datos">
+                    <field name="necesidad"/>
+                    <field name="campo_id"/>
+                    <filter name="fe_py_sin_mapear" string="Sin mapear"
+                            domain="[('campo_id', '=', False)]"/>
+                    <filter name="fe_py_obligatorias" string="Obligatorios"
+                            domain="[('obligatoria', '=', True)]"/>
+                    <separator string="Agrupar por"/>
+                    <group>
+                        <filter name="fe_py_group_modelo" string="Modelo"
+                                context="{'group_by': 'modelo_origen'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_fe_py_mapeo" model="ir.actions.act_window">
+            <field name="name">Mapeo de Datos</field>
+            <field name="res_model">fe_py.mapeo</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_fe_py_mapeo_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">Todavía no hay mapeos cargados</p>
+                <p>
+                    Acá se le indica a FE_Py de qué campo sacar los datos
+                    fiscales que no le pertenecen: el timbrado del Diario, su
+                    rango de numeración, la vigencia del timbrado y el número
+                    del comprobante.
+                </p><p>
+                    Esos datos los administra la localización que tenga
+                    instalada —sea cual sea— y FE_Py no los duplica: solo
+                    necesita saber dónde están. El botón <b>Cargar
+                    sugeridos</b> intenta detectarlos solo.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_fe_py_mapeo"
+                  name="Mapeo de Datos"
+                  parent="menu_fe_py_grupo"
+                  action="action_fe_py_mapeo"
+                  groups="account.group_account_manager"
+                  sequence="12"/>
+    </data>
+</odoo>

@@ -115,7 +115,7 @@ class FePyDocumentoElectronicoLog(models.Model):
 
     # ------------------------------------------------------------------
     # Trazabilidad fiscal: el historial de operaciones no se edita ni se
-    # borra una vez creado (mismo criterio que ya usa local_py para los
+    # borra una vez creado (mismo criterio que los
     # asientos generados por Ajuste de Inventario Físico).
     # ------------------------------------------------------------------
     def write(self, vals):

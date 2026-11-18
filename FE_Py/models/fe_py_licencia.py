@@ -8,8 +8,7 @@ uno nuevo: tenerla no alcanza para falsificar una licencia válida. La misma cla
 firma las licencias de todos los productos de FC_Py (Taller, local_py, l10n_py,
 FE_Py); el código de licencia identifica a qué producto corresponde (campo `p`), así
 que el código de un producto no sirve para activar otro. El control de este módulo es
-independiente del de local_py: aunque FE_Py dependa de local_py para funcionar, cada
-uno exige su propio código, y este archivo no importa nada de otros módulos de FC_Py.
+independiente del de los demás productos de FC_Py: cada uno exige su propio código, y este archivo no importa nada de otros módulos de FC_Py.
 
 El código de licencia tiene el formato "FC_PY1.<datos>.<firma>" (base64 URL-safe),
 con los datos: producto (`p`, debe ser "fe_py"), identificador de la base de datos

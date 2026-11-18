@@ -18,17 +18,25 @@
         historial de operaciones (envíos, respuestas y estados), tanto por
         comprobante como en una ventana unificada de log.
 
-        Este módulo no modifica archivos de local_py: toda extensión sobre
-        sus modelos (account.move, account.journal, res.company,
-        local_py.tipo_fiscal) se agrega por herencia desde FE_Py, y
-        todo elemento propio se identifica con el prefijo fe_py.
+        Este módulo es autosuficiente: no depende de ninguna localización.
+        Los códigos de SIFEN los define en sus propios catálogos, y los
+        datos fiscales que administra otro módulo (timbrado, numeración y
+        vigencia del timbrado) los toma del campo que se le indique en el
+        Mapeo de Datos, sea cual sea el módulo que los provea.
+
+        Numera los Diarios que emiten Documentos Electrónicos, con su
+        propia tabla de Documentos Anulados. Los Diarios de timbrado
+        físico los sigue numerando la localización, con la suya: son
+        conjuntos disjuntos y ninguno de los dos consulta al otro.
+
+        Todo elemento propio se identifica con el prefijo fe_py.
     """,
     "author": "FC_Py",
     "website": "http://www.www.com.py",
     "category": "Localización",
-    "version": "2026.19.014",
+    "version": "2026.19.015",
     "license": "OPL-1",
-    "depends": ["local_py"],
+    "depends": ["account"],
     "external_dependencies": {
         "python": ["lxml", "cryptography", "signxml", "qrcode"],
     },
@@ -37,7 +45,8 @@
         # -- Datos de catálogos DNIT --------------------------------------
         "data/fe_py_catalogos_data.xml",
         "data/fe_py_unidad_medida_data.xml",
-        "data/fe_py_tipo_fiscal_data.xml",
+        "data/fe_py_tipo_documento_data.xml",
+        "data/fe_py_tipo_identificacion_data.xml",
         "data/fe_py_sequence_data.xml",
         "data/fe_py_cron_data.xml",
         # -- Reporte KuDE -------------------------------------------------
@@ -58,9 +67,8 @@
         "views/account_journal_views.xml",
         "views/account_move_views.xml",
         "views/res_partner_views.xml",
-        # -- Campos sobre modelos de local_py ----------------------------
-        "views/fe_py_tipo_fiscal_views.xml",
-        "views/fe_py_tipo_identificacion_fiscal_views.xml",
+        # -- Mapeo de Datos y Documentos Anulados ------------------------
+        "views/fe_py_mapeo_views.xml",
         "views/fe_py_documento_anulado_views.xml",
         # -- Documento Electrónico, Log y Eventos ------------------------
         "views/fe_py_documento_electronico_views.xml",

@@ -88,7 +88,7 @@ class FePyDocumentoElectronico(models.Model):
         'Factura Electronica 001-001-0000123'."""
         self.ensure_one()
         tipo = self.tipo_fiscal_id.name or 'Documento Electronico'
-        nro = self.move_id.local_py_nro_documento or self.move_id.name or str(self.move_id.id)
+        nro = self.move_id.fe_py_nro_documento or self.move_id.name or str(self.move_id.id)
         return '%s %s' % (tipo, nro)
 
     def _fe_py_get_tipo_operacion_desc(self):
@@ -117,7 +117,7 @@ class FePyDocumentoElectronico(models.Model):
         más chica disponible en Guaraníes) — solo muestra la diferencia
         que ya exista entre ambos montos, si la hay."""
         self.ensure_one()
-        montos = self.move_id._local_py_mkt_montos_por_tasa()
+        montos = self.move_id._fe_py_montos_por_tasa()
         subtotal = montos['10'] + montos['5'] + montos['exento']
         return subtotal - self.move_id.amount_total
 

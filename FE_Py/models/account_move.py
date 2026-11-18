@@ -21,7 +21,7 @@ class AccountMove(models.Model):
         'fe_py.documento_electronico', string='Documento Electrónico', copy=False, readonly=True,
     )
     fe_py_es_electronico = fields.Boolean(
-        related='local_py_tipo_fiscal_id.fe_py_es_electronico', string='Es Electrónico',
+        related='journal_id.fe_py_es_electronico', string='Es Electrónico',
     )
     fe_py_es_nc_nd = fields.Boolean(
         string='Es Nota de Crédito/Débito Electrónica', compute='_compute_fe_py_es_nc_nd',
@@ -40,11 +40,12 @@ class AccountMove(models.Model):
                 move.reversed_entry_id.fe_py_documento_id.cdc if move.reversed_entry_id else False
             )
 
-    @api.depends('local_py_tipo_fiscal_id')
+    @api.depends('journal_id', 'journal_id.fe_py_tipo_documento_id')
     def _compute_fe_py_es_nc_nd(self):
+        # 5 = Nota de crédito electrónica, 6 = Nota de débito electrónica
         for move in self:
-            move.fe_py_es_nc_nd = move.local_py_tipo_fiscal_id.name in (
-                'Nota de Credito Electronica', 'Nota de Debito Electronica'
+            move.fe_py_es_nc_nd = (
+                move.journal_id.fe_py_tipo_documento_id.codigo in ('5', '6')
             )
 
     # -- Campos related, para poder mostrar todo embebido en la pestaña
@@ -225,22 +226,19 @@ class AccountMove(models.Model):
 
     @api.model
     def _get_suitable_journal_ids(self, move_type, company=False):
-        """local_py solo reconoce el Tipo Fiscal 'Factura Electronica' en su
-        filtro de Diarios ofrecidos (era el único electrónico que existía al
-        momento de escribirse ese método). Acá se agregan, sin modificar
-        ningún archivo de local_py, los Diarios configurados con los nuevos
-        Tipos Fiscales electrónicos de Nota de Crédito/Débito de Cliente."""
+        """Agrega a los Diarios que ofrece Odoo los que emiten Notas de
+        Crédito y Débito electrónicas, que de otro modo quedarían fuera.
+        Se decide por el Tipo de Documento Electrónico propio de FE_Py
+        (iTiDE 6 = Nota de débito, 5 = Nota de crédito), sin leer el
+        catálogo de ninguna localización."""
         journals = super()._get_suitable_journal_ids(move_type, company)
         if move_type in ('out_invoice', 'out_refund'):
-            target_name = (
-                'Nota de Debito Electronica' if move_type == 'out_invoice'
-                else 'Nota de Credito Electronica'
-            )
+            codigo = '6' if move_type == 'out_invoice' else '5'
             company_id = (company or self.env.company).id
             extra = self.env['account.journal'].search([
                 ('company_id', '=', company_id),
                 ('type', '=', 'sale'),
-                ('local_py_tipo_fiscal_id.name', '=', target_name),
+                ('fe_py_tipo_documento_id.codigo', '=', codigo),
             ])
             journals |= extra
         return journals
@@ -290,29 +288,46 @@ class AccountMove(models.Model):
             if not company[campo]:
                 faltantes.append('%s de la Compañía (Ajustes > Empresas)' % etiqueta)
 
-        # -- Diario y Timbrado -----------------------------------------
-        if not journal.local_py_inicio_vigencia_timbrado:
-            faltantes.append('Inicio de Vigencia del Timbrado (Diario "%s")' % journal.name)
-        tipo_fiscal = journal.local_py_tipo_fiscal_id
-        if not tipo_fiscal:
-            faltantes.append('Tipo de Documento Fiscal del Diario "%s"' % journal.name)
-        elif not tipo_fiscal.fe_py_itide:
+        # -- Mapeo de Datos --------------------------------------------
+        Mapeo = self.env['fe_py.mapeo']
+        for etiqueta in Mapeo._faltantes():
             faltantes.append(
-                'FEPy Código de Documento Electrónico del Tipo Fiscal "%s" '
-                '(Localización Paraguay > Tipos de Documentos Fiscales)' % tipo_fiscal.name
+                'Mapeo de Datos: falta indicar de qué campo sale "%s" '
+                '(Doc. Electrónicos Py > Mapeo de Datos)' % etiqueta
+            )
+
+        # -- Diario y Timbrado -----------------------------------------
+        mapa = Mapeo._mapa()
+        if not Mapeo._leer(journal, 'journal_timbrado', mapa):
+            faltantes.append('Timbrado (Diario "%s")' % journal.name)
+        if not Mapeo._leer(journal, 'journal_inicio_vigencia', mapa):
+            faltantes.append('Inicio de Vigencia del Timbrado (Diario "%s")' % journal.name)
+        if not Mapeo._leer(self, 'move_nro_documento', mapa):
+            faltantes.append('Nro. Documento del comprobante')
+        tipo_documento = journal.fe_py_tipo_documento_id
+        if not tipo_documento:
+            faltantes.append(
+                'Tipo de Documento Electrónico del Diario "%s"' % journal.name)
+        elif not tipo_documento.codigo:
+            faltantes.append(
+                'Código SIFEN del Tipo de Documento Electrónico "%s" '
+                '(Configuraciones Generales FEPy > Tipos de Documento '
+                'Electrónico)' % tipo_documento.name
             )
 
         # -- Receptor --------------------------------------------------
-        tipo_ident = partner.local_py_tipo_identificacion_fiscal_id
+        tipo_ident = partner.fe_py_tipo_identificacion_id
         if not tipo_ident:
-            faltantes.append('Tipo de Identificación Fiscal del Cliente "%s"' % partner.display_name)
+            faltantes.append(
+                'Tipo de Identificación SIFEN del Cliente "%s"' % partner.display_name)
         if not partner.vat:
             faltantes.append('RUT / Número de Identificación del Cliente "%s"' % partner.display_name)
         if tipo_ident and not partner.fe_py_es_contribuyente:
-            if not tipo_ident.fe_py_itipidrec:
+            if not tipo_ident.codigo:
                 faltantes.append(
-                    'FEPy Código de Documento SIFEN del Tipo de Identificación '
-                    '"%s" (Localización Paraguay > Tipos de Identificación Fiscal)'
+                    'Código SIFEN del Tipo de Identificación '
+                    '"%s" (Configuraciones Generales FEPy > Tipos de '
+                    'Identificación del Receptor)'
                     % tipo_ident.name
                 )
             elif tipo_ident.fe_py_itipidrec == '9' and not partner.fe_py_identificacion_texto:
@@ -358,7 +373,7 @@ class AccountMove(models.Model):
         term = self.invoice_payment_term_id
         if not term:
             faltantes.append('Términos de Pago (define si la operación es Contado o Crédito)')
-        elif term.local_py_condicion == 'credito':
+        elif term._fe_py_es_credito():
             if term.fe_py_condicion_credito == '2' and not self.fe_py_cuota_ids:
                 faltantes.append(
                     'FEPy Cuotas: el Término de Pago "%s" es por Cuota, hay que '
@@ -478,7 +493,7 @@ class AccountMove(models.Model):
         posted = super()._post(soft=soft)
         electronicos = posted.filtered(
             lambda m: m.move_type in ('out_invoice', 'out_refund')
-            and m.local_py_tipo_fiscal_id.fe_py_es_electronico
+            and m.journal_id.fe_py_es_electronico
             and not m.fe_py_documento_id
         )
         for move in electronicos:
@@ -591,3 +606,124 @@ class AccountMove(models.Model):
     def fe_py_action_enviar_email(self):
         return self._fe_py_get_documento().action_enviar_email_cliente()
 
+
+    # ==================================================================
+    # Accesos a los datos que FE_Py no produce
+    #
+    # Son campos calculados y NO almacenados: no guardan nada, solo leen
+    # por el Mapeo de Datos del campo que tenga la localización instalada.
+    # Existen para que el XML, el KuDE y los Eventos no tengan que
+    # resolver el mapeo cada uno por su cuenta.
+    # ==================================================================
+    fe_py_nro_documento = fields.Char(
+        string='FEPy Nro. Documento', compute='_compute_fe_py_datos_mapeados',
+        help='Número fiscal del comprobante, leído del campo indicado en el '
+             'Mapeo de Datos. En los Diarios electrónicos lo asigna FE_Py; '
+             'en los demás, la localización.',
+    )
+    fe_py_timbrado = fields.Integer(
+        string='FEPy Timbrado', compute='_compute_fe_py_datos_mapeados')
+    fe_py_inicio_vigencia = fields.Date(
+        string='FEPy Inicio de Vigencia del Timbrado',
+        compute='_compute_fe_py_datos_mapeados')
+
+    @api.depends('journal_id')
+    def _compute_fe_py_datos_mapeados(self):
+        Mapeo = self.env['fe_py.mapeo']
+        mapa = Mapeo._mapa()
+        for move in self:
+            move.fe_py_nro_documento = Mapeo._leer(move, 'move_nro_documento', mapa) or False
+            timbrado = Mapeo._leer(move.journal_id, 'journal_timbrado', mapa)
+            move.fe_py_timbrado = int(timbrado) if timbrado else 0
+            move.fe_py_inicio_vigencia = Mapeo._leer(
+                move.journal_id, 'journal_inicio_vigencia', mapa) or False
+
+    # ==================================================================
+    # Numeración de los comprobantes electrónicos
+    #
+    # FE_Py numera SOLO los Diarios que emiten Documentos Electrónicos, y
+    # escribe el resultado en el mismo campo que usa la localización — el
+    # que indica el Mapeo de Datos. Así hay un único número por
+    # comprobante, y los informes de la localización (Marangatu, Libro IVA)
+    # siguen leyendo lo mismo de siempre.
+    #
+    # La localización tiene que dejar de numerar los Diarios electrónicos.
+    # Si igual lo hace, acá se detecta y se avisa en vez de pisar en
+    # silencio: dos módulos numerando el mismo comprobante es un error de
+    # configuración, no algo que convenga resolver por orden de ejecución.
+    # ==================================================================
+    @api.model_create_multi
+    def create(self, vals_list):
+        moves = super().create(vals_list)
+        moves._fe_py_asignar_numero()
+        return moves
+
+    def _fe_py_asignar_numero(self):
+        # Durante la instalación o actualización del módulo el registro
+        # todavía no está listo y el Mapeo puede no existir: no es momento
+        # de numerar nada.
+        if not self.env.registry.ready:
+            return
+        Mapeo = self.env['fe_py.mapeo']
+        campo = Mapeo._mapa().get('move_nro_documento')
+        if not campo:
+            return
+        for move in self:
+            if move.move_type not in ('out_invoice', 'out_refund'):
+                continue
+            if not move.journal_id.fe_py_es_electronico:
+                continue
+            if campo not in move._fields:
+                continue
+            actual = move[campo]
+            if actual:
+                # Otro módulo ya numeró este comprobante electrónico.
+                esperado = move.journal_id.fe_py_siguiente_numero_disponible()
+                if esperado and actual != esperado:
+                    _logger.warning(
+                        "FE_Py: el comprobante del Diario '%s' ya tenía el número %s "
+                        "asignado por otro módulo; FE_Py habría asignado %s. "
+                        "Revise que la localización no numere los Diarios "
+                        "electrónicos.", move.journal_id.name, actual, esperado)
+                    move.message_post(body=(
+                        'Atención: este comprobante electrónico ya tenía el número '
+                        '<b>%s</b> asignado por otro módulo. FE_Py habría asignado '
+                        '<b>%s</b>. Dos módulos numerando el mismo Diario es un '
+                        'error de configuración: la localización no debería numerar '
+                        'los Diarios electrónicos.' % (actual, esperado)))
+                continue
+            numero = move.journal_id.fe_py_siguiente_numero_disponible()
+            if numero:
+                move[campo] = numero
+
+    # ==================================================================
+    # Montos por tasa de IVA
+    # ==================================================================
+    def _fe_py_montos_por_tasa(self):
+        """Totales del comprobante agrupados por tasa de IVA.
+
+        Devuelve {'10': x, '5': y, 'exento': z}, con los importes CON
+        impuesto incluido. Clasifica por el Código de Afectación IVA del
+        impuesto —que es un dato propio de FE_Py— y, si la línea no lo
+        tiene cargado, cae en la tasa del impuesto. Usa solo campos
+        nativos de Odoo: no depende de ninguna localización.
+        """
+        self.ensure_one()
+        montos = {'10': 0.0, '5': 0.0, 'exento': 0.0}
+        for linea in self.invoice_line_ids:
+            if linea.display_type in ('line_section', 'line_note'):
+                continue
+            impuesto = linea.tax_ids[:1]
+            afectacion = impuesto.fe_py_afectacion_iva_id if impuesto else False
+            # Exento / Exonerado: proporción gravada 0, o sin impuesto.
+            if not impuesto or (afectacion and not afectacion.proporcion_gravada):
+                montos['exento'] += linea.price_total
+                continue
+            tasa = impuesto.amount or 0.0
+            if tasa >= 9.5:
+                montos['10'] += linea.price_total
+            elif tasa >= 4.5:
+                montos['5'] += linea.price_total
+            else:
+                montos['exento'] += linea.price_total
+        return montos

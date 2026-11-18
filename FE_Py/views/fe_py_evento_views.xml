@@ -9,7 +9,7 @@
                     <field name="tipo_evento"/>
                     <field name="documento_id"/>
                     <field name="journal_id"/>
-                    <field name="tipo_fiscal_id"/>
+                    <field name="tipo_documento_id"/>
                     <field name="nro_documento_desde"/>
                     <field name="nro_documento_hasta"/>
                     <field name="estado"
@@ -45,7 +45,7 @@
                             </group>
                             <group>
                                 <field name="journal_id" invisible="tipo_evento != 'inutilizacion'"/>
-                                <field name="tipo_fiscal_id" invisible="tipo_evento != 'inutilizacion'"/>
+                                <field name="tipo_documento_id" invisible="tipo_evento != 'inutilizacion'"/>
                                 <field name="nro_documento_desde" invisible="tipo_evento != 'inutilizacion'"/>
                                 <field name="nro_documento_hasta" invisible="tipo_evento != 'inutilizacion'"/>
                             </group>

@@ -80,16 +80,17 @@ class FePyDocumentoElectronico(models.Model):
     def _fe_py_obtener_ite_ide(self, move):
         """Código y descripción del Tipo de Documento Electrónico (iTiDE).
 
-        Se lee del propio Tipo de Documento Fiscal, no de una tabla en el
-        código: habilitar Factura de Exportación, Autofactura o Nota de
-        Remisión es cargar su código en el catálogo."""
-        tipo_fiscal = move.local_py_tipo_fiscal_id
-        if not tipo_fiscal.fe_py_itide:
+        Se lee del Tipo de Documento Electrónico del Diario, no de una
+        tabla en el código: habilitar Factura de Exportación, Autofactura
+        o Nota de Remisión es cargar su código en el catálogo."""
+        tipo_documento = move.journal_id.fe_py_tipo_documento_id
+        if not tipo_documento.codigo:
             raise exceptions.UserError(
-                'El Tipo de Documento Fiscal "%s" no tiene cargado su "FEPy '
-                'Código de Documento Electrónico". Completarlo en Localización '
-                'Paraguay > Tipos de Documentos Fiscales.'
-                % (tipo_fiscal.name or '(vacío)')
+                'El Tipo de Documento Electrónico "%s" del Diario "%s" no '
+                'tiene cargado su Código SIFEN. Completarlo en '
+                'Configuraciones Generales FEPy > Tipos de Documento '
+                'Electrónico.'
+                % (tipo_documento.name or '(vacío)', move.journal_id.name)
             )
         return tipo_fiscal.fe_py_itide, tipo_fiscal.fe_py_itide_descripcion or tipo_fiscal.name
 
@@ -106,7 +107,7 @@ class FePyDocumentoElectronico(models.Model):
         i_tide, _desc = self._fe_py_obtener_ite_ide(move)
         ruc_em, dv_em = self._fe_py_split_ruc_dv(company.vat, 'la Compañía')
 
-        nro_doc = move.local_py_nro_documento or ''
+        nro_doc = move.fe_py_nro_documento or ''
         partes = nro_doc.split('-')
         if len(partes) != 3:
             raise exceptions.UserError(
@@ -250,12 +251,12 @@ class FePyDocumentoElectronico(models.Model):
         g = etree.SubElement(de, '{%s}gTimb' % SIFEN_NS)
         _sub(g, 'iTiDE', i_tide)
         _sub(g, 'dDesTiDE', d_des_tide)
-        _sub(g, 'dNumTim', '%08d' % (move.local_py_timbrado or 0))
-        d_est, d_pun_exp, d_num_doc = move.local_py_nro_documento.split('-')
+        _sub(g, 'dNumTim', '%08d' % (move.fe_py_timbrado or 0))
+        d_est, d_pun_exp, d_num_doc = move.fe_py_nro_documento.split('-')
         _sub(g, 'dEst', d_est.zfill(3))
         _sub(g, 'dPunExp', d_pun_exp.zfill(3))
         _sub(g, 'dNumDoc', d_num_doc.zfill(7))
-        _sub(g, 'dFeIniT', journal.local_py_inicio_vigencia_timbrado.strftime('%Y-%m-%d'))
+        _sub(g, 'dFeIniT', move.fe_py_inicio_vigencia.strftime('%Y-%m-%d'))
 
     def _fe_py_xml_gDatGralOpe(self, de, move, company, partner):
         g = etree.SubElement(de, '{%s}gDatGralOpe' % SIFEN_NS)
@@ -372,13 +373,14 @@ class FePyDocumentoElectronico(models.Model):
             _sub(g, 'dRucRec', ruc_rec)
             _sub(g, 'dDVRec', dv_rec)
         else:
-            tipo_ident = partner.local_py_tipo_identificacion_fiscal_id
-            codigo = tipo_ident.fe_py_itipidrec if tipo_ident else False
+            tipo_ident = partner.fe_py_tipo_identificacion_id
+            codigo = tipo_ident.codigo if tipo_ident else False
             if not codigo:
                 raise exceptions.UserError(
-                    'El Tipo de Identificación Fiscal "%s" del Cliente "%s" no '
-                    'tiene mapeado su código SIFEN equivalente. Completarlo en '
-                    'Localización Paraguay > Tipos de Identificación Fiscal.'
+                    'El Tipo de Identificación SIFEN "%s" del Cliente "%s" no '
+                    'tiene cargado su Código SIFEN. Completarlo en '
+                    'Configuraciones Generales FEPy > Tipos de Identificación '
+                    'del Receptor.'
                     % (tipo_ident.name if tipo_ident else '(vacío)', partner.display_name)
                 )
             _sub(g, 'iTipIDRec', codigo)
@@ -496,7 +498,8 @@ class FePyDocumentoElectronico(models.Model):
         Contado -> gPaConEIni (forma de pago) es OBLIGATORIO.
         Crédito  -> gPagCred, con plazo o con detalle de cuotas.
         """
-        condicion = move.invoice_payment_term_id.local_py_condicion if move.invoice_payment_term_id else False
+        term = move.invoice_payment_term_id
+        condicion = 'credito' if (term and term._fe_py_es_credito()) else 'contado'
         moneda = move.currency_id.name or 'PYG'
         g_cond = etree.SubElement(parent, '{%s}gCamCond' % SIFEN_NS)
 
@@ -602,7 +605,7 @@ class FePyDocumentoElectronico(models.Model):
             Manual:  F014 = F008 - F011 - F012 - F013
             NT 001:  F014 = F008 - F013 + F025   <-- la que se aplica acá
         """
-        montos = move._local_py_mkt_montos_por_tasa()
+        montos = move._fe_py_montos_por_tasa()
         base_10 = montos['10'] / 1.10 if montos['10'] else 0
         iva_10 = montos['10'] - base_10
         base_5 = montos['5'] / 1.05 if montos['5'] else 0

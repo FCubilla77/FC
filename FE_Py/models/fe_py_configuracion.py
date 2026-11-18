@@ -4,7 +4,7 @@
 Reemplaza a la sección de Facturación Electrónica que antes vivía en
 Ajustes > Empresas. En la Compañía queda únicamente lo nativo de Odoo.
 
-Sigue el mismo patrón que "Configuraciones Localización Py" de local_py:
+Una sola pantalla con todo lo configurable del módulo, en pestañas:
 un registro por Compañía, con pestañas por tema.
 """
 import base64
@@ -87,7 +87,7 @@ class FePyConfiguracion(models.Model):
     tipo_regimen_id = fields.Many2one(
         'fe_py.tipo_regimen', string='FEPy Tipo de Régimen',
         help='Se informa como cTipReg. Distinto de la Imputación Tributaria '
-             'de local_py: acá van los 8 regímenes de la Tabla 1 del Manual '
+             'de la localización: acá van los 8 regímenes de la Tabla 1 del Manual '
              '(Turismo, Importador, Exportador, Maquila, Ley 60/90, etc.).',
     )
     actividad_economica_ids = fields.Many2many(
@@ -220,6 +220,12 @@ class FePyConfiguracion(models.Model):
     unidad_medida_ids = fields.Many2many(
         'fe_py.unidad_medida', string='Unidades de Medida',
         compute='_compute_catalogos', inverse='_inverse_catalogos')
+    tipo_documento_ids = fields.Many2many(
+        'fe_py.tipo_documento', string='Tipos de Documento Electrónico',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
+    tipo_identificacion_ids = fields.Many2many(
+        'fe_py.tipo_identificacion', string='Tipos de Identificación del Receptor',
+        compute='_compute_catalogos', inverse='_inverse_catalogos')
 
     # Campo del catálogo -> modelo que muestra
     _CATALOGOS_EN_PESTANAS = {
@@ -236,6 +242,8 @@ class FePyConfiguracion(models.Model):
         'condicion_tipo_cambio_ids': 'fe_py.condicion_tipo_cambio',
         'afectacion_iva_ids': 'fe_py.afectacion_iva',
         'unidad_medida_ids': 'fe_py.unidad_medida',
+        'tipo_documento_ids': 'fe_py.tipo_documento',
+        'tipo_identificacion_ids': 'fe_py.tipo_identificacion',
     }
 
     @api.depends('company_id')

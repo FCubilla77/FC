@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            iTiDE (C002) — Tabla 2 del Manual Técnico v150.
+
+            Tabla EXCLUSIVA de SIFEN: no tiene nada que ver con la Tabla 4
+            de Marangatu, que numera los mismos comprobantes 101-112. Por
+            eso este catálogo es propio de FE_Py y no se lee de ninguna
+            localización.
+
+            noupdate="1": una vez instalado, el usuario puede ajustar
+            códigos y descripciones sin que una actualización los pise.
+        -->
+
+        <record id="fe_py_tipo_documento_na" model="fe_py.tipo_documento">
+            <field name="sequence">1</field>
+            <field name="codigo"></field>
+            <field name="name">No aplica — el Diario no emite electrónicamente</field>
+            <field name="es_electronico" eval="False"/>
+        </record>
+
+        <record id="fe_py_tipo_documento_factura" model="fe_py.tipo_documento">
+            <field name="sequence">10</field>
+            <field name="codigo">1</field>
+            <field name="name">Factura electrónica</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_factura_exportacion" model="fe_py.tipo_documento">
+            <field name="sequence">20</field>
+            <field name="codigo">2</field>
+            <field name="name">Factura electrónica de exportación</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_factura_importacion" model="fe_py.tipo_documento">
+            <field name="sequence">30</field>
+            <field name="codigo">3</field>
+            <field name="name">Factura electrónica de importación</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_autofactura" model="fe_py.tipo_documento">
+            <field name="sequence">40</field>
+            <field name="codigo">4</field>
+            <field name="name">Autofactura electrónica</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_nota_credito" model="fe_py.tipo_documento">
+            <field name="sequence">50</field>
+            <field name="codigo">5</field>
+            <field name="name">Nota de crédito electrónica</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_nota_debito" model="fe_py.tipo_documento">
+            <field name="sequence">60</field>
+            <field name="codigo">6</field>
+            <field name="name">Nota de débito electrónica</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_nota_remision" model="fe_py.tipo_documento">
+            <field name="sequence">70</field>
+            <field name="codigo">7</field>
+            <field name="name">Nota de remisión electrónica</field>
+        </record>
+
+        <record id="fe_py_tipo_documento_comprobante_retencion" model="fe_py.tipo_documento">
+            <field name="sequence">80</field>
+            <field name="codigo">8</field>
+            <field name="name">Comprobante de retención electrónico</field>
+        </record>
+
+    </data>
+</odoo>

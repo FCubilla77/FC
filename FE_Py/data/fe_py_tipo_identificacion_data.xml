@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            iTipIDRec (D210) — Tabla 5 del Manual Técnico v150.
+
+            Tabla EXCLUSIVA de SIFEN. No coincide con la Tabla 3 de
+            Marangatu, que numera los mismos documentos 11-17. Son dos
+            clasificaciones distintas del mismo contacto, para dos
+            regímenes distintos — por eso el Contacto lleva las dos y esta
+            no reemplaza a la de la localización.
+
+            El RUC no tiene código en esta tabla: un receptor con RUC se
+            informa por dRucRec/dDVRec. Se incluye igual como fila, con la
+            marca "Es RUC", porque es lo que decide si el receptor se
+            declara Contribuyente (iNatRec=1) o no (iNatRec=2).
+        -->
+
+        <record id="fe_py_tipo_identificacion_ruc" model="fe_py.tipo_identificacion">
+            <field name="sequence">1</field>
+            <field name="codigo"></field>
+            <field name="name">RUC — Contribuyente paraguayo</field>
+            <field name="es_ruc" eval="True"/>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_cedula" model="fe_py.tipo_identificacion">
+            <field name="sequence">10</field>
+            <field name="codigo">1</field>
+            <field name="name">Cédula paraguaya</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_pasaporte" model="fe_py.tipo_identificacion">
+            <field name="sequence">20</field>
+            <field name="codigo">2</field>
+            <field name="name">Pasaporte</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_cedula_extranjera" model="fe_py.tipo_identificacion">
+            <field name="sequence">30</field>
+            <field name="codigo">3</field>
+            <field name="name">Cédula extranjera</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_carnet_residencia" model="fe_py.tipo_identificacion">
+            <field name="sequence">40</field>
+            <field name="codigo">4</field>
+            <field name="name">Carnet de residencia</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_innominado" model="fe_py.tipo_identificacion">
+            <field name="sequence">50</field>
+            <field name="codigo">5</field>
+            <field name="name">Innominado</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_diplomatico" model="fe_py.tipo_identificacion">
+            <field name="sequence">60</field>
+            <field name="codigo">6</field>
+            <field name="name">Tarjeta Diplomática de exoneración fiscal</field>
+        </record>
+
+        <record id="fe_py_tipo_identificacion_otro" model="fe_py.tipo_identificacion">
+            <field name="sequence">90</field>
+            <field name="codigo">9</field>
+            <field name="name">Otro</field>
+        </record>
+
+    </data>
+</odoo>
