@@ -426,6 +426,23 @@ class AccountMove(models.Model):
                         % self.reversed_entry_id.display_name
                     )
 
+        # -- Número inutilizado ----------------------------------------
+        # Un número que ya se inutilizó ante SIFEN no se puede volver a
+        # emitir: SIFEN lo rechazaría. Se avisa acá, al confirmar, y con el
+        # siguiente número disponible ya calculado, en vez de dejar que el
+        # rechazo aparezca recién al enviar.
+        numero = self.fe_py_nro_documento
+        if numero and self.env['fe_py.documento_anulado'].sudo().search_count([
+                ('journal_id', '=', self.journal_id.id), ('numero', '=', numero)]):
+            disponible = self.journal_id.fe_py_siguiente_numero_disponible()
+            faltantes.append(
+                'El número %s fue inutilizado ante SIFEN y no se puede volver '
+                'a emitir.%s' % (
+                    numero,
+                    (' El siguiente disponible para este Diario es %s.' % disponible)
+                    if disponible else '')
+            )
+
         # -- Compras Públicas (B2G) ------------------------------------
         if (self.fe_py_tipo_operacion_id and self.fe_py_tipo_operacion_id.es_b2g
                 and not self.fe_py_venta_directa):
@@ -655,10 +672,21 @@ class AccountMove(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         moves = super().create(vals_list)
-        moves._fe_py_asignar_numero()
+        moves._fe_py_asignar_numero(avisar_conflicto=True)
         return moves
 
-    def _fe_py_asignar_numero(self):
+    def write(self, vals):
+        """Al cambiar de Diario en un borrador ya guardado hay que volver a
+        numerar: la localización limpia el número cuando el Diario nuevo es
+        electrónico (no es suyo), y si FE_Py solo numerara en create(), ese
+        comprobante quedaría sin número para siempre y no se podría
+        confirmar."""
+        res = super().write(vals)
+        if 'journal_id' in vals and not self.env.context.get('fe_py_asignando_numero'):
+            self.filtered(lambda m: m.state == 'draft')._fe_py_asignar_numero()
+        return res
+
+    def _fe_py_asignar_numero(self, avisar_conflicto=False):
         # Durante la instalación o actualización del módulo el registro
         # todavía no está listo y el Mapeo puede no existir: no es momento
         # de numerar nada.
@@ -677,8 +705,12 @@ class AccountMove(models.Model):
                 continue
             actual = move[campo]
             if actual:
-                # Otro módulo ya numeró este comprobante electrónico.
-                esperado = move.journal_id.fe_py_siguiente_numero_disponible()
+                # Otro módulo ya numeró este comprobante electrónico. Solo se
+                # avisa al crearlo: en un write posterior el número ya
+                # asignado es el correcto y volver a compararlo daría un
+                # falso positivo.
+                esperado = (move.journal_id.fe_py_siguiente_numero_disponible()
+                            if avisar_conflicto else False)
                 if esperado and actual != esperado:
                     _logger.warning(
                         "FE_Py: el comprobante del Diario '%s' ya tenía el número %s "
@@ -694,7 +726,8 @@ class AccountMove(models.Model):
                 continue
             numero = move.journal_id.fe_py_siguiente_numero_disponible()
             if numero:
-                move[campo] = numero
+                # El contexto evita que este write vuelva a entrar acá.
+                move.with_context(fe_py_asignando_numero=True)[campo] = numero
 
     # ==================================================================
     # Montos por tasa de IVA
