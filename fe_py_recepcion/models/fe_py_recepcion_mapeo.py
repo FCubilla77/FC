@@ -44,18 +44,27 @@ NOMBRES_ORIGEN = {
     'cabecera': ORIGENES_DOCUMENTO, 'linea': ORIGENES_LINEA, 'proveedor': ORIGENES_PROVEEDOR,
 }
 
-# Mapeo sugerido para local_py (>= 2026.19.017). Cada fila:
-# (destino, tipo_documento, campo de la recepción o None, valor fijo o None, campo destino)
-SUGERIDO_LOCAL_PY = [
-    ('cabecera', 'todos', 'cdc', None, 'l10n_py_cdc'),
-    ('cabecera', 'todos', 'cdc_asociado', None, 'l10n_py_cdc_asociado'),
-    ('cabecera', 'todos', 'timbrado', None, 'l10n_py_timbrado'),
-    ('cabecera', 'todos', 'nro_documento', None, 'l10n_py_nro_documento'),
-    ('cabecera', '1', None, 'local_py.tipo_fiscal_factura_electronica', 'local_py_tipo_fiscal_id'),
-    ('cabecera', '5', None, 'local_py.tipo_fiscal_nota_credito', 'local_py_tipo_fiscal_id'),
-    ('cabecera', '6', None, 'local_py.tipo_fiscal_nota_debito', 'local_py_tipo_fiscal_id'),
-    ('proveedor', 'todos', None, 'local_py.tipo_identificacion_ruc',
-     'l10n_py_tipo_identificacion_fiscal_id'),
+# Mapeo sugerido. Cada fila:
+# (módulo, destino, tipo_documento, campo de la recepción o None, valor fijo o None, campo destino)
+# Las filas de un módulo que no está instalado (o que no tiene ese campo) se omiten; este
+# módulo no depende de ninguno de los dos.
+SUGERIDO = [
+    ('local_py', 'cabecera', 'todos', 'cdc', None, 'local_py_cdc'),
+    ('local_py', 'cabecera', 'todos', 'cdc_asociado', None, 'local_py_cdc_asociado'),
+    ('local_py', 'cabecera', 'todos', 'timbrado', None, 'local_py_timbrado'),
+    ('local_py', 'cabecera', 'todos', 'nro_documento', None, 'local_py_nro_documento'),
+    ('local_py', 'cabecera', '1', None, 'local_py.tipo_fiscal_factura_electronica',
+     'local_py_tipo_fiscal_id'),
+    ('local_py', 'cabecera', '5', None, 'local_py.tipo_fiscal_nota_credito',
+     'local_py_tipo_fiscal_id'),
+    ('local_py', 'cabecera', '6', None, 'local_py.tipo_fiscal_nota_debito',
+     'local_py_tipo_fiscal_id'),
+    ('local_py', 'proveedor', 'todos', None, 'local_py.tipo_identificacion_ruc',
+     'local_py_tipo_identificacion_fiscal_id'),
+    ('FE_Py', 'proveedor', 'todos', None, 'FE_Py.fe_py_tipo_identificacion_ruc',
+     'fe_py_tipo_identificacion_id'),
+    ('FE_Py', 'proveedor', 'todos', 'emisor_tipo_contribuyente', None,
+     'fe_py_tipo_contribuyente_id'),
 ]
 
 
@@ -292,12 +301,14 @@ class FePyRecepcionMapeo(models.Model):
             registro = self.env.ref(texto, raise_if_not_found=False)
             if registro and registro._name == campo.relation:
                 return True, registro.id
-        nombre = Comodelo._rec_name or 'name'
-        if nombre not in Comodelo._fields:
-            return False, None
-        registros = Comodelo.search([(nombre, '=', texto)], limit=2)
-        if len(registros) == 1:
-            return True, registros.id
+        # Primero por el nombre del registro; si no hay coincidencia única, por su código
+        # (los catálogos de SIFEN se identifican por «codigo»).
+        for nombre in dict.fromkeys([Comodelo._rec_name or 'name', 'codigo', 'code']):
+            if nombre not in Comodelo._fields:
+                continue
+            registros = Comodelo.search([(nombre, '=', texto)], limit=2)
+            if len(registros) == 1:
+                return True, registros.id
         return False, None
 
     def _resolver_seleccion(self, campo, valor):
@@ -312,16 +323,15 @@ class FePyRecepcionMapeo(models.Model):
         return False, None
 
     # ------------------------------------------------------------------
-    # Mapeo sugerido para local_py
+    # Mapeo sugerido y limpieza
     # ------------------------------------------------------------------
-    def cargar_sugerido_local_py(self):
-        """Carga el mapeo sugerido para local_py (CDC, timbrado, número, tipo fiscal y tipo de
-        identificación del proveedor) en la compañía actual. No pisa ni duplica lo ya cargado y
-        omite lo que local_py (o la versión instalada) no tenga."""
+    def cargar_sugerido(self):
+        """Carga el mapeo sugerido de local_py y de FE_Py (lo que esté instalado) en la compañía
+        actual. No pisa ni duplica lo ya cargado y omite lo que el módulo instalado no tenga."""
         Campos = self.env['ir.model.fields'].sudo()
         company = self.env.company
-        creados, omitidos = 0, 0
-        for destino, tipo_doc, campo_origen, fijo, campo_destino in SUGERIDO_LOCAL_PY:
+        creados, omitidos = {}, 0
+        for modulo, destino, tipo_doc, campo_origen, fijo, campo_destino in SUGERIDO:
             f_destino = Campos.search([('model', '=', MODELO_DESTINO[destino]),
                                        ('name', '=', campo_destino)], limit=1)
             f_origen = Campos.search([('model', '=', MODELO_ORIGEN[destino]),
@@ -342,17 +352,37 @@ class FePyRecepcionMapeo(models.Model):
                 'valor_fijo_id': registro_fijo.id if registro_fijo else False,
                 'campo_destino_id': f_destino.id,
             })
-            creados += 1
-        if omitidos and not creados:
-            mensaje = _('No se encontraron los campos de local_py (se requiere 2026.19.017 o '
-                        'posterior instalado).')
+            creados[modulo] = creados.get(modulo, 0) + 1
+        total = sum(creados.values())
+        if omitidos and not total:
+            mensaje = _('No se encontraron los campos de local_py ni de FE_Py (los módulos no '
+                        'están instalados o son de una versión anterior).')
             tipo = 'warning'
         else:
-            mensaje = _('Mapeo sugerido cargado: %(creados)s fila(s) nueva(s)%(omitidos)s.',
-                        creados=creados,
-                        omitidos=_(', %s omitida(s) por no existir el campo en local_py', omitidos)
-                        % omitidos if omitidos else '')
+            detalle = ', '.join('%s: %s' % (modulo, cantidad) for modulo, cantidad in creados.items())
+            mensaje = _('Mapeo sugerido cargado: %(total)s fila(s) nueva(s)%(detalle)s.',
+                        total=total, detalle=' (%s)' % detalle if detalle else '')
+            if omitidos:
+                mensaje += ' ' + _('%s fila(s) omitida(s) por no existir el módulo o el campo.',
+                                   omitidos)
             tipo = 'success'
+        return self._notificar(mensaje, tipo)
+
+    def eliminar_todo(self):
+        """Elimina todo el mapeo de campos de la compañía actual (también las filas archivadas)."""
+        mapeos = self.with_context(active_test=False).search(
+            [('company_id', '=', self.env.company.id)])
+        cantidad = len(mapeos)
+        mapeos.unlink()
+        if cantidad:
+            mensaje = _('Se eliminaron %s fila(s) del mapeo. Las facturas se generan solo con '
+                        'datos estándar de Odoo.', cantidad)
+        else:
+            mensaje = _('No había filas de mapeo para eliminar.')
+        return self._notificar(mensaje, 'success' if cantidad else 'info')
+
+    @api.model
+    def _notificar(self, mensaje, tipo):
         return {
             'type': 'ir.actions.client', 'tag': 'display_notification',
             'params': {'title': _('Mapeo de campos'), 'message': mensaje, 'type': tipo,

@@ -53,7 +53,11 @@ class ResConfigSettings(models.TransientModel):
 
     def fe_py_recepcion_cargar_sugerido(self):
         self.ensure_one()
-        return self.env['fe_py_recepcion.mapeo'].cargar_sugerido_local_py()
+        return self.env['fe_py_recepcion.mapeo'].cargar_sugerido()
+
+    def fe_py_recepcion_eliminar_mapeo(self):
+        self.ensure_one()
+        return self.env['fe_py_recepcion.mapeo'].eliminar_todo()
 
     fe_py_recepcion_fetchmail_id = fields.Many2one(
         related='company_id.fe_py_recepcion_fetchmail_id', readonly=True)

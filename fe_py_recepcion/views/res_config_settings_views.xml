@@ -85,8 +85,14 @@
                                 </div>
                                 <div class="mt4" invisible="fe_py_recepcion_mapeo_estado != 'sin_mapeo'">
                                     <button name="fe_py_recepcion_cargar_sugerido" type="object"
-                                            string="Cargar mapeo sugerido de local_py" class="btn-link"
+                                            string="Cargar mapeo sugerido" class="btn-link"
                                             icon="oi-arrow-right"/>
+                                </div>
+                                <div class="mt4" invisible="fe_py_recepcion_mapeo_estado == 'sin_mapeo'">
+                                    <button name="fe_py_recepcion_eliminar_mapeo" type="object"
+                                            string="Eliminar todo el mapeo" class="btn-link"
+                                            icon="oi-arrow-right"
+                                            confirm="¿Eliminar todo el mapeo de campos de esta compañía? Las facturas se generarán solo con datos estándar de Odoo hasta que se cargue otro mapeo."/>
                                 </div>
                             </setting>
                         </block>

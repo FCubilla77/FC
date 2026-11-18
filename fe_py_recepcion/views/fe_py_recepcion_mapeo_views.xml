@@ -6,8 +6,11 @@
         <field name="arch" type="xml">
             <list string="Mapeo de campos">
                 <header>
-                    <button name="cargar_sugerido_local_py" type="object" display="always"
-                            string="Cargar mapeo sugerido de local_py"/>
+                    <button name="cargar_sugerido" type="object" display="always"
+                            string="Cargar mapeo sugerido"/>
+                    <button name="eliminar_todo" type="object" display="always"
+                            string="Eliminar todo el mapeo"
+                            confirm="¿Eliminar todo el mapeo de campos de esta compañía? Las facturas se generarán solo con datos estándar de Odoo hasta que se cargue otro mapeo."/>
                 </header>
                 <field name="sequence" widget="handle"/>
                 <field name="destino"/>
@@ -93,7 +96,7 @@
         <field name="view_mode">list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Sin mapeo de campos</p>
-            <p>La factura se genera con datos estándar de Odoo. Para copiar además el CDC, el timbrado, el tipo fiscal u otros datos del XML a campos de otro módulo, cargue el mapeo sugerido de local_py o agregue las filas y active la opción en Ajustes.</p>
+            <p>La factura se genera con datos estándar de Odoo. Para copiar además el CDC, el timbrado, el tipo fiscal u otros datos del XML a campos de otro módulo, cargue el mapeo sugerido (local_py y FE_Py) o agregue las filas y active la opción en Ajustes.</p>
         </field>
     </record>
 </odoo>
