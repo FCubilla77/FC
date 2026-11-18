@@ -528,6 +528,24 @@ class AccountMove(models.Model):
         # El autocompletado solo aplica al lado de venta (Timbrado, Nro.
         # Documento y Tipo Fiscal se toman del diario). En factura/nota de
         # crédito de proveedor, el usuario carga los tres valores manualmente.
+        #
+        # El Nro. Documento NO se filtra acá a propósito: el filtro por Diario
+        # físico vive adentro de `local_py_siguiente_numero_disponible()`, que para
+        # un Diario electrónico devuelve vacío. Así esta misma línea resuelve los
+        # dos casos al cambiar de Diario:
+        #   - a un Diario físico    -> se asigna el siguiente número de ESE timbrado;
+        #   - a un Diario electrónico -> se LIMPIA el número que hubiera quedado del
+        #     Diario anterior, y lo completa el módulo de Facturación Electrónica.
+        # Envolver la asignación en un "if es físico" cumpliría el primer caso pero
+        # rompería el segundo: dejaría pegado un número del talonario anterior, que
+        # además queda reservado para siempre en la numeración de aquel Diario.
+        #
+        # OJO con el orden: que el módulo de Facturación Electrónica complete el
+        # número DESPUÉS de esta limpieza solo está garantizado si ese módulo depende
+        # de local_py (Odoo recolecta los onchange en orden de carga). Si no depende,
+        # el orden no está definido y podría escribir antes que esta línea limpie;
+        # en ese caso ese módulo tiene que asignar el número en otro momento
+        # (create() o al confirmar) en vez de en un onchange sobre journal_id.
         for move in self:
             if move.journal_id and move.move_type in SALE_MOVE_TYPES:
                 move.local_py_timbrado = move.journal_id.local_py_timbrado
@@ -545,7 +563,13 @@ class AccountMove(models.Model):
                 journal = self.env['account.journal'].browse(journal_id)
                 vals.setdefault('local_py_timbrado', journal.local_py_timbrado)
                 vals.setdefault('local_py_tipo_fiscal_id', journal.local_py_tipo_fiscal_id.id)
-                if not vals.get('local_py_nro_documento'):
+                # El Timbrado y el Tipo Fiscal se completan siempre; el número, solo
+                # en Diarios físicos. En los electrónicos no se escribe nada —ni
+                # siquiera vacío— para no pisar lo que ponga el módulo de Facturación
+                # Electrónica. El `if not vals.get(...)` se conserva: ya respeta un
+                # número que venga de afuera, aunque el Diario sea físico.
+                if not vals.get('local_py_nro_documento') \
+                        and journal._local_py_numera_este_diario():
                     vals['local_py_nro_documento'] = self._get_next_local_py_nro_documento(
                         journal, move_type
                     )
@@ -593,9 +617,35 @@ class AccountMove(models.Model):
                     missing.append('Imputación Tributaria')
                 if missing:
                     raise exceptions.ValidationError(
-                        'No se puede confirmar el comprobante sin completar: %s.'
-                        % ', '.join(missing)
+                        '%s%s' % (
+                            'No se puede confirmar el comprobante sin completar: %s.'
+                            % ', '.join(missing),
+                            move._local_py_aclaracion_numero_electronico(missing),
+                        )
                     )
+
+    def _local_py_aclaracion_numero_electronico(self, missing):
+        """Aclaración extra cuando lo que falta es el Nro. Documento de un comprobante
+        de Diario ELECTRÓNICO.
+
+        El mensaje genérico ("...sin completar: Nro. Documento") es correcto pero
+        desorienta: en un Diario electrónico local_py no propone el número a
+        propósito, así que el usuario lo busca donde no está. Se sigue exigiendo
+        igual —un comprobante confirmado sin número deja un hueco en el Libro Ventas
+        y en Marangatu, que sí son de local_py—, pero se explica de dónde tiene que
+        venir. No se nombra ningún módulo en particular: local_py no depende de
+        ninguno ni sabe cuál está instalado."""
+        self.ensure_one()
+        if 'Nro. Documento' not in missing or not self.journal_id \
+                or self.journal_id._local_py_numera_este_diario():
+            return ''
+        return (
+            '\n\nEl Tipo Fiscal de este Diario ("%s") es electrónico: el Nro. Documento '
+            'no lo asigna la localización, lo completa el módulo de Facturación '
+            'Electrónica. Si quedó vacío, revise que ese módulo esté instalado y '
+            'configurado para el Diario "%s".'
+            % (self.journal_id.local_py_tipo_fiscal_id.name or '', self.journal_id.name)
+        )
 
     @api.constrains('invoice_payment_term_id', 'move_type', 'state')
     def _check_local_py_terminos_pago_proveedor(self):

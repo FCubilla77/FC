@@ -201,6 +201,14 @@
                 <li>Los desplegables de la planilla (Tipos Fiscales, Conceptos IVA, Imputación Tributaria, Monedas, Bancos, Diarios de Banco y Usuarios) se arman con los registros ACTIVOS de la propia base: un registro archivado no se puede elegir en el formulario correspondiente, así que tampoco se acepta en la planilla</li>
                 <li>Verificador estático incluido en el módulo (<b>python3 verificar.py</b>, no requiere Odoo ni base de datos): controla que todo campo usado en una vista exista, que las referencias de permisos y los IDs XML resuelvan, que no haya sintaxis incompatible con Odoo 19, que el manifest y los imports estén completos, y que los nombres de campo de la plantilla y los tipos de cuenta de los reportes sigan siendo válidos</li>
             </ul>
+            <h5 style="margin-top: 20px;">Numeración Fiscal de Comprobantes</h5>
+            <ul>
+                <li>Numeración automática del Nro. Documento en facturas y notas de crédito de venta, tomada del Timbrado del diario: propone el siguiente correlativo, saltea los Documentos Anulados registrados y avisa al alcanzar el Nro. Documento Final</li>
+                <li>Separación entre comprobantes físicos y electrónicos: local_py numera únicamente los diarios cuyo Tipo Fiscal tiene tildado «Es Físico» (talonario en papel). En los diarios con Tipo Fiscal electrónico deja el Nro. Documento vacío, para que lo complete el módulo de Facturación Electrónica en ese mismo campo — los dos deciden por un dato propio y ninguno consulta al otro</li>
+                <li>Al cambiar de diario en el comprobante, el número se recalcula para el nuevo Timbrado si el diario es físico, y se limpia si es electrónico, de modo que nunca queda pegado un número del talonario anterior</li>
+                <li>El Nro. Documento se sigue exigiendo para confirmar cualquier comprobante, sea físico o electrónico: uno confirmado sin número dejaría un hueco en el Libro Ventas y en Marangatu. Cuando el diario es electrónico, el mensaje aclara de dónde tiene que venir el número</li>
+                <li>Documentos Anulados (números de talonario dañados o no utilizados, a omitir en la numeración) aplica solo a los diarios físicos</li>
+            </ul>
             <h5 style="margin-top: 20px;">Rúbricas</h5>
             <ul>
                 <li>Rúbricas: no se permiten dos registros de la misma compañía con igual combinación de Id, Fecha y Uso (validación activa incluso en Borrador)</li>

@@ -142,13 +142,44 @@ class AccountJournal(models.Model):
                 maximo = correlativo
         return maximo
 
+    def _local_py_numera_este_diario(self):
+        """True si la numeración de este Diario le corresponde a local_py.
+
+        Le corresponde cuando el Tipo Fiscal del Diario es FÍSICO (talonario en
+        papel), y también cuando el Diario no tiene Tipo Fiscal — ahí no hay
+        «Es Físico» que consultar y se mantiene el comportamiento de siempre.
+        Los Diarios con Tipo Fiscal electrónico los administra el módulo de
+        Facturación Electrónica, que escribe en el mismo campo
+        `local_py_nro_documento`.
+
+        Es el único lugar donde se decide esto: lo usan la propuesta de número, el
+        `create()` de account.move y el mensaje de error al confirmar."""
+        self.ensure_one()
+        tipo_fiscal = self.local_py_tipo_fiscal_id
+        return not tipo_fiscal or tipo_fiscal.local_py_es_fisico
+
     def local_py_siguiente_numero_disponible(self):
         """Calcula el próximo Nro. Documento a proponer para este Diario:
         parte del Correlativo siguiente al de la última Factura/NC/ND ya
         creada (o el Nro. Documento configurado, si todavía no hay ninguna),
         y salta los que estén registrados en Documentos Anulados — validando
-        en cada salto que no se pase del Nro. Documento Final."""
+        en cada salto que no se pase del Nro. Documento Final.
+
+        Solo numera los Diarios FÍSICOS (Tipo Fiscal con «Es Físico» tildado).
+        La numeración de los comprobantes electrónicos la administra el módulo de
+        Facturación Electrónica, que escribe en este mismo campo; devolver vacío acá
+        es lo que le deja el lugar libre. El filtro va en esta función y no en cada
+        llamador para que cualquier llamada futura quede cubierta sin repetirlo.
+
+        Los dos módulos deciden por un dato propio y ninguno consulta al otro: acá
+        ese dato es `local_py_es_fisico`, que local_py declara con default True. Por
+        eso, en una base donde nadie lo haya destildado, todo se sigue numerando
+        igual que antes de este cambio.
+
+        Ver `_local_py_numera_este_diario()` para el criterio exacto."""
         self.ensure_one()
+        if not self._local_py_numera_este_diario():
+            return False
         ultimo_move = self.env['account.move'].search([
             ('journal_id', '=', self.id),
             ('local_py_nro_documento', '!=', False),

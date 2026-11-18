@@ -489,7 +489,78 @@ def check_exencion_instalacion():
 
 
 # ---------------------------------------------------------------------------
-# 16. Plantilla Excel de configuración
+# 16. Separación entre numeración física y electrónica
+# ---------------------------------------------------------------------------
+def check_numeracion_fisica():
+    """local_py numera únicamente los Diarios FÍSICOS; los electrónicos los
+    administra el módulo de Facturación Electrónica, escribiendo en el mismo campo
+    `local_py_nro_documento`.
+
+    Si alguien saca el filtro, local_py vuelve a pisar los números del otro módulo
+    y el daño es silencioso: los comprobantes salen con un número del talonario
+    físico que no les corresponde. Por eso se controla acá."""
+    journal, move = 'models/account_journal.py', 'models/account_move.py'
+    if not (os.path.exists(journal) and os.path.exists(move)):
+        return
+    fuente_journal, fuente_move = leer(journal), leer(move)
+
+    if 'def _local_py_numera_este_diario(self):' not in fuente_journal:
+        err("[numeración] falta _local_py_numera_este_diario() en account.journal: es "
+            "el único lugar donde se decide a qué Diarios numera local_py")
+        return
+
+    # El filtro va en la función que propone el número (el embudo), no en cada
+    # llamador: así cualquier llamada futura queda cubierta sin repetirlo.
+    try:
+        i = fuente_journal.index('def local_py_siguiente_numero_disponible')
+        cuerpo = fuente_journal[i:fuente_journal.index('\n    def ', i + 10)]
+    except ValueError:
+        err("[numeración] no pude leer local_py_siguiente_numero_disponible()")
+        return
+    # Se busca la LÍNEA DE CÓDIGO, no el nombre suelto: el docstring de esa función
+    # menciona el predicado, así que buscar solo el nombre daría por bueno un cuerpo
+    # al que le sacaron el filtro.
+    if 'if not self._local_py_numera_este_diario():' not in cuerpo:
+        err("[numeración] local_py_siguiente_numero_disponible() dejó de filtrar por "
+            "Diario físico: va a volver a numerar los comprobantes electrónicos")
+
+    # El onchange NO debe filtrar: tiene que limpiar el número al pasar de un Diario
+    # físico a uno electrónico, o queda pegado el del talonario anterior.
+    try:
+        i = fuente_move.index('def _onchange_journal_id_local_py')
+        cuerpo = fuente_move[i:fuente_move.index('\n    @api.model_create_multi', i)]
+    except ValueError:
+        cuerpo = ''
+    if cuerpo and ('_local_py_numera_este_diario' in cuerpo or 'es_fisico' in cuerpo):
+        err("[numeración] _onchange_journal_id_local_py() filtra por Diario físico: "
+            "así deja de limpiar el Nro. Documento al cambiar de un Diario físico a "
+            "uno electrónico, y queda pegado el número del talonario anterior")
+
+    # create(): el filtro va ADEMÁS del "if not vals.get(...)", que respeta un número
+    # que venga de afuera.
+    try:
+        i = fuente_move.index('    def create(self, vals_list):')
+        cuerpo = fuente_move[i:fuente_move.index('return super().create(vals_list)', i)]
+    except ValueError:
+        cuerpo = ''
+    if cuerpo:
+        if "if not vals.get('local_py_nro_documento')" not in cuerpo:
+            err("[numeración] create() dejó de respetar un Nro. Documento que venga de "
+                "afuera (se perdió el \"if not vals.get(...)\")")
+        if '_local_py_numera_este_diario()' not in cuerpo:
+            err("[numeración] create() dejó de filtrar por Diario físico: va a numerar "
+                "los comprobantes electrónicos")
+
+    # El número se sigue exigiendo al confirmar: un comprobante posteado sin Nro.
+    # Documento deja un hueco en el Libro Ventas y en Marangatu, que son de local_py.
+    if ("if not move.local_py_nro_documento:\n                    "
+            "missing.append('Nro. Documento')") not in fuente_move:
+        err("[numeración] se aflojó la exigencia de Nro. Documento al confirmar: un "
+            "comprobante sin número deja un hueco en el Libro Ventas y en Marangatu")
+
+
+# ---------------------------------------------------------------------------
+# 17. Plantilla Excel de configuración
 # ---------------------------------------------------------------------------
 def check_plantilla():
     """Un typo en los nombres de campo de la plantilla no se vería hasta APLICARLA,
@@ -580,7 +651,7 @@ def check_plantilla():
 
 
 # ---------------------------------------------------------------------------
-# 17. Tipos de cuenta de Libro Inventario y Estado de Resultados
+# 18. Tipos de cuenta de Libro Inventario y Estado de Resultados
 # ---------------------------------------------------------------------------
 def check_tipos_de_cuenta():
     ruta = 'models/local_py_libro_report.py'
@@ -632,6 +703,7 @@ def main():
     check_csv_de_datos()
     check_reportes()
     check_exencion_instalacion()
+    check_numeracion_fisica()
     check_plantilla()
     check_tipos_de_cuenta()
 

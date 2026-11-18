@@ -271,3 +271,132 @@ class TestReportesPorTipoDeCuenta(TransactionCase):
         bucle_b = _Grupo(11, bucle_a)
         bucle_a.parent_id = bucle_b
         self.assertEqual(_nivel_grupo(bucle_a), 2)
+
+
+@tagged('post_install', '-at_install')
+class TestNumeracionFisicaElectronica(TransactionCase):
+    """local_py numera únicamente los Diarios FÍSICOS. Los electrónicos los administra
+    el módulo de Facturación Electrónica, escribiendo en el mismo campo
+    `local_py_nro_documento`; local_py le deja el lugar vacío."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.tipo_fisico = cls.env['local_py.tipo_fiscal'].create({
+            'name': 'Factura Prueba Física', 'code': '109', 'local_py_es_fisico': True})
+        cls.tipo_electronico = cls.env['local_py.tipo_fiscal'].create({
+            'name': 'Factura Prueba Electrónica', 'code': '109', 'local_py_es_fisico': False})
+        cls.diario_fisico = cls._diario('Venta Física', 'TFIS', cls.tipo_fisico)
+        cls.diario_electronico = cls._diario('Venta Electrónica', 'TELE', cls.tipo_electronico)
+
+    @classmethod
+    def _diario(cls, nombre, codigo, tipo_fiscal):
+        return cls.env['account.journal'].create({
+            'name': nombre, 'code': codigo, 'type': 'sale',
+            'local_py_tipo_fiscal_id': tipo_fiscal.id,
+            'local_py_timbrado': 12345678,
+            'local_py_nro_documento': '001-001-0000001',
+            'local_py_nro_documento_final': '001-001-9999999',
+            'local_py_inicio_vigencia_timbrado': '2026-01-01',
+            'local_py_venc_timbrado': '2026-12-31',
+        })
+
+    def test_01_el_predicado_distingue_fisico_de_electronico(self):
+        self.assertTrue(self.diario_fisico._local_py_numera_este_diario())
+        self.assertFalse(self.diario_electronico._local_py_numera_este_diario())
+
+    def test_02_un_diario_sin_tipo_fiscal_se_sigue_numerando(self):
+        """No se pidió cambiar ese caso: sin Tipo Fiscal no hay «Es Físico» que
+        consultar, así que se mantiene el comportamiento anterior."""
+        diario = self.env['account.journal'].create({
+            'name': 'Venta Sin Tipo', 'code': 'TSTF', 'type': 'sale',
+            'local_py_nro_documento': '001-001-0000001'})
+        self.assertTrue(diario._local_py_numera_este_diario())
+        self.assertEqual(diario.local_py_siguiente_numero_disponible(), '001-001-0000001')
+
+    def test_03_solo_propone_numero_para_el_diario_fisico(self):
+        self.assertEqual(self.diario_fisico.local_py_siguiente_numero_disponible(),
+                         '001-001-0000001')
+        self.assertFalse(self.diario_electronico.local_py_siguiente_numero_disponible())
+
+    def test_04_destildar_es_fisico_apaga_la_numeracion(self):
+        """El interruptor es el Tipo Fiscal, no el Diario: destildarlo tiene que
+        bastar, sin tocar nada del Diario."""
+        self.assertTrue(self.diario_fisico.local_py_siguiente_numero_disponible())
+        self.tipo_fisico.local_py_es_fisico = False
+        self.assertFalse(self.diario_fisico.local_py_siguiente_numero_disponible())
+
+    def test_05_create_numera_el_fisico_y_no_el_electronico(self):
+        fisica = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'journal_id': self.diario_fisico.id})
+        electronica = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'journal_id': self.diario_electronico.id})
+        self.assertEqual(fisica.local_py_nro_documento, '001-001-0000001')
+        self.assertFalse(electronica.local_py_nro_documento)
+        # El Timbrado y el Tipo Fiscal se completan en los dos casos.
+        for move, tipo in ((fisica, self.tipo_fisico), (electronica, self.tipo_electronico)):
+            self.assertEqual(move.local_py_timbrado, 12345678)
+            self.assertEqual(move.local_py_tipo_fiscal_id, tipo)
+
+    def test_06_create_respeta_un_numero_que_venga_de_afuera(self):
+        """Es lo que le deja el lugar al módulo de Facturación Electrónica."""
+        electronica = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'journal_id': self.diario_electronico.id,
+            'local_py_nro_documento': '002-002-0000055'})
+        self.assertEqual(electronica.local_py_nro_documento, '002-002-0000055')
+        fisica = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'journal_id': self.diario_fisico.id,
+            'local_py_nro_documento': '001-001-0000777'})
+        self.assertEqual(fisica.local_py_nro_documento, '001-001-0000777')
+
+    def test_07_al_pasar_de_fisico_a_electronico_el_numero_se_limpia(self):
+        """Si el onchange filtrara en vez de asignar siempre, quedaría pegado el
+        número del talonario del Diario anterior."""
+        move = self.env['account.move'].new({
+            'move_type': 'out_invoice', 'journal_id': self.diario_fisico.id})
+        move._onchange_journal_id_local_py()
+        self.assertEqual(move.local_py_nro_documento, '001-001-0000001')
+        move.journal_id = self.diario_electronico
+        move._onchange_journal_id_local_py()
+        self.assertFalse(move.local_py_nro_documento,
+                         "Al pasar a un Diario electrónico el número tiene que quedar vacío.")
+        self.assertEqual(move.local_py_tipo_fiscal_id, self.tipo_electronico)
+
+    def test_08_al_volver_a_un_diario_fisico_se_renumera(self):
+        move = self.env['account.move'].new({
+            'move_type': 'out_invoice', 'journal_id': self.diario_electronico.id})
+        move._onchange_journal_id_local_py()
+        self.assertFalse(move.local_py_nro_documento)
+        move.journal_id = self.diario_fisico
+        move._onchange_journal_id_local_py()
+        self.assertEqual(move.local_py_nro_documento, '001-001-0000001')
+
+    def test_09_el_numero_se_sigue_exigiendo_al_confirmar(self):
+        """No se aflojó: un comprobante confirmado sin Nro. Documento deja un hueco
+        en el Libro Ventas y en Marangatu, que son de local_py."""
+        from odoo.exceptions import ValidationError
+        move = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'journal_id': self.diario_electronico.id})
+        with self.assertRaises(ValidationError) as capturado:
+            move.state = 'posted'
+        self.assertIn('Nro. Documento', str(capturado.exception))
+
+    def test_10_el_mensaje_explica_de_donde_sale_el_numero_electronico(self):
+        move = self.env['account.move'].new({
+            'move_type': 'out_invoice', 'journal_id': self.diario_electronico.id})
+        aclaracion = move._local_py_aclaracion_numero_electronico(['Nro. Documento'])
+        self.assertIn('electrónico', aclaracion)
+        self.assertIn(self.diario_electronico.name, aclaracion)
+        # En un Diario físico no se agrega ninguna aclaración.
+        fisica = self.env['account.move'].new({
+            'move_type': 'out_invoice', 'journal_id': self.diario_fisico.id})
+        self.assertEqual(fisica._local_py_aclaracion_numero_electronico(['Nro. Documento']), '')
+        # Y tampoco si lo que falta es otra cosa.
+        self.assertEqual(move._local_py_aclaracion_numero_electronico(['Timbrado']), '')
+
+    def test_11_documentos_anulados_sigue_siendo_solo_de_los_fisicos(self):
+        from odoo.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            self.env['local_py.documento_anulado'].create({
+                'diario_id': self.diario_electronico.id,
+                'numero': '001-001-0000005', 'motivo': 'Prueba'})
