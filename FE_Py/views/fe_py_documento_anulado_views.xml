@@ -4,6 +4,15 @@
         <record id="view_fe_py_documento_anulado_list" model="ir.ui.view">
             <field name="name">fe_py.documento_anulado.list</field>
             <field name="model">fe_py.documento_anulado</field>
+            <!--
+                Este ID existía en la versión anterior como vista HEREDADA de
+                local_py. Al reusarlo, Odoo conserva el inherit_id viejo si el
+                registro nuevo no lo pisa, y valida el arch combinado contra el
+                modelo ajeno. Se fuerzan inherit_id y mode para cortar esa
+                herencia heredada de la instalación anterior.
+            -->
+            <field name="inherit_id" eval="False"/>
+            <field name="mode">primary</field>
             <field name="arch" type="xml">
                 <list string="Documentos Anulados">
                     <field name="journal_id"/>
@@ -21,6 +30,15 @@
         <record id="view_fe_py_documento_anulado_form" model="ir.ui.view">
             <field name="name">fe_py.documento_anulado.form</field>
             <field name="model">fe_py.documento_anulado</field>
+            <!--
+                Este ID existía en la versión anterior como vista HEREDADA de
+                local_py. Al reusarlo, Odoo conserva el inherit_id viejo si el
+                registro nuevo no lo pisa, y valida el arch combinado contra el
+                modelo ajeno. Se fuerzan inherit_id y mode para cortar esa
+                herencia heredada de la instalación anterior.
+            -->
+            <field name="inherit_id" eval="False"/>
+            <field name="mode">primary</field>
             <field name="arch" type="xml">
                 <form string="Documento Anulado">
                     <sheet>
